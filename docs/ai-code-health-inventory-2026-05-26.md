@@ -80,7 +80,7 @@ src/data/world-editor-draft.js          corrupt draft -> null with observable st
 src/data/gambling-venues.js             corrupt venue metadata -> [] with observable status
 src/systems/player-economy-state.js     corrupt economy -> default economy
 src/systems/economy-ledger.js           corrupt ledger -> []
-src/systems/game-action-master.js       unclonable payload -> {}
+src/systems/game-action-master.js       unclonable payload -> {} with observable clone_failed status
 src/systems/ost-player.js               audio play failure -> user-facing status
 src/systems/local-ledger-effect.js       ledger apply failure -> observable status
 src/ui/exchange-atm-panel.js            ledger apply failure -> UI failure message with reason
@@ -122,6 +122,8 @@ Facade repair completed so far:
 
 Continue the silent-fallback bug-hunt pass.
 
-Next target: `src/systems/game-action-master.js` `cloneJson()` fallback. It still converts unclonable action/effect payloads into `{}` without a visible status, which can make malformed actions look valid.
+Completed target: `src/systems/game-action-master.js` `cloneJson()` fallback now preserves the safe `{}` payload fallback while adding `payloadCloneStatus` and `payloadCloneReason` to actions/effects.
+
+Next target: run clean/stale `localStorage` browser workflows so persistence bugs can be separated from gameplay bugs.
 
 Do not add reset buttons or broad refactors yet. Convert one silent fallback at a time into an observable result.

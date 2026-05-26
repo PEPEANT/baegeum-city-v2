@@ -121,6 +121,11 @@
         <button class="table-game-bet" type="button" data-chip-option="50">50</button>
         <button class="table-game-bet" type="button" data-chip-option="100">100</button>
       </div>
+      <div class="table-game-row table-game-results" role="group" aria-label="홀짝 결과 테스트">
+        <button class="table-game-result" type="button" data-odd-even-result="odd" disabled>결과 홀</button>
+        <button class="table-game-result" type="button" data-odd-even-result="even" disabled>결과 짝</button>
+        <button id="oddEvenRefundButton" class="table-game-result" type="button" disabled>환불</button>
+      </div>
       <button id="oddEvenStartButton" class="table-game-start" type="button" disabled>베팅 시스템 준비중</button>
       <p id="oddEvenHint" class="table-game-hint">지금은 UI 확인 단계. 다음 루프에서 bet_reserved를 연결.</p>
     </section>

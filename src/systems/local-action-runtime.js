@@ -236,7 +236,7 @@ function createChannelEffect(channelId, systemText) {
 }
 
 function createLocalRoundId(gameType) {
-  const stamp = new Date().toISOString().replace(/[^0-9]/g, "").slice(0, 14);
+  const stamp = new Date().toISOString().replace(/[^0-9]/g, "").slice(0, 17);
   return `round:${gameType}:local:${stamp}`;
 }
 

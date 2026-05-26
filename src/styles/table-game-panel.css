@@ -61,8 +61,13 @@ body.phone-stage-active .table-game-panel {
   grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
+.table-game-results {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
 .table-game-choice,
 .table-game-bet,
+.table-game-result,
 .table-game-start {
   border: 1px solid rgba(255, 255, 255, 0.10);
   border-radius: 13px;
@@ -73,7 +78,8 @@ body.phone-stage-active .table-game-panel {
 }
 
 .table-game-choice,
-.table-game-bet {
+.table-game-bet,
+.table-game-result {
   height: 38px;
   cursor: pointer;
 }
@@ -83,6 +89,19 @@ body.phone-stage-active .table-game-panel {
   border-color: rgba(255, 211, 107, 0.62);
   background: rgba(255, 211, 107, 0.18);
   color: #ffffff;
+}
+
+.table-game-choice:disabled,
+.table-game-bet:disabled,
+.table-game-result:disabled,
+.table-game-start:disabled {
+  cursor: not-allowed;
+  opacity: 0.58;
+}
+
+.table-game-result:not(:disabled) {
+  border-color: rgba(255, 211, 107, 0.48);
+  background: rgba(255, 211, 107, 0.13);
 }
 
 .table-game-start {

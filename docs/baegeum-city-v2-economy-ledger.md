@@ -15,6 +15,7 @@
 ```text
 baegeum-city:v2:economy
 baegeum-city:v2:economy-ledger
+baegeum-city:v2:odd-even-rounds
 ```
 
 현재 entry 버전:
@@ -91,10 +92,13 @@ update(patch)
 - ATM 버튼을 누를 때 `exchange_chips` action이 생성되고, 해당 action의 `economy_ledger_entry` effect가 `chip_exchange` entry를 남긴다.
 - 현재 고정 교환 비율은 DiceLand 기준과 맞춘 1칩 = 1,000원이며, 선택 단위는 10/50/100칩이다.
 - `cash -> chips`, `chips -> cash` 모두 같은 `chip_exchange` entry를 쓰고, 현금 또는 칩이 부족하면 ledger entry를 만들지 않는다.
-- 홀짝카지노 테이블 시작 버튼은 현재 `bet_reserved` action만 만들고, `chips` 음수 ledger entry로 베팅 칩을 예약한다.
-- 홀짝 결과, 환불, 정산, 랭킹 반영은 아직 연결하지 않는다.
+- 홀짝카지노 테이블 시작 버튼은 `bet_reserved` action을 만들고, `chips` 음수 ledger entry로 베팅 칩을 예약한다.
+- 홀짝 결과/환불 테스트 버튼은 `bet_settled` 또는 `bet_refunded` action envelope만 사용한다.
+- `src/systems/odd-even-round-state.js`는 `baegeum-city:v2:odd-even-rounds`에 로컬 라운드 상태를 남겨 같은 `roundId`가 두 번 정산/환불되지 않게 막는다.
+- 재접속 복구, 서버 권위 정산, 랭킹 반영은 아직 연결하지 않는다.
 
 ## 다음 구현 기준
 
-1. 승패 결과는 `bet_refunded`/`bet_settled`로만 반영한다.
-2. 랭킹은 현재 잔고가 아니라 ledger 집계 결과를 기준으로 만든다.
+1. 브라우저에서 예약, 정산, 환불, HUD 잔고, ledger projection이 일치하는지 확인한다.
+2. clean/stale localStorage 검사에서 경제 ledger와 odd-even round state를 함께 본다.
+3. 랭킹은 현재 잔고가 아니라 ledger 집계 결과를 기준으로 만든다.

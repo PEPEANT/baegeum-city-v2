@@ -70,5 +70,6 @@
 
 ## 다음 문서
 
+- `baegeum-city-v2-economy-loop-contract.md`: 돈 생성/소멸/환전/송금/베팅/시간 이벤트의 전체 경제 루프 계약
 - `baegeum-city-v2-economy-ledger.md`: append-only ledger entry 상세 규칙
 - `baegeum-city-v2-inventory-master.md`: 인벤토리/아이템 상세 규칙

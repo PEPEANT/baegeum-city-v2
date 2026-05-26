@@ -35,6 +35,26 @@ game-effect-001
 game-action-envelope-001
 ```
 
+## Payload Clone Observability
+
+Current action/effect payload cloning keeps the old safe fallback behavior but no longer fails silently.
+
+When a payload can be cloned, actions and effects include:
+
+```js
+payloadCloneStatus: "ok",
+payloadCloneReason: null
+```
+
+When a payload cannot be cloned, such as a circular object or `BigInt`, the payload still falls back to `{}` for prototype safety, but the action/effect also includes:
+
+```js
+payloadCloneStatus: "clone_failed",
+payloadCloneReason: "..."
+```
+
+This is diagnostics-only. UI and economy code should continue reading `payload`, while bug-hunt tools can inspect the clone status.
+
 ## GameAction
 
 플레이어가 요청한 행동이다. 클라이언트는 결과를 직접 확정하지 않고 action을 만든다.
@@ -89,12 +109,14 @@ sit_table        카지노 테이블 착석
 leave_table      테이블 나가기
 exchange_chips   현금/칩 교환
 bet_reserved     베팅 칩 예약
+bet_settled      예약된 베팅 정산
+bet_refunded     예약된 베팅 환불
 buy_item         편의점 음식, 입장권 등 구매
 drive_vehicle    차량 운전
 use_item         일반 아이템 사용
 ```
 
-현재 코드 기준 추가 action: `bet_reserved`는 베팅 칩 예약만 의미하며 결과 정산을 포함하지 않는다.
+현재 코드 기준 `bet_reserved`는 베팅 칩 예약을 의미한다. `bet_settled`와 `bet_refunded`는 예약된 홀짝 라운드를 닫는 action envelope이며, 홀짝 테이블 UI의 로컬 테스트 정산/환불 버튼이 이 envelope만 사용한다.
 
 ## Effect 타입
 
@@ -117,9 +139,12 @@ ui_message               안내 메시지 표시
 - 현재 도박장 실내 `환전 ATM` 근처에서는 ATM 패널만 열고, 환전 버튼을 누를 때 `exchange_chips` action을 만든다.
 - 칩교환은 10/50/100칩 단위의 `cash -> chips`, `chips -> cash`를 지원하며 ledger 적용이 실패하면 action history에 커밋하지 않는다.
 - 현재 카지노 테이블은 `sit_table`, `leave_table` action으로 `venue_lobby`와 `table_seated`를 오간다.
-- 현재 홀짝카지노 테이블 UI는 `table_seated` 상태에서만 표시되고, 시작 버튼은 `bet_reserved` action과 `economy_ledger_entry` effect만 만든다.
+- 현재 홀짝카지노 테이블 UI는 `table_seated` 상태에서만 표시되고, 시작 버튼은 `bet_reserved` action과 `economy_ledger_entry` effect를 만든다.
+- 결과/환불 버튼은 `src/systems/odd-even-round-runtime.js`의 `bet_settled` 또는 `bet_refunded` envelope로만 닫는다.
+- `src/systems/odd-even-round-state.js`는 같은 `roundId`의 중복 정산/중복 환불을 로컬 저장소에서 막는다.
 
 ## 다음 구현 기준
 
-1. 홀짝 결과 버튼은 아직 붙이지 않고, 첫 결과 처리는 `bet_refunded`/`bet_settled`만 사용한다.
-2. 차량은 `drive_vehicle` action과 `license:driver`, `vehicle_key:*` 조건으로 붙인다.
+1. 홀짝 정산/환불 UI는 브라우저에서 ledger/HUD 일치까지 확인한다.
+2. clean/stale localStorage 검사에서 action history, ledger, odd-even round state를 함께 본다.
+3. 차량은 `drive_vehicle` action과 `license:driver`, `vehicle_key:*` 조건으로 붙인다.

@@ -8,7 +8,7 @@ The current bug pattern is structural:
 
 - Runtime state now goes through `src/systems/runtime-state-facade.js`; `src/scenes/city-scene.js` still owns the scene state, but no longer publishes by directly touching the global bridge.
 - Browser `localStorage` can keep old drafts, economy, ledger, venue metadata, or skins after code changes.
-- Several catch blocks hide the original error and return a clean-looking fallback. The first money-affecting ledger write path is now observable through `src/systems/local-ledger-effect.js`.
+- Several catch blocks hide the original error and return a clean-looking fallback. Money-affecting ledger writes are now observable through `src/systems/local-ledger-effect.js`, and action/effect payload clone failures now expose `payloadCloneStatus`.
 - Large hub files collect many responsibilities because every new feature needs one more hook.
 - The repository has no tracked baseline, so agents cannot use Git history to tell old state from new mistakes.
 
@@ -81,7 +81,7 @@ world editor draft parse status is observable, but UI reset flow is not added
 venue metadata parse status is observable, but UI reset flow is not added
 player economy parse
 economy ledger parse
-game action clone
+game action clone status is observable
 exchange ATM ledger effect status is observable
 odd-even ledger effect status is observable
 OST play failure
@@ -130,6 +130,7 @@ Phase 3: expose stale persistence.
 - Venue metadata readers now expose the same status pattern without clearing user data.
 - World-editor draft readers now expose the same status pattern without clearing user data.
 - Money-affecting ledger effect failures now return `missing_effect`, `missing_economy_record`, or `record_failed`.
+- Game action/effect payload clone failures now keep the safe `{}` fallback but expose `clone_failed` and a reason.
 
 Phase 4: expose silent failures.
 
@@ -154,7 +155,7 @@ After the final scene publication repair, use this order:
    For each localStorage-backed system, record key, owner, reset path, corrupt-data behavior, and migration expectation. Do not fix all keys at once.
 
 3. Silent failure pass
-   Continue after money-affecting failures with `game-action-master` payload cloning. Economy parse, ledger parse, exchange ATM ledger effect, and odd-even ledger effect are now observable.
+   Economy parse, ledger parse, exchange ATM ledger effect, odd-even ledger effect, and `game-action-master` payload cloning are now observable. Continue only when a concrete symptom points to another silent fallback.
 
 4. Browser workflow pass
    Run the same workflow twice: once with clean localStorage and once with intentionally stale localStorage. Bugs that appear only in the second run are persistence bugs, not gameplay bugs.
@@ -184,9 +185,9 @@ Continue the silent-fallback bug hunt.
 Recommended next target:
 
 ```text
-game-action payload clone failure observability
+clean/stale localStorage browser workflow pass
 ```
 
-Reason: source-level runtime global access is centralized now, corrupt storage is observable for money, ledger, venue metadata, and world-editor drafts, and ledger effect failures are observable. The next common "bug that looks like code" is malformed or unclonable action/effect payload data silently becoming `{}`.
+Reason: source-level runtime global access is centralized now, corrupt storage is observable for money, ledger, venue metadata, and world-editor drafts, ledger effect failures are observable, and malformed action/effect payload clone failures now expose `clone_failed`. The next common "bug that looks like code" is stale browser state surviving between runs.
 
-Do not add payouts, rankings, or reset UI yet. First make one failed action/effect payload path return or expose a useful failure reason, add a smoke check, then decide whether that reason belongs in debug UI or only diagnostics.
+Do not add payouts, rankings, or reset UI yet. First run the same browser workflow with clean and stale localStorage, then record which symptoms are persistence bugs rather than gameplay bugs.

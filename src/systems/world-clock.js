@@ -1,5 +1,7 @@
+export const WORLD_CLOCK_DEFAULT_MINUTES_PER_SECOND = 1;
+
 export class WorldClock {
-  constructor({ startDay = 1, startHour = 8, startMinute = 0, minutesPerSecond = 1 } = {}) {
+  constructor({ startDay = 1, startHour = 8, startMinute = 0, minutesPerSecond = WORLD_CLOCK_DEFAULT_MINUTES_PER_SECOND } = {}) {
     this.day = startDay;
     this.minuteOfDay = clampMinute(startHour * 60 + startMinute);
     this.minutesPerSecond = minutesPerSecond;

@@ -5,6 +5,7 @@
 배금도시 v2 개발을 이어가기 위한 설계/운영 문서 목록이다.
 
 - [배금도시 v2 기초 토대](baegeum-city-v2-foundation.md): 초기 구현 전 개발 원칙, 코드 크기 제한, 원본 이식 규칙, 오프라인/온라인 단계 계획.
+- [배금도시 v2 재설계 기준선](baegeum-city-v2-system-redesign-baseline.md): 첫 완성 루프, 데이터 주인, 경제/시간/온라인/UI 게이트, 지금 하지 말 것과 다음 순서를 다시 고정한 기준 문서.
 - [배금도시 v2 첫 수직 조각](baegeum-city-v2-first-slice.md): 현재 구현된 오프라인 도시 코어, 실행 방법, 검증 결과, 다음 단계.
 - [배금도시 v2 첫 플레이 루프](baegeum-city-v2-first-play-loop.md): 처음 10분 동안 도시, 도박장, 환전, 홀짝 예약이 이어지는 기준 루프와 기능 판단 규칙.
 - [배금도시 v2 작업 큐](baegeum-city-v2-work-queue.md): 여러 채팅에서 동시에 개발할 때 맵에디터, 인게임, 온라인/경제 트랙을 분리하는 우선순위 문서.
@@ -14,12 +15,13 @@
 - [배금도시 v2 맵 에디터 v1](baegeum-city-v2-map-editor-v0.md): 실제 게임 렌더러 기반 월드 에디터, 건설 카드 배치, 선택 액션바, 광고판 팔레트, 로컬 드래프트 저장.
 - [배금도시 v2 월드 오브젝트 시스템](baegeum-city-v2-world-object-system.md): 자동차/문/NPC/상점/테이블 같은 오브젝트의 충돌, 상호작용, 필요 아이템, 런타임 상태 계약.
 - [배금도시 v2 도박장 건물 설계](baegeum-city-v2-gambling-venues.md): 건물별 도박장 종류, 한국어 간판, 입구, 실내 씬, 온라인 방 ID 설계.
-- [배금도시 v2 월드 시간 설계](baegeum-city-v2-world-clock.md): `WorldClock`, 낮밤, 반복 이벤트, 가상 인터넷/NPC/온라인 시간 기준.
+- [배금도시 v2 월드 시간 설계](baegeum-city-v2-world-clock.md): `WorldClock`, 현재 1분/초 기본 속도, 낮밤, 반복 이벤트, 가상 인터넷/NPC/온라인 시간 기준.
 - [배금도시 v2 UI 디자인 규칙](baegeum-city-v2-ui-design-rules.md): 초기 HUD 단순화, 설정 패널, 미니맵/폰/시간 배치 제한.
 - [배금도시 v2 OST](baegeum-city-v2-ost.md): `dis-site` RECLAIM_2.5 BGM 원본 파일, 설정 패널 재생 방식, 음악 추가 규칙.
 - [배금도시 v2 채팅](baegeum-city-v2-chat.md): Drawing World 채팅 원본 고정, 월드 채팅 v1, 말풍선, 향후 온라인 전환 규칙.
 - [배금도시 v2 온라인 상태/프로토콜 설계](baegeum-city-v2-online-state-protocol.md): 플레이어/관전자/관리자 상태, 채널 분리, 서버 권위 경제 규칙.
 - [배금도시 v2 Economy Master](baegeum-city-v2-economy-master.md): `cash / bank / chips / ledger` 기준, 변경 경로, 카지노 전 경제 구현 순서.
+- [배금도시 v2 경제 루프 계약](baegeum-city-v2-economy-loop-contract.md): 돈 생성/소멸, 환전, 송금, 베팅 정산, 시간 이벤트, 서버 권위 경제 빈칸을 고정하는 계약.
 - [배금도시 v2 경제 Ledger 설계](baegeum-city-v2-economy-ledger.md): 현금/계좌/칩/아이템 변화 기록, append-only entry, 로컬 HUD 연결, 서버 권위 전환 기준.
 - [배금도시 v2 Inventory Master](baegeum-city-v2-inventory-master.md): 아이템 id/type/count/stack/source 계약, 가방 슬롯, 음식/교환권/보상 아이템 규칙.
 - [배금도시 v2 Interaction Master](baegeum-city-v2-interaction-master.md): PC `E`와 모바일 `ACTION`이 같은 후보/조건/결과 흐름을 쓰도록 고정한 상호작용 계약.

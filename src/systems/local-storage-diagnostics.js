@@ -6,6 +6,7 @@ import {
   DRAWING_WORLD_SKIN_KEY
 } from "../skins/drawing-world-adapter.js";
 import { ECONOMY_LEDGER_KEY } from "./economy-ledger.js";
+import { ODD_EVEN_ROUND_STATE_KEY } from "./odd-even-round-state.js";
 import { PLAYER_ECONOMY_KEY } from "./player-economy-state.js";
 
 export const STORAGE_DIAGNOSTIC_STATUSES = Object.freeze({
@@ -22,6 +23,7 @@ export const localStorageInventory = Object.freeze([
   storageItem("venue-metadata", venueMetadataStorageKey, "json-array", "src/data/gambling-venues.js"),
   storageItem("player-economy", PLAYER_ECONOMY_KEY, "json-object", "src/systems/player-economy-state.js"),
   storageItem("economy-ledger", ECONOMY_LEDGER_KEY, "json-array", "src/systems/economy-ledger.js"),
+  storageItem("odd-even-rounds", ODD_EVEN_ROUND_STATE_KEY, "json-object", "src/systems/odd-even-round-state.js"),
   storageItem("skin-preset", BAEGEUM_SKIN_PRESET_KEY, "string", "src/skins/drawing-world-adapter.js"),
   storageItem("skin-custom", BAEGEUM_SKIN_KEY, "string", "src/skins/drawing-world-adapter.js", {
     legacyKey: DRAWING_WORLD_SKIN_KEY

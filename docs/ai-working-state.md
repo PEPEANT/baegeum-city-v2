@@ -1,6 +1,6 @@
 # AI Working State
 
-Conclusion: code-health audit is active again after the human asked for a spaghetti/bug root-cause pass. `dice-city-v0` and multimap safety remain verified, but the current work should prefer observability repairs over new gameplay features.
+Conclusion: system redesign baseline is active after the human asked to restart design. `dice-city-v0`, multimap safety, and economy-loop guards remain verified, but the current work should close the first playable economy loop before adding unrelated gameplay features.
 
 Current verified building shell presets: baegeum-city uses `building-shop-shell`, `building-home-shell`, and `building-civic-shell`; dice-city uses `building-casino-shell`, `building-alley-shell`, `building-loan-shell`, and `building-motel-shell`.
 Current verified horse-racing interior sections: `horse-scoreboard`, `horse-track`, `horse-grandstand`, `horse-betting-station`, and `exchange-atm`.
@@ -16,7 +16,15 @@ Current verified horse-racing interior sections: `horse-scoreboard`, `horse-trac
 
 ## Active Priority
 
-Multimap safety is the active priority:
+First playable economy loop is the active priority:
+
+1. The canonical redesign baseline is `docs/baegeum-city-v2-system-redesign-baseline.md`.
+2. The first loop is `baegeum-city lifestyle prep -> bus terminal -> dice-city gambling -> exchange ATM -> odd-even reserve -> settle/refund -> ledger/HUD check -> phone/DIS readback -> return`.
+3. New stock trading, player-to-player transfer, food purchase, hunger ticks, job income, race payout, and admin payout remain blocked until the first loop closes and their ledger/effect contracts exist.
+4. Odd-even UI now connects local `bet_reserved -> bet_settled | bet_refunded` and stores `roundId` close state to prevent duplicate settlement/refund.
+5. Next implementation should browser-check reserve, settle/refund, ledger projection, and HUD state, then run clean/stale localStorage workflows.
+
+Multimap safety remains verified:
 
 1. Pre-multimap backup exists at `C:\Users\rneet\OneDrive\문서\baegeum-city-v2-backups\pre-multimap-20260526-114932`.
 2. `src/data/map-registry.js` owns `baegeum-city` and `dice-city` ids, scene ids, draft keys, spawn ids, and world channels.
@@ -37,7 +45,7 @@ Multimap safety is the active priority:
 17. `src/data/baegeum-city-urban-layout.js` applies `baegeum-city-urban-layout-v1` to runtime/editor baegeum maps. It mutes the ground away from battlefield green, removes red/blue base overlays and legacy `base-wall` objects, replaces them with `city-boundary` outer tunnel/wall objects, and removes battlefield scenery such as sandbags, barricades, and rubble.
 18. The map editor build palette is now city-role aware. `baegeum-city` exposes lifestyle/civic `building_shell` presets, while `dice-city` exposes casino/back-alley/nightlife `building_shell` presets.
 
-Previous bug-first code-health audit state is paused:
+Current bug-first economy/code-health audit state:
 
 1. Phase 1 inventory is recorded in `docs/ai-code-health-inventory-2026-05-26.md`.
 2. The first runtime-state facade repair is implemented in `src/systems/runtime-state-facade.js`.
@@ -46,8 +54,11 @@ Previous bug-first code-health audit state is paused:
 5. `src/systems/local-storage-diagnostics.js` now starts the persistence bug-hunt pass with read-only localStorage status inventory.
 6. Economy, ledger, venue metadata, and world-editor draft readers now expose corrupt-storage status without changing their fallback behavior.
 7. Money-affecting ledger effect failures now flow through `src/systems/local-ledger-effect.js`, so exchange ATM and odd-even bet reservation can report `missing_effect`, `missing_economy_record`, or `record_failed` instead of silently returning `false`.
-8. The next repair should expose `src/systems/game-action-master.js` payload clone failures without changing successful behavior.
-9. Do not add new feature slices until the next repair pass is complete, unless the human explicitly redirects.
+8. `src/systems/game-action-master.js` now exposes payload clone failures with `payloadCloneStatus` and `payloadCloneReason` while preserving the safe `{}` fallback.
+9. `src/data/economy-loop-contract.js` now keeps the money source/sink/exchange/transfer/betting/time/market/server-authority gaps visible and smoke-verified.
+10. `WorldClock` now exports `WORLD_CLOCK_DEFAULT_MINUTES_PER_SECOND = 1`, and `tools/smoke-world-clock.cjs` guards that the official default stays 1 game minute per real second.
+11. `src/systems/odd-even-round-runtime.js` creates local `bet_settled` and `bet_refunded` action envelopes, and `src/ui/odd-even-table-panel.js` now uses them for local result/refund testing.
+12. `src/systems/odd-even-round-state.js` persists odd-even round close state under `baegeum-city:v2:odd-even-rounds`; reconnect recovery is still not implemented.
 
 Horse-racing venue work is paused before gambling logic:
 
@@ -68,6 +79,15 @@ Construction UX remains a paused work-queue slice:
 ## Next Loop Candidate
 
 Recommended next autonomous loop:
+
+Economy loop closure:
+
+1. Browser-check odd-even reserve, settle/refund, ledger projection, and HUD state.
+2. Run clean/stale localStorage workflows covering economy state, economy ledger, odd-even round state, and editor drafts.
+3. If clean/stale workflows pass, choose the next contract slice: food purchase ledger or stat/time tick.
+4. Do not implement player-to-player transfers, stock trading, food purchases, or hunger ticks until their ledger/effect types are explicitly added.
+
+Paused city-role map-editor loop:
 
 City role aware map-editor visual tuning:
 
@@ -111,6 +131,46 @@ Paused loops:
 - `docs/ai-spaghetti-bug-root-cause.md` explains why the spaghetti/bug pattern emerged and now fixes the next audit sequence around persistence, silent failures, and browser workflows.
 
 ## Loop Record
+
+Date: 2026-05-26
+Observed: The first economy loop had local reserve and settlement/refund envelopes, but the table UI still did not close rounds or persist duplicate-close state.
+Changed: Added `src/systems/odd-even-round-state.js`, wired 홀짝 테이블 result/refund buttons to `bet_settled`/`bet_refunded`, persisted local round state under `baegeum-city:v2:odd-even-rounds`, and added localStorage diagnostics coverage. Browser testing also exposed and fixed a UI bug where `requestAnimationFrame` timestamps overwrote the odd-even hint text.
+Verified: `node tools/smoke-odd-even-round-state.cjs`, `node tools/smoke-odd-even-table-panel.cjs`, `node tools/smoke-local-storage-diagnostics.cjs`, `node tools/check-size.cjs`, and `npm run check` passed. Browser verification on `index.html?map=dice-city&spawn=dice-odd-even-casino-01&odd-even-close=20260526b` entered 홀짝카지노, sat at the table, reserved 10 chips, refunded the round, showed `환불 완료: 10칩 반환.`, kept HUD chips at 30, showed `다음 라운드`, and had zero console errors.
+Blocked: Full reconnect recovery and server-authority settlement are still not implemented.
+Next: Run clean/stale localStorage workflows, then decide whether the next contract slice is food purchase ledger or stat/time tick.
+Do not: Add player-to-player transfer, stock trading, rankings, random online results, or hunger ticks before their contracts exist.
+
+Date: 2026-05-26
+Observed: The human asked to restart design, not by deleting work, but by reconsidering what must be fixed before the game grows further.
+Changed: Added `docs/baegeum-city-v2-system-redesign-baseline.md` and linked it from `docs/INDEX.md`. The new baseline narrows the product back to one first playable loop: baegeum-city lifestyle prep, bus transfer to dice-city, casino exchange, odd-even reserve, settlement/refund, ledger/HUD check, phone/DIS readback, and return. It also defines data owners and economy/time/online/UI gates, and explicitly blocks stock trading, player transfer, food purchase, hunger ticks, job income, race payout, and admin payout until their contracts exist.
+Verified: `git diff --check`, `node tools/check-size.cjs`, and `npm run check` passed.
+Blocked: None.
+Next: Connect odd-even UI to the existing settlement/refund envelopes with duplicate-close protection, then run clean/stale localStorage browser workflows.
+Do not: Treat the redesign restart as permission to rewrite maps, delete existing work, or add broad economy features before the first loop closes.
+
+Date: 2026-05-26
+Observed: The previous audit found a dangerous time-contract mismatch: docs said 1 real second equals 6 game minutes while the code default was 1 game minute per real second. The next economy gap was that odd-even could reserve chips but had no local action envelope for settlement or refund.
+Changed: Added `WORLD_CLOCK_DEFAULT_MINUTES_PER_SECOND = 1`, updated world-clock/economy docs to make the slower default official, and added `tools/smoke-world-clock.cjs`. Added `bet_settled` and `bet_refunded` action types plus `src/systems/odd-even-round-runtime.js`, which can close reserved odd-even rounds through `bet_settled` or `bet_refunded` ledger effects. Updated the economy loop contract status for settlement/refund to partial and documented that UI/persistence/reconnect recovery are still not connected.
+Verified: `node tools/smoke-world-clock.cjs`, `node tools/smoke-odd-even-round-runtime.cjs`, `node tools/smoke-economy-loop-contract.cjs`, `node tools/smoke-game-action-master.cjs`, `node tools/check-size.cjs`, and `npm run check` passed.
+Blocked: Odd-even table UI still only reserves bets; it does not yet call the settlement/refund envelopes or prevent duplicate close by persisted round state.
+Next: Connect odd-even table UI to settlement/refund with duplicate-close protection, then browser-check HUD/ledger state.
+Do not: Add player-to-player transfer, stock trading, food purchase, hunger ticks, or online authority behavior before the owning ledger/effect contracts exist.
+
+Date: 2026-05-26
+Observed: The human asked to inspect the game fundamentally before complete design, specifically whether online money transfer, grind income, exchange rate, economic loops, and time-driven systems were missing or tangled.
+Changed: Added `src/data/economy-loop-contract.js` and `tools/smoke-economy-loop-contract.cjs` to make the current economy loop gaps explicit and testable. Added `docs/baegeum-city-v2-economy-loop-contract.md`, linked it from `docs/INDEX.md`, and linked it from the Economy Master next-doc list. The contract confirms current ATM exchange and bet reservation while keeping player transfer, food purchase, stat ticks, market orders, time-driven economy, and settlement gaps visible.
+Verified: `node tools/smoke-economy-loop-contract.cjs`, `node tools/check-size.cjs`, and `npm run check` passed.
+Blocked: None.
+Next: Close the odd-even lifecycle gap with `bet_reserved -> bet_settled | bet_refunded` before adding player transfers, stock trading, hunger ticks, or food purchase loops.
+Do not: Use `economy.update()` for production money changes, implement player-to-player transfers without server authority, or let client UI decide gambling results in an online-ready path.
+
+Date: 2026-05-26
+Observed: The next documented spaghetti repair target was `src/systems/game-action-master.js`, where an unclonable action/effect payload could still become `{}` without a visible reason.
+Changed: Added `GAME_PAYLOAD_CLONE_STATUSES` plus `payloadCloneStatus` and `payloadCloneReason` to created actions/effects. Successful payloads report `ok`; circular objects, `BigInt`, and other unclonable payloads keep the old safe `{}` fallback but now report `clone_failed` with a reason. Strengthened `tools/smoke-game-action-master.cjs` with circular and `BigInt` failure cases.
+Verified: `node tools/smoke-game-action-master.cjs`, `node tools/check-size.cjs`, `git diff --check`, and `npm run check` passed.
+Blocked: None.
+Next: Start the clean/stale localStorage browser workflow pass.
+Do not: Add payouts, rankings, reset UI, or broad refactors in this observability slice.
 
 Date: 2026-05-26
 Observed: The construction list could still appear visually tangled with the right editor panel because the build palette section was authored inside the panel, even though it was styled like a floating surface.

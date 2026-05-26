@@ -15,10 +15,12 @@ async function load(relativePath) {
   const registry = await load("src/data/map-registry.js");
   const { PLAYER_ECONOMY_KEY } = await load("src/systems/player-economy-state.js");
   const { ECONOMY_LEDGER_KEY } = await load("src/systems/economy-ledger.js");
+  const { ODD_EVEN_ROUND_STATE_KEY } = await load("src/systems/odd-even-round-state.js");
   const { BAEGEUM_SKIN_KEY, DRAWING_WORLD_SKIN_KEY } = await load("src/skins/drawing-world-adapter.js");
 
   assert.ok(diagnostics.localStorageInventory.some((item) => item.key === PLAYER_ECONOMY_KEY), "inventory should include economy state");
   assert.ok(diagnostics.localStorageInventory.some((item) => item.key === ECONOMY_LEDGER_KEY), "inventory should include economy ledger");
+  assert.ok(diagnostics.localStorageInventory.some((item) => item.key === ODD_EVEN_ROUND_STATE_KEY), "inventory should include odd-even round state");
   assert.ok(diagnostics.localStorageInventory.some((item) => item.key === registry.worldEditorDraftKeyForMap(registry.MAP_IDS.BAEGEUM_CITY)), "inventory should include baegeum-city draft");
   assert.ok(diagnostics.localStorageInventory.some((item) => item.key === registry.worldEditorDraftKeyForMap(registry.MAP_IDS.DICE_CITY)), "inventory should include dice-city draft");
   assert.ok(diagnostics.localStorageInventory.some((item) => item.key === registry.LEGACY_WORLD_EDITOR_DRAFT_KEY), "inventory should include legacy world-editor draft");
@@ -34,13 +36,15 @@ async function load(relativePath) {
   const validStorage = createMemoryStorage([
     [registry.worldEditorDraftKeyForMap(registry.MAP_IDS.BAEGEUM_CITY), JSON.stringify({ mapVersion: "baegeum-city-v2-map-001" })],
     [PLAYER_ECONOMY_KEY, JSON.stringify({ cash: 1000 })],
-    [ECONOMY_LEDGER_KEY, JSON.stringify([])]
+    [ECONOMY_LEDGER_KEY, JSON.stringify([])],
+    [ODD_EVEN_ROUND_STATE_KEY, JSON.stringify({ version: "odd-even-round-state-001", rounds: [] })]
   ]);
   const statuses = Object.fromEntries(diagnostics.inspectLocalStorage(validStorage).map((item) => [item.key, item.status]));
   assert.equal(statuses[registry.worldEditorDraftKeyForMap(registry.MAP_IDS.BAEGEUM_CITY)], diagnostics.STORAGE_DIAGNOSTIC_STATUSES.OK, "valid baegeum draft JSON should report ok");
   assert.equal(statuses[registry.worldEditorDraftKeyForMap(registry.MAP_IDS.DICE_CITY)], diagnostics.STORAGE_DIAGNOSTIC_STATUSES.MISSING, "missing dice draft should report missing");
   assert.equal(statuses[PLAYER_ECONOMY_KEY], diagnostics.STORAGE_DIAGNOSTIC_STATUSES.OK, "valid economy JSON should report ok");
   assert.equal(statuses[ECONOMY_LEDGER_KEY], diagnostics.STORAGE_DIAGNOSTIC_STATUSES.OK, "valid ledger JSON should report ok");
+  assert.equal(statuses[ODD_EVEN_ROUND_STATE_KEY], diagnostics.STORAGE_DIAGNOSTIC_STATUSES.OK, "valid odd-even round JSON should report ok");
 
   const legacyStorage = createMemoryStorage([[DRAWING_WORLD_SKIN_KEY, "data:image/png;base64,legacy"]]);
   const migrated = diagnostics.inspectLocalStorageKey({

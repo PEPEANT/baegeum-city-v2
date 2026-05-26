@@ -1,6 +1,10 @@
 export const GAME_ACTION_SCHEMA_VERSION = "game-action-001";
 export const GAME_EFFECT_SCHEMA_VERSION = "game-effect-001";
 export const GAME_ACTION_ENVELOPE_VERSION = "game-action-envelope-001";
+export const GAME_PAYLOAD_CLONE_STATUSES = Object.freeze({
+  OK: "ok",
+  CLONE_FAILED: "clone_failed"
+});
 
 export const GAME_ACTION_TYPES = Object.freeze({
   ENTER_VENUE: "enter_venue",
@@ -10,6 +14,8 @@ export const GAME_ACTION_TYPES = Object.freeze({
   LEAVE_TABLE: "leave_table",
   EXCHANGE_CHIPS: "exchange_chips",
   BET_RESERVED: "bet_reserved",
+  BET_SETTLED: "bet_settled",
+  BET_REFUNDED: "bet_refunded",
   BUY_ITEM: "buy_item",
   DRIVE_VEHICLE: "drive_vehicle",
   USE_ITEM: "use_item"
@@ -31,6 +37,7 @@ export function createGameAction(input = {}) {
   const createdAt = input.createdAt || new Date().toISOString();
   const actorId = String(input.actorId || "player:local");
   const requestId = normalizeId(input.requestId || input.actionId || createRequestId(actorId, type, createdAt));
+  const payload = cloneJson(input.payload || {});
   return {
     schemaVersion: GAME_ACTION_SCHEMA_VERSION,
     id: requestId,
@@ -40,7 +47,9 @@ export function createGameAction(input = {}) {
     source: String(input.source || "local"),
     interactionId: input.interactionId ? String(input.interactionId) : null,
     targetId: input.targetId ? String(input.targetId) : null,
-    payload: cloneJson(input.payload || {}),
+    payload: payload.value,
+    payloadCloneStatus: payload.status,
+    payloadCloneReason: payload.reason,
     context: normalizeActionContext(input.context || input),
     createdAt
   };
@@ -49,13 +58,16 @@ export function createGameAction(input = {}) {
 export function createGameEffect(input = {}) {
   const type = effectTypes.has(input.type) ? input.type : GAME_EFFECT_TYPES.UI_MESSAGE;
   const actionId = input.actionId || input.requestId || null;
+  const payload = cloneJson(input.payload || {});
   return {
     schemaVersion: GAME_EFFECT_SCHEMA_VERSION,
     id: normalizeId(input.id || createEffectId(actionId, type, input.targetId)),
     type,
     actionId: actionId ? normalizeId(actionId) : null,
     targetId: input.targetId ? String(input.targetId) : null,
-    payload: cloneJson(input.payload || {}),
+    payload: payload.value,
+    payloadCloneStatus: payload.status,
+    payloadCloneReason: payload.reason,
     authority: String(input.authority || "local-prototype")
   };
 }
@@ -116,8 +128,17 @@ function normalizeId(id) {
 
 function cloneJson(value) {
   try {
-    return JSON.parse(JSON.stringify(value || {}));
-  } catch {
-    return {};
+    const text = JSON.stringify(value || {});
+    return clonePayloadResult(JSON.parse(text), GAME_PAYLOAD_CLONE_STATUSES.OK, null);
+  } catch (error) {
+    return clonePayloadResult({}, GAME_PAYLOAD_CLONE_STATUSES.CLONE_FAILED, cloneErrorReason(error));
   }
+}
+
+function clonePayloadResult(value, status, reason) {
+  return { value, status, reason };
+}
+
+function cloneErrorReason(error) {
+  return error?.message ? String(error.message) : "unknown_clone_error";
 }
