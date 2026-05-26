@@ -19,9 +19,10 @@ Rules:
 
 - Repository: https://github.com/PEPEANT/MammonCity2
 - Added: 2026-05-26
-- Status: pinned reference
-- Use: phone/internet-style UI, city/economy reference, and restored Baegeum City comparison material.
-- Import decision: reference only until license, structure, and fit are reviewed.
+- Status: pinned reference, intake reviewed
+- Observed HEAD: `856c7c6ec5ea2192f3c595dda97a11f9df6067f8`
+- Use: login shell, online lobby/account flow, phone/internet-style UI, city/economy reference, and restored Baegeum City comparison material.
+- Import decision: reference only until license/adoption and Firebase boundaries are recorded. No top-level license file was detected during intake.
 
 ## Pending Review Template
 

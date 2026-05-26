@@ -83,7 +83,7 @@ function buildSections() {
     bulletSection(
       "UI Surface Plan",
       ["Top bar impact:", "Bottom nav impact:", "Phone app impact:", "Modal or panel impact:", "Mobile constraints:", "Illustration or image slot:"],
-      "Rule: bottom nav must stay `myinfo / phone / realestate / casino / shop`."
+      "Rule: bottom nav is location-aware. It must show only actions and places valid for the current context, such as `home_inside`, `home_front`, `baegeum-city`, `dice-city`, or `seosan-city`."
     ),
     bulletSection("State And Catalog Plan", ["New state fields:", "Static catalog entries:", "Migration or save compatibility:", "Selectors needed:", "Events produced:"]),
     bulletSection("Economy And Ownership Impact", ["Cash/chips/items affected:", "Ledger or event boundary:", "Inventory or asset ownership rules:", "Risks:"]),
@@ -95,7 +95,7 @@ function buildSections() {
     bulletSection("Asset Intake", ["Required images:", "Required audio:", "Source or license notes:", "Manifest ids:", "Fallback behavior:"]),
     numberedSection("Implementation Order", ["Document contract.", "Add or update static catalog.", "Add selectors or pure helpers.", "Add UI surface shell.", "Add system events.", "Wire runtime behavior.", "Verify and record."]),
     bulletSection("Verification Plan", ["Narrow check:", "Full check: npm run check", "Browser check:", "Manual play notes:"]),
-    bulletSection("Do Not", ["Do not add large inline systems to `baegeum-city-v2-dice.html`.", "Do not add fake offline lobby behavior.", "Do not make online ranking client-authoritative.", "Do not add direct asset paths without manifest ids.", "Do not put phone apps back into bottom navigation."])
+    bulletSection("Do Not", ["Do not add large inline systems to `baegeum-city-v2-dice.html`.", "Do not add fake offline lobby behavior.", "Do not make online ranking client-authoritative.", "Do not add direct asset paths without manifest ids.", "Do not put every phone app or city place into global bottom navigation."])
   ];
 }
 

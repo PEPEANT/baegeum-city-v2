@@ -86,7 +86,7 @@ The stored draft may keep only editable venue-owned fields: `id`, `sign`, `gameT
 - 플레이어, 관전자, 관리자, 테이블 참가자가 섞이지 않도록 채널 ID는 처음부터 분리한다.
 - 랭킹은 건물 자체가 아니라 플레이어의 베팅 기록과 손익 기록에서 계산한다.
 - 온라인 상태 전이와 서버 권위 규칙은 `docs/baegeum-city-v2-online-state-protocol.md`를 따른다.
-- 미니게임/환전 UI 참고는 고정 vendor인 `vendor/diceland`를 먼저 본다. 특히 `src/features/exchange/exchangeRules.js`의 10/50/100칩 옵션, ATM형 환전 모달, `roulette`의 odd/even 베팅 UI를 기준으로 삼는다.
+- 미니게임/환전 UI 참고는 고정 vendor인 `vendor/diceland`와 라이브 참고 페이지 `https://pepeant.github.io/diceland/`를 먼저 본다. 특히 10/50/100칩 환전, 슬롯 머신, 블랙잭 전략 패널, 룰렛 배당표/0 규칙은 다이스시티 안에서 각각 독립 업장 또는 독립 게임 패널로 분리한다.
 
 ## 다음 구현 순서
 

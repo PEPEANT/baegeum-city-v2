@@ -1,6 +1,6 @@
 import { RESTORED_CITY_IDS } from "./city-catalog.js";
 
-export const RESTORED_PLACE_CATALOG_VERSION = "restored-place-catalog-001";
+export const RESTORED_PLACE_CATALOG_VERSION = "restored-place-catalog-002";
 
 export const RESTORED_PLACE_CATALOG = Object.freeze([
   Object.freeze({
@@ -31,6 +31,42 @@ export const RESTORED_PLACE_CATALOG = Object.freeze([
     featureDomains: Object.freeze(["casino", "relationship_reactions"])
   }),
   Object.freeze({
+    id: "dice:casino-street",
+    cityId: RESTORED_CITY_IDS.DICE,
+    label: "다이스시티 카지노거리",
+    kind: "casino_district",
+    uiSurface: "city",
+    actorSlots: Object.freeze(["casino_staff", "risk_contact"]),
+    featureDomains: Object.freeze(["slot", "blackjack", "roulette", "casino"])
+  }),
+  Object.freeze({
+    id: "dice:pawnshop",
+    cityId: RESTORED_CITY_IDS.DICE,
+    label: "다이스시티 전당포",
+    kind: "pawnshop",
+    uiSurface: "city",
+    actorSlots: Object.freeze(["broker_npc", "risk_contact"]),
+    featureDomains: Object.freeze(["ownership", "loan", "risk_events"])
+  }),
+  Object.freeze({
+    id: "dice:loan-office",
+    cityId: RESTORED_CITY_IDS.DICE,
+    label: "다이스시티 사채업소",
+    kind: "loan_office",
+    uiSurface: "city",
+    actorSlots: Object.freeze(["loan_shark", "risk_contact"]),
+    featureDomains: Object.freeze(["loan", "debt", "relationship_reactions"])
+  }),
+  Object.freeze({
+    id: "dice:hotel",
+    cityId: RESTORED_CITY_IDS.DICE,
+    label: "다이스시티 호텔",
+    kind: "hotel",
+    uiSurface: "city",
+    actorSlots: Object.freeze(["partner_follow", "hotel_staff"]),
+    featureDomains: Object.freeze(["rest", "relationship_reactions"])
+  }),
+  Object.freeze({
     id: "dice:back-alley",
     cityId: RESTORED_CITY_IDS.DICE,
     label: "다이스시티 뒷골목",
@@ -38,6 +74,24 @@ export const RESTORED_PLACE_CATALOG = Object.freeze([
     uiSurface: "city",
     actorSlots: Object.freeze(["street_npc", "risk_contact"]),
     featureDomains: Object.freeze(["risk_events", "relationship_reactions"])
+  }),
+  Object.freeze({
+    id: "seosan:labor-front",
+    cityId: RESTORED_CITY_IDS.SEOSAN,
+    label: "서산도시 인력소 앞",
+    kind: "job_hub",
+    uiSurface: "city",
+    actorSlots: Object.freeze(["job_dispatcher", "worker_npc"]),
+    featureDomains: Object.freeze(["jobs", "industry"])
+  }),
+  Object.freeze({
+    id: "seosan:market-street",
+    cityId: RESTORED_CITY_IDS.SEOSAN,
+    label: "서산도시 시장거리",
+    kind: "district",
+    uiSurface: "city",
+    actorSlots: Object.freeze(["merchant_npc", "partner_meet"]),
+    featureDomains: Object.freeze(["ownership", "relationship", "jobs"])
   })
 ]);
 
@@ -68,11 +122,10 @@ export function validateRestoredPlaceCatalog(catalog = RESTORED_PLACE_CATALOG) {
     }
   }
 
-  if (!catalog.some((place) => place.cityId === RESTORED_CITY_IDS.BAEGEUM)) {
-    errors.push("baegeum-city places are required");
-  }
-  if (!catalog.some((place) => place.cityId === RESTORED_CITY_IDS.DICE)) {
-    errors.push("dice-city places are required");
+  for (const cityId of Object.values(RESTORED_CITY_IDS)) {
+    if (!catalog.some((place) => place.cityId === cityId)) {
+      errors.push(`${cityId} places are required`);
+    }
   }
 
   return Object.freeze({ ok: errors.length === 0, errors });

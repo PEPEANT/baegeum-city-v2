@@ -1,4 +1,5 @@
 import { INITIAL_RESTORED_STATE, createInitialRestoredState } from "./initial-state.js";
+import { mergeRestoredProfileState } from "../player/profile-contract.js";
 import { RESTORED_STORAGE_KEY } from "./save-contract.js";
 
 export { RESTORED_STORAGE_KEY };
@@ -66,7 +67,7 @@ export function mergeSavedRestoredState(targetState, savedState, initialState = 
       targetState.luxury[key] = JSON.parse(JSON.stringify(initialState.luxury[key]));
       return;
     }
-    const savedCount = targetState.luxury[key].count;
+    const savedCount = savedState.luxury?.[key]?.count ?? targetState.luxury[key].count;
     Object.assign(targetState.luxury[key], initialState.luxury[key]);
     targetState.luxury[key].count = savedCount;
   });
@@ -77,6 +78,22 @@ export function mergeSavedRestoredState(targetState, savedState, initialState = 
         targetState.realEstate[key].count = savedState.realEstate[key].count;
       }
     });
+  }
+
+  if (savedState.location) {
+    targetState.location = { ...targetState.location, ...savedState.location };
+  }
+
+  if (savedState.profile) {
+    targetState.profile = mergeRestoredProfileState(targetState.profile, savedState.profile);
+  }
+
+  if (savedState.account) {
+    targetState.account = { ...targetState.account, ...savedState.account };
+  }
+
+  if (savedState.online) {
+    targetState.online = { ...targetState.online, ...savedState.online };
   }
 
   targetState.futures = savedState.futures || [];

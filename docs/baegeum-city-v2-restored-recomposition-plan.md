@@ -14,9 +14,10 @@ index.html -> baegeum-city-v2-dice.html
 
 ## Current Bottlenecks
 
-- `baegeum-city-v2-dice.html` is still the runtime, view layer, data catalog, save system, market simulator, relationship system, and casino system in one file.
+- `baegeum-city-v2-dice.html` is still the runtime, view layer, market simulator, relationship system, and casino system in one file, but core static catalogs are now split into `src/restored/data/`.
 - `gameState` is still mutated directly from UI handlers, timers, casino outcomes, gifts, stock trades, futures positions, and relationship actions, but read-only selectors for rank, assets, and phone ownership now live outside the HTML.
-- Phone apps are now grouped correctly as phone UI, but their render and market logic still live beside global tab rendering.
+- Player profile basics now live in `src/restored/player/profile-contract.js`, so My Info can become a character sheet before jobs, rankings, and dialogue emotion expand.
+- Phone apps are now grouped correctly as phone UI, but their render, market logic, and future relationship app logic still live beside global tab rendering.
 - Relationship state is still mostly `love`, so future AI lovers, jealousy, trust, memory, and dialogue branching have no clean ownership boundary yet.
 - Casino results do not yet produce a neutral event stream that relationship/conversation systems can react to later.
 - City identity exists as a catalog, but places, actor locations, and UI surfaces are not yet explicit enough for roaming AI.
@@ -49,6 +50,7 @@ add large inline feature
 src/restored/
   app/             startup, event wiring, tab routing
   state/           initial state, storage, selectors, migrations
+  player/          profile, stats, job identity, residence and condition contracts
   data/            static catalogs for cities, places, assets, markets, partners
   actors/          AI actor identity, location, schedule, memory contracts
   systems/         economy, ownership, market, gambling, relationship, emotion
@@ -64,10 +66,15 @@ Current contract files:
 
 - `src/restored/actors/actor-contract.js`
 - `src/restored/data/place-catalog.js`
+- `src/restored/data/location-catalog.js`
 - `src/restored/state/initial-state.js`
 - `src/restored/state/selectors.js`
 - `src/restored/state/storage.js`
+- `src/restored/player/profile-contract.js`
+- `src/restored/online/online-adapter-contract.js`
+- `src/restored/phone/phone-app-contract.js`
 - `src/restored/ui/shell-contract.js`
+- `src/restored/ui/location-nav-contract.js`
 - `src/restored/assets/asset-manifest.js`
 
 ## City Split
@@ -125,26 +132,35 @@ world tick / route choice
 
 ## UI Redesign Direction
 
-The current five bottom tabs are directionally correct:
+The current restored runtime still uses five bottom tabs:
 
 ```text
 내정보 / 휴대폰 / 부동산 / 도박 / 상점
 ```
 
-Long-term UI surfaces should be separated by job:
+The next UI direction is location-aware navigation. The player should start inside the house, step outside to a house-front location, then expand into city districts and city travel.
+
+```text
+home_inside -> home_front -> baegeum-city | dice-city | seosan-city
+```
+
+Long-term UI surfaces should be separated by location and job:
 
 - Top bar: rank, total asset, cash, current city.
-- Bottom nav: only primary surfaces, never individual phone apps.
-- Phone shell: news, stocks, futures, future chats, notifications.
-- Relationship panel: partner list, current mood, call/message entry.
+- Bottom nav: current-location actions, never every feature at once.
+- Home shell: `myinfo`, `home`, and `go_out`.
+- Home-front shell: fast food, labor office, convenience store, bus stop, and go-home actions.
+- Phone shell: app grid, app stage/window, news, stocks, futures, relationship/lover list, future chats, notifications.
+- Relationship panel: phone-launched partner list, current mood, call/message entry.
 - Dialogue modal: branching choices, memory hints, illustration slot.
 - Illustration stage: portrait/event image by manifest id, with fallback.
 - Casino surface: game selection, bet controls, result event feed.
-- City surface: future place view, roaming actor presence, travel actions.
+- City surface: city-specific place view, roaming actor presence, travel actions.
 
 Do not redesign the visuals broadly before these surfaces are named in code. Otherwise later AI, illustration, and city movement work will keep fighting the layout.
 
 `docs/baegeum-city-v2-restored-ui-online-ranking-chat-roadmap.md` owns the broader UI/design, online, ranking, and chat expansion plan that builds on these surfaces.
+`docs/plans/restored-ui-surface-redesign.md` owns the immediate pre-redesign checklist before the playable shell changes.
 
 ## Event Boundaries
 
@@ -173,14 +189,18 @@ Examples:
 1. Guard the current shell: bottom nav ids, phone hub, storage key, HTML line budget.
 2. Add `actor`, `place`, and `ui shell` contracts under `src/restored/`.
 3. Extract `INITIAL_STATE`, storage key, and save envelope from the HTML. Current status: initial state and storage are now live in `src/restored/state/`.
-4. Extract static catalogs: ranks, assets, markets, partner archetypes.
+4. Extract static catalogs: ranks, assets, markets, partner archetypes. Current status: live in `src/restored/data/`.
 5. Extract selectors: total asset, rank, phone ownership, smartphone ownership. Current status: restored selectors are now live in `src/restored/state/selectors.js`.
-6. Extract phone apps: news, stock, futures rendering and access gates.
-7. Extract gambling systems: odd-even and blackjack result helpers.
-8. Add relationship/emotion state v2 beside old `love`, with migration.
-9. Add conversation catalog and event-driven dialogue selection.
-10. Add illustration catalog and fallback portrait handling using asset manifest ids.
-11. Add actor roaming scheduler only after actor/place contracts are used by UI.
+6. Add location navigation contracts for house, house-front, city districts, and travel. Current status: location catalog and location-nav contract are guarded; runtime shell is not consuming them yet.
+7. Add an online adapter contract that returns `unavailable` by default and never opens a fake lobby. Current status: guarded in `src/restored/online/online-adapter-contract.js`.
+8. Keep My Info as a profile/character sheet, not a money/action dump. Current status: profile stats are guarded in `src/restored/player/profile-contract.js`.
+9. Extract phone apps: news, stock, futures rendering and access gates. Current status: app ids and phone/smartphone gates are guarded in `src/restored/phone/phone-app-contract.js`; full render extraction is still pending.
+10. Add the relationship/lover list as a phone app entry instead of a My Info section.
+11. Extract gambling systems: odd-even and blackjack result helpers.
+12. Add relationship/emotion state v2 beside old `love`, with migration.
+13. Add conversation catalog and event-driven dialogue selection.
+14. Add illustration catalog and fallback portrait handling using asset manifest ids.
+15. Add actor roaming scheduler only after actor/place contracts are used by UI.
 
 ## Early Guards
 
@@ -188,10 +208,12 @@ The architecture check should fail when:
 
 - The restored HTML crosses its line budget.
 - News, stock, or futures return to bottom navigation.
+- New places become permanent global tabs instead of current-location actions.
 - `src/restored/` modules cross their line budget.
-- City catalog loses `baegeum-city` or `dice-city`.
+- City catalog loses `baegeum-city`, `dice-city`, or `seosan-city`.
 - Actor contracts stop supporting city/place/location movement.
 - UI shell contracts stop treating phone apps as phone apps.
+- My Info starts rendering the full partner/lover list again.
 - Place contracts stop exposing actor slots for future roaming AI.
 - New mp3 or image files appear under `assets/` without manifest ids.
 - Total asset, rank, phone, or smartphone ownership selectors move back into the HTML.
@@ -203,8 +225,9 @@ The architecture check should fail when:
 - Do not connect AI dialogue to an external API as a hard dependency.
 - Do not make casino events directly mutate partner emotion.
 - Do not put phone apps back into the main bottom navigation.
+- Do not add every city place to the same global tab bar.
 - Do not attach real payment, real gambling, or account behavior.
 
 ## Next Safe Slice
 
-State, storage, selectors, city/place contracts, shell contracts, asset manifest, intake, and the UI/online/ranking/chat roadmap are now guarded. The next coding slice should extract static catalogs for ranks, assets, markets, and partner archetypes before relationship, conversation, ranking, chat, online, or illustration behavior expands.
+State, storage, selectors, profile stats, phone app gates, static catalogs, city/place/location contracts, shell contracts, location-nav contracts, online adapter contract, asset manifest, intake, planning kit, and the UI/online/ranking/chat roadmap are now guarded. The next coding slice should move more phone app rendering under `src/restored/phone/` or adapt the playable shell to read location-aware navigation in a reversible way.

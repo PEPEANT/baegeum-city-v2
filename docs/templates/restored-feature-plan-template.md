@@ -35,7 +35,7 @@ player action
 - Mobile constraints:
 - Illustration or image slot:
 
-Rule: bottom nav must stay `myinfo / phone / realestate / casino / shop`.
+Rule: bottom nav is location-aware. It must show only actions and places valid for the current context, such as `home_inside`, `home_front`, `baegeum-city`, `dice-city`, or `seosan-city`.
 
 ## State And Catalog Plan
 
@@ -125,4 +125,4 @@ Rule: bottom nav must stay `myinfo / phone / realestate / casino / shop`.
 - Do not add fake offline lobby behavior.
 - Do not make online ranking client-authoritative.
 - Do not add direct asset paths without manifest ids.
-- Do not put phone apps back into bottom navigation.
+- Do not put every phone app or city place into global bottom navigation.

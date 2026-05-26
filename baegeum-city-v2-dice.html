@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>배금도시 V2 (Safe Restore)</title>
+    <title>배금도시 V2</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         body { font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, Roboto, sans-serif; background-color: #f1f5f9; touch-action: manipulation; -webkit-tap-highlight-color: transparent; padding-bottom: 110px; user-select: none; }
@@ -21,7 +21,6 @@
         .main-bg { background: radial-gradient(circle at center, #1e293b 0%, #0f172a 100%); }
         .ai-loading { animation: pulse-glow 1.5s infinite; }
         @keyframes pulse-glow { 0% { opacity: 0.6; } 50% { opacity: 1; } 100% { opacity: 0.6; } }
-        .allow-select { user-select: text !important; -webkit-user-select: text !important; }
     </style>
 </head>
 <body class="text-gray-800 h-screen overflow-hidden">
@@ -35,19 +34,17 @@
                 <span class="inline-block px-3 py-1 rounded-full bg-green-500/20 text-green-300 text-xs font-bold border border-green-500/50">Baegeum V2 ✅</span>
                 <h1 class="text-5xl font-black tracking-tighter bg-gradient-to-br from-white to-gray-400 bg-clip-text text-transparent drop-shadow-xl">배금도시<br><span class="text-2xl text-indigo-400">V2</span></h1>
             </div>
-            <p class="text-gray-400 text-sm max-w-xs mx-auto leading-relaxed">
-                다이스시티 기반 전체 이식.<br>현금 데이터만 안전하게 불러옵니다.
-            </p>
-            <div class="flex flex-col gap-3 w-full max-w-[240px] mx-auto pt-4">
+            <div class="w-full max-w-[260px] mx-auto pt-2 space-y-3">
+                <input id="login-name-input" class="w-full rounded-xl border border-white/10 bg-white/10 px-4 py-3 text-center text-sm font-bold text-white placeholder:text-slate-500 outline-none focus:border-indigo-300" maxlength="20" placeholder="플레이어 이름">
                 <button onclick="startGame()" class="w-full py-4 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-xl shadow-lg shadow-indigo-900/50 active:scale-95 transition text-lg">
-                    배금도시 시작
+                    게스트 로그인
                 </button>
-                <button onclick="openLoadGameModal()" class="w-full py-3 bg-slate-700 hover:bg-slate-600 text-gray-300 font-bold rounded-xl shadow-lg active:scale-95 transition text-sm">
-                    📂 현금 데이터 복구
+                <button disabled class="w-full py-3 bg-slate-800/80 text-slate-500 font-bold rounded-xl border border-white/5 text-sm cursor-not-allowed">
+                    온라인 로그인 준비중
                 </button>
             </div>
         </div>
-        <div class="absolute bottom-6 text-xs text-gray-600">ver 2.0.0 | Full Dice Restore</div>
+        <div class="absolute bottom-6 text-xs text-gray-600">ver 2.0.0 | Local Guest Login</div>
     </div>
 
     <div id="game-screen" class="hidden h-full overflow-y-auto hide-scrollbar">
@@ -62,6 +59,7 @@
                         <div>
                             <div id="player-rank" class="text-xs font-bold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-full inline-block">노숙자</div>
                             <h1 class="font-black text-gray-800 leading-none">배금도시</h1>
+                            <div id="header-account-status" class="text-[10px] text-gray-400 mt-1">로그아웃</div>
                         </div>
                     </div>
                     <div class="text-right">
@@ -73,6 +71,7 @@
                     <div class="text-[10px] text-gray-500 mr-2">현금</div>
                     <div id="header-cash" class="font-bold text-sm text-green-700">0원</div>
                 </div>
+                <div class="mt-2 flex items-center justify-between text-[10px] font-bold text-slate-400"><span>현재 위치</span><span id="header-location-status" class="text-indigo-600">우리집 안</span></div>
             </div>
         </header>
 
@@ -89,7 +88,7 @@
                             <div class="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center text-3xl border-2 border-white/30 transition-all duration-300" id="my-avatar">🥣</div>
                             <div>
                                 <div class="text-xs text-indigo-200 font-bold uppercase tracking-wider">Identity</div>
-                                <h2 class="text-2xl font-black">플레이어</h2>
+                                <h2 id="profile-display-name" class="text-2xl font-black">플레이어</h2>
                                 <div class="flex items-center gap-2 mt-1">
                                     <span id="my-rank-badge" class="px-2 py-0.5 bg-white/20 rounded text-xs font-bold backdrop-blur-sm">노숙자</span>
                                 </div>
@@ -97,53 +96,57 @@
                         </div>
                     </div>
                     <div class="p-6">
-                        <div class="flex justify-between items-center mb-6">
+                        <div class="grid grid-cols-2 gap-x-6 gap-y-4 text-sm">
+                            <div class="border-b border-gray-100 pb-3">
+                                <div class="text-xs text-gray-400 font-bold uppercase">Relationship</div>
+                                <div class="text-lg font-black text-gray-800" id="relationship-status">솔로</div>
+                            </div>
+                            <div class="border-b border-gray-100 pb-3 text-right">
+                                <div class="text-xs text-gray-400 font-bold uppercase">Job</div>
+                                <div id="profile-job-title" class="text-lg font-black text-indigo-600">무직</div>
+                            </div>
                             <div>
-                                <div class="text-xs text-gray-400 font-bold">Relationship</div>
-                                <div class="text-xl font-black text-gray-800" id="relationship-status">모태솔로</div>
+                                <div class="text-xs text-gray-400 font-bold uppercase">Residence</div>
+                                <div id="profile-residence" class="font-black text-gray-800">우리집</div>
                             </div>
                             <div class="text-right">
-                                <div class="text-xs text-gray-400 font-bold">Net Worth</div>
-                                <div id="my-networth" class="text-xl font-black text-indigo-600">0원</div>
+                                <div class="text-xs text-gray-400 font-bold uppercase">Condition</div>
+                                <div id="profile-condition" class="font-black text-emerald-600">보통</div>
                             </div>
                         </div>
-                        <div class="grid grid-cols-2 gap-3 mb-6">
-                            <button onclick="goForWalk()" class="py-4 bg-pink-50 hover:bg-pink-100 text-pink-600 rounded-2xl font-bold transition border border-pink-100 flex flex-col items-center justify-center gap-1 group">
-                                <span class="text-2xl group-hover:scale-110 transition">🌸</span>
-                                <span>헌팅하기</span>
-                            </button>
-                            <button onclick="goHome()" class="py-4 bg-green-50 hover:bg-green-100 text-green-600 rounded-2xl font-bold transition border border-green-100 flex flex-col items-center justify-center gap-1 group">
-                                <span class="text-2xl group-hover:scale-110 transition">🏠</span>
-                                <span>집에 가기</span>
-                            </button>
+
+                        <div class="mt-5 border-t border-gray-100 pt-5">
+                            <div class="flex items-center justify-between mb-3">
+                                <h3 class="text-sm font-black text-gray-800">캐릭터 능력치</h3>
+                                <span class="text-[10px] font-bold text-gray-400">생활/직업/대화 확장 기준</span>
+                            </div>
+                            <div id="profile-stat-grid" class="grid grid-cols-1 sm:grid-cols-2 gap-3"></div>
                         </div>
-                        <div class="space-y-2 text-sm bg-gray-50 p-4 rounded-xl mb-4">
-                            <div class="flex justify-between"><span class="text-gray-500">현금</span><span id="info-cash" class="font-bold">0원</span></div>
-                            <div class="flex justify-between"><span class="text-gray-500">주식/코인</span><span id="info-invest" class="font-bold">0원</span></div>
-                            <div class="flex justify-between"><span class="text-gray-500">부동산/명품</span><span id="info-asset" class="font-bold">0원</span></div>
-                        </div>
-                        <div class="bg-slate-800 rounded-xl p-4 text-white">
-                            <h3 class="text-sm font-bold mb-1 flex items-center gap-2">💾 데이터 백업 센터 <span class="text-[10px] font-normal text-green-400 bg-green-900/50 px-1.5 py-0.5 rounded border border-green-800">안전 모드</span></h3>
-                            <p class="text-xs text-slate-400 mb-3">오류 방지를 위해 현금(Cash) 데이터만 저장/복구합니다.</p>
-                            <div class="grid grid-cols-2 gap-2">
-                                <button onclick="exportSaveData()" class="bg-blue-500 hover:bg-blue-600 text-white text-xs py-2.5 rounded-lg font-bold active:scale-95 transition shadow-md">
-                                    📤 저장 코드 복사
-                                </button>
-                                <button onclick="openLoadGameModal()" class="bg-slate-600 hover:bg-slate-500 text-white text-xs py-2.5 rounded-lg font-bold active:scale-95 transition shadow-md border border-slate-500">
-                                    📥 현금 복구
-                                </button>
+
+                        <div class="mt-5 border-t border-gray-100 pt-4">
+                            <div class="flex justify-between items-center">
+                                <div>
+                                    <h3 class="text-sm font-bold text-gray-800">계정</h3>
+                                    <p id="account-display-name" class="text-xs text-slate-400 mt-1">로컬 게스트</p>
+                                </div>
+                                <span id="account-online-status" class="text-[10px] font-bold text-slate-500 bg-slate-100 px-2 py-1 rounded-full">OFFLINE</span>
                             </div>
                         </div>
                     </div>
                 </div>
 
-                <div class="bg-white p-5 rounded-2xl shadow-sm border border-gray-100">
-                    <h3 class="font-bold text-gray-800 mb-3 text-sm flex items-center gap-2">
-                        <span>💕 인연 목록</span>
-                        <span class="text-xs text-gray-400 font-normal">100% 달성 시 연인 등극</span>
-                    </h3>
-                    <div id="partner-list" class="space-y-2"></div>
-                </div>
+            </div>
+
+            <div id="tab-home" class="tab-content space-y-5">
+                <section class="bg-white rounded-3xl shadow-lg border border-gray-100 overflow-hidden"><div class="p-6 border-b border-gray-100 bg-gradient-to-r from-emerald-50 to-indigo-50"><div class="text-xs font-bold text-slate-400 uppercase">Home</div><h2 class="mt-1 text-2xl font-black text-slate-900">우리집 안</h2><p class="mt-2 text-sm text-slate-500">휴식, 생활 준비, 소지품 정리의 기준점입니다.</p></div><div class="grid grid-cols-2 gap-3 p-5"><button onclick="goHome()" class="py-4 rounded-2xl border border-emerald-100 bg-emerald-50 text-emerald-700 font-bold active:scale-95 transition">🛋️ 휴식</button><button onclick="openPhoneSurface()" class="py-4 rounded-2xl border border-indigo-100 bg-indigo-50 text-indigo-700 font-bold active:scale-95 transition">📱 휴대폰</button></div></section>
+            </div>
+
+            <div id="tab-place" class="tab-content space-y-5">
+                <section class="bg-white rounded-3xl shadow-lg border border-gray-100 overflow-hidden"><div class="p-6 border-b border-gray-100"><div id="place-surface-meta" class="text-xs font-bold text-slate-400 uppercase">Place</div><h2 id="place-surface-title" class="mt-1 text-2xl font-black text-slate-900">장소</h2><p id="place-surface-copy" class="mt-2 text-sm text-slate-500">새 장소가 열렸습니다.</p></div><div id="place-surface-actions" class="grid grid-cols-1 sm:grid-cols-2 gap-3 p-5"></div></section>
+            </div>
+
+            <div id="tab-travel" class="tab-content space-y-5">
+                <section class="bg-white rounded-3xl shadow-lg border border-gray-100 overflow-hidden"><div class="p-6 border-b border-gray-100 bg-slate-50"><div class="text-xs font-bold text-slate-400 uppercase">Transit</div><h2 class="mt-1 text-2xl font-black text-slate-900">버스 정류장</h2><p class="mt-2 text-sm text-slate-500">배금도시, 다이스시티, 서산도시 노선이 대기 중입니다.</p></div><div class="grid grid-cols-3 gap-3 p-5 text-center text-sm font-bold text-slate-600"><div class="rounded-2xl bg-slate-50 border border-slate-100 py-4">🏙️<br>배금도시</div><div class="rounded-2xl bg-slate-50 border border-slate-100 py-4">🎲<br>다이스시티</div><div class="rounded-2xl bg-slate-50 border border-slate-100 py-4">⚓<br>서산도시</div></div></section>
             </div>
 
             <div id="tab-phone" class="tab-content space-y-5">
@@ -151,7 +154,7 @@
                     <div class="text-6xl mb-4 grayscale">📵</div>
                     <h2 class="text-xl font-black text-gray-800 mb-2">휴대폰 없음</h2>
                     <p class="text-sm text-gray-500 mb-5">뉴스, 주식, 코인선물은 휴대폰 앱에서만 사용할 수 있습니다.</p>
-                    <button onclick="switchTab('shop')" class="px-5 py-3 bg-indigo-600 text-white rounded-xl font-bold shadow active:scale-95 transition">상점에서 휴대폰 사기</button>
+                    <button onclick="openShopFromPhoneLock()" class="px-5 py-3 bg-indigo-600 text-white rounded-xl font-bold shadow active:scale-95 transition">편의점으로 가기</button>
                 </div>
                 <div id="phone-app-shell" class="hidden space-y-4">
                     <div class="bg-slate-900 text-white p-5 rounded-3xl shadow-lg">
@@ -162,10 +165,19 @@
                             </div>
                             <div id="phone-device-badge" class="text-xs font-bold px-3 py-1 rounded-full bg-white/10 border border-white/10">폴더폰</div>
                         </div>
-                        <div class="grid grid-cols-3 gap-2" id="phone-app-buttons">
-                            <button onclick="switchPhoneApp('news')" id="phone-app-news-btn" class="py-3 rounded-xl bg-white text-slate-900 font-bold text-sm">📰 뉴스</button>
-                            <button onclick="switchPhoneApp('stock')" id="phone-app-stock-btn" class="py-3 rounded-xl bg-slate-800 text-slate-300 font-bold text-sm">📈 주식</button>
-                            <button onclick="switchPhoneApp('futures')" id="phone-app-futures-btn" class="py-3 rounded-xl bg-slate-800 text-slate-300 font-bold text-sm">⚡ 코인선물</button>
+                        <div class="grid grid-cols-3 gap-2" id="phone-app-buttons"></div>
+                    </div>
+
+                    <div id="phone-app-relationships" class="phone-app-view hidden space-y-4">
+                        <div class="bg-white p-5 rounded-2xl shadow-sm border border-gray-100">
+                            <div class="flex items-center justify-between mb-4">
+                                <div>
+                                    <h2 class="text-xl font-black text-gray-800">💕 인연</h2>
+                                    <p class="text-xs font-bold text-slate-400 mt-1">연락처</p>
+                                </div>
+                                <span id="phone-relationship-summary" class="text-xs font-bold px-3 py-1 rounded-full bg-pink-50 text-pink-600 border border-pink-100">솔로</span>
+                            </div>
+                            <div id="phone-partner-list" class="space-y-2"></div>
                         </div>
                     </div>
 
@@ -335,14 +347,10 @@
             </div>
         </main>
 
+        <div id="phone-dock" class="fixed left-0 right-0 bottom-[76px] z-40 pointer-events-none"><div class="max-w-3xl mx-auto px-4 flex justify-end"><button onclick="openPhoneSurface()" id="phone-dock-button" class="pointer-events-auto px-4 py-3 rounded-full bg-slate-900 text-white text-xs font-black shadow-xl border border-white/10 active:scale-95 transition">📱 휴대폰</button></div></div>
+
         <nav class="fixed bottom-0 w-full bg-white border-t border-gray-200 pb-safe z-50 overflow-x-auto hide-scrollbar">
-            <div class="flex min-w-full px-1">
-                <button onclick="switchTab('myinfo')" class="nav-item flex-1 min-w-[60px] py-2 text-center text-indigo-600 bg-indigo-50/50 font-bold rounded-lg mt-1" id="nav-myinfo">👤<br><span class="text-[10px]">내정보</span></button>
-                <button onclick="switchTab('phone')" class="nav-item flex-1 min-w-[60px] py-2 text-center text-gray-400 rounded-lg mt-1" id="nav-phone">📱<br><span class="text-[10px]">휴대폰</span></button>
-                <button onclick="switchTab('realestate')" class="nav-item flex-1 min-w-[60px] py-2 text-center text-gray-400 rounded-lg mt-1" id="nav-realestate">🏢<br><span class="text-[10px]">부동산</span></button>
-                <button onclick="switchTab('casino')" class="nav-item flex-1 min-w-[60px] py-2 text-center text-gray-400 rounded-lg mt-1" id="nav-casino">🎰<br><span class="text-[10px]">도박</span></button>
-                <button onclick="switchTab('shop')" class="nav-item flex-1 min-w-[60px] py-2 text-center text-gray-400 rounded-lg mt-1" id="nav-shop">🛍️<br><span class="text-[10px]">상점</span></button>
-            </div>
+            <div class="flex min-w-full px-1" id="location-nav-items"></div>
         </nav>
     </div>
 
@@ -445,52 +453,21 @@
         </div>
     </div>
 
-    <div id="load-game-modal" class="fixed inset-0 modal-backdrop hidden z-[110] flex items-center justify-center p-4">
-        <div class="bg-white w-full max-w-sm rounded-2xl shadow-2xl p-5">
-            <div class="flex justify-between items-center mb-4">
-                <h3 class="font-bold text-lg text-green-600 flex items-center gap-2">💵 현금 데이터 복구</h3>
-                <button onclick="closeLoadGameModal()" class="text-gray-400 text-xl">&times;</button>
-            </div>
-            <p class="text-xs text-gray-500 mb-3">
-                복사해둔 코드를 붙여넣으세요.<br>
-                <span class="text-green-600 font-bold">안전 모드: 저장된 '현금'만 현재 상태에 덮어씁니다.</span>
-            </p>
-            <textarea id="load-code-input" class="w-full h-32 p-3 bg-gray-100 rounded-xl border border-gray-300 text-xs font-mono mb-4 focus:border-indigo-500 outline-none resize-none allow-select" placeholder="여기에 저장 코드를 붙여넣기..."></textarea>
-            <div class="flex gap-2">
-                <button onclick="closeLoadGameModal()" class="flex-1 py-3 border rounded-xl font-bold text-gray-500">취소</button>
-                <button onclick="importSaveData()" class="flex-1 py-3 bg-green-600 text-white rounded-xl font-bold shadow-lg active:scale-95 transition">현금 복구 실행</button>
-            </div>
-        </div>
-    </div>
-
-    <div id="manual-save-modal" class="fixed inset-0 modal-backdrop hidden z-[110] flex items-center justify-center p-4">
-        <div class="bg-white w-full max-w-sm rounded-2xl shadow-2xl p-5">
-            <h3 class="font-bold text-lg mb-2">저장 코드 생성 완료</h3>
-            <p class="text-xs text-gray-500 mb-3">아래 코드를 전체 선택 후 복사하여<br>카카오톡 나에게 보내기나 메모장에 저장하세요.</p>
-            <textarea id="manual-save-code" class="w-full h-32 p-3 bg-gray-100 rounded-xl border border-gray-300 text-xs font-mono mb-4 focus:border-indigo-500 outline-none resize-none allow-select" readonly></textarea>
-            <button onclick="document.getElementById('manual-save-modal').classList.add('hidden')" class="w-full py-3 bg-indigo-600 text-white rounded-xl font-bold">닫기</button>
-        </div>
-    </div>
-
     <div id="toast-container" class="fixed bottom-24 left-0 right-0 flex flex-col items-center z-[80] pointer-events-none space-y-2"></div>
 
     <script type="module">
         import { EXCHANGE_RATE, createInitialRestoredState } from './src/restored/state/initial-state.js';
-        import {
-            encodeRestoredSaveCode,
-            loadRestoredGame,
-            restoreCashOnlyFromSaveCode,
-            saveRestoredGame
-        } from './src/restored/state/storage.js';
-        import {
-            getRestoredOwnershipValue,
-            getRestoredRank,
-            getRestoredRankIndex,
-            getRestoredStockValue,
-            getRestoredTotalAsset,
-            hasRestoredPhone,
-            hasRestoredSmartPhone
-        } from './src/restored/state/selectors.js';
+        import { loadRestoredGame, saveRestoredGame } from './src/restored/state/storage.js';
+        import { canEnterRestoredGame, createRestoredGuestAccountState } from './src/restored/account/session-contract.js';
+        import { listRestoredProfileStats } from './src/restored/player/profile-contract.js';
+        import { canUseRestoredPhoneApp, getRestoredPhoneApp, listRestoredPhoneApps, listUsableRestoredPhoneApps } from './src/restored/phone/phone-app-contract.js';
+        import { getRestoredLocationContext, RESTORED_LOCATION_CONTEXT_IDS } from './src/restored/data/location-catalog.js';
+        import { getRestoredLocationNavAction, listRestoredLocationNavActions } from './src/restored/ui/location-nav-contract.js';
+        import { RESTORED_PLACE_BUTTON_TONES, RESTORED_PLACE_SURFACE_COPY } from './src/restored/ui/place-surface-copy.js';
+        import { getRestoredRank, getRestoredRankIndex, getRestoredTotalAsset, hasRestoredPhone, hasRestoredSmartPhone } from './src/restored/state/selectors.js';
+        import { RESTORED_CRASH_EXTERNAL as CRASH_EXTERNAL, RESTORED_CRASH_INTERNAL as CRASH_INTERNAL, RESTORED_MARKET_CYCLE_ORDER as CYCLE_ORDER, RESTORED_MARKET_CYCLES as CYCLES, RESTORED_MARKET_NEWS_MESSAGES as NEWS_MESSAGES } from './src/restored/data/market-catalog.js';
+        import { createRestoredPartnerFromArchetype, pickRestoredPartnerArchetype } from './src/restored/data/partner-catalog.js';
+        import { RESTORED_RANKS as RANKS } from './src/restored/data/rank-catalog.js';
 
         async function callGemini(prompt) {
             return new Promise(resolve => {
@@ -530,30 +507,7 @@
             });
         }
 
-        const CYCLE_ORDER = ['EXTREME_FEAR', 'FEAR', 'NEUTRAL', 'GREED', 'EXTREME_GREED'];
         let cycleIndex = 2;
-        const CYCLES = {
-            EXTREME_GREED: { label: '극단적 탐욕', color: 'text-red-600', bias: 0.008 },
-            GREED: { label: '탐욕', color: 'text-orange-500', bias: 0.003 },
-            NEUTRAL: { label: '중립', color: 'text-gray-500', bias: 0 },
-            FEAR: { label: '공포', color: 'text-blue-500', bias: -0.004 },
-            EXTREME_FEAR: { label: '극단적 공포', color: 'text-purple-600', bias: -0.01 }
-        };
-        const NEWS_MESSAGES = {
-            'EXTREME_GREED': ["비트코인 사상 최고치 경신… 시장은 새로운 시대를 맞이했다", "AI·반도체·양자 테마 폭등… 전문가 ‘이제 시작일 뿐’", "ETF 자금 유입 신기록… 개인·기관 모두 매수 가속", "글로벌 투자자, 위험자산 쏠림 현상 심화"],
-            'GREED': ["상승 랠리 지속… 일부 전문가 ‘과열 조짐’ 지적", "기술주 강세 이어져… 차익실현 움직임 나타나", "비트코인 20% 급등… 개인 매수세 확대", "버핏, 시장 상승에도 ‘여전히 신중한 태도’"],
-            'NEUTRAL': ["BTC·나스닥, 주요 구간에서 횡보… 시장은 방향성 탐색", "ETF 자금 유입 둔화… 관망세 확대", "경제지표 혼조… 강세·약세 의견 팽팽", "버크셔, 현금 보유 유지… 보수적 전략 지속"],
-            'FEAR': ["비트코인 10~20% 급락… 추가 하락 가능성 경고", "기술주 약세 전환… 위험자산 선호도 감소", "기관투자자, 노출 축소 움직임 확대", "버핏, 현금 비중 확대… 시장 경고 신호로 해석"],
-            'EXTREME_FEAR': ["시장 패닉… BTC·ETH·나스닥 동반 폭락", "암호화폐 구조적 한계 지적… 종말론 확산", "채굴업체·중소 기술기업 줄도산 우려", "워런 버핏, 현금 비중 역대 최고… ‘이런 시장 처음 본다’", "전문가들 ‘반등 가능성 제한적’ 비관론 우세"]
-        };
-        const RANKS = [
-            { limit: 10000, title: '노숙자', rankEmoji: '🥣', houseEmoji: '📦', houseDesc: '비가 오면 젖습니다.' },
-            { limit: 100000, title: '서민', rankEmoji: '🚲', houseEmoji: '🚪', houseDesc: '작지만 아늑한 단칸방.' },
-            { limit: 500000, title: '중산층', rankEmoji: '💼', houseEmoji: '🏢', houseDesc: '엘리베이터가 있는 아파트.' },
-            { limit: 1000000, title: '부자', rankEmoji: '💎', houseEmoji: '🌆', houseDesc: '한강이 보이는 고급 아파트.' },
-            { limit: 10000000, title: '자산가', rankEmoji: '🚁', houseEmoji: '🏰', houseDesc: '정원사가 있는 대저택.' },
-            { limit: 100000000, title: '재벌', rankEmoji: '👑', houseEmoji: '🏝️', houseDesc: '개인 소유 섬.' }
-        ];
         let gameState = createInitialRestoredState();
         let marketCycle = 'NEUTRAL';
         let chartHistory = Array(20).fill(15000);
@@ -567,11 +521,19 @@
         let oddEvenBaseBet = 0;
         let oddEvenCurrentWin = 0;
         const ODD_EVEN_RATES = [2, 5, 12];
-        const CRASH_INTERNAL = [ "속보: 트럼프 '관세 200% 부과' 선언... 시장 충격", "긴급: 파월 의장 '금리 인상 불가피' 매파적 발언", "충격: 미 연방정부 셧다운 돌입... 경제 마비 우려", "속보: 미국 비상 계엄령 선포 루머 확산" ];
-        const CRASH_EXTERNAL = [ "긴급: 중동 전쟁 확전... 유가 폭등 및 증시 급락", "속보: 대규모 테러 발생... 글로벌 투자심리 위축", "충격: 전산망 대규모 해킹 사태... 금융 시스템 마비", "악재: 테슬라 실적 쇼크... 기술주 동반 투매", "속보: 최신 AI 모델 치명적 오류 발생... 관련주 폭락" ];
         let greedStreak = 0;
         let fearStreak = 0;
         let pendingBullRun = false;
+        const PROFILE_STAT_BAR_CLASSES = {
+            energy: 'bg-emerald-500',
+            health: 'bg-red-500',
+            intelligence: 'bg-blue-500',
+            appearance: 'bg-pink-500',
+            charm: 'bg-violet-500',
+            mental: 'bg-amber-500',
+            luck: 'bg-cyan-500'
+        };
+        let activeLocationActionId = "myinfo";
 
         const fmt = (usd) => {
             if(isNaN(usd)) return '0원';
@@ -588,50 +550,17 @@
             c.appendChild(t);
             setTimeout(() => t.remove(), 2500);
         }
-        function exportSaveData() {
-            const encoded = encodeRestoredSaveCode(gameState);
-            if (navigator.clipboard && navigator.clipboard.writeText) {
-                navigator.clipboard.writeText(encoded).then(() => {
-                    showToast("✅ 저장 코드가 클립보드에 복사되었습니다!");
-                    showToast("메모장에 붙여넣기(Ctrl+V) 하여 보관하세요.");
-                }).catch(() => showManualSaveModal(encoded));
-            } else {
-                showManualSaveModal(encoded);
-            }
-        }
-        function showManualSaveModal(code) {
-            const modal = document.getElementById('manual-save-modal');
-            const textarea = document.getElementById('manual-save-code');
-            textarea.value = code;
-            modal.classList.remove('hidden');
-            textarea.select();
-            textarea.setSelectionRange(0, 99999);
-        }
-        function openLoadGameModal() {
-            document.getElementById('load-game-modal').classList.remove('hidden');
-            document.getElementById('load-code-input').value = "";
-        }
-        function closeLoadGameModal() { document.getElementById('load-game-modal').classList.add('hidden'); }
-        function importSaveData() {
-            const input = document.getElementById('load-code-input').value.trim();
-            if(!input) return showToast("코드를 입력해주세요.");
-
-            const result = restoreCashOnlyFromSaveCode(input);
-            if (result.ok) {
-                gameState.cash = result.cash;
-                saveGame();
-                renderAll();
-                closeLoadGameModal();
-                showToast("✅ 안전 모드: 현금 자산만 복구되었습니다.");
-                showToast("화면이 즉시 갱신되었습니다.");
-            } else {
-                showToast("⛔ 잘못된 코드이거나 데이터 버전이 다릅니다.");
-                if (result.detail) console.error(result.detail);
-            }
-        }
         function saveGame() { saveRestoredGame(localStorage, gameState); }
         function loadGame() {
             gameState = loadRestoredGame(localStorage);
+        }
+        function ensureRestoredAccountSession() {
+            if (canEnterRestoredGame(gameState.account)) return;
+            const input = document.getElementById('login-name-input');
+            gameState.account = createRestoredGuestAccountState({
+                displayName: input?.value || "Player"
+            });
+            saveGame();
         }
 
         function doPartTimeJob(e) {
@@ -752,33 +681,194 @@
                     showToast(`💔 ${name}님이 떠났습니다.`);
                 }
             }
-            if(document.querySelector('#tab-myinfo.active')) renderMyInfoTab();
+            renderRelationshipSurfaces();
             saveGame();
         }, 5000);
 
         function renderAll() {
             const rank = getRestoredRank(gameState, RANKS);
+            const accountName = gameState.account?.displayName || '로컬 게스트';
+            const onlineLabel = gameState.online?.status === 'connected' ? 'ONLINE' : 'OFFLINE';
             document.getElementById('header-cash').innerText = fmt(gameState.cash);
             document.getElementById('header-total-asset').innerText = fmt(getRestoredTotalAsset(gameState));
             document.getElementById('player-rank').innerText = rank.title;
             document.getElementById('my-rank-badge').innerText = rank.title;
+            document.getElementById('header-account-status').innerText = `${accountName} · ${onlineLabel}`;
             const casinoMyCash = document.getElementById('casino-my-cash');
             if(casinoMyCash) casinoMyCash.innerText = fmt(gameState.cash);
             const logoEl = document.getElementById('header-logo');
             if(logoEl && logoEl.innerText !== rank.rankEmoji) logoEl.innerText = rank.rankEmoji;
             if(gameState.cash < 500) document.getElementById('emergency-job').classList.remove('hidden');
             else document.getElementById('emergency-job').classList.add('hidden');
+            renderLocationChrome();
             const activeTab = document.querySelector('.tab-content.active').id;
             if(activeTab === 'tab-myinfo') renderMyInfoTab();
+            if(activeTab === 'tab-home') renderHomeTab();
+            if(activeTab === 'tab-place') renderPlaceTab();
+            if(activeTab === 'tab-travel') renderTravelTab();
             if(activeTab === 'tab-phone') renderPhoneTab();
             if(activeTab === 'tab-realestate') renderAssetTab();
             if(activeTab === 'tab-shop') renderShopTab();
         }
+
+        function getCurrentLocationContextId() {
+            return gameState.location?.contextId || RESTORED_LOCATION_CONTEXT_IDS.HOME_INSIDE;
+        }
+
+        function getCurrentLocationContext() {
+            return getRestoredLocationContext(getCurrentLocationContextId()) || getRestoredLocationContext(RESTORED_LOCATION_CONTEXT_IDS.HOME_INSIDE);
+        }
+
+        function getDefaultLocationActionId(contextId = getCurrentLocationContextId()) {
+            const actions = listRestoredLocationNavActions(contextId);
+            return (actions.find((action) => !action.targetContextId) || actions[0])?.id || "myinfo";
+        }
+
+        function moveToLocationContext(contextId, preferredActionId = null) {
+            const context = getRestoredLocationContext(contextId) || getRestoredLocationContext(RESTORED_LOCATION_CONTEXT_IDS.HOME_INSIDE);
+            const currentContextId = getCurrentLocationContextId();
+            gameState.location = {
+                ...(gameState.location || {}),
+                cityId: context.cityId,
+                contextId: context.id,
+                placeId: context.defaultPlaceId,
+                previousContextId: currentContextId
+            };
+            saveGame();
+            if (context.id === RESTORED_LOCATION_CONTEXT_IDS.TRAVEL) {
+                activeLocationActionId = null;
+                switchTab("travel");
+                return;
+            }
+            activateLocationAction(preferredActionId || getDefaultLocationActionId(context.id), true);
+        }
+
+        function activateLocationAction(actionId, skipNavigation = false) {
+            const action = getRestoredLocationNavAction(getCurrentLocationContextId(), actionId);
+            if (!action) return;
+            if (!skipNavigation && action.targetContextId) {
+                moveToLocationContext(action.targetContextId);
+                return;
+            }
+            activeLocationActionId = action.id;
+            if (action.targetPlaceId) gameState.location.placeId = action.targetPlaceId;
+            if (action.surface === "myinfo") switchTab("myinfo");
+            else if (action.surface === "home") switchTab("home");
+            else if (action.surface === "casino") switchTab("casino");
+            else if (action.surface === "shop") switchTab("shop");
+            else {
+                renderPlaceTab(action);
+                switchTab("place");
+            }
+            saveGame();
+        }
+
+        function renderLocationChrome() {
+            const context = getCurrentLocationContext();
+            const labelEl = document.getElementById("header-location-status");
+            if (labelEl) labelEl.innerText = context?.label || "우리집 안";
+            renderLocationNav();
+            renderPhoneDock();
+        }
+
+        function renderLocationNav() {
+            const container = document.getElementById("location-nav-items");
+            if (!container) return;
+            const actions = listRestoredLocationNavActions(getCurrentLocationContextId());
+            container.innerHTML = actions.map((action) => {
+                const active = action.id === activeLocationActionId;
+                const cls = active
+                    ? "nav-item flex-1 min-w-[70px] py-2 text-center text-indigo-600 bg-indigo-50/70 font-bold rounded-lg mt-1"
+                    : "nav-item flex-1 min-w-[70px] py-2 text-center text-gray-400 rounded-lg mt-1 transition-colors duration-200";
+                return `<button onclick="activateLocationAction('${action.id}')" class="${cls}" id="location-nav-${action.id}">${action.icon || "•"}<br><span class="text-[10px]">${action.label}</span></button>`;
+            }).join("");
+        }
+
+        function renderPhoneDock() {
+            const button = document.getElementById("phone-dock-button");
+            if (!button) return;
+            const owned = hasRestoredPhone(gameState);
+            button.innerText = owned ? "📱 휴대폰" : "📵 휴대폰";
+            button.className = owned
+                ? "pointer-events-auto px-4 py-3 rounded-full bg-slate-900 text-white text-xs font-black shadow-xl border border-white/10 active:scale-95 transition"
+                : "pointer-events-auto px-4 py-3 rounded-full bg-white text-slate-500 text-xs font-black shadow-xl border border-slate-200 active:scale-95 transition";
+        }
+
+        function openPhoneSurface() {
+            if (!hasRestoredPhone(gameState)) {
+                showToast("휴대폰이 필요합니다.");
+                openShopFromPhoneLock();
+                return;
+            }
+            activeLocationActionId = null;
+            switchTab("phone");
+        }
+
+        function openShopFromPhoneLock() {
+            const context = getRestoredLocationContext(RESTORED_LOCATION_CONTEXT_IDS.HOME_FRONT);
+            gameState.location = {
+                ...(gameState.location || {}),
+                cityId: context.cityId,
+                contextId: context.id,
+                placeId: "home:convenience-store",
+                previousContextId: getCurrentLocationContextId()
+            };
+            activeLocationActionId = "convenience_store";
+            saveGame();
+            switchTab("shop");
+        }
+
+        function renderHomeTab() {
+            const context = getCurrentLocationContext();
+            document.getElementById("header-location-status").innerText = context?.label || "우리집 안";
+        }
+
+        function renderPlaceTab(action = null) {
+            const currentAction = action || getRestoredLocationNavAction(getCurrentLocationContextId(), activeLocationActionId);
+            const copy = RESTORED_PLACE_SURFACE_COPY[currentAction?.id] || {
+                meta: getCurrentLocationContext()?.label || "Place",
+                title: currentAction?.label || "장소",
+                copy: "도시 생활의 다음 행동이 이어지는 장소입니다.",
+                actions: []
+            };
+            document.getElementById("place-surface-meta").innerText = copy.meta;
+            document.getElementById("place-surface-title").innerText = copy.title;
+            document.getElementById("place-surface-copy").innerText = copy.copy;
+            const actionsEl = document.getElementById("place-surface-actions");
+            actionsEl.innerHTML = (copy.actions || []).map((item) => {
+                const tone = RESTORED_PLACE_BUTTON_TONES[item.tone] || RESTORED_PLACE_BUTTON_TONES.slate;
+                const click = item.action === "walk" ? "goForWalk()" : item.tab === "phone" ? "openPhoneSurface()" : item.tab ? `switchTab('${item.tab}')` : `showToast('${item.message || "준비 중입니다."}')`;
+                return `<button onclick="${click}" class="py-4 rounded-2xl border ${tone} font-bold active:scale-95 transition">${item.label}</button>`;
+            }).join("") || `<div class="rounded-2xl border border-slate-100 bg-slate-50 p-4 text-sm font-bold text-slate-400">준비 중</div>`;
+        }
+
+        function renderTravelTab() {
+            activeLocationActionId = null;
+            renderLocationNav();
+        }
+
+        function bootRestoredLocationSurface() {
+            if (getCurrentLocationContextId() === RESTORED_LOCATION_CONTEXT_IDS.TRAVEL) {
+                activeLocationActionId = null;
+                switchTab("travel");
+                return;
+            }
+            activateLocationAction(getDefaultLocationActionId(), true);
+        }
+
+        function resetRestoredStartLocation() {
+            const context = getRestoredLocationContext(RESTORED_LOCATION_CONTEXT_IDS.HOME_INSIDE);
+            gameState.location = { ...(gameState.location || {}), cityId: context.cityId, contextId: context.id, placeId: context.defaultPlaceId, previousContextId: null };
+            activeLocationActionId = "myinfo";
+            saveGame();
+            switchTab("myinfo");
+        }
+
         function switchTab(name) {
             document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
-            document.getElementById(`tab-${name}`).classList.add('active');
-            document.querySelectorAll('.nav-item').forEach(el => el.className = "nav-item flex-1 min-w-[60px] py-2 text-center text-gray-400 rounded-lg transition-colors duration-200");
-            document.getElementById(`nav-${name}`).className = "nav-item flex-1 min-w-[60px] py-2 text-center text-indigo-600 bg-indigo-50/50 font-bold rounded-lg";
+            const target = document.getElementById(`tab-${name}`);
+            if(!target) return;
+            target.classList.add('active');
             if(name === 'casino') {
                 const activeGame = document.getElementById('game-oddeven').classList.contains('hidden') ? 'blackjack' : 'oddeven';
                 setCasinoGame(activeGame);
@@ -787,24 +877,27 @@
         }
         function renderMyInfoTab() {
             const rank = getRestoredRank(gameState, RANKS);
-            const stockVal = getRestoredStockValue(gameState);
-            const assetVal = getRestoredOwnershipValue(gameState);
-            document.getElementById('my-networth').innerText = fmt(getRestoredTotalAsset(gameState));
-            document.getElementById('info-cash').innerText = fmt(gameState.cash);
-            document.getElementById('info-invest').innerText = fmt(stockVal);
-            document.getElementById('info-asset').innerText = fmt(assetVal);
+            const profile = gameState.profile || {};
+            const accountName = gameState.account?.displayName || '로컬 게스트';
+            document.getElementById('profile-display-name').innerText = accountName;
+            document.getElementById('profile-job-title').innerText = profile.jobTitle || '무직';
+            document.getElementById('profile-residence').innerText = profile.residenceLabel || '우리집';
+            document.getElementById('profile-condition').innerText = profile.conditionLabel || '보통';
+            document.getElementById('account-display-name').innerText = accountName;
+            document.getElementById('account-online-status').innerText = gameState.online?.status === 'connected' ? 'ONLINE' : 'OFFLINE';
             const avatarEl = document.getElementById('my-avatar');
             if(avatarEl) avatarEl.innerText = rank.rankEmoji;
             const loverCount = gameState.partners.filter(p => p.isLover).length;
             document.getElementById('relationship-status').innerText = loverCount > 0 ? `연인 ${loverCount}명` : "솔로";
-            const list = document.getElementById('partner-list');
-            list.innerHTML = '';
-            if(gameState.partners.length === 0) list.innerHTML = '<div class="text-gray-400 text-center py-4 text-xs">인연이 없습니다. 산책을 나가보세요.</div>';
-            gameState.partners.forEach((p, idx) => {
-                const barColor = p.love >= 100 ? 'bg-pink-600' : 'bg-pink-400';
-                const statusBadge = p.isLover ? '<span class="text-[10px] bg-pink-100 text-pink-600 font-bold px-1 rounded">LOVER</span>' : '';
-                list.innerHTML += `<div class="bg-pink-50 p-3 rounded-xl border border-pink-100 flex justify-between items-center"><div class="flex items-center gap-3"><div class="text-2xl">${p.emoji}</div><div><div class="font-bold text-gray-800 text-sm flex items-center gap-1">${p.name} ${statusBadge}</div><div class="flex items-center gap-1 mt-1 w-24"><div class="flex-1 h-1.5 bg-white rounded-full overflow-hidden"><div class="h-full ${barColor}" style="width:${Math.min(100, p.love)}%"></div></div></div></div></div><button onclick="openInteractModal(${idx})" class="w-10 h-10 rounded-full bg-white border border-pink-200 text-xl shadow-sm">📞</button></div>`;
-            });
+            renderProfileStats(profile);
+        }
+        function renderProfileStats(profile) {
+            const grid = document.getElementById('profile-stat-grid');
+            grid.innerHTML = listRestoredProfileStats(profile).map((stat) => {
+                const percent = Math.max(0, Math.min(100, (stat.value / stat.max) * 100));
+                const barClass = PROFILE_STAT_BAR_CLASSES[stat.id] || 'bg-indigo-500';
+                return `<div class="space-y-1"><div class="flex justify-between text-xs font-bold text-gray-600"><span>${stat.label}</span><span>${stat.value}/${stat.max}</span></div><div class="h-2 bg-slate-100 rounded-full overflow-hidden"><div class="h-full ${barClass} transition-all" style="width:${percent}%"></div></div></div>`;
+            }).join('');
         }
         function renderShopTab() {
             const eList = document.getElementById('shop-essential-list'); eList.innerHTML = '';
@@ -825,36 +918,77 @@
             });
         }
         function switchPhoneApp(app) {
-            if(!hasRestoredPhone(gameState)) return showToast('휴대폰을 먼저 구매하세요.');
-            if(app === 'futures' && !hasRestoredSmartPhone(gameState)) return showToast('코인선물은 스마트폰이 필요합니다.');
+            const device = getRestoredPhoneDevice();
+            const appInfo = getRestoredPhoneApp(app);
+            if(!device.hasPhone) return showToast('휴대폰을 먼저 구매하세요.');
+            if(!appInfo) return showToast('알 수 없는 휴대폰 앱입니다.');
+            if(!canUseRestoredPhoneApp(app, device)) return showToast(`${appInfo.label}은 스마트폰이 필요합니다.`);
             activePhoneApp = app;
             renderPhoneTab();
+        }
+        function getRestoredPhoneDevice() {
+            return {
+                hasPhone: hasRestoredPhone(gameState),
+                hasSmartPhone: hasRestoredSmartPhone(gameState)
+            };
         }
         function renderPhoneTab() {
             const locked = document.getElementById('phone-locked');
             const shell = document.getElementById('phone-app-shell');
-            if(!hasRestoredPhone(gameState)) {
+            const device = getRestoredPhoneDevice();
+            if(!device.hasPhone) {
                 locked.classList.remove('hidden');
                 shell.classList.add('hidden');
                 return;
             }
-            if(activePhoneApp === 'futures' && !hasRestoredSmartPhone(gameState)) activePhoneApp = 'news';
+            const usableApps = listUsableRestoredPhoneApps(device);
+            if(!canUseRestoredPhoneApp(activePhoneApp, device)) activePhoneApp = usableApps[0]?.id || 'news';
             locked.classList.add('hidden');
             shell.classList.remove('hidden');
-            document.getElementById('phone-device-badge').innerText = hasRestoredSmartPhone(gameState) ? '스마트폰' : '폴더폰';
-            document.getElementById('phone-app-buttons').className = hasRestoredSmartPhone(gameState) ? 'grid grid-cols-3 gap-2' : 'grid grid-cols-2 gap-2';
-            ['news', 'stock', 'futures'].forEach(app => {
-                const view = document.getElementById(`phone-app-${app}`);
-                const btn = document.getElementById(`phone-app-${app}-btn`);
-                view.classList.toggle('hidden', app !== activePhoneApp);
-                btn.className = app === activePhoneApp
-                    ? 'py-3 rounded-xl bg-white text-slate-900 font-bold text-sm'
-                    : 'py-3 rounded-xl bg-slate-800 text-slate-300 font-bold text-sm';
+            document.getElementById('phone-device-badge').innerText = device.hasSmartPhone ? '스마트폰' : '폴더폰';
+            renderPhoneAppButtons(usableApps);
+            listRestoredPhoneApps().forEach(app => {
+                const view = document.getElementById(`phone-app-${app.id}`);
+                if(view) view.classList.toggle('hidden', app.id !== activePhoneApp);
             });
-            document.getElementById('phone-app-futures-btn').classList.toggle('hidden', !hasRestoredSmartPhone(gameState));
             if(activePhoneApp === 'news') renderNewsTab();
             if(activePhoneApp === 'stock') renderStockTab();
+            if(activePhoneApp === 'relationships') renderRelationshipPhoneApp();
             if(activePhoneApp === 'futures') renderFuturesTab();
+        }
+        function renderPhoneAppButtons(apps) {
+            const buttons = document.getElementById('phone-app-buttons');
+            buttons.className = apps.length >= 3 ? 'grid grid-cols-3 gap-2' : 'grid grid-cols-2 gap-2';
+            buttons.innerHTML = apps.map((app) => {
+                const className = app.id === activePhoneApp
+                    ? 'py-3 rounded-xl bg-white text-slate-900 font-bold text-sm'
+                    : 'py-3 rounded-xl bg-slate-800 text-slate-300 font-bold text-sm';
+                return `<button onclick="switchPhoneApp('${app.id}')" id="phone-app-${app.id}-btn" class="${className}">${app.icon} ${app.label}</button>`;
+            }).join('');
+        }
+        function isRelationshipPhoneAppVisible() {
+            return Boolean(document.querySelector('#tab-phone.active')) && activePhoneApp === 'relationships';
+        }
+        function renderRelationshipSurfaces() {
+            if(document.querySelector('#tab-myinfo.active')) renderMyInfoTab();
+            if(isRelationshipPhoneAppVisible()) renderRelationshipPhoneApp();
+        }
+        function renderRelationshipPhoneApp() {
+            const summary = document.getElementById('phone-relationship-summary');
+            const list = document.getElementById('phone-partner-list');
+            if(!summary || !list) return;
+            const loverCount = gameState.partners.filter(p => p.isLover).length;
+            summary.innerText = loverCount > 0 ? `연인 ${loverCount}명` : '솔로';
+            list.innerHTML = '';
+            if(gameState.partners.length === 0) {
+                list.innerHTML = '<div class="text-gray-400 text-center py-8 text-xs">등록된 인연이 없습니다.</div>';
+                return;
+            }
+            gameState.partners.forEach((p, idx) => {
+                const barColor = p.love >= 100 ? 'bg-pink-600' : 'bg-pink-400';
+                const statusBadge = p.isLover ? '<span class="text-[10px] bg-pink-100 text-pink-600 font-bold px-1 rounded">LOVER</span>' : '';
+                list.innerHTML += `<div class="bg-pink-50 p-3 rounded-xl border border-pink-100 flex justify-between items-center"><div class="flex items-center gap-3"><div class="text-2xl">${p.emoji}</div><div><div class="font-bold text-gray-800 text-sm flex items-center gap-1">${p.name} ${statusBadge}</div><div class="flex items-center gap-1 mt-1 w-28"><div class="flex-1 h-1.5 bg-white rounded-full overflow-hidden"><div class="h-full ${barColor}" style="width:${Math.min(100, p.love)}%"></div></div><span class="text-[10px] font-bold text-pink-600">${Math.floor(p.love)}%</span></div></div></div><button onclick="openInteractModal(${idx})" title="대화 열기" class="w-10 h-10 rounded-full bg-white border border-pink-200 text-xl shadow-sm active:scale-95 transition">📞</button></div>`;
+            });
         }
         function renderStockTab() {
             const cyc = CYCLES[marketCycle];
@@ -943,6 +1077,7 @@
             saveGame();
             document.getElementById('interact-love-val').innerText = Math.floor(p.love) + '%';
             document.getElementById('interact-love-bar').style.width = p.love + '%';
+            renderRelationshipSurfaces();
             openInteractModal(activePartnerIdx);
         }
         function openInteractModal(idx) {
@@ -1006,7 +1141,7 @@
             p.love = Math.min(100, p.love + 25);
             showToast(`🎁 ${item.name}(${fmt(item.price)}) 선물! ${p.name}님이 매우 기뻐합니다.`);
             if (!p.isLover && p.love >= 100) { p.isLover = true; p.title = "연인"; showToast(`🎉 ${p.name}와 연인이 되었습니다!`); }
-            saveGame(); closeGiftSelectModal();
+            saveGame(); renderRelationshipSurfaces(); closeGiftSelectModal();
         }
         function goHome() {
             const rank = getRestoredRank(gameState, RANKS);
@@ -1034,12 +1169,11 @@
             const rEmoji = document.getElementById('walk-result-emoji');
             const rText = document.getElementById('walk-result-text');
             if(isSuccess) {
-                const types = [{name:"대학생", emoji:"👩‍🎓"}, {name:"직장인", emoji:"👩‍💼"}, {name:"모델", emoji:"💃"}, {name:"간호사", emoji:"👩‍⚕️"}, {name:"운동선수", emoji:"🏃‍♀️"}];
-                const t = types[Math.floor(Math.random()*types.length)];
-                gameState.partners.push({ name: t.name, emoji: t.emoji, love: 40, isLover: false, title: '지인' });
+                const t = pickRestoredPartnerArchetype();
+                gameState.partners.push(createRestoredPartnerFromArchetype(t));
                 saveGame();
                 rEmoji.innerText = "😍"; rText.innerText = `"${t.name}"의 번호를 따냈습니다!`; rText.className = "font-bold mb-4 text-pink-600";
-                if(document.querySelector('#tab-myinfo.active')) renderMyInfoTab();
+                renderRelationshipSurfaces();
             } else {
                 rEmoji.innerText = "💔"; rText.innerText = "거절당했습니다..."; rText.className = "font-bold mb-4 text-gray-500";
             }
@@ -1294,9 +1428,11 @@
         }
         window.onload = () => {
             loadGame();
-            switchTab('myinfo');
+            bootRestoredLocationSurface();
         };
         function startGame() {
+            ensureRestoredAccountSession();
+            resetRestoredStartLocation();
             const audio = document.getElementById('bgm-player');
             audio.volume = 0.5;
             audio.play().then(() => {
@@ -1312,27 +1448,26 @@
         }
 
         Object.assign(window, {
+            activateLocationAction,
             adjustQty,
             buyAsset,
             closeFutures,
             closeGiftSelectModal,
             closeInteractModal,
-            closeLoadGameModal,
             closeModal,
             closeWalkModal,
             continueDoubleUp,
             doPartTimeJob,
-            exportSaveData,
             generateAINews,
             goForWalk,
             goHome,
             hitBlackjack,
-            importSaveData,
             interactPartner,
             openGiftSelectModal,
             openInteractModal,
-            openLoadGameModal,
+            openPhoneSurface,
             openPosition,
+            openShopFromPhoneLock,
             openTradeModal,
             playOddEven,
             resetBlackjackUI,
@@ -1343,6 +1478,7 @@
             setCasinoGame,
             setFuturesMarginPercent,
             setQtyPercent,
+            showToast,
             standBlackjack,
             startBlackjack,
             startGame,

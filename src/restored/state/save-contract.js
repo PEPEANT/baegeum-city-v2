@@ -9,6 +9,10 @@ export const RESTORED_STATE_DOMAINS = Object.freeze([
   "futures",
   "realEstate",
   "luxury",
+  "profile",
+  "account",
+  "online",
+  "location",
   "newsHistory",
   "partners",
   "recentEvents"
@@ -32,4 +36,3 @@ export function isRestoredSaveEnvelope(value) {
       && typeof value.state === "object"
   );
 }
-

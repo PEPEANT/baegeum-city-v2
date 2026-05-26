@@ -23,38 +23,74 @@ Related source documents:
 
 ## Current Restored Baseline
 
-Current player-facing navigation should stay compact:
+Current runtime navigation is still the restored five-tab shell:
 
 ```text
 myinfo / phone / realestate / casino / shop
 ```
 
-News, stocks, and futures belong inside the phone. If the player has no phone, those apps should not be reachable. If the player has a folder phone, basic news and stock access can unlock. Smartphone-only apps such as futures, advanced charts, AI calls, and richer chat can unlock later.
+Future navigation should become location-aware instead of feature-tab-driven:
+
+```text
+home_inside
+  -> myinfo / home / go_out
+
+home_front
+  -> fast_food / labor_office / convenience_store / bus_stop / go_home
+
+city_district
+  -> places for the current city
+```
+
+News, stocks, futures, rankings, chat, and the relationship/lover list belong inside a phone/app surface, not the global bottom nav or the My Info panel. If the player has no phone, those apps should not be reachable. If the player has a folder phone, basic news, stock access, and a simple relationship app can unlock. Smartphone-only apps such as futures, advanced charts, AI calls, and richer chat can unlock later.
 
 Current split status:
 
 - `src/restored/state/initial-state.js` owns initial state.
 - `src/restored/state/storage.js` owns save/load and cash-only restore helpers.
 - `src/restored/state/selectors.js` owns total asset, rank, phone ownership, and smartphone ownership calculations.
-- Static catalogs for ranks, markets, assets, and partners are still the next cleanup layer before large UI or relationship work.
+- `src/restored/account/session-contract.js` owns the restored login/account and online availability state shape.
+- `src/restored/online/online-adapter-contract.js` owns the restored online adapter snapshot, unavailable default, and lobby availability guard.
+- `src/restored/player/profile-contract.js` owns the player profile, job title, residence label, condition label, and core stats that the My Info surface renders.
+- `src/restored/phone/phone-app-contract.js` owns phone app ids, labels, icons, and phone/smartphone gates before chat, ranking, or online lobby apps are added.
+- The partner/lover list is a planned phone app entry. My Info should only show a compact relationship summary.
+- Static catalogs for ranks, markets, assets, partners, the first three city ids, and the first location contexts now live under `src/restored/data/`.
+- `src/restored/ui/location-nav-contract.js` owns the planned home, house-front, travel, and city action sets before the runtime shell consumes them.
+
+## Login Home Transition
+
+The restored build is moving from a save-code start screen to a login home.
+
+Rules:
+
+- The normal player UI should not show the legacy save-code backup center.
+- Guest/local login is enough for offline play.
+- Online login must stay disabled or unavailable until a real online adapter can report a connected state.
+- MammonCity2 is the reference for login shell, online shape, and phone UI, but Firebase config and anonymous-auth behavior should not be copied directly into restored runtime.
+- Legacy save-code helpers may remain in `src/restored/state/storage.js` as hidden migration helpers until account-backed saves are stable.
+
+The migration plan lives in `docs/plans/restored-login-home-online-phone-migration.md`.
+The UI redesign preflight plan lives in `docs/plans/restored-ui-surface-redesign.md`.
 
 ## UI Surfaces
 
-Future UI work should split by player job, not by old tabs.
+Future UI work should split by player location and job, not by old global tabs.
 
 Primary surfaces:
 
 - Top bar: player rank title, cash, total asset, current city, and future online status.
-- Bottom nav: only `myinfo`, `phone`, `realestate`, `casino`, and `shop`.
-- My info: identity, net worth, relationship summary, partner list, and core life actions.
-- Phone shell: app grid, notifications, partner DM entry, news, stocks, futures, rankings, and future online services.
-- Relationship panel: partner mood, stage, memory hints, call/message/gift/date choices.
+- Location-aware bottom nav: shows only actions/places valid for `home_inside`, `home_front`, the current city district, or travel.
+- My info: character sheet for identity, relationship summary, job, residence, condition, core stats, and account status.
+- Home shell: start location with `myinfo`, `home`, and `go_out`.
+- Home-front shell: first outside location with fast food, labor office, convenience store, bus stop, and return-home actions.
+- Phone shell: app grid, app stage/window, notifications, relationship/lover app, partner DM entry, news, stocks, futures, rankings, and future online services.
+- Relationship panel: phone-launched partner mood, stage, memory hints, call/message/gift/date choices.
 - Dialogue modal: branching choices, emotional result preview, memory references, and illustration slot.
 - Casino surface: bet controls, game table, settlement feed, and partner reaction strip.
 - Shop and ownership: buy/sell, inventory, gift eligibility, and item story value.
 - City/place surface: future city split, actor presence, travel, and place-specific actions.
 
-The bottom nav must not grow again when a phone app is added.
+The bottom nav must not become a permanent list of every feature. It should change from house, to house-front, to city, to travel context.
 
 ## Design Draft
 
@@ -65,16 +101,19 @@ Design direction:
 - Economy screens should be dense, scannable, and calm.
 - Casino screens can carry stronger contrast, table color, chips, and result motion.
 - Partner and conversation screens can be softer, image-led, and emotionally focused.
-- Phone screens should look like a practical in-game phone UI, with app icons, unread marks, and small status indicators.
+- Phone screens should look like a practical in-game phone UI, with app icons, unread marks, small status indicators, and in-phone app views instead of global pages.
 - Illustration slots should be reserved early even before final art exists, using manifest ids and fallbacks.
 
 First redesign pass:
 
 ```text
 top bar
--> bottom nav
+-> location-aware bottom nav
+-> home_inside shell
+-> home_front shell
 -> phone shell
--> my info/partner panel
+-> my info shell
+-> relationship phone app
 -> casino surface
 -> shop/ownership cards
 ```
@@ -97,7 +136,7 @@ Authority Rules:
 Recommended online phases:
 
 1. Add a read-only online status selector and UI slot in the top bar.
-2. Add a restored online adapter contract that can return `unavailable` by default.
+2. Add a restored online adapter contract that can return `unavailable` by default. Current status: implemented in `src/restored/online/online-adapter-contract.js`.
 3. Add dev-only mock connection for tests, not for normal offline play.
 4. Add phone-based online lobby entry after connected state.
 5. Add presence and chat channel sync.
@@ -184,6 +223,7 @@ Chat starts in the phone and grows outward.
 
 Offline chat:
 
+- The partner/lover list is the relationship app home inside the phone.
 - Partner DM is the first restored chat surface.
 - Partner lines should come from a dialogue catalog, not hard-coded button strings.
 - Relationship state should include affection, trust, tension, jealousy, comfort, and memory before deep branching.
@@ -222,20 +262,24 @@ Minimum message shape:
 
 ## Expansion Order
 
-1. Extract restored static catalogs for ranks, assets, markets, and partner archetypes.
+1. Keep restored static catalogs for ranks, assets, markets, partner archetypes, and first city ids guarded.
 2. Add UI surface contracts for top bar, bottom nav, phone shell, relationship panel, dialogue modal, casino surface, and ranking screen.
-3. Move phone app rendering into `src/restored/phone/`.
-4. Add local ranking snapshot selectors and a phone ranking app.
-5. Add relationship/emotion v2 state beside legacy `love`.
-6. Add partner DM catalog and message history contract.
-7. Add illustration catalog hooks for dialogue and partner mood.
-8. Add online adapter and read-only top-bar status.
-9. Add online lobby entry only after connected/dev-mock connected state.
-10. Add online chat delivery and leaderboard snapshots.
+3. Move phone app rendering into `src/restored/phone/`. Current status: app ids and device gates live in `src/restored/phone/phone-app-contract.js`.
+4. Add a relationship/lover phone app id and move the partner list entry point out of My Info.
+5. Adapt the runtime shell to consume the location navigation contract for `home_inside`, `home_front`, `baegeum-city`, `dice-city`, and `seosan-city`.
+6. Add local ranking snapshot selectors and a phone ranking app.
+7. Add relationship/emotion v2 state beside legacy `love`.
+8. Add partner DM catalog and message history contract.
+9. Add illustration catalog hooks for dialogue and partner mood.
+10. Add online adapter and read-only top-bar status. Current status: adapter contract exists; top-bar status reads restored state.
+11. Add online lobby entry only after connected/dev-mock connected state.
+12. Add online chat delivery and leaderboard snapshots.
 
 ## Do Not
 
-- Do not put news, stocks, futures, rankings, or chat back into bottom navigation.
+- Do not put news, stocks, futures, rankings, or chat into permanent global bottom navigation.
+- Do not render the full partner/lover list in My Info; it belongs in the phone relationship app.
+- Do not add every new place as a global tab; add it to the current location or city context.
 - Do not build a fake offline lobby.
 - Do not make online ranking client-authoritative.
 - Do not make public chat available before channel membership and moderation states exist.

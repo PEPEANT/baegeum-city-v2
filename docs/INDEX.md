@@ -41,6 +41,9 @@
 - [Baegeum City V2 Restored Intake](baegeum-city-v2-restored-intake.md): Receiving lane for human-provided files, links, drafts, character ideas, and reference material before manifest/catalog promotion.
 - [Restored Planning Drafts](plans/README.md): Folder rules for feature-plan drafts that must exist before restored UI, ranking, job, chat, online, relationship, or casino implementation.
 - [Restored Ranking And Job System Plan](plans/restored-ranking-job-system.md): Concrete planning draft for phone rankings, local preview leaderboards, job/occupation boards, and online authority boundaries.
+- [Restored Three City Home Navigation Plan](plans/restored-three-city-home-navigation.md): Planning draft for starting inside the player home, moving to house-front, and expanding through Baegeum City, Dice City, and Seosan City with location-aware tabs.
+- [Restored Login Home, Online, And Phone Migration Plan](plans/restored-login-home-online-phone-migration.md): Planning draft for retiring visible save-code UI, using a login home, adapting MammonCity2 phone/online references, and keeping online authority explicit.
+- [Restored UI Surface Redesign Plan](plans/restored-ui-surface-redesign.md): Pre-redesign checklist for the restored playable shell, including My Info, home, outside, phone, city, asset, ranking, chat, and online boundaries.
 - [Restored Feature Plan Template](templates/restored-feature-plan-template.md): Required sections for restored feature plans, including job/occupation impact, ranking impact, chat impact, online authority, assets, and verification.
 
 ## AI Operating Loop

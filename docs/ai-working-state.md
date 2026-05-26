@@ -23,13 +23,23 @@ Dice City full-restore playable prototype is the active priority:
 3. The restored build owns its own localStorage key, `baegeum_city_v2_dice_restore`, so it does not mix with the previous modular city-core storage.
 4. The previous ledger/action/multimap city-core remains in `src/`, `editor.html`, and docs, but it is paused unless the human explicitly redirects back to that architecture.
 5. `docs/baegeum-city-v2-restored-growth-architecture.md` is the current growth architecture for AI lovers, emotion, gambling, ownership, conversation, and illustrations.
-6. Near-term code changes should start extracting state/storage/catalog modules under `src/restored/` instead of adding more inline script to the restored HTML.
+6. Near-term code changes should continue extracting runtime contracts under `src/restored/` instead of adding more inline script to the restored HTML.
 7. Asset additions for mp3 files, partner illustrations, phone art, casino art, and item images should go through `src/restored/assets/asset-manifest.js` and `docs/baegeum-city-v2-restored-asset-pipeline.md` before runtime use.
 8. Restored read-only selectors for total asset, rank, ownership value, phone ownership, and smartphone ownership now live in `src/restored/state/selectors.js`.
 9. Human-provided files, links, design drafts, and raw notes now have an intake lane: raw files in `assets/inbox/`, reference cards in `refs/intake/`, and classification through `tools/intake-restored-material.cjs`.
-10. Restored UI, online expansion, ranking, and chat growth are now planned in `docs/baegeum-city-v2-restored-ui-online-ranking-chat-roadmap.md`; phone remains the hub for news, markets, rankings, and chat, while bottom nav stays `myinfo / phone / realestate / casino / shop`.
+10. Restored UI, online expansion, ranking, and chat growth are now planned in `docs/baegeum-city-v2-restored-ui-online-ranking-chat-roadmap.md`; phone remains the hub for news, markets, rankings, and chat, while future bottom navigation should become location-aware instead of a permanent feature list.
 11. New restored features should get a draft plan through `npm run plan:restored -- <slug> --write` before implementation. The plan template includes job/occupation impact so rankings can include jobs without mixing them into wealth rank.
 12. `docs/plans/restored-ranking-job-system.md` is the first concrete restored feature plan. It keeps wealth title, leaderboard position, and job/occupation rank separate.
+13. `docs/plans/restored-three-city-home-navigation.md` is the current navigation plan: start inside the player home, move to house-front, and expand through Baegeum City, Dice City, and Seosan City with location-aware tabs.
+14. Static restored catalogs for ranks, assets, markets, partner archetypes, city ids, and place seeds now live under `src/restored/data/`.
+15. `src/restored/data/location-catalog.js` and `src/restored/ui/location-nav-contract.js` define the planned home, house-front, travel, and first-city navigation contexts. The next code slice should make the playable shell consume these contracts in a reversible way.
+16. Visible save-code backup UI has been removed from the restored HTML. The current start screen is a local guest login home, with online login explicitly unavailable until an online adapter exists.
+17. `src/restored/account/session-contract.js` owns restored account/session and online availability state. MammonCity2 is pinned as a login/online/phone reference in `refs/`, but no Firebase config or runtime import should be copied without a separate adoption decision.
+18. `src/restored/online/online-adapter-contract.js` now owns the unavailable-by-default online adapter snapshot and lobby availability guard. The next restored coding slice should move phone app rendering under `src/restored/phone/` before any Firebase or connected lobby work.
+19. `src/restored/player/profile-contract.js` now owns the restored profile/job/residence/condition/core-stat shape. My Info is now a character sheet; money duplication and always-visible hunting/home actions should move to top bar, home, or outside-location surfaces instead.
+20. `src/restored/phone/phone-app-contract.js` now owns phone app ids, labels, icons, and phone/smartphone gates, including the `relationships` app. The HTML still renders the app views, but visible app buttons are derived from the contract.
+21. `docs/plans/restored-ui-surface-redesign.md` now owns the immediate pre-redesign checklist for the restored shell: My Info, home, outside/home-front, phone, city, ranking, chat, online, and asset boundaries.
+22. The partner/lover list now belongs to the phone relationship app, not to My Info. My Info only shows a compact relationship summary, and the current playable phone tab exposes the `인연` app beside news/stock for folder phones. The MammonCity2-style phone registry/router/app-stage pattern remains the reference for relationship, market, ranking, chat, and online apps.
 
 Multimap safety remains verified:
 
@@ -140,6 +150,102 @@ Paused loops:
 - `docs/ai-spaghetti-bug-root-cause.md` explains why the spaghetti/bug pattern emerged and now fixes the next audit sequence around persistence, silent failures, and browser workflows.
 
 ## Loop Record
+
+Date: 2026-05-26
+Observed: The human pointed at the live DiceLand page as a stronger visual/game reference and suggested splitting Dice City into separate venues such as pawnshop, loan office, roulette casino, and blackjack casino.
+Changed: Reworked the restored Dice City navigation from one generic casino tab into `카지노거리`, `전당포`, `사채업소`, `호텔`, and `이동`. Added casino-street place cards for 슬롯카지노, 블랙잭카지노, and 룰렛카지노, added restored place catalog entries for casino street, pawnshop, loan office, and hotel, and recorded the live DiceLand reference in the gambling venue document. Placeholder place buttons now safely route through exposed toast or existing tabs instead of failing on module-scoped handlers.
+Verified: `npm run check` passed. Browser verification confirmed Dice City opens on `카지노거리`, shows 슬롯/블랙잭/룰렛 cards, and bottom navigation exposes 전당포 and 사채업소 place surfaces. The only browser noise remained the existing favicon 404/Tailwind CDN warning.
+Blocked: None.
+Next: Turn one separated venue into a real feature through a contract first: either blackjack panel extraction, roulette rules scaffold, pawnshop collateral contract, or loan/debt state contract.
+Do not: Add direct cash/debt mutations from place buttons or copy DiceLand code/assets without a separate adoption/license decision.
+
+Date: 2026-05-26
+Observed: After location-aware navigation landed, browser verification exposed two UX bugs: the floating phone dock aligned to the viewport edge on desktop instead of the playable shell, and guest login could reopen at a previously saved outside/city location instead of starting inside the home.
+Changed: Re-centered the phone dock inside the max-width playable shell, kept its hit target active through the pointer-events wrapper, made no-phone dock clicks jump directly to the house-front convenience shop, and reset restored guest entry to `home_inside` / `myinfo` on every start.
+Verified: `npm run check` passed. Browser verification confirmed guest entry now starts at `우리집 안`, the bottom nav shows `내정보/집안/밖으로 나가기`, the phone dock sits above the app-width tab area, and no-phone dock access opens the 편의점 shop surface. Only the existing favicon 404/Tailwind CDN warning remained.
+Blocked: None.
+Next: Move the next real place action through a restored action/effect or ledger-compatible contract before changing cash, items, stats, or job state.
+Do not: Let saved location override the home start, or wire fast-food/labor-office buttons to direct state mutation.
+
+Date: 2026-05-26
+Observed: The human approved starting the relationship phone-app migration. The previous code still rendered the full partner list as a My Info section while phone apps only covered news, stock, and futures.
+Changed: Added the `relationships` phone app to `src/restored/phone/phone-app-contract.js`, moved the partner list DOM from My Info to `phone-app-relationships`, added `renderRelationshipPhoneApp`, and strengthened restored growth/profile/phone checks so the full partner list cannot move back into My Info silently.
+Verified: `node tools/check-restored-phone-app-contract.cjs`, `node tools/check-restored-player-profile.cjs`, `node tools/check-restored-growth-architecture.cjs`, and full `npm run check` passed. Browser verification reloaded `baegeum-city-v2-dice.html`, entered as `Tester`, confirmed My Info has no `partner-list`, confirmed the phone grid shows `뉴스/주식/인연`, opened the `인연` app, confirmed `phone-partner-list` exists in the phone app, and saw zero console errors.
+Blocked: None.
+Next: Extract the relationship phone app renderer into `src/restored/phone/` or add the next small phone-app renderer extraction for news/stock without broad visual redesign.
+Do not: Put the full lover list, partner DM, market apps, ranking, chat, or online lobby back into permanent bottom navigation or My Info.
+
+Date: 2026-05-26
+Observed: The human clarified that the lover list should move into the phone as an app, following the MammonCity2-style phone app flow where app icons open in-phone app screens for markets, chat, and relationship content.
+Changed: Updated the restored roadmap, UI surface redesign plan, login/phone migration plan, recomposition plan, restored README, and planning checks so the partner/lover list is treated as a phone relationship app entry rather than a My Info section.
+Verified: `node tools/check-restored-ui-online-ranking-chat-roadmap.cjs`, `node tools/check-restored-planning-kit.cjs`, full `npm run check`, and `git diff --check` passed. `git diff --check` only reported existing CRLF conversion warnings.
+Blocked: None.
+Next: Add the relationship/lover app id to `src/restored/phone/phone-app-contract.js`, then move the current partner list render path from My Info into the phone app stage.
+Do not: Put the full lover list, partner DM, market apps, ranking, chat, or online lobby back into permanent bottom navigation or My Info.
+
+Date: 2026-05-26
+Observed: The human asked to re-check whether all markdown planning additions were present before starting the broader redesign. The planning README listed `restored-ui-surface-redesign.md` as a recommended draft, but the actual file was still missing.
+Changed: Added `docs/plans/restored-ui-surface-redesign.md` as the pre-redesign checklist for the restored playable shell, linked it from `docs/INDEX.md`, `docs/plans/README.md`, the restored roadmap, recomposition plan, and `src/restored/README.md`, and strengthened `tools/check-restored-planning-kit.cjs` so the plan cannot silently disappear.
+Verified: `node tools/check-restored-planning-kit.cjs`, `node tools/check-size.cjs`, full `npm run check`, and `git diff --check` passed. `git diff --check` only reported existing CRLF conversion warnings.
+Blocked: None.
+Next: Run planning-kit and full project checks, then begin redesign from phone renderer extraction or location-aware shell wiring.
+Do not: Start broad visual redesign before the surface checklist and existing checks are green.
+
+Date: 2026-05-26
+Observed: The human identified My Info as the next readability bottleneck because it duplicated money and mixed identity, hunting, home travel, account, and relationship data.
+Changed: Added `src/restored/player/profile-contract.js` for profile/job/residence/condition/core stats, added `profile` to restored initial/save/load state, and rewired My Info into a character sheet with core stats instead of duplicated cash/net-worth rows or always-visible hunting/home action buttons. Added `tools/check-restored-player-profile.cjs` to guard the profile contract and My Info boundaries.
+Verified: `node tools/check-restored-player-profile.cjs`, `node tools/check-size.cjs`, `node tools/check-restored-growth-architecture.cjs`, full `npm run check`, and `git diff --check` passed. Browser verification reloaded `baegeum-city-v2-dice.html`, logged in as `Tester`, confirmed the My Info stat grid, job/residence/condition/account fields, no visible hunting/home action buttons, no duplicated My Info money rows, and zero console errors.
+Blocked: None yet.
+Next: Run full check and browser-smoke the restored page, then continue with phone app extraction or location-aware navigation.
+Do not: Put money summaries, hunting, or home travel back into My Info; those belong in the top bar, home surface, or outside-location actions.
+
+Date: 2026-05-26
+Observed: After the My Info slice was verified, the next small bottleneck was that phone app ids and device gates were still owned by the restored HTML.
+Changed: Added `src/restored/phone/phone-app-contract.js` for news, stock, and futures app metadata plus phone/smartphone gates. Re-exported the app contract from the shell contract, rewired the phone tab to derive visible app buttons from the contract, and added `tools/check-restored-phone-app-contract.cjs`.
+Verified: `node tools/check-restored-phone-app-contract.cjs`, `node tools/check-size.cjs`, `node tools/check-restored-growth-architecture.cjs`, full `npm run check`, and `git diff --check` passed. Browser verification reloaded `baegeum-city-v2-dice.html`, opened the phone tab with a folder phone, confirmed only `뉴스/주식` app buttons are visible, confirmed `코인선물` is hidden until smartphone ownership, and reported zero console errors.
+Blocked: None yet.
+Next: Verify folder-phone and smartphone button visibility, then continue with full phone renderer extraction.
+Do not: Put news, stock, futures, rankings, chat, or online lobby back into global bottom navigation.
+
+Date: 2026-05-26
+Observed: The last restored loop removed visible save-code UI and left the next safe slice as a restored online adapter that returns `unavailable` by default before any Firebase, lobby, or phone-online work.
+Changed: Added `src/restored/online/online-adapter-contract.js` with online status validation, an unavailable adapter, adapter snapshots, and a lobby guard. Re-exported online state helpers from `account/session-contract.js`, switched restored initial state to import online state from the online module, and guarded the adapter in `tools/check-restored-growth-architecture.cjs`. Updated restored roadmap, recomposition plan, login migration plan, and `src/restored/README.md`.
+Verified: Initial `npm run check` was already green. After the change, `node tools/check-size.cjs`, `node tools/check-restored-growth-architecture.cjs`, `node tools/check-restored-ui-online-ranking-chat-roadmap.cjs`, `node tools/check-restored-planning-kit.cjs`, and full `npm run check` passed. Browser verification reloaded `baegeum-city-v2-dice.html`, confirmed guest login and online login pending are visible, confirmed save-code UI is absent, logged in as `Tester`, saw `Tester · OFFLINE`, and reported zero console errors.
+Blocked: Real online login and online lobby remain intentionally unavailable. No Firebase or MammonCity2 runtime code was copied.
+Next: Move phone app rendering and phone app gates under `src/restored/phone/`, keeping news, stock, futures, rankings, chat, and future online lobby inside the phone surface.
+Do not: Enable lobby UI from offline state, copy Firebase config, or put phone apps back into the global bottom navigation.
+
+Date: 2026-05-26
+Observed: The human wanted to remove the data backup center/save-code UX and move the restored build toward a login home, while using `PEPEANT/MammonCity2` as the reference for home login, online systems, and phone UI.
+Changed: Replaced the visible restored start screen controls with a local guest login home and disabled online login state. Removed the visible data backup center, save-code copy/restore buttons, and save-code modals from `baegeum-city-v2-dice.html`. Added `src/restored/account/session-contract.js`, added `account` and `online` to restored state/save domains, preserved saved phone ownership during load, and guarded that legacy save-code UI does not return to the HTML. Added `docs/plans/restored-login-home-online-phone-migration.md`, pinned MammonCity2 HEAD/reference notes, and updated roadmap/planning checks.
+Verified: `node tools/check-restored-growth-architecture.cjs`, `node tools/check-restored-ui-online-ranking-chat-roadmap.cjs`, `node tools/check-restored-planning-kit.cjs`, `npm run check`, and `git diff --check` passed. Browser verification reloaded `baegeum-city-v2-dice.html`, confirmed guest login and disabled online login are visible, confirmed backup/save-code UI is not visible, logged in as `Tester`, reached the game screen, and saw zero console errors.
+Blocked: Real online login/cloud save is still intentionally unavailable. MammonCity2 has no detected top-level license file in the intake, so it remains a reference/adoption candidate rather than direct runtime copy.
+Next: Add a restored online adapter contract that returns `unavailable` by default, then move phone app rendering under `src/restored/phone/` before any Firebase or connected lobby work.
+Do not: Reintroduce save-code backup UI in normal play, copy MammonCity2 Firebase config directly, or create a fake offline online lobby.
+
+Date: 2026-05-26
+Observed: After static catalog extraction passed, the next safe step was to lock the home/house-front/travel/three-city navigation contract before touching runtime tabs.
+Changed: Added `src/restored/data/location-catalog.js` for `home_inside`, `home_front`, `travel`, `baegeum-city`, `dice-city`, and `seosan-city`. Added `src/restored/ui/location-nav-contract.js` with the planned context-specific actions such as `go_out`, `fast_food`, `labor_office`, city travel, and city-local place actions. Initial restored state now starts with `location.contextId = "home_inside"`, and save/load preserves future location state. Updated docs and restored growth checks to guard these contracts.
+Verified: `node tools/check-size.cjs`, `node tools/check-restored-growth-architecture.cjs`, `node tools/check-restored-ui-online-ranking-chat-roadmap.cjs`, `node tools/check-restored-planning-kit.cjs`, `npm run check`, and `git diff --check` passed. Browser verification reloaded the restored page, clicked the start button, reached the game screen, and reported zero console errors.
+Blocked: The visible runtime still uses the old playable shell; location-aware tabs are contracted but not wired to the UI yet.
+Next: Adapt the shell/nav rendering to read `location-nav-contract.js`, starting with a reversible home-inside facade.
+Do not: Replace the whole restored UI in one patch or add every location action as a permanent global tab.
+
+Date: 2026-05-26
+Observed: After the three-city home-start plan was guarded, the next documented bottleneck was static catalog ownership still living in the restored HTML.
+Changed: Extracted restored rank, market, asset, and partner archetype data into `src/restored/data/`, rewired `src/restored/state/initial-state.js` to seed state from those catalogs, and changed `baegeum-city-v2-dice.html` to import rank/market/partner catalogs instead of owning those constants. Promoted `seosan-city` into the restored city and place catalogs. Updated restored docs and checks so the new catalogs, `seosan-city`, and HTML no-inline-catalog rule stay guarded.
+Verified: `node tools/check-size.cjs`, `node tools/check-restored-growth-architecture.cjs`, `node tools/check-restored-ui-online-ranking-chat-roadmap.cjs`, `node tools/check-restored-planning-kit.cjs`, and `npm run check` passed. Browser verification reloaded `http://127.0.0.1:4173/baegeum-city-v2-dice.html`, clicked the restored start button, reached the game screen, and reported zero console errors.
+Blocked: Runtime navigation is still the old playable shell; the location-aware home/house-front/city shell is planned but not implemented.
+Next: Add `src/restored/data/location-catalog.js` and a location-nav contract smoke check before changing bottom navigation behavior.
+Do not: Add new rank, asset, market, partner, city, or place data inline in `baegeum-city-v2-dice.html`.
+
+Date: 2026-05-26
+Observed: The human shifted the restored build plan toward starting inside the player's home, then expanding through house-front, Baegeum City, Dice City, and Seosan City with context-specific tabs.
+Changed: Added `docs/plans/restored-three-city-home-navigation.md`, linked it from `docs/INDEX.md` and `docs/plans/README.md`, updated the restored UI/online roadmap and recomposition plan away from permanent global feature tabs, refreshed the feature-plan template and generator, and strengthened planning checks around `home_inside`, `home_front`, and `seosan-city`. Split the planning-kit checker so the size check no longer warns about a long `main` function.
+Verified: `node tools/check-size.cjs`, `node tools/check-restored-ui-online-ranking-chat-roadmap.cjs`, `node tools/check-restored-planning-kit.cjs`, `npm run check`, and `git diff --check` passed. `git diff --check` only reported existing CRLF normalization warnings for touched files.
+Blocked: No runtime UI or gameplay changed, so browser verification is not expected for this planning slice.
+Next: Keep the next coding step small: extract restored static catalogs, then add a location navigation contract before changing the playable shell.
+Do not: Implement the three-city home-start UI directly as more inline buttons in `baegeum-city-v2-dice.html`, and do not turn every place into a permanent bottom tab.
 
 Date: 2026-05-26
 Observed: The human asked to catch bugs first and, if the current work was done, move to the next step.
@@ -718,6 +824,14 @@ Verified: `node tools/smoke-world-editor-build-palette.cjs`, `node tools/check-s
 Blocked: None.
 Next: Follow the current next loop candidate: define a git baseline strategy for the many untracked files, or continue feature work with building-card variants/venue metadata if the human redirects.
 Do not: Attach entry/interior/economy behavior to building cards in the same slice.
+
+Date: 2026-05-26
+Observed: The human asked to start the restored prototype from inside the home, make the bottom tabs change by location, and keep the phone UI above those tabs instead of as a fixed bottom tab.
+Changed: Added location-aware bottom navigation for `home_inside`, `home_front`, transit, and the initial three cities. The playable restored HTML now starts from home actions, moves outside to fast food/labor/convenience/bus/home actions, opens city routes from the bus stop, and exposes the phone through a floating dock. Added `src/restored/ui/place-surface-copy.js` so place copy stays outside the HTML shell, and updated shell/growth/phone checks to enforce phone-dock plus location-nav wiring.
+Verified: `npm run check` passed. Browser verification on `http://127.0.0.1:4173/baegeum-city-v2-dice.html` confirmed guest entry, home tabs, outside tabs, bus stop city tabs, Dice City tabs, and no runtime errors beyond the existing favicon 404/Tailwind CDN warning.
+Blocked: None.
+Next: Refine the visual design of the home/place surfaces and begin moving real actions into the new place shells through ledger/action contracts.
+Do not: Reintroduce fixed bottom tabs for phone/news/stock/futures, or attach new economy effects to place buttons without the documented ledger/action flow.
 
 Date: 2026-05-26
 Observed: The human asked for a fundamental check before continuing. Current docs pointed to building card v0, but the missing safety rail was the taxonomy that prevents a visual building card from becoming an accidental venue/economy object.

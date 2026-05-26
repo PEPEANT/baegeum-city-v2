@@ -19,9 +19,11 @@ Rules:
 Recommended first drafts:
 
 - `restored-phone-chat-shell.md`
-- `restored-ui-surface-redesign.md`
 - `restored-online-adapter.md`
 
 Current drafts:
 
 - `restored-ranking-job-system.md`: phone ranking app, local preview boards, job/occupation boards, and online authority boundaries.
+- `restored-three-city-home-navigation.md`: home-start navigation, house-front expansion, and first Baegeum/Dice/Seosan city contexts with location-aware tabs.
+- `restored-login-home-online-phone-migration.md`: login home, visible save-code retirement, MammonCity2 reference policy, online adapter order, and phone migration boundaries.
+- `restored-ui-surface-redesign.md`: pre-redesign surface rules, readiness gaps, implementation order, and verification gate for the restored playable shell.

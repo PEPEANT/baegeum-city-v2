@@ -39,6 +39,7 @@ function main() {
 
   for (const section of [
     "UI Surfaces",
+    "Login Home Transition",
     "Design Draft",
     "Online Expansion",
     "Ranking System",
@@ -61,8 +62,19 @@ function main() {
   }
 
   for (const requiredBoundary of [
-    "myinfo / phone / realestate / casino / shop",
-    "The bottom nav must not grow again",
+    "home_inside",
+    "home_front",
+    "seosan-city",
+    "legacy save-code backup center",
+    "MammonCity2",
+    "Firebase config",
+    "src/restored/online/online-adapter-contract.js",
+    "location-aware bottom nav",
+    "The bottom nav must not become a permanent list of every feature",
+    "relationship/lover list",
+    "phone relationship app",
+    "app stage/window",
+    "Do not render the full partner/lover list in My Info",
     "No fake offline lobby",
     "server-authoritative",
     "Local rank and online ranking are different",
