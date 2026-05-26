@@ -57,9 +57,14 @@ function assertRestoredHtmlShell() {
   assert(html.includes("<script type=\"module\">"), "restored HTML runtime script must use module imports.");
   assert(html.includes("./src/restored/state/initial-state.js"), "restored HTML must import the restored initial state module.");
   assert(html.includes("./src/restored/state/storage.js"), "restored HTML must import the restored storage module.");
+  assert(html.includes("./src/restored/state/selectors.js"), "restored HTML must import the restored selectors module.");
   assert(!html.includes("const INITIAL_STATE ="), "restored HTML must not own the INITIAL_STATE literal.");
   assert(!html.includes("localStorage.setItem(STORAGE_KEY"), "restored HTML save path must use src/restored/state/storage.js.");
   assert(!html.includes("const STORAGE_KEY ="), "restored HTML must not own the storage key literal.");
+  assert(!html.includes("function getMyTotalAsset("), "restored HTML must not own total-asset selector logic.");
+  assert(!html.includes("function getMyRank("), "restored HTML must not own rank selector logic.");
+  assert(!html.includes("function hasPhone("), "restored HTML must not own phone ownership selector logic.");
+  assert(!html.includes("function hasSmartPhone("), "restored HTML must not own smartphone ownership selector logic.");
   assert(html.includes("id=\"tab-phone\""), "restored HTML must keep phone as the market app hub.");
   for (const navId of ["nav-myinfo", "nav-phone", "nav-realestate", "nav-casino", "nav-shop"]) {
     assert(html.includes(`id=\"${navId}\"`), `restored HTML must keep bottom nav id ${navId}.`);
@@ -132,6 +137,37 @@ async function assertStateStorageContract() {
   assert(decoded.ok && decoded.cash === 1234, "restored storage must roundtrip cash-only save codes.");
 }
 
+async function assertSelectorsContract() {
+  const selectorsPath = pathToFileURL(path.join(restoredRoot, "state", "selectors.js")).href;
+  const initialPath = pathToFileURL(path.join(restoredRoot, "state", "initial-state.js")).href;
+  const selectors = await import(selectorsPath);
+  const initial = await import(initialPath);
+  const state = initial.createInitialRestoredState();
+  const ranks = [
+    { limit: 100, title: "low" },
+    { limit: 200, title: "mid" },
+    { limit: 1000, title: "high" }
+  ];
+
+  state.cash = 100;
+  state.stocks.NASDAQ.price = 10;
+  state.stocks.NASDAQ.qty = 2;
+  state.luxury.phone.price = 5;
+  state.luxury.phone.count = 1;
+  state.realEstate.oneroom.price = 1000;
+  state.realEstate.oneroom.count = 1;
+
+  assert(selectors.getRestoredStockValue(state) === 20, "restored selectors must calculate stock value.");
+  assert(selectors.getRestoredOwnershipValue(state) === 1005, "restored selectors must calculate ownership value.");
+  assert(selectors.getRestoredTotalAsset(state) === 125, "restored selectors must preserve current total asset behavior.");
+  assert(selectors.getRestoredRank(state, ranks).title === "mid", "restored selectors must resolve rank from total asset.");
+  assert(selectors.getRestoredRankIndex(state, ranks) === 1, "restored selectors must expose rank index.");
+  assert(selectors.hasRestoredPhone(state), "restored selectors must detect phone ownership.");
+  assert(!selectors.hasRestoredSmartPhone(state), "restored selectors must keep smartphone gate separate from phone gate.");
+  state.luxury.smartphone.count = 1;
+  assert(selectors.hasRestoredSmartPhone(state), "restored selectors must detect smartphone ownership.");
+}
+
 function assertRestoredFileBudgets() {
   const files = walk(restoredRoot).filter((file) => file.endsWith(".js"));
   assert(files.length > 0, "src/restored must contain guardable JavaScript modules.");
@@ -151,6 +187,7 @@ function assertRestoredFileBudgets() {
   await assertActorContract();
   await assertShellContract();
   await assertStateStorageContract();
+  await assertSelectorsContract();
   console.log("Restored growth architecture check passed.");
 })().catch((error) => {
   console.error(error.message);

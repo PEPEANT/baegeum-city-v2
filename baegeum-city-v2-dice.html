@@ -298,37 +298,26 @@
                     <p class="text-xs text-gray-400">연속 성공 시 배율: 2배 ➔ 5배 ➔ 12배</p>
                 </div>
 
-                <div id="game-blackjack" class="hidden bg-[#2F5233] p-5 rounded-2xl border-4 border-[#4a3b22] relative shadow-2xl min-h-[420px] text-white flex flex-col justify-between overflow-hidden">
-                    <div class="relative z-10 space-y-4">
-                        <div class="grid grid-cols-3 gap-2 text-[11px] font-bold uppercase tracking-wider text-green-100/80">
-                            <div class="bg-black/20 rounded-lg px-3 py-2">BLACKJACK</div>
-                            <div class="bg-black/20 rounded-lg px-3 py-2 text-center" id="bj-round-bet">대기</div>
-                            <div class="bg-black/20 rounded-lg px-3 py-2 text-right" id="bj-hint">새 판 대기</div>
-                        </div>
-                        <div id="bj-status" class="min-h-[28px] text-center text-sm font-bold text-yellow-200">판돈을 정하고 DEAL.</div>
-                        <div class="text-center">
-                            <div class="inline-block bg-black/30 px-3 py-1 rounded-full text-xs text-green-200 mb-2 border border-white/10">딜러 (Dealer)</div>
-                            <div id="bj-dealer-cards" class="flex justify-center h-16 items-center text-3xl gap-2 drop-shadow-md min-h-[64px]"></div>
-                            <div id="bj-dealer-score" class="text-sm font-bold text-yellow-400 min-h-[20px] mt-1 opacity-0 transition-opacity duration-500">0</div>
-                        </div>
-                        <div class="text-center"><div class="text-xs text-green-100/50 tracking-widest">VS</div></div>
-                        <div class="text-center">
-                            <div id="bj-player-score" class="text-sm font-bold text-yellow-400 min-h-[20px] mb-1">0</div>
-                            <div id="bj-player-cards" class="flex justify-center h-16 items-center text-3xl gap-2 drop-shadow-md min-h-[64px]"></div>
-                            <div class="inline-block bg-black/30 px-3 py-1 rounded-full text-xs text-green-200 mt-2 border border-white/10">나 (Player)</div>
-                        </div>
-                        <div id="bj-feed" class="min-h-[42px] bg-black/20 rounded-xl px-3 py-2 text-xs text-green-100/80 leading-relaxed">테이블이 조용합니다.</div>
+                <div id="game-blackjack" class="hidden bg-[#2F5233] p-6 rounded-2xl border-4 border-[#4a3b22] relative shadow-2xl min-h-[360px] text-white flex flex-col justify-between">
+                    <div class="text-center">
+                        <div class="inline-block bg-black/30 px-3 py-1 rounded-full text-xs text-green-200 mb-2 border border-white/10">딜러 (Dealer)</div>
+                        <div id="bj-dealer-cards" class="flex justify-center h-16 items-center text-3xl gap-2 drop-shadow-md min-h-[64px]"></div>
+                        <div id="bj-dealer-score" class="text-sm font-bold text-yellow-400 min-h-[20px] mt-1 opacity-0 transition-opacity duration-500">0</div>
                     </div>
-                    <div class="grid grid-cols-3 gap-2 mt-5 relative z-10">
-                        <button onclick="startBlackjack()" id="btn-bj-deal" class="col-span-3 bg-yellow-500 hover:bg-yellow-400 text-black font-black py-4 rounded-xl shadow-lg text-lg active:scale-95 transition">DEAL</button>
-                        <button onclick="hitBlackjack()" id="btn-bj-hit" class="hidden bg-blue-600 hover:bg-blue-500 py-4 rounded-xl font-bold shadow-lg border-b-4 border-blue-800 active:border-0 active:translate-y-1 transition text-sm">HIT</button>
-                        <button onclick="standBlackjack()" id="btn-bj-stand" class="hidden bg-red-600 hover:bg-red-500 py-4 rounded-xl font-bold shadow-lg border-b-4 border-red-800 active:border-0 active:translate-y-1 transition text-sm">STAND</button>
-                        <button onclick="doubleBlackjack()" id="btn-bj-double" class="hidden bg-emerald-500 hover:bg-emerald-400 text-black py-4 rounded-xl font-black shadow-lg border-b-4 border-emerald-800 active:border-0 active:translate-y-1 transition text-sm">DOUBLE</button>
+                    <div class="text-center my-4"><div class="text-xs text-gray-400 tracking-widest">VS</div></div>
+                    <div class="text-center">
+                        <div id="bj-player-score" class="text-sm font-bold text-yellow-400 min-h-[20px] mb-1">0</div>
+                        <div id="bj-player-cards" class="flex justify-center h-16 items-center text-3xl gap-2 drop-shadow-md min-h-[64px]"></div>
+                        <div class="inline-block bg-black/30 px-3 py-1 rounded-full text-xs text-green-200 mt-2 border border-white/10">나 (Player)</div>
+                    </div>
+                    <div class="grid grid-cols-2 gap-3 mt-6">
+                        <button onclick="startBlackjack()" id="btn-bj-deal" class="col-span-2 bg-yellow-500 hover:bg-yellow-400 text-black font-black py-4 rounded-xl shadow-lg text-lg active:scale-95 transition">게임 시작 (DEAL)</button>
+                        <button onclick="hitBlackjack()" id="btn-bj-hit" class="hidden bg-blue-600 hover:bg-blue-500 py-4 rounded-xl font-bold shadow-lg border-b-4 border-blue-800 active:border-0 active:translate-y-1 transition text-lg">카드 받기</button>
+                        <button onclick="standBlackjack()" id="btn-bj-stand" class="hidden bg-red-600 hover:bg-red-500 py-4 rounded-xl font-bold shadow-lg border-b-4 border-red-800 active:border-0 active:translate-y-1 transition text-lg">멈추기</button>
                     </div>
                     <div id="bj-result" class="hidden absolute inset-0 bg-black/80 backdrop-blur-sm flex flex-col items-center justify-center z-20 rounded-xl animate-[fadeIn_0.2s]">
                         <div id="bj-result-emoji" class="text-6xl mb-4 animate-bounce">🎉</div>
                         <div id="bj-result-text" class="text-4xl font-black mb-6 text-white drop-shadow-[0_0_10px_rgba(255,255,255,0.5)]">WIN</div>
-                        <div id="bj-result-detail" class="text-sm font-bold text-green-100 mb-6">정산 완료</div>
                         <button onclick="resetBlackjackUI()" class="bg-white hover:bg-gray-100 text-black px-8 py-3 rounded-full font-bold shadow-lg active:scale-95 transition">한 판 더!</button>
                     </div>
                 </div>
@@ -494,16 +483,14 @@
             saveRestoredGame
         } from './src/restored/state/storage.js';
         import {
-            BLACKJACK_RESULT_LABELS,
-            canDoubleDown,
-            createBlackjackRound,
-            doubleBlackjackRound,
-            formatBlackjackCard,
-            getBlackjackStrategyHint,
-            hitBlackjackRound,
-            scoreBlackjackHand,
-            standBlackjackRound
-        } from './src/restored/games/blackjack-game.js';
+            getRestoredOwnershipValue,
+            getRestoredRank,
+            getRestoredRankIndex,
+            getRestoredStockValue,
+            getRestoredTotalAsset,
+            hasRestoredPhone,
+            hasRestoredSmartPhone
+        } from './src/restored/state/selectors.js';
 
         async function callGemini(prompt) {
             return new Promise(resolve => {
@@ -574,9 +561,7 @@
         let activePartnerIdx = -1;
         let selectedCrypto = 'BTC';
         let activePhoneApp = 'news';
-        let blackjackRound = null;
-        let blackjackPayoutApplied = false;
-        let blackjackRecentResults = [];
+        let bjPlayerHand = [], bjDealerHand = [];
         let currentTickerMsg = "시장 데이터 수신 대기 중...";
         let oddEvenStreak = 0;
         let oddEvenBaseBet = 0;
@@ -595,16 +580,6 @@
             return Math.floor(krw).toLocaleString()+'원';
         };
 
-        function getMyTotalAsset() {
-            let t = gameState.cash;
-            Object.keys(gameState.stocks).forEach(k => t += gameState.stocks[k].price * gameState.stocks[k].qty);
-            Object.keys(gameState.luxury).forEach(k => t += gameState.luxury[k].price * gameState.luxury[k].count);
-            return t;
-        }
-        function getMyRank() {
-            const t = getMyTotalAsset();
-            return RANKS.find(r => t < r.limit) || RANKS[RANKS.length-1];
-        }
         function showToast(msg) {
             const c = document.getElementById('toast-container');
             const t = document.createElement('div');
@@ -668,8 +643,6 @@
             document.body.appendChild(el);
             setTimeout(() => el.remove(), 1000);
         }
-        function hasPhone() { return gameState.luxury.phone.count > 0 || gameState.luxury.smartphone.count > 0; }
-        function hasSmartPhone() { return gameState.luxury.smartphone.count > 0; }
         function toggleBGM() {
             const audio = document.getElementById('bgm-player');
             const btn = document.getElementById('bgm-btn');
@@ -751,7 +724,7 @@
         async function generateAINews() {
             const btn = document.getElementById('btn-ai-news');
             const originalText = btn.innerHTML;
-            if(!hasPhone()) return showToast("📵 휴대폰이 없어서 AI 속보를 수신할 수 없습니다.");
+            if(!hasRestoredPhone(gameState)) return showToast("📵 휴대폰이 없어서 AI 속보를 수신할 수 없습니다.");
             btn.innerHTML = `<span class="ai-loading">📡 수신중...</span>`;
             btn.disabled = true;
             const result = await callGemini("경제 뉴스 속보");
@@ -784,9 +757,9 @@
         }, 5000);
 
         function renderAll() {
-            const rank = getMyRank();
+            const rank = getRestoredRank(gameState, RANKS);
             document.getElementById('header-cash').innerText = fmt(gameState.cash);
-            document.getElementById('header-total-asset').innerText = fmt(getMyTotalAsset());
+            document.getElementById('header-total-asset').innerText = fmt(getRestoredTotalAsset(gameState));
             document.getElementById('player-rank').innerText = rank.title;
             document.getElementById('my-rank-badge').innerText = rank.title;
             const casinoMyCash = document.getElementById('casino-my-cash');
@@ -813,12 +786,10 @@
             renderAll();
         }
         function renderMyInfoTab() {
-            const rank = getMyRank();
-            let stockVal = 0; Object.values(gameState.stocks).forEach(s => stockVal += s.price * s.qty);
-            let assetVal = 0;
-            Object.values(gameState.realEstate).forEach(r => assetVal += r.price * r.count);
-            Object.values(gameState.luxury).forEach(l => assetVal += l.price * l.count);
-            document.getElementById('my-networth').innerText = fmt(getMyTotalAsset());
+            const rank = getRestoredRank(gameState, RANKS);
+            const stockVal = getRestoredStockValue(gameState);
+            const assetVal = getRestoredOwnershipValue(gameState);
+            document.getElementById('my-networth').innerText = fmt(getRestoredTotalAsset(gameState));
             document.getElementById('info-cash').innerText = fmt(gameState.cash);
             document.getElementById('info-invest').innerText = fmt(stockVal);
             document.getElementById('info-asset').innerText = fmt(assetVal);
@@ -854,24 +825,24 @@
             });
         }
         function switchPhoneApp(app) {
-            if(!hasPhone()) return showToast('휴대폰을 먼저 구매하세요.');
-            if(app === 'futures' && !hasSmartPhone()) return showToast('코인선물은 스마트폰이 필요합니다.');
+            if(!hasRestoredPhone(gameState)) return showToast('휴대폰을 먼저 구매하세요.');
+            if(app === 'futures' && !hasRestoredSmartPhone(gameState)) return showToast('코인선물은 스마트폰이 필요합니다.');
             activePhoneApp = app;
             renderPhoneTab();
         }
         function renderPhoneTab() {
             const locked = document.getElementById('phone-locked');
             const shell = document.getElementById('phone-app-shell');
-            if(!hasPhone()) {
+            if(!hasRestoredPhone(gameState)) {
                 locked.classList.remove('hidden');
                 shell.classList.add('hidden');
                 return;
             }
-            if(activePhoneApp === 'futures' && !hasSmartPhone()) activePhoneApp = 'news';
+            if(activePhoneApp === 'futures' && !hasRestoredSmartPhone(gameState)) activePhoneApp = 'news';
             locked.classList.add('hidden');
             shell.classList.remove('hidden');
-            document.getElementById('phone-device-badge').innerText = hasSmartPhone() ? '스마트폰' : '폴더폰';
-            document.getElementById('phone-app-buttons').className = hasSmartPhone() ? 'grid grid-cols-3 gap-2' : 'grid grid-cols-2 gap-2';
+            document.getElementById('phone-device-badge').innerText = hasRestoredSmartPhone(gameState) ? '스마트폰' : '폴더폰';
+            document.getElementById('phone-app-buttons').className = hasRestoredSmartPhone(gameState) ? 'grid grid-cols-3 gap-2' : 'grid grid-cols-2 gap-2';
             ['news', 'stock', 'futures'].forEach(app => {
                 const view = document.getElementById(`phone-app-${app}`);
                 const btn = document.getElementById(`phone-app-${app}-btn`);
@@ -880,7 +851,7 @@
                     ? 'py-3 rounded-xl bg-white text-slate-900 font-bold text-sm'
                     : 'py-3 rounded-xl bg-slate-800 text-slate-300 font-bold text-sm';
             });
-            document.getElementById('phone-app-futures-btn').classList.toggle('hidden', !hasSmartPhone());
+            document.getElementById('phone-app-futures-btn').classList.toggle('hidden', !hasRestoredSmartPhone(gameState));
             if(activePhoneApp === 'news') renderNewsTab();
             if(activePhoneApp === 'stock') renderStockTab();
             if(activePhoneApp === 'futures') renderFuturesTab();
@@ -891,7 +862,7 @@
             document.getElementById('market-cycle').className = `text-2xl font-black transition-colors duration-500 ${cyc.color}`;
             document.getElementById('nasdaq-price').innerText = fmt(gameState.stocks['NASDAQ'].price);
             const ta = document.getElementById('stock-ticker-area');
-            if(hasPhone()) {
+            if(hasRestoredPhone(gameState)) {
                 if(!ta.querySelector('.marquee-container')) ta.innerHTML = `<div class="bg-red-600 px-3 py-2 text-xs font-bold text-white z-10 shrink-0">LIVE</div><div class="marquee-container flex-1 py-2 text-sm text-gray-700 bg-gray-50 overflow-hidden"><div class="marquee-content" id="stock-marquee-text">${currentTickerMsg}</div></div>`;
                 else { const el = document.getElementById('stock-marquee-text'); if(el && el.innerText !== currentTickerMsg) el.innerText = currentTickerMsg; }
             } else {
@@ -924,7 +895,7 @@
         function renderFuturesTab() {
             document.getElementById('crypto-price-display').innerText = gameState.crypto[selectedCrypto].price.toLocaleString(undefined,{minimumFractionDigits:2});
             const fa = document.getElementById('futures-ticker-area');
-            if(hasSmartPhone()) {
+            if(hasRestoredSmartPhone(gameState)) {
                 if(!fa.querySelector('.marquee-container')) fa.innerHTML = `<div class="bg-blue-600 px-3 py-2 text-xs font-bold text-white z-10 shrink-0">CRYPTO</div><div class="marquee-container flex-1 py-2 text-sm text-cyan-300 bg-slate-800 overflow-hidden"><div class="marquee-content" id="futures-marquee-text">${currentTickerMsg}</div></div>`;
                 else { const el = document.getElementById('futures-marquee-text'); if(el && el.innerText !== currentTickerMsg) el.innerText = currentTickerMsg; }
             } else if(fa.innerHTML.indexOf('스마트폰이 필요') === -1) {
@@ -1038,7 +1009,7 @@
             saveGame(); closeGiftSelectModal();
         }
         function goHome() {
-            const rank = getMyRank();
+            const rank = getRestoredRank(gameState, RANKS);
             document.getElementById('house-emoji').innerText = rank.houseEmoji;
             document.getElementById('house-title').innerText = `${rank.title}의 보금자리`;
             let extraMsg = "";
@@ -1057,7 +1028,7 @@
         function tryGetNumber() {
             document.getElementById('btn-try-hunting').classList.add('hidden');
             document.getElementById('walk-result-area').classList.remove('hidden');
-            const rankIdx = RANKS.indexOf(getMyRank());
+            const rankIdx = getRestoredRankIndex(gameState, RANKS);
             const chance = Math.min(90, (rankIdx + 1) * 15);
             const isSuccess = Math.random() * 100 < chance;
             const rEmoji = document.getElementById('walk-result-emoji');

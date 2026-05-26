@@ -59,6 +59,7 @@ src/restored/README.md
 src/restored/data/city-catalog.js
 src/restored/state/initial-state.js
 src/restored/state/save-contract.js
+src/restored/state/selectors.js
 src/restored/state/storage.js
 tools/check-restored-growth-architecture.cjs
 ```

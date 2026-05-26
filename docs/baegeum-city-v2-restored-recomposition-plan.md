@@ -15,7 +15,7 @@ index.html -> baegeum-city-v2-dice.html
 ## Current Bottlenecks
 
 - `baegeum-city-v2-dice.html` is still the runtime, view layer, data catalog, save system, market simulator, relationship system, and casino system in one file.
-- `gameState` is mutated directly from UI handlers, timers, casino outcomes, gifts, stock trades, futures positions, and relationship actions.
+- `gameState` is still mutated directly from UI handlers, timers, casino outcomes, gifts, stock trades, futures positions, and relationship actions, but read-only selectors for rank, assets, and phone ownership now live outside the HTML.
 - Phone apps are now grouped correctly as phone UI, but their render and market logic still live beside global tab rendering.
 - Relationship state is still mostly `love`, so future AI lovers, jealousy, trust, memory, and dialogue branching have no clean ownership boundary yet.
 - Casino results do not yet produce a neutral event stream that relationship/conversation systems can react to later.
@@ -65,6 +65,7 @@ Current contract files:
 - `src/restored/actors/actor-contract.js`
 - `src/restored/data/place-catalog.js`
 - `src/restored/state/initial-state.js`
+- `src/restored/state/selectors.js`
 - `src/restored/state/storage.js`
 - `src/restored/ui/shell-contract.js`
 - `src/restored/assets/asset-manifest.js`
@@ -171,7 +172,7 @@ Examples:
 2. Add `actor`, `place`, and `ui shell` contracts under `src/restored/`.
 3. Extract `INITIAL_STATE`, storage key, and save envelope from the HTML. Current status: initial state and storage are now live in `src/restored/state/`.
 4. Extract static catalogs: ranks, assets, markets, partner archetypes.
-5. Extract selectors: total asset, rank, phone ownership, smartphone ownership.
+5. Extract selectors: total asset, rank, phone ownership, smartphone ownership. Current status: restored selectors are now live in `src/restored/state/selectors.js`.
 6. Extract phone apps: news, stock, futures rendering and access gates.
 7. Extract gambling systems: odd-even and blackjack result helpers.
 8. Add relationship/emotion state v2 beside old `love`, with migration.
@@ -191,6 +192,7 @@ The architecture check should fail when:
 - UI shell contracts stop treating phone apps as phone apps.
 - Place contracts stop exposing actor slots for future roaming AI.
 - New mp3 or image files appear under `assets/` without manifest ids.
+- Total asset, rank, phone, or smartphone ownership selectors move back into the HTML.
 
 ## Do Not
 
@@ -203,4 +205,4 @@ The architecture check should fail when:
 
 ## Next Safe Slice
 
-After this document and the tiny contracts are guarded, the next coding slice should be `src/restored/state/initial-state.js` and `src/restored/state/storage.js`. That is the first live extraction because every later system depends on state shape and save compatibility.
+State, storage, selectors, city/place contracts, shell contracts, and asset manifest are now guarded. The next coding slice should extract static catalogs for ranks, assets, markets, and partner archetypes before relationship, conversation, or illustration behavior expands.

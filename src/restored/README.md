@@ -17,6 +17,7 @@ Current pre-split contracts:
 - `data/place-catalog.js`: future place ids, UI surfaces, and actor slots.
 - `state/initial-state.js`: live restored initial state used by `baegeum-city-v2-dice.html`.
 - `state/storage.js`: live save/load and cash-only save-code helpers.
+- `state/selectors.js`: total asset, rank, ownership value, phone, and smartphone selectors.
 - `actors/actor-contract.js`: AI actor identity, location, and memory-event shape.
 - `ui/shell-contract.js`: bottom tabs, phone apps, and major UI surfaces.
 - `assets/asset-manifest.js`: restored mp3/image ids and legacy asset registration.

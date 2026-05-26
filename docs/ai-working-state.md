@@ -25,6 +25,7 @@ Dice City full-restore playable prototype is the active priority:
 5. `docs/baegeum-city-v2-restored-growth-architecture.md` is the current growth architecture for AI lovers, emotion, gambling, ownership, conversation, and illustrations.
 6. Near-term code changes should start extracting state/storage/catalog modules under `src/restored/` instead of adding more inline script to the restored HTML.
 7. Asset additions for mp3 files, partner illustrations, phone art, casino art, and item images should go through `src/restored/assets/asset-manifest.js` and `docs/baegeum-city-v2-restored-asset-pipeline.md` before runtime use.
+8. Restored read-only selectors for total asset, rank, ownership value, phone ownership, and smartphone ownership now live in `src/restored/state/selectors.js`.
 
 Multimap safety remains verified:
 
@@ -135,6 +136,22 @@ Paused loops:
 - `docs/ai-spaghetti-bug-root-cause.md` explains why the spaghetti/bug pattern emerged and now fixes the next audit sequence around persistence, silent failures, and browser workflows.
 
 ## Loop Record
+
+Date: 2026-05-26
+Observed: The human clarified that the blackjack request was not to wire blackjack into the active restored game, but to create a separate design-test prototype.
+Changed: Reverted the in-progress restored-game blackjack hookup from this session and added standalone `blackjack-design-test.html` with its own table UI, chips, deal/hit/stand/double controls, shoe, bankroll, result feed, and local-only round logic. The active `baegeum-city-v2-dice.html` gameplay remains intentionally unconnected to this prototype.
+Verified: Local server returned `http://127.0.0.1:4173/blackjack-design-test.html` 200. Browser verification loaded the standalone page, placed a 1,000-chip bet, dealt a round, stood, settled to READY, and reported no console errors. `git diff --check` and `npm run check` passed.
+Blocked: Direct `file://` navigation for the test page was blocked by the in-app browser URL policy, so verification used the existing local static server.
+Next: Tune the standalone blackjack design, pacing, or rules in `blackjack-design-test.html` only.
+Do not: Wire the standalone blackjack prototype into `baegeum-city-v2-dice.html` unless the human explicitly asks for game integration.
+
+Date: 2026-05-26
+Observed: The human identified selectors as the next bottleneck: total asset, rank, phone ownership, and smartphone ownership calculations needed to move out of `baegeum-city-v2-dice.html` before catalog extraction.
+Changed: Added `src/restored/state/selectors.js` with restored total asset, stock value, ownership value, rank, rank index, phone, and smartphone selectors. Updated `baegeum-city-v2-dice.html` to import and call those selectors instead of owning local calculation functions. Strengthened `tools/check-restored-growth-architecture.cjs` so these selector functions cannot move back into the HTML, and updated restored docs/README to record the live selector module.
+Verified: `node tools/check-restored-growth-architecture.cjs`, `node tools/check-restored-asset-pipeline.cjs`, and `npm run check` passed. Browser verification reloaded `http://127.0.0.1:4173/baegeum-city-v2-dice.html`, clicked start, confirmed the game screen, rank/total asset rendering, and the no-phone phone tab gate with zero console errors.
+Blocked: Pre-existing working-tree changes were present before this slice: `baegeum-city-v2-dice.html` already had blackjack UI/module rollback edits and `src/restored/games/blackjack-game.js` was already deleted. This slice did not restore or reverse those unrelated changes.
+Next: Extract static catalogs for ranks, assets, markets, and partner archetypes so selectors and UI stop depending on HTML-owned catalog constants.
+Do not: Add new rank/asset/market/partner data inline in `baegeum-city-v2-dice.html`, or mix blackjack repair into the catalog extraction slice.
 
 Date: 2026-05-26
 Observed: The human asked to create the extra tools needed before the fundamental redesign, especially how mp3 files and image folders should be classified and reorganized.
