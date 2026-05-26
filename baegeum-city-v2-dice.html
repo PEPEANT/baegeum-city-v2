@@ -116,6 +116,7 @@
                         </div>
 
                         <div class="mt-5 border-t border-gray-100 pt-5"><div class="flex items-center justify-between mb-3"><h3 class="text-sm font-black text-gray-800">캐릭터 능력치</h3><span class="text-[10px] font-bold text-gray-400">생활/직업/대화 확장 기준</span></div><div id="profile-stat-grid" class="grid grid-cols-1 sm:grid-cols-2 gap-3"></div></div>
+                        <div class="mt-5 border-t border-gray-100 pt-5"><div class="flex items-center justify-between mb-3"><h3 class="text-sm font-black text-gray-800">교육 / 커리어</h3><span class="text-[10px] font-bold text-gray-400">공부와 승급 진행</span></div><div id="study-career-summary-card"></div></div>
                         <div class="mt-5 border-t border-gray-100 pt-5"><div class="flex items-center justify-between mb-3"><h3 class="text-sm font-black text-gray-800">관계 요약</h3><span class="text-[10px] font-bold text-gray-400">상세 관리는 휴대폰</span></div><div id="relationship-summary-card"></div></div>
                         <div class="mt-5 border-t border-gray-100 pt-5"><div class="flex items-center justify-between mb-3"><h3 class="text-sm font-black text-gray-800">인벤토리</h3><span id="profile-inventory-summary" class="text-[10px] font-bold text-gray-400">0개</span></div><div id="profile-inventory-list" class="grid grid-cols-1 sm:grid-cols-2 gap-2"></div></div>
                         <div class="mt-5 border-t border-gray-100 pt-4"><div class="flex justify-between items-center"><div><h3 class="text-sm font-bold text-gray-800">계정</h3><p id="account-display-name" class="text-xs text-slate-400 mt-1">로컬 게스트</p></div><span id="account-online-status" class="text-[10px] font-bold text-slate-500 bg-slate-100 px-2 py-1 rounded-full">OFFLINE</span></div></div>
@@ -190,11 +191,11 @@
                         <section class="bg-white p-5 rounded-2xl shadow-sm border border-gray-200">
                             <div class="flex justify-between items-end mb-4">
                                 <div>
-                                    <div class="text-[10px] text-gray-400 font-bold uppercase">Market Cycle</div>
+                                    <div class="text-[10px] text-gray-400 font-bold uppercase">Market</div>
                                     <div id="market-cycle" class="text-2xl font-black transition-colors duration-500">Neutral</div>
                                 </div>
                                 <div class="text-right">
-                                    <div class="text-[10px] text-gray-400 font-bold uppercase">NASDAQ</div>
+                                    <div class="text-[10px] text-gray-400 font-bold uppercase">배금전자</div>
                                     <div id="nasdaq-price" class="text-xl font-mono font-bold">0</div>
                                 </div>
                             </div>
@@ -456,11 +457,18 @@
         import { renderRestoredNewsListHtml } from './src/restored/phone/news-app-view.js';
         import { renderRestoredRelationshipPhoneAppView } from './src/restored/phone/relationship-app-view.js';
         import { renderRestoredStockAppView } from './src/restored/phone/stock-app-view.js';
+        import { applyRestoredMarketOrderToState } from './src/restored/systems/market-order-application.js';
         import { appendRestoredRelationshipLog, applyRestoredRelationshipAction } from './src/restored/systems/relationship-event-runtime.js';
         import { canUseRestoredPhoneApp, getRestoredPhoneApp, listRestoredPhoneAppIds, listRestoredPhoneApps, listUsableRestoredPhoneApps } from './src/restored/phone/phone-app-contract.js';
         import { getRestoredLocationContext, RESTORED_LOCATION_CONTEXT_IDS } from './src/restored/data/location-catalog.js';
         import { getRestoredLocationNavAction, listRestoredLocationNavActions } from './src/restored/ui/location-nav-contract.js';
         import { RESTORED_PLACE_SURFACE_COPY, renderRestoredPlaceSurfaceHtml } from './src/restored/ui/place-surface-copy.js';
+        import { applyRestoredStudyCareerResultToState } from './src/restored/career/study-career-application.js';
+        import { createRestoredCompanyShiftPresetResult, createRestoredStudyResult } from './src/restored/career/study-career-contract.js';
+        import { renderRestoredStudyCareerPlaceHtml } from './src/restored/career/study-career-place-view.js';
+        import { renderRestoredStudyCareerSummaryHtml } from './src/restored/career/study-career-summary-view.js';
+        import { applyRestoredLifeJobResultToState } from './src/restored/jobs/life-job-result-application.js';
+        import { createRestoredLifeJobPresetResult, renderRestoredLifeJobPlaceHtml } from './src/restored/jobs/life-job-place-view.js';
         import { getRestoredRelationshipSummaryView, renderRestoredRelationshipSummaryHtml } from './src/restored/ui/relationship-summary-view.js';
         import { getRestoredRank, getRestoredRankIndex, getRestoredTotalAsset, hasRestoredPhone, hasRestoredSmartPhone, listRestoredInventoryItems } from './src/restored/state/selectors.js';
         import { projectRestoredConsumableUse } from './src/restored/inventory/consumable-contract.js';
@@ -836,6 +844,39 @@
             document.getElementById("place-surface-copy").innerText = copy.copy;
             const actionsEl = document.getElementById("place-surface-actions");
             actionsEl.innerHTML = renderRestoredPlaceSurfaceHtml(copy);
+            actionsEl.innerHTML += renderRestoredLifeJobPlaceHtml(currentAction?.id);
+            actionsEl.innerHTML += renderRestoredStudyCareerPlaceHtml(currentAction?.id, gameState);
+        }
+
+        function completeStudyCareerAction(actionId) {
+            const result = actionId.startsWith("career:company-shift") ? createRestoredCompanyShiftPresetResult(actionId, gameState) : createRestoredStudyResult(actionId, gameState, { actorId: "player:local" });
+            if(!result.ok) return showToast(result.message || "조건이 부족합니다.");
+            applyRestoredStudyCareerResultToState(gameState, result);
+            saveGame(); renderAll(); showToast(result.message || "완료되었습니다.");
+        }
+
+        function completeLifeJobShift(jobId, presetId) {
+            const result = createRestoredLifeJobPresetResult(jobId, presetId, {
+                actorId: "player:local",
+                reason: "restored life job shift"
+            });
+            if(!result.ok) return showToast("근무를 시작할 수 없습니다.");
+            const applied = applyRestoredLifeJobResultToState(gameState, result, { applyRelationshipHook: applyLifeJobRelationshipHook });
+            saveGame();
+            renderAll();
+            showToast(`${result.displayName}: ${result.grade} / ${result.wageText}`);
+            if(applied.relationshipApplied) showToast("인연이 성실한 하루를 기억했습니다.");
+        }
+
+        function applyLifeJobRelationshipHook(effect, result) {
+            if(!gameState.partners?.length) return;
+            const rel = commitRelationshipAction(0, "job_completed", {
+                deltas: effect.payload?.deltas || {},
+                placeId: result.placeId,
+                sourceEventId: `job:${result.jobId}:${result.grade}:${gameState.relationshipLogs?.length || 0}`,
+                summary: `${result.displayName} 근무 결과를 기억했습니다.`
+            });
+            return rel.ok;
         }
 
         function renderTravelTab() {
@@ -885,6 +926,7 @@
             if(avatarEl) avatarEl.innerText = rank.rankEmoji;
             const relationshipView = getRestoredRelationshipSummaryView(gameState);
             document.getElementById('relationship-status').innerText = relationshipView.headline;
+            document.getElementById('study-career-summary-card').innerHTML = renderRestoredStudyCareerSummaryHtml(gameState);
             document.getElementById('relationship-summary-card').innerHTML = renderRestoredRelationshipSummaryHtml(gameState);
             renderProfileStats(profile);
             renderInventoryPreview();
@@ -995,8 +1037,12 @@
         }
         function syncInteractLove(p) { const love = Math.floor(p?.love ?? p?.affection ?? 0); document.getElementById('interact-love-val').innerText = love + '%'; document.getElementById('interact-love-bar').style.width = love + '%'; }
         function showLoverMilestone(before, after) { if(before && !before.isLover && after?.isLover) showToast(`🎉 축하합니다! ${(after.name || after.displayName)}와 연인이 되었습니다!`); }
+        function getRestoredBaegeumMarketSnapshotOptions() {
+            const aiSupercycle = gameState.markets?.regimes?.aiSupercycle || {};
+            return { aiHeat: aiSupercycle.heat, aiPhase: aiSupercycle.phase };
+        }
         function renderStockTab() {
-            const view = renderRestoredStockAppView(gameState, { cycles: CYCLES, marketCycle, chartHistory, currentTickerMsg, hasPhone: hasRestoredPhone(gameState), formatMoney: fmt });
+            const view = renderRestoredStockAppView(gameState, { cycles: CYCLES, marketCycle, chartHistory, currentTickerMsg, hasPhone: hasRestoredPhone(gameState), formatMoney: fmt, ...getRestoredBaegeumMarketSnapshotOptions() });
             document.getElementById('market-cycle').innerText = view.marketCycleLabel;
             document.getElementById('market-cycle').className = view.marketCycleClass;
             document.getElementById('nasdaq-price').innerText = view.nasdaqPriceText;
@@ -1004,6 +1050,13 @@
             document.getElementById('nasdaq-chart').innerHTML = view.chartHtml;
             document.getElementById('stock-list').innerHTML = view.stockRowsHtml;
             document.getElementById('my-portfolio-list').innerHTML = view.portfolioHtml;
+        }
+        function tradeRestoredBaegeumStock(side) {
+            const result = applyRestoredMarketOrderToState(gameState, { side, qty: 1, snapshotOptions: getRestoredBaegeumMarketSnapshotOptions() });
+            if(!result.ok) return showToast(result.message || "주문 실패");
+            saveGame();
+            renderAll();
+            showToast(result.message);
         }
         function renderFuturesTab() {
             const liquidatedIndex = findRestoredLiquidatedFuturesPositionIndex(gameState);
@@ -1413,49 +1466,12 @@
         }
 
         Object.assign(window, {
-            activateLocationAction,
-            adjustQty,
-            buyAsset,
-            closeFutures,
-            closeGiftSelectModal,
-            closeInteractModal,
-            closeModal,
-            closeWalkModal,
-            continueDoubleUp,
-            doPartTimeJob,
-            generateAINews,
-            goForWalk,
-            goHome,
-            hitBlackjack,
-            interactPartner,
-            openGiftSelectModal,
-            openInteractModal,
-            openPhoneSurface,
-            openPosition,
-            openShopFromPhoneLock,
-            openTradeModal,
-            playOddEven,
-            resetBlackjackUI,
-            selectCrypto,
-            sellAsset,
-            sendGift,
-            setBetPercent,
-            setCasinoGame,
-            setFuturesMarginPercent,
-            setQtyPercent,
-            showToast,
-            standBlackjack,
-            startBlackjack,
-            startGame,
-            stopDoubleUp,
-            switchPhoneApp,
-            switchTab,
-            talkWithAI,
-            toggleBGM,
-            tryGetNumber,
-            updateCasinoBetDisplay,
-            useInventoryItem,
-            updateLeverageUI
+            activateLocationAction, adjustQty, buyAsset, closeFutures, closeGiftSelectModal, closeInteractModal, closeModal, closeWalkModal,
+            completeLifeJobShift, completeStudyCareerAction, continueDoubleUp, doPartTimeJob, generateAINews, goForWalk, goHome, hitBlackjack,
+            interactPartner, openGiftSelectModal, openInteractModal, openPhoneSurface, openPosition, openShopFromPhoneLock, openTradeModal,
+            playOddEven, resetBlackjackUI, selectCrypto, sellAsset, sendGift, setBetPercent, setCasinoGame, setFuturesMarginPercent,
+            setQtyPercent, showToast, standBlackjack, startBlackjack, startGame, stopDoubleUp, switchPhoneApp, switchTab, talkWithAI, toggleBGM,
+            tradeRestoredBaegeumStock, tryGetNumber, updateCasinoBetDisplay, useInventoryItem, updateLeverageUI
         });
     </script>
 </body>

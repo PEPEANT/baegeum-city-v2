@@ -7,7 +7,10 @@ const { pathToFileURL } = require("url");
 
 const root = path.resolve(__dirname, "..");
 const contractPath = path.join(root, "src", "restored", "jobs", "life-job-contract.js");
+const viewPath = path.join(root, "src", "restored", "jobs", "life-job-place-view.js");
+const applicationPath = path.join(root, "src", "restored", "jobs", "life-job-result-application.js");
 const planPath = path.join(root, "docs", "plans", "restored-life-minigame-system.md");
+const htmlPath = path.join(root, "baegeum-city-v2-dice.html");
 
 function read(filePath) {
   return fs.readFileSync(filePath, "utf8");
@@ -22,23 +25,37 @@ function assertPureContractSource() {
 
 (async () => {
   assert(fs.existsSync(contractPath), "restored life job contract file is required.");
+  assert(fs.existsSync(viewPath), "restored life job place view file is required.");
+  assert(fs.existsSync(applicationPath), "restored life job result application file is required.");
   assertPureContractSource();
   assert(read(planPath).includes("restored-life-job-001"), "life minigame plan must record the restored life job contract.");
+  assert(read(htmlPath).includes("completeLifeJobShift"), "restored HTML must expose the life job completion hook.");
 
   const mod = await import(pathToFileURL(contractPath).href);
+  const view = await import(pathToFileURL(viewPath).href);
+  const application = await import(pathToFileURL(applicationPath).href);
   const validation = mod.validateRestoredLifeJobContract();
   assert(validation.ok, `restored life job contract invalid: ${validation.errors.join("; ")}`);
+  const viewValidation = view.validateRestoredLifeJobPlaceView();
+  assert(viewValidation.ok, `restored life job place view invalid: ${viewValidation.errors.join("; ")}`);
+  const applicationValidation = application.validateRestoredLifeJobResultApplication();
+  assert(applicationValidation.ok, `restored life job result application invalid: ${applicationValidation.errors.join("; ")}`);
 
   const jobs = mod.listRestoredLifeJobs();
-  assert(jobs.length === 2, "life job catalog should start with two minigames.");
+  assert(jobs.length === 3, "life job catalog should expose three starter minigames.");
   assert(jobs[0].id === mod.RESTORED_LIFE_JOB_IDS.CONVENIENCE_STORE, "convenience store should be the first life job.");
   assert(jobs[1].id === mod.RESTORED_LIFE_JOB_IDS.FAST_FOOD, "fast-food should be the second life job.");
+  assert(jobs[2].id === mod.RESTORED_LIFE_JOB_IDS.LABOR_OFFICE, "labor office should be the third life job.");
   assert(jobs[1].baseWageDp > jobs[0].baseWageDp, "fast-food should pay more than convenience store.");
   assert(jobs[1].energyCost > jobs[0].energyCost, "fast-food should cost more energy than convenience store.");
+  assert(jobs[2].baseWageDp > jobs[1].baseWageDp, "labor office should pay more than fast-food.");
+  assert(jobs[2].energyCost > jobs[1].energyCost, "labor office should cost more energy than fast-food.");
 
   const convenienceDeck = mod.createRestoredLifeJobTaskDeck(mod.RESTORED_LIFE_JOB_IDS.CONVENIENCE_STORE);
   assert(convenienceDeck.length === 4, "convenience store needs four deterministic tasks.");
   assert(convenienceDeck.every((task, index) => task.order === index + 1), "task deck must expose stable order.");
+  const laborDeck = mod.createRestoredLifeJobTaskDeck(mod.RESTORED_LIFE_JOB_IDS.LABOR_OFFICE);
+  assert(laborDeck.some((task) => task.id === "load_boxes"), "labor office needs a cargo-loading task.");
 
   const perfect = mod.scoreRestoredLifeJob(mod.RESTORED_LIFE_JOB_IDS.FAST_FOOD, {
     accuracy: 100,

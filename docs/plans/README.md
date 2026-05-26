@@ -31,3 +31,4 @@ Current drafts:
 - `restored-phone-app-ecosystem.md`: phone OS and app-store plan for BaeTalk-style messenger, relationship app, Baegeum Gallery-style community, rankings, finance, and app separation boundaries.
 - `restored-stock-market-system.md`: four-market investment plan for Domestic, United States, Crypto Spot, and Crypto Leverage tabs, starting with a realistic fictional Baegeum Electronics chart.
 - `restored-life-minigame-system.md`: convenience-store and fast-food life minigame plan for task scoring, DP wage envelopes, condition effects, inventory bonuses, and relationship hooks.
+- `restored-study-career-system.md`: library, university, company-work, and promotion plan for study-gated career income.

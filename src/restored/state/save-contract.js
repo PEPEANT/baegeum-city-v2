@@ -4,6 +4,7 @@ export const RESTORED_STORAGE_KEY = "baegeum_city_v2_dice_restore";
 
 export const RESTORED_STATE_DOMAINS = Object.freeze([
   "cash",
+  "markets",
   "stocks",
   "crypto",
   "futures",

@@ -16,6 +16,13 @@ export function getRestoredStockValue(state) {
   return sumCollectionValue(state?.stocks, (stock) => numeric(stock.price) * numeric(stock.qty));
 }
 
+export function getRestoredMarketPortfolioValue(state) {
+  return sumCollectionValue(state?.markets?.portfolio?.holdings, (holding) => {
+    const price = numeric(holding.lastPrice) || numeric(holding.avgPrice);
+    return price * numeric(holding.qty);
+  });
+}
+
 export function getRestoredLuxuryValue(state) {
   return sumCollectionValue(state?.luxury, (item) => (
     isValuePreservingItem(item) ? numeric(item.price) * numeric(item.count) : 0
@@ -31,7 +38,7 @@ export function getRestoredOwnershipValue(state) {
 }
 
 export function getRestoredTotalAsset(state) {
-  return numeric(state?.cash) + getRestoredStockValue(state) + getRestoredLuxuryValue(state);
+  return numeric(state?.cash) + getRestoredStockValue(state) + getRestoredMarketPortfolioValue(state) + getRestoredLuxuryValue(state);
 }
 
 export function getRestoredRank(state, ranks) {

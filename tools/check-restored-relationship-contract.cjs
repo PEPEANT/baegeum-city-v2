@@ -87,6 +87,10 @@ function assertEventRuntime(runtime) {
   assert.equal(talked.partner.love, 48, "event runtime must keep legacy love compatible.");
   assert.equal(talked.log.type, "conversation");
   assert.ok(talked.log.summary.includes("전화"), "event runtime must create readable source logs.");
+  const job = runtime.applyRestoredRelationshipAction({ name: "Han", love: 40 }, "job_completed", { deltas: { trust: 3 } });
+  assert.equal(job.ok, true);
+  assert.equal(job.log.type, "memory");
+  assert.equal(job.partner.trust, 28);
   const logs = runtime.appendRestoredRelationshipLog([], talked.log, 1);
   assert.equal(logs.length, 1);
   assert.equal(logs[0].id, talked.log.id);

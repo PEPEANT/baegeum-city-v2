@@ -1,8 +1,7 @@
+import { RESTORED_LIFE_JOB_CATALOG, RESTORED_LIFE_JOB_IDS } from "./life-job-catalog.js";
+
 export const RESTORED_LIFE_JOB_CONTRACT_VERSION = "restored-life-job-001";
-export const RESTORED_LIFE_JOB_IDS = Object.freeze({
-  CONVENIENCE_STORE: "job:convenience-store",
-  FAST_FOOD: "job:fast-food"
-});
+export { RESTORED_LIFE_JOB_CATALOG, RESTORED_LIFE_JOB_IDS };
 
 export const RESTORED_LIFE_JOB_EFFECT_TYPES = Object.freeze({
   ECONOMY_LEDGER_ENTRY: "economy_ledger_entry",
@@ -11,46 +10,6 @@ export const RESTORED_LIFE_JOB_EFFECT_TYPES = Object.freeze({
   INVENTORY_ITEM_GRANT: "inventory_item_grant",
   UI_MESSAGE: "ui_message"
 });
-export const RESTORED_LIFE_JOB_CATALOG = deepFreeze([
-  {
-    id: RESTORED_LIFE_JOB_IDS.CONVENIENCE_STORE,
-    placeId: "baegeum:convenience-store",
-    displayName: "Convenience Store Shift",
-    districtId: "baegeum-city",
-    minutes: 180,
-    baseWageDp: 32000,
-    energyCost: 16,
-    mentalCost: 4,
-    reputationGain: 2,
-    relationshipHookId: "partner_reacts_to_steady_shift",
-    bonusItem: { itemId: "energy_drink", count: 1, minGrade: "A" },
-    tasks: [
-      { id: "scan_items", label: "Scan items without mismatches", focus: "accuracy" },
-      { id: "stock_shelves", label: "Restock drinks before rush hour", focus: "stamina" },
-      { id: "serve_customer", label: "Handle an impatient customer", focus: "service" },
-      { id: "clean_floor", label: "Clean the entrance aisle", focus: "speed" }
-    ]
-  },
-  {
-    id: RESTORED_LIFE_JOB_IDS.FAST_FOOD,
-    placeId: "baegeum:fast-food",
-    displayName: "MacBurger Shift",
-    districtId: "baegeum-city",
-    minutes: 240,
-    baseWageDp: 38000,
-    energyCost: 24,
-    mentalCost: 7,
-    reputationGain: 3,
-    relationshipHookId: "partner_reacts_to_hard_shift",
-    bonusItem: { itemId: "burger_coupon", count: 1, minGrade: "B" },
-    tasks: [
-      { id: "cook_order", label: "Cook orders in the right sequence", focus: "accuracy" },
-      { id: "pack_order", label: "Pack takeout before the timer ends", focus: "speed" },
-      { id: "serve_customer", label: "Calm a waiting customer", focus: "service" },
-      { id: "clean_floor", label: "Reset the dining room", focus: "stamina" }
-    ]
-  }
-]);
 
 const GRADE_RULES = Object.freeze([
   { grade: "S", minScore: 90, wageMultiplier: 1.35, reputationBonus: 4, trust: 4, stability: 5, risk: -3 },
@@ -60,14 +19,6 @@ const GRADE_RULES = Object.freeze([
   { grade: "D", minScore: 35, wageMultiplier: 0.75, reputationBonus: -1, trust: -1, stability: -2, risk: 2 },
   { grade: "F", minScore: 0, wageMultiplier: 0.5, reputationBonus: -3, trust: -3, stability: -4, risk: 5 }
 ]);
-function deepFreeze(value) {
-  if (Array.isArray(value)) return Object.freeze(value.map((item) => deepFreeze(item)));
-  if (value && typeof value === "object") {
-    for (const key of Object.keys(value)) value[key] = deepFreeze(value[key]);
-    return Object.freeze(value);
-  }
-  return value;
-}
 function clampPercent(value, fallback = 0) {
   const number = Number(value);
   if (!Number.isFinite(number)) return fallback;
@@ -170,11 +121,15 @@ export function createRestoredLifeJobResult(jobId, performanceInput = {}, option
 export function validateRestoredLifeJobContract() {
   const errors = [];
   const jobs = listRestoredLifeJobs();
-  if (jobs.length !== 2) errors.push("life job catalog should start with two jobs");
+  if (jobs.length !== 3) errors.push("life job catalog should include three starter jobs");
   if (new Set(jobs.map((job) => job.id)).size !== jobs.length) errors.push("life job ids must be unique");
   if (!getRestoredLifeJob(RESTORED_LIFE_JOB_IDS.CONVENIENCE_STORE)) errors.push("convenience store job is required");
   if (!getRestoredLifeJob(RESTORED_LIFE_JOB_IDS.FAST_FOOD)) errors.push("fast-food job is required");
+  if (!getRestoredLifeJob(RESTORED_LIFE_JOB_IDS.LABOR_OFFICE)) errors.push("labor-office job is required");
   if (jobs.some((job) => job.baseWageDp <= 0 || job.minutes <= 0 || !job.tasks.length)) errors.push("each job needs wage, duration, and tasks");
+  if (!(getRestoredLifeJob(RESTORED_LIFE_JOB_IDS.LABOR_OFFICE)?.baseWageDp > getRestoredLifeJob(RESTORED_LIFE_JOB_IDS.FAST_FOOD)?.baseWageDp)) {
+    errors.push("labor-office work should pay more than fast-food work");
+  }
   const high = scoreRestoredLifeJob(RESTORED_LIFE_JOB_IDS.CONVENIENCE_STORE, { accuracy: 95, speed: 90, service: 95, stamina: 90, combo: 4 });
   const low = scoreRestoredLifeJob(RESTORED_LIFE_JOB_IDS.CONVENIENCE_STORE, { accuracy: 10, speed: 10, service: 10, stamina: 10, mistakes: 5 });
   if (!(high.ok && low.ok && high.score > low.score && high.grade === "S" && low.grade === "F")) errors.push("job scoring must separate high and low performance");

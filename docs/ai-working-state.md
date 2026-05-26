@@ -66,6 +66,13 @@ Dice City full-restore playable prototype is the active priority:
 45. `docs/plans/restored-stock-market-system.md` now owns the restored market expansion boundary: Domestic, United States, Crypto Spot, and Crypto Leverage tabs, realistic virtual candle charts, DP-only prices, Baegeum Electronics as V0.1, and no live financial data or real-company branding in the first slice.
 46. `src/restored/systems/market-contract.js` now owns the first pure Baegeum Electronics market contract: virtual OHLCV generation, snapshot summary, DP formatting, holding P/L, and buy/sell order previews without DOM, storage, timers, random outcomes, or live money mutation.
 47. `docs/plans/restored-life-minigame-system.md` and `src/restored/jobs/life-job-contract.js` now own the first life-job minigame lane: convenience-store and fast-food deterministic shift scoring, DP wage envelopes, condition effects, relationship hooks, and optional inventory bonuses without live HTML mutation.
+48. `src/restored/jobs/life-job-place-view.js` and `src/restored/jobs/life-job-result-application.js` now connect the first live place panels for convenience-store and fast-food shifts. The restored HTML only mounts the panel and calls `completeLifeJobShift`; wages, condition changes, inventory grants, and relationship hooks still flow through restored job envelopes.
+49. `src/restored/jobs/life-job-catalog.js` now owns the starter job catalog, keeping `src/restored/jobs/life-job-contract.js` under the file-size gate. `job:labor-office` is the third starter life-job contract and uses the same live place adapter through the existing `labor_office` place action. It pays more than fast-food, costs more energy, and can grant `work_gloves` as a high-grade inventory reward.
+50. `src/restored/career/study-career-contract.js` now owns the first study-gated career lane: library self-study, university night classes, Baegeum office qualification, company shift wages, and promotion state. The restored HTML mounts it only inside Baegeum City job places through `completeStudyCareerAction()`.
+51. `src/restored/career/study-career-summary-view.js` now owns the My Info education/career summary card. My Info shows credits, study hours, intelligence, current company level, next level, and qualification/promotion progress without adding new action buttons.
+52. Company work is no longer a single generic button. `study-career-contract.js` defines `documents`, `overtime-report`, and `team-support` company shift presets, and the Baegeum City job surface renders those choices without duplicating wage or promotion formulas in HTML.
+53. `src/restored/phone/stock-app-view.js` now renders the live phone stock app from the Baegeum Electronics market snapshot. The visible stock app is DP-only and no longer renders the legacy NASDAQ/TSLA/AAPL/NVDA table.
+54. `src/restored/systems/market-order-application.js` now owns the local Baegeum Electronics one-share order application path. The live stock app can call `tradeRestoredBaegeumStock('buy'|'sell')`, update `markets.portfolio.holdings`, preserve orders through storage, and reflect holdings in total asset selectors without reviving legacy stock rows.
 
 Multimap safety remains verified:
 
@@ -137,12 +144,68 @@ Next: Build a non-mutating phone stock-app adapter/view that can render the Baeg
 Do not: Wire the order preview to live cash, add market tabs, or rename the current saved stock fields until a save-compatible adapter exists.
 
 Date: 2026-05-27
+Observed: The Baegeum Electronics market contract existed, but the live phone stock app still showed legacy NASDAQ-style rows and KRW-formatted prices.
+Changed: Rebuilt `src/restored/phone/stock-app-view.js` as a non-mutating Baegeum Electronics adapter. It now renders a DP-only Baegeum Securities ticker, virtual candle chart, Baegeum Electronics market row, and holding/P&L summary from `market-contract.js`. The stock app HTML label now says Market / 배금전자 instead of Market Cycle / NASDAQ, and checks now guard that the live adapter avoids legacy trade modal entry points and legacy symbols.
+Verified: `node tools/check-restored-market-contract.cjs`, `node tools/check-restored-phone-app-contract.cjs`, `node tools/check-size.cjs`, `git diff --check`, and `npm run check` passed. Browser verification on `http://127.0.0.1:4173/baegeum-city-v2-dice.html` confirmed the phone stock app opens to 배금전자, shows a DP price, renders one candle chart shell, has no legacy NASDAQ/TSLA/AAPL/NVDA symbols, and has no legacy `openTradeModal` buttons. Console noise was limited to the existing Tailwind CDN warning and favicon 404.
+Blocked: Buy/sell still does not mutate DP or holdings. A market order application boundary and save-compatible holding state are still required before the buttons can become active.
+Next: Add a market order application module that consumes `createRestoredMarketOrderPreview()` and returns state/effect envelopes for one-share buy/sell without putting formulas back into the HTML shell.
+Do not: Add United States, Crypto Spot, Crypto Leverage, live financial data, or relationship/mental mutations before the Baegeum Electronics order loop is stable.
+
+Date: 2026-05-27
+Observed: The phone stock app showed Baegeum Electronics, but buy/sell was still disabled and no save-compatible market holding state existed.
+Changed: Added `src/restored/systems/market-order-application.js` for local one-share buy/sell application, seeded and preserved `markets` state, added `getRestoredMarketPortfolioValue()` to total asset selectors, activated the phone stock app buy/sell buttons through `tradeRestoredBaegeumStock()`, and extended market/phone checks. Browser verification found and fixed a visible-price vs fill-price mismatch by sharing the Baegeum Electronics snapshot defaults between the phone view and order application.
+Verified: `node tools/check-restored-market-contract.cjs`, `node tools/check-restored-phone-app-contract.cjs`, `node tools/check-restored-growth-architecture.cjs`, `node tools/check-size.cjs`, `git diff --check`, and `npm run check` passed. Browser verification on `http://127.0.0.1:4173/baegeum-city-v2-dice.html` confirmed stock-app buy reduces DP, creates a saved `domestic:baegeum-electronics` holding with 1 share, appends an order, matches the visible 72,741 DP price to the filled order price, shows the 1-share portfolio row, then sell restores the holding to 0 and appends the second order. Console noise was limited to the existing Tailwind CDN warning and favicon 404.
+Blocked: The order path is still local-prototype authority and only covers Baegeum Electronics. It does not yet add fees, ledger entries, market tabs, AI-event price advancement, relationship hooks, or online/server order authority.
+Next: Add a small order-history display or move toward market snapshot advancement before adding United States/Crypto tabs.
+Do not: Add the other three markets or leverage before the Baegeum Electronics order loop and saved holding display are stable.
+
+Date: 2026-05-27
 Observed: The human asked to add the other minigames and job experiences, including convenience store, pawnshop, and fast-food. Dice City gambling, pawnshop, and loan-office contracts already existed, while ordinary work minigames had no contract boundary yet.
 Changed: Added `docs/plans/restored-life-minigame-system.md`, `src/restored/jobs/life-job-contract.js`, and `tools/check-restored-life-job-contract.cjs`. The new contract covers convenience-store and fast-food shifts with deterministic task decks, S/A/B/C/D/F scoring, DP wage envelopes, player condition effects, relationship hooks, and high-grade inventory bonus envelopes. It is wired into `npm run check` and the planning-kit guard.
 Verified: `node tools/check-restored-life-job-contract.cjs`, `node tools/check-restored-planning-kit.cjs`, `node tools/check-size.cjs`, `git diff --check`, and `npm run check` passed.
 Blocked: No live UI adapter was wired. Job results still need to flow through the existing action/effect ledger path before the restored HTML can mutate cash, energy, inventory, or relationship logs.
 Next: Build a convenience-store UI adapter first, then fast-food, using `createRestoredLifeJobResult()` as the only wage/condition source.
 Do not: Recreate job rewards as direct HTML cash buttons or mutate partner state directly from job minigame handlers.
+
+Date: 2026-05-27
+Observed: The life-job contract was isolated and the next smallest useful slice was to make supported house-front place buttons feel playable without growing the restored HTML into another reward formula hub.
+Changed: Added `src/restored/jobs/life-job-place-view.js` for convenience-store and fast-food job panels, added `src/restored/jobs/life-job-result-application.js` for applying returned envelopes to the current restored state, wired `completeLifeJobShift()` in `baegeum-city-v2-dice.html`, added `burger_coupon` as a known consumable item, and added a `job_completed` relationship event path.
+Verified: `node tools/check-restored-life-job-contract.cjs`, `node tools/check-restored-relationship-contract.cjs`, `node tools/check-size.cjs`, `git diff --check`, and `npm run check` passed.
+Blocked: Browser plugin verification could not access an active Codex browser pane, so no live click-through screenshot verification was completed in this slice.
+Next: When browser access is available, visually verify house-front -> convenience-store/fast-food panels and shift buttons. Then choose either the labor-office adapter or pawnshop UI adapter as the next minigame surface.
+Do not: Add another inline reward formula to `baegeum-city-v2-dice.html` or mutate partner state directly from a job button.
+
+Date: 2026-05-27
+Observed: The labor-office place already existed in the location navigation, but the life-job contract only covered convenience-store and fast-food work.
+Changed: Split the starter job catalog into `src/restored/jobs/life-job-catalog.js`, added `job:labor-office`, mapped the `labor_office` place action in `src/restored/jobs/life-job-place-view.js`, made job result application read the title from the job contract, and added `work_gloves` as the labor-office high-grade reward item.
+Verified: `node tools/check-restored-life-job-contract.cjs`, `git diff --check`, and `npm run check` passed.
+Blocked: Browser plugin verification remained unavailable, so the live in-app labor-office click path still needs visual verification.
+Next: Browser-verify house-front -> labor-office panel. After that, the next safe minigame direction is a pure pawnshop UI adapter or a delivery-rush contract.
+Do not: Add more job rewards directly inside the HTML shell or expand into pawnshop/debt state through the ordinary life-job contract.
+
+Date: 2026-05-27
+Observed: The human asked to add a library, university, and company grind path so the player studies, qualifies for work, earns DP, and advances through job levels.
+Changed: Added `docs/plans/restored-study-career-system.md`, `src/restored/career/study-career-contract.js`, `src/restored/career/study-career-application.js`, `src/restored/career/study-career-place-view.js`, and `tools/check-restored-study-career-contract.cjs`. Restored initial/storage state now seeds `education` and `career`, Baegeum place catalog now includes library/university/company district places, and `baegeum-city-v2-dice.html` mounts the study/career panel under Baegeum City jobs.
+Verified: `node tools/check-restored-study-career-contract.cjs`, `node tools/check-restored-planning-kit.cjs`, `node tools/check-size.cjs`, `git diff --check`, and `npm run check` passed. Browser verification on `http://127.0.0.1:4173/baegeum-city-v2-dice.html` confirmed guest entry, bus travel to Baegeum City, visible library/university/company buttons, study-gated company unlock, and company shift display separating worked-level wage from promotion label. Console noise was limited to the existing Tailwind CDN warning and favicon 404.
+Blocked: Company levels are still a compact deterministic lane; no university semester calendar, interview event, office minigame screen, resume UI, ranking integration, or relationship reaction has been added yet.
+Next: Add a richer company-work choice view or My Info education/career summary before expanding into interviews, resumes, or ranking-by-job.
+Do not: Bypass study gates, merge company level with wealth rank, add company wage formulas inside the HTML shell, or make university/company progression depend on online state.
+
+Date: 2026-05-27
+Observed: The new study/company loop was playable, but My Info did not yet show study credits, study hours, company level, or promotion progress, making the progression easy to miss.
+Changed: Added `src/restored/career/study-career-summary-view.js`, expanded `tools/check-restored-study-career-contract.cjs` to validate it, and mounted a read-only `교육 / 커리어` card in My Info. The card renders credits, study hours, intelligence, current company level, next level, qualification status, and promotion progress without adding My Info action buttons.
+Verified: `node tools/check-restored-study-career-contract.cjs`, `node tools/check-size.cjs`, `git diff --check`, and `npm run check` passed. Browser verification on `http://127.0.0.1:4173/baegeum-city-v2-dice.html` confirmed guest entry and the My Info `교육 / 커리어` summary with current company level, next level, credits, study hours, intelligence, and promotion progress. Console noise was limited to the existing Tailwind CDN warning and favicon 404.
+Blocked: No interview/resume UI, office minigame screen, semester calendar, job ranking, or relationship reaction was added.
+Next: Add a richer company-work choice view or a small job-history/reputation selector before interviews, resumes, rankings, or relationship reactions.
+Do not: Turn My Info into an action surface, bypass study gates, merge company level with wealth rank, or add company wage formulas inside the HTML shell.
+
+Date: 2026-05-27
+Observed: The company lane still had a single generic company work button, so it risked becoming a flat cash generator even though study gates and My Info summaries were in place.
+Changed: Added company shift presets to `src/restored/career/study-career-contract.js`: `career:company-shift:documents`, `career:company-shift:overtime-report`, and `career:company-shift:team-support`. Rebuilt `study-career-place-view.js` so Baegeum City jobs shows a company work choice section, and updated `completeStudyCareerAction()` to route all company shift ids through `createRestoredCompanyShiftPresetResult()`.
+Verified: `node tools/check-restored-study-career-contract.cjs`, `node tools/check-restored-planning-kit.cjs`, `git diff --check`, and `npm run check` passed. Browser verification confirmed Baegeum City jobs shows 도서관 공부, 대학 야간강의, and the three company work choices; clicking 야근 보고서 updated cash, job title, and My Info education/career summary. Console noise was limited to the existing Tailwind CDN warning and favicon 404.
+Blocked: No job history, job reputation, interview/resume UI, office minigame screen, or relationship reaction has been added yet.
+Next: Add a small job-history/reputation selector or event log before expanding to interviews, resumes, rankings, or relationship reactions.
+Do not: Add wage/progression formulas inside `baegeum-city-v2-dice.html`, bypass study gates, or turn My Info into an action surface.
 
 ## Next Loop Candidate
 
@@ -159,15 +222,22 @@ Restored stock market system:
 
 1. Start with the documented V0.1 slice: Baegeum Electronics in the Domestic tab.
 2. Use `src/restored/systems/market-contract.js` as the source for Baegeum Electronics virtual candles, DP display, holding quote, and order previews.
-3. The next market slice can be a non-mutating phone stock-app adapter that renders the Baegeum Electronics snapshot.
-4. Do not add United States, Crypto Spot, or Crypto Leverage tabs until the Baegeum Electronics chart, holding, and P/L loop is stable.
+3. The save-compatible one-share buy/sell order loop is now in place and browser-verified against the visible Baegeum Electronics DP price.
+4. Next market slice should be either order-history display or market snapshot advancement. Do not add United States, Crypto Spot, or Crypto Leverage tabs until that V0.1 loop stays stable.
 
 Restored life minigames:
 
-1. Build the convenience-store adapter before fast-food because it has lower wage, lower energy cost, and simpler early-game pressure.
-2. Feed UI performance into `createRestoredLifeJobResult()` and consume returned effects instead of calculating wages in the HTML shell.
-3. Route `relationship_event_hook` through the relationship event runtime before showing partner reactions.
+1. Browser-verify the new convenience-store, fast-food, and labor-office panels once the in-app browser pane is reachable.
+2. Keep feeding UI performance into `createRestoredLifeJobResult()` and consume returned effects instead of calculating wages in the HTML shell.
+3. Use the new `job_completed` relationship event route for partner reactions to steady work.
 4. Keep pawnshop/loan-office in the Dice City contract lane; do not mix collateral/debt state into ordinary job rewards.
+
+Restored study/career lane:
+
+1. Keep library, university, and company shifts inside `src/restored/career/`; do not add new wage or promotion formulas inline in the restored HTML.
+2. Add a small job-history/reputation selector or event log before adding interviews, resumes, or rankings.
+3. Keep company qualification tied to education credits and intelligence, with promotion state separate from wealth rank.
+4. Route future partner/mental reactions through relationship events instead of having company or university buttons mutate relationship state directly.
 
 Restored lover/relationship v2:
 

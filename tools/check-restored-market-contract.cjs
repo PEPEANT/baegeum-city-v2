@@ -6,6 +6,8 @@ const { pathToFileURL } = require("url");
 
 const root = path.resolve(__dirname, "..");
 const contractPath = path.join(root, "src", "restored", "systems", "market-contract.js");
+const applicationPath = path.join(root, "src", "restored", "systems", "market-order-application.js");
+const stockViewPath = path.join(root, "src", "restored", "phone", "stock-app-view.js");
 const planPath = path.join(root, "docs", "plans", "restored-stock-market-system.md");
 
 function assert(condition, message) {
@@ -16,21 +18,27 @@ function read(filePath) {
   return fs.readFileSync(filePath, "utf8");
 }
 
-function assertPureContractSource() {
-  const source = read(contractPath);
+function assertPureMarketSource(filePath, label) {
+  const source = read(filePath);
   for (const blocked of ["document.", "window.", "localStorage", "sessionStorage", "setInterval", "setTimeout", "Math.random", "Date.now"]) {
-    assert(!source.includes(blocked), `market contract must not use ${blocked}`);
+    assert(!source.includes(blocked), `${label} must not use ${blocked}`);
   }
 }
 
 (async () => {
   assert(fs.existsSync(contractPath), "restored market contract file is required.");
+  assert(fs.existsSync(applicationPath), "restored market order application file is required.");
+  assert(fs.existsSync(stockViewPath), "restored stock phone view file is required.");
   assert(read(planPath).includes("Baegeum Electronics"), "stock market plan must keep Baegeum Electronics as V0.1.");
-  assertPureContractSource();
+  assertPureMarketSource(contractPath, "market contract");
+  assertPureMarketSource(applicationPath, "market order application");
 
   const mod = await import(pathToFileURL(contractPath).href);
+  const application = await import(pathToFileURL(applicationPath).href);
+  const stockView = await import(pathToFileURL(stockViewPath).href);
   const validation = mod.validateRestoredMarketContract();
   assert(validation.ok, `restored market contract invalid: ${validation.errors.join("; ")}`);
+  assert(application.validateRestoredMarketOrderApplication().ok, "restored market order application validation must pass.");
 
   const tabs = mod.listRestoredMarketTabs();
   assert(tabs.map((tab) => tab.id).join(",") === "domestic,united_states,crypto_spot,crypto_leverage", "market tabs must stay in the documented four-market order.");
@@ -75,6 +83,19 @@ function assertPureContractSource() {
   assert(quote.valuation > 0, "holding quote must calculate valuation.");
   assert(quote.unrealizedPnl > 0, "holding quote must calculate positive P/L when current price is above average.");
   assert(quote.valuationText.endsWith(" DP"), "holding quote must render valuation in DP.");
+
+  const rendered = stockView.renderRestoredStockAppView({}, { hasPhone: true, candleCount: 16 });
+  assert(rendered.nasdaqPriceText.endsWith(" DP"), "live stock app adapter must render price in DP.");
+  assert(rendered.stockRowsHtml.includes("Baegeum Electronics"), "live stock app adapter must render Baegeum Electronics.");
+  assert(!rendered.stockRowsHtml.includes("openTradeModal"), "live stock app adapter must not expose the legacy trade modal.");
+  assert(rendered.stockRowsHtml.includes("tradeRestoredBaegeumStock('buy')"), "live stock app adapter must expose the restored buy entry.");
+  assert(!/[₩원]|KRW|USD|NASDAQ|TSLA|AAPL|NVDA/.test(rendered.stockRowsHtml + rendered.portfolioHtml + rendered.nasdaqPriceText), "live stock app adapter must avoid legacy symbols and non-DP price text.");
+
+  const liveState = { cash: 200000, markets: mod.createInitialRestoredMarketState() };
+  const liveRendered = stockView.renderRestoredStockAppView(liveState, { hasPhone: true });
+  const liveFill = application.applyRestoredMarketOrderToState(liveState, { side: "buy", qty: 1 });
+  assert(liveFill.ok, "live-price buy application must fill.");
+  assert(liveRendered.nasdaqPriceText === mod.formatRestoredDp(liveFill.order.price), "visible Baegeum Electronics price must match the filled local order price.");
 
   console.log("Restored market contract check passed.");
 })().catch((error) => {

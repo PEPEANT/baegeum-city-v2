@@ -1,6 +1,7 @@
 import { INITIAL_RESTORED_STATE, createInitialRestoredState } from "./initial-state.js";
 import { mergeRestoredProfileState } from "../player/profile-contract.js";
 import { RESTORED_STORAGE_KEY } from "./save-contract.js";
+import { createInitialRestoredMarketState } from "../systems/market-contract.js";
 
 export { RESTORED_STORAGE_KEY };
 
@@ -62,6 +63,10 @@ export function mergeSavedRestoredState(targetState, savedState, initialState = 
     });
   }
 
+  if (savedState.markets) {
+    targetState.markets = mergeRestoredMarketState(targetState.markets, savedState.markets);
+  }
+
   Object.keys(initialState.luxury).forEach((key) => {
     if (!targetState.luxury[key]) {
       targetState.luxury[key] = JSON.parse(JSON.stringify(initialState.luxury[key]));
@@ -88,6 +93,15 @@ export function mergeSavedRestoredState(targetState, savedState, initialState = 
     targetState.profile = mergeRestoredProfileState(targetState.profile, savedState.profile);
   }
 
+  if (savedState.education) {
+    targetState.education = { ...targetState.education, ...savedState.education };
+    targetState.education.credentials = Array.isArray(savedState.education.credentials) ? savedState.education.credentials : [];
+  }
+
+  if (savedState.career) {
+    targetState.career = { ...targetState.career, ...savedState.career };
+  }
+
   if (savedState.account) {
     targetState.account = { ...targetState.account, ...savedState.account };
   }
@@ -105,4 +119,18 @@ export function mergeSavedRestoredState(targetState, savedState, initialState = 
   });
 
   return targetState;
+}
+
+function mergeRestoredMarketState(targetMarkets = createInitialRestoredMarketState(), savedMarkets = {}) {
+  const next = { ...targetMarkets, ...savedMarkets };
+  const targetPortfolio = targetMarkets.portfolio || createInitialRestoredMarketState().portfolio;
+  const savedPortfolio = savedMarkets.portfolio || {};
+  next.portfolio = {
+    ...targetPortfolio,
+    ...savedPortfolio,
+    holdings: { ...(savedPortfolio.holdings || {}) },
+    orders: Array.isArray(savedPortfolio.orders) ? savedPortfolio.orders.slice(-20) : [],
+    realizedPnl: Number.isFinite(Number(savedPortfolio.realizedPnl)) ? Number(savedPortfolio.realizedPnl) : 0
+  };
+  return next;
 }

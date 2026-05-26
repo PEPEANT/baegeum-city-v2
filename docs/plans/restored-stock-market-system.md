@@ -235,6 +235,9 @@ Current implementation status:
 - It can generate virtual OHLCV candles, summarize current price/change/volume, render DP text, calculate holding valuation/P&L, and preview buy/sell order envelopes.
 - It does not write DOM, storage, timers, random outcomes, cash, relationship state, credit, or rankings.
 - `tools/check-restored-market-contract.cjs` guards the four-market order, DP-only Baegeum Electronics, fictional-company boundary, generated candles, holding quote, and order-preview rejection paths.
+- `src/restored/phone/stock-app-view.js` now renders the live phone stock app from the Baegeum Electronics snapshot instead of the legacy NASDAQ/TSLA/AAPL/NVDA table.
+- `src/restored/systems/market-order-application.js` now owns the first local order application boundary for one-share Baegeum Electronics buy/sell. It consumes `createRestoredMarketOrderPreview()`, updates `markets.portfolio.holdings`, appends order records, and keeps formulas out of the HTML shell.
+- The live phone stock app can now buy or sell one Baegeum Electronics share at the current generated DP price. The visible price and filled order price are smoke-guarded to match. This is still local-prototype state, not online/server authority.
 
 ## Ledger And Action Boundary
 
@@ -313,6 +316,7 @@ Validation checklist:
 - The Baegeum Electronics chart is non-empty.
 - All prices render as DP.
 - Buying one share reduces DP and increases quantity.
+- The filled order price matches the currently visible Baegeum Electronics DP price.
 - Selling one share changes DP and decreases quantity.
 - Unrealized P/L changes after a price tick.
 - No KRW text appears in the market app.

@@ -49,6 +49,7 @@
 - [Restored Phone App Ecosystem Plan](plans/restored-phone-app-ecosystem.md): Planning draft for the phone OS, app store, BaeTalk messenger, relationship app, virtual community board, and app separation rules.
 - [Restored Stock Market System Plan](plans/restored-stock-market-system.md): Planning draft for the realistic-looking fictional market app, including Domestic, United States, Crypto Spot, Crypto Leverage, Baegeum Electronics V0.1, and DP-only virtual candles.
 - [Restored Life Minigame System Plan](plans/restored-life-minigame-system.md): Planning draft for convenience-store and fast-food work minigames, including deterministic task scoring, DP wage envelopes, condition effects, and relationship hooks.
+- [Restored Study And Career System Plan](plans/restored-study-career-system.md): Planning draft for library study, university classes, company work, DP wages, and promotion gates.
 - [Restored Feature Plan Template](templates/restored-feature-plan-template.md): Required sections for restored feature plans, including job/occupation impact, ranking impact, chat impact, online authority, assets, and verification.
 
 ## AI Operating Loop

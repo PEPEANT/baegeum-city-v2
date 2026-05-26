@@ -25,6 +25,24 @@ export const RESTORED_LUXURY_CATALOG = Object.freeze([
   }),
   Object.freeze({ id: "energy_drink", name: "에너지 드링크", price: 8, img: "🥤", type: "consumable", desc: "에너지 회복", fixedPrice: true }),
   Object.freeze({
+    id: "burger_coupon",
+    name: "MacBurger Coupon",
+    price: 0,
+    img: "🍔",
+    type: "consumable",
+    desc: "Fast-food shift reward",
+    fixedPrice: true
+  }),
+  Object.freeze({
+    id: "work_gloves",
+    name: "Work Gloves",
+    price: 0,
+    img: "🧤",
+    type: "consumable",
+    desc: "Labor-office shift reward",
+    fixedPrice: true
+  }),
+  Object.freeze({
     id: "gold",
     name: "금괴 1kg",
     price: 65000,

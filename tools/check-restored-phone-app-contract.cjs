@@ -59,23 +59,21 @@ async function assertPhoneAppContract() {
   assert(newsHtml.includes("09:30"), "news app view must render news time.");
   assert(newsHtml.includes("테스트 속보"), "news app view must render news message.");
 
-  const stockRendered = stockView.renderRestoredStockAppView({
-    stocks: {
-      NASDAQ: { name: "나스닥", price: 10, qty: 0, avg: 0 },
-      TEST: { name: "테스트", price: 2, qty: 3, avg: 1 }
-    }
-  }, {
-    cycles: { NEUTRAL: { label: "중립", color: "text-gray-500" } },
-    marketCycle: "NEUTRAL",
-    chartHistory: [10, 11],
+  const stockRendered = stockView.renderRestoredStockAppView({}, {
     currentTickerMsg: "시장 테스트",
     hasPhone: true,
-    formatMoney: (value) => `${value}원`
+    candleCount: 24,
+    aiHeat: 60,
+    aiPhase: "expansion"
   });
   assert(stockRendered.tickerHtml.includes("시장 테스트"), "stock app view must render ticker text.");
-  assert(stockRendered.stockRowsHtml.includes("openTradeModal('TEST','buy')"), "stock app view must keep the existing trade entry.");
-  assert(stockRendered.portfolioHtml.includes("테스트"), "stock app view must render portfolio rows.");
-  assert(stockRendered.chartHtml.includes("bg-indigo-600"), "stock app view must render the latest chart bar.");
+  assert(stockRendered.marketCycleLabel === "국내", "stock app view must expose the domestic market label.");
+  assert(stockRendered.nasdaqPriceText.endsWith(" DP"), "stock app view must render the Baegeum Electronics price in DP.");
+  assert(stockRendered.stockRowsHtml.includes("Baegeum Electronics"), "stock app view must render Baegeum Electronics.");
+  assert(stockRendered.stockRowsHtml.includes("tradeRestoredBaegeumStock('buy')"), "stock app view must expose the restored market buy entry.");
+  assert(!stockRendered.stockRowsHtml.includes("openTradeModal"), "stock app view must not call the legacy trade modal.");
+  assert(stockRendered.portfolioHtml.includes("배금전자 0주"), "stock app view must render a Baegeum Electronics holding summary.");
+  assert(stockRendered.chartHtml.includes("bg-slate-950"), "stock app view must render the restored candle chart shell.");
 
   const futuresRendered = futuresView.renderRestoredFuturesAppView({
     crypto: { BTC: { price: 100 } },

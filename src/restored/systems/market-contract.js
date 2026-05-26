@@ -35,7 +35,25 @@ export const RESTORED_BAEGEUM_ELECTRONICS_ASSET = Object.freeze({
   volatility: 0.018
 });
 
+export const RESTORED_BAEGEUM_ELECTRONICS_SNAPSHOT_OPTIONS = Object.freeze({ count: 32, timeframe: "1d", aiHeat: 42, aiPhase: "early" });
+
 export const RESTORED_AI_SUPERCYCLE_PHASES = Object.freeze(["early", "expansion", "euphoria", "crack", "cooldown"]);
+
+export function createInitialRestoredMarketState() {
+  return {
+    activeMarketId: RESTORED_MARKET_IDS.DOMESTIC,
+    activeAssetId: RESTORED_MARKET_ASSET_IDS.BAEGEUM_ELECTRONICS,
+    regimes: {
+      macroCycle: "NEUTRAL",
+      aiSupercycle: { phase: RESTORED_BAEGEUM_ELECTRONICS_SNAPSHOT_OPTIONS.aiPhase, heat: RESTORED_BAEGEUM_ELECTRONICS_SNAPSHOT_OPTIONS.aiHeat }
+    },
+    portfolio: {
+      holdings: {},
+      orders: [],
+      realizedPnl: 0
+    }
+  };
+}
 
 export function listRestoredMarketTabs() {
   return RESTORED_MARKET_TABS;
@@ -54,12 +72,12 @@ export function roundRestoredDp(value) {
 }
 
 export function createRestoredBaegeumElectronicsCandles(options = {}) {
-  const count = clampInteger(options.count, 1, 240, 32);
-  const timeframe = RESTORED_MARKET_TIMEFRAMES.includes(options.timeframe) ? options.timeframe : "1d";
+  const count = clampInteger(options.count, 1, 240, RESTORED_BAEGEUM_ELECTRONICS_SNAPSHOT_OPTIONS.count);
+  const timeframe = RESTORED_MARKET_TIMEFRAMES.includes(options.timeframe) ? options.timeframe : RESTORED_BAEGEUM_ELECTRONICS_SNAPSHOT_OPTIONS.timeframe;
   const basePrice = Number(options.basePrice || RESTORED_BAEGEUM_ELECTRONICS_ASSET.basePrice);
   const baseVolume = Number(options.baseVolume || RESTORED_BAEGEUM_ELECTRONICS_ASSET.baseVolume);
-  const heat = clampNumber(options.aiHeat, 0, 100, 35);
-  const phaseBias = getAiSupercyclePhaseBias(options.aiPhase || "early");
+  const heat = clampNumber(options.aiHeat, 0, 100, RESTORED_BAEGEUM_ELECTRONICS_SNAPSHOT_OPTIONS.aiHeat);
+  const phaseBias = getAiSupercyclePhaseBias(options.aiPhase || RESTORED_BAEGEUM_ELECTRONICS_SNAPSHOT_OPTIONS.aiPhase);
   let previousClose = roundRestoredDp(basePrice);
 
   return Array.from({ length: count }, (_, index) => {

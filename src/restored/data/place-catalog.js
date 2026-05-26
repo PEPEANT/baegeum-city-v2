@@ -19,7 +19,34 @@ export const RESTORED_PLACE_CATALOG = Object.freeze([
     kind: "job_district",
     uiSurface: "city",
     actorSlots: Object.freeze(["job_dispatcher", "worker_npc"]),
-    featureDomains: Object.freeze(["jobs", "part_time", "condition"])
+    featureDomains: Object.freeze(["jobs", "part_time", "study", "career", "condition"])
+  }),
+  Object.freeze({
+    id: "baegeum:library",
+    cityId: RESTORED_CITY_IDS.BAEGEUM,
+    label: "배금도시 도서관",
+    kind: "study_place",
+    uiSurface: "city",
+    actorSlots: Object.freeze(["student_npc", "librarian_npc"]),
+    featureDomains: Object.freeze(["study", "intelligence", "career_unlock"])
+  }),
+  Object.freeze({
+    id: "baegeum:university",
+    cityId: RESTORED_CITY_IDS.BAEGEUM,
+    label: "배금대학교",
+    kind: "education_place",
+    uiSurface: "city",
+    actorSlots: Object.freeze(["student_npc", "professor_npc"]),
+    featureDomains: Object.freeze(["study", "credential", "career_unlock"])
+  }),
+  Object.freeze({
+    id: "baegeum:company-district",
+    cityId: RESTORED_CITY_IDS.BAEGEUM,
+    label: "배금회사 지구",
+    kind: "company_district",
+    uiSurface: "city",
+    actorSlots: Object.freeze(["office_worker_npc", "manager_npc"]),
+    featureDomains: Object.freeze(["career", "promotion", "job_income"])
   }),
   Object.freeze({
     id: "baegeum:shop-street",

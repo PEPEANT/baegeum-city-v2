@@ -5,7 +5,7 @@ import {
   migrateLegacyRestoredPartner
 } from "./relationship-contract.js";
 
-export const RESTORED_RELATIONSHIP_EVENT_RUNTIME_VERSION = "restored-relationship-event-001";
+export const RESTORED_RELATIONSHIP_EVENT_RUNTIME_VERSION = "restored-relationship-event-002";
 export const RESTORED_RELATIONSHIP_LOG_LIMIT = 30;
 
 const RELATIONSHIP_ACTIONS = Object.freeze({
@@ -14,8 +14,9 @@ const RELATIONSHIP_ACTIONS = Object.freeze({
   call: event("relationship_talked", "conversation", "전화 통화로 조금 더 가까워졌습니다.", { affection: 8, trust: 2, comfort: 1 }),
   ai_talk: event("relationship_talked", "conversation", "진심이 담긴 대화를 나눴습니다.", { affection: 2, trust: 1, comfort: 1 }),
   gift: event("relationship_gift_given", "gift", "선물을 건넸습니다.", { affection: 25, trust: 4, stability: -1 }),
+  job_completed: event("relationship_job_completed", "memory", "성실한 근무 기록을 기억했습니다.", { trust: 1, stability: 1, relationshipRisk: -1 }),
   intimacy: event("relationship_recovered", "recovery", "깊은 시간을 보내며 안정감을 회복했습니다.", { affection: 3, trust: 2, stability: 2, comfort: 5, relationshipRisk: -3 }),
-  marry: event("relationship_confession_accepted", "confession", "청혼이 받아들여졌습니다.", { trust: 8, stability: 10, comfort: 6, relationshipRisk: -12 }),
+  marry: event("relationship_confession_accepted", "confession", "청혼을 받아들였습니다.", { trust: 8, stability: 10, comfort: 6, relationshipRisk: -12 }),
   drift: event("relationship_drifted", "memory", "연락이 뜸해지며 관계가 멀어졌습니다.", { affection: -2, stability: -1, relationshipRisk: 1 })
 });
 
@@ -61,10 +62,12 @@ export function appendRestoredRelationshipLog(logs = [], log = null, limit = RES
 export function validateRestoredRelationshipEventRuntime() {
   const first = applyRestoredRelationshipAction({ name: "Han", love: 40 }, "interest", { partnerIndex: 0, eventIndex: 1 });
   const gift = applyRestoredRelationshipAction({ name: "Yuna", love: 90, trust: 50 }, "gift", { partnerIndex: 1, eventIndex: 2 });
+  const job = applyRestoredRelationshipAction({ name: "Han", love: 40 }, "job_completed", { deltas: { trust: 2 }, partnerIndex: 0 });
   const logs = appendRestoredRelationshipLog([], first.log, 1);
   const errors = [];
   if (!first.ok || first.partner.affection !== 45 || first.partner.love !== 45) errors.push("interest must update v2 metrics and legacy love");
   if (!first.log.summary || first.log.deltas.affection !== 5) errors.push("relationship actions must create visible logs");
+  if (!job.ok || job.log.type !== "memory" || job.partner.trust !== 27) errors.push("job_completed must create a relationship memory");
   if (!gift.partner.isLover || gift.partner.title !== "연인") errors.push("high affection actions must promote lover state");
   if (logs.length !== 1 || logs[0].id !== first.log.id) errors.push("relationship logs must append and cap");
   return Object.freeze({ ok: errors.length === 0, errors: Object.freeze(errors) });

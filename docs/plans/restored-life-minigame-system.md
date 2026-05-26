@@ -1,6 +1,6 @@
 # Restored Life Minigame System Plan
 
-Conclusion: convenience store and fast-food work should become task-based life minigames that produce effect envelopes, not direct cash buttons.
+Conclusion: convenience store, fast-food, and labor-office work should become task-based life minigames that produce effect envelopes, not direct cash buttons.
 
 ## Purpose
 
@@ -8,14 +8,18 @@ The restored city needs ordinary work loops before more casino, market, and rela
 
 ## Current V0 Contract
 
-Contract module: `src/restored/jobs/life-job-contract.js`.
+Contract modules:
+
+- `src/restored/jobs/life-job-catalog.js`
+- `src/restored/jobs/life-job-contract.js`
 
 Version: `restored-life-job-001`.
 
-The first two life job minigames are:
+The first three life job minigames are:
 
 - `job:convenience-store`
 - `job:fast-food`
+- `job:labor-office`
 
 Each shift accepts provided performance inputs:
 
@@ -33,6 +37,27 @@ The contract scores the shift as S/A/B/C/D/F and returns envelopes only:
 - `relationship_event_hook`
 - optional `inventory_item_grant`
 - `ui_message`
+
+## Current Live Adapter
+
+Live adapter modules:
+
+- `src/restored/jobs/life-job-place-view.js`
+- `src/restored/jobs/life-job-result-application.js`
+
+The restored HTML shell now mounts a small life-job panel on supported place actions and exposes `completeLifeJobShift(jobId, presetId)`. The shell does not calculate wages directly; it asks the place-view adapter for a preset result and applies returned envelopes through the result-application module.
+
+Current supported place actions:
+
+- `convenience_store` -> `job:convenience-store`
+- `fast_food` -> `job:fast-food`
+- `labor_office` -> `job:labor-office`
+
+Current UI presets:
+
+- `steady`
+- `rush`
+- `endure`
 
 ## Boundaries
 
@@ -61,9 +86,16 @@ Fast-food:
 - relationship hook for hard work
 - food coupon bonus for high-grade work
 
+Labor office:
+
+- deterministic four-task day-labor deck
+- highest starter wage
+- highest starter energy cost
+- relationship hook for visible hard work
+- work-gloves bonus for high-grade work
+
 ## Later Expansion
 
-- labor-office day jobs
 - delivery rush minigame
 - PC room part-time shift
 - motel front-desk shift
@@ -78,6 +110,9 @@ Fast-food:
 - A perfect shift grades S.
 - A failed shift grades F.
 - Fast-food pays more and costs more energy than convenience store.
+- Labor-office pays more and costs more energy than fast-food.
 - A completed shift emits a wage ledger envelope.
 - A completed shift emits player condition and relationship hook envelopes.
 - High-grade convenience work can grant an energy drink envelope.
+- High-grade labor-office work can grant a work-gloves envelope.
+- The live restored HTML contains `completeLifeJobShift` but not its own wage formula.
