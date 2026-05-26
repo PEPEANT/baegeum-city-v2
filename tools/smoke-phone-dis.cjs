@@ -43,6 +43,7 @@ async function load(relativePath) {
   assert.ok(markup.includes("dis-community-post-row"), "DIS preview should use original post row class");
   assert.ok(markup.includes("특이점이 온다 갤러리"), "DIS preview should show the original gallery title");
   assert.ok(markup.includes("data-dis-channel=\"venue:blackjack-casino-01\""), "DIS preview should expose the active channel");
+  assert.ok(markup.includes("aria-disabled=\"true\""), "DIS preview should mark non-wired buttons as disabled");
 
   console.log("Phone DIS smoke check passed.");
 })().catch((error) => {

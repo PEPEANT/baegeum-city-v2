@@ -119,6 +119,22 @@ body {
   color: #5f3b22;
 }
 
+.feature-audit-mini {
+  display: grid;
+  gap: 3px;
+  margin: 4px 0;
+  padding: 7px 8px;
+  border: 1px solid rgba(95, 59, 34, 0.18);
+  border-radius: 10px;
+  background: rgba(31, 19, 22, 0.08);
+}
+
+.feature-audit-mini span {
+  color: #4d3524;
+  font-size: 12px;
+  line-height: 1.25;
+}
+
 .ost-controls {
   display: grid;
   grid-template-columns: 1fr 1fr;

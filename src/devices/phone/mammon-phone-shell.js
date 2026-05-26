@@ -1,15 +1,6 @@
 import { getRuntimeState } from "../../systems/runtime-state-facade.js";
 import { buildDisPreviewMarkup, isDisRoute } from "./dis-preview.js";
-
-const phoneApps = [
-  { id: "bank", label: "은행", icon: "🏦" },
-  { id: "dis", label: "디시인사이드", icon: "💬" },
-  { id: "news", label: "뉴스", icon: "📰" },
-  { id: "playstore", label: "플레이스토어", icon: "🛒" },
-  { id: "call", label: "전화", icon: "📞" },
-  { id: "gallery", label: "갤러리", icon: "🖼️" },
-  { id: "stocks", label: "증권", icon: "📈" }
-];
+import { findPhoneApp, phoneApps, phoneAppStatusLabel } from "./phone-app-catalog.js";
 
 const phoneState = {
   open: false,
@@ -198,6 +189,7 @@ function buildPhoneHomeGridMarkup() {
         <span class="phone-app-emoji">${escapeHtml(app.icon)}</span>
       </span>
       <span class="phone-app-name">${escapeHtml(app.label)}</span>
+      <span class="phone-app-status">${escapeHtml(phoneAppStatusLabel(app.status))}</span>
     </button>
   `).join("");
 }
@@ -224,17 +216,17 @@ function buildPhoneStageMarkup(onHomeRoute) {
 
 function buildDisabledAppMarkup(route) {
   const appId = String(route || "").split("/")[0];
-  const app = phoneApps.find((item) => item.id === appId) || { label: "앱", icon: "📱" };
+  const app = findPhoneApp(appId) || { label: "앱", icon: "📱", status: "locked", functions: [] };
   if (isDisRoute(route)) return buildDisPreviewMarkup({ compact: false, context: phoneRuntimeContext() });
   return `
     <div class="phone-app-screen-top">
       <div class="phone-app-screen-copy">
-        <div class="phone-app-screen-kicker">APP LOCKED</div>
+        <div class="phone-app-screen-kicker">APP ${escapeHtml(phoneAppStatusLabel(app.status).toUpperCase())}</div>
         <div class="phone-app-screen-title">${escapeHtml(app.icon)} ${escapeHtml(app.label)}</div>
-        <div class="phone-app-screen-note">앱 기능은 아직 연결하지 않고, 원본 휴대폰 셸만 테스트 중입니다.</div>
+        <div class="phone-app-screen-note">이 앱은 아직 결과 버튼과 저장 연동이 연결되지 않았습니다.</div>
       </div>
     </div>
-    <div class="phone-job-empty">다음 단계에서 이 앱 원본 기능을 따로 고정해서 연결합니다.</div>
+    <div class="phone-job-empty">예정 기능: ${escapeHtml((app.functions || []).join(" / ") || "미정")}</div>
   `;
 }
 

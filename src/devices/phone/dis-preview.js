@@ -29,8 +29,8 @@ function buildCompactMarkup(feed) {
         `).join("")}
       </div>
       <div class="dis-community-compact-actions">
-        <button class="dis-community-compact-action is-primary" type="button">갤러리 전체보기</button>
-        <button class="dis-community-compact-action" type="button">글쓰기</button>
+        <button class="dis-community-compact-action is-primary" type="button" disabled aria-disabled="true">갤러리 전체보기</button>
+        <button class="dis-community-compact-action" type="button" disabled aria-disabled="true">글쓰기 준비중</button>
       </div>
     </section>
   `;
@@ -44,8 +44,8 @@ function buildListMarkup(feed) {
         <div class="dis-community-topbar">
           <div class="dis-community-topbar-title">특이점이 온다 갤러리</div>
           <div class="dis-community-topbar-actions">
-            <button class="dis-community-header-btn" type="button">글쓰기</button>
-            <button class="dis-community-header-btn" type="button">홈</button>
+            <button class="dis-community-header-btn" type="button" disabled aria-disabled="true">글쓰기 준비중</button>
+            <button class="dis-community-header-btn" type="button" disabled aria-disabled="true">홈</button>
           </div>
         </div>
         ${connectionBadge(feed.posts.length, feed)}

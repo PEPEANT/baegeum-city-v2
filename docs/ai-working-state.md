@@ -1,6 +1,6 @@
 # AI Working State
 
-Conclusion: system redesign baseline is active after the human asked to restart design. `dice-city-v0`, multimap safety, and economy-loop guards remain verified, but the current work should close the first playable economy loop before adding unrelated gameplay features.
+Conclusion: the human has pivoted the active playable entry to a Dice City-derived single-file **배금도시 V2** restore. The previous modular city-core, multimap, ledger, and editor work remains preserved as reference/source material, but the current player-facing start is the restored economy-clicker HTML.
 
 Current verified building shell presets: baegeum-city uses the `도시` infrastructure shells plus `building-shop-shell`, `building-home-shell`, and `building-civic-shell`; dice-city uses `building-casino-shell`, `building-alley-shell`, `building-loan-shell`, and `building-motel-shell`.
 Current verified horse-racing interior sections: `horse-scoreboard`, `horse-track`, `horse-grandstand`, `horse-betting-station`, and `exchange-atm`.
@@ -16,13 +16,15 @@ Current verified horse-racing interior sections: `horse-scoreboard`, `horse-trac
 
 ## Active Priority
 
-First playable economy loop is the active priority:
+Dice City full-restore playable prototype is the active priority:
 
-1. The canonical redesign baseline is `docs/baegeum-city-v2-system-redesign-baseline.md`.
-2. The first loop is `baegeum-city lifestyle prep -> bus terminal -> dice-city gambling -> exchange ATM -> odd-even reserve -> settle/refund -> ledger/HUD check -> phone/DIS readback -> return`.
-3. New stock trading, player-to-player transfer, food purchase, hunger ticks, job income, race payout, and admin payout remain blocked until the first loop closes and their ledger/effect contracts exist.
-4. Odd-even UI now connects local `bet_reserved -> bet_settled | bet_refunded` and stores `roundId` close state to prevent duplicate settlement/refund.
-5. Clean/stale/corrupt localStorage workflow classification is now available; next implementation should browser-check reserve, settle/refund, ledger projection, and HUD state with that report before blaming gameplay code.
+1. Root `index.html` redirects to `baegeum-city-v2-dice.html`.
+2. `baegeum-city-v2-dice.html` is the current player-facing build: a full Dice City-style single HTML renamed to 배금도시 V2.
+3. The restored build owns its own localStorage key, `baegeum_city_v2_dice_restore`, so it does not mix with the previous modular city-core storage.
+4. The previous ledger/action/multimap city-core remains in `src/`, `editor.html`, and docs, but it is paused unless the human explicitly redirects back to that architecture.
+5. `docs/baegeum-city-v2-restored-growth-architecture.md` is the current growth architecture for AI lovers, emotion, gambling, ownership, conversation, and illustrations.
+6. Near-term code changes should start extracting state/storage/catalog modules under `src/restored/` instead of adding more inline script to the restored HTML.
+7. Asset additions for mp3 files, partner illustrations, phone art, casino art, and item images should go through `src/restored/assets/asset-manifest.js` and `docs/baegeum-city-v2-restored-asset-pipeline.md` before runtime use.
 
 Multimap safety remains verified:
 
@@ -111,6 +113,7 @@ Paused loops:
 2. Horse-racing work is paused before round/ledger logic.
 3. Construction UX is paused unless the human redirects back to map decoration work.
 4. Git baseline still requires explicit `baseline 승인` before staging or committing.
+5. Online lobby work should start from `docs/baegeum-city-v2-online-lobby-contract.md`: the lobby is an online-only gate, not an offline menu, and the next safe coding slice is a pure contract module plus smoke test before UI.
 
 ## Human-Approval Queue
 
@@ -132,6 +135,62 @@ Paused loops:
 - `docs/ai-spaghetti-bug-root-cause.md` explains why the spaghetti/bug pattern emerged and now fixes the next audit sequence around persistence, silent failures, and browser workflows.
 
 ## Loop Record
+
+Date: 2026-05-26
+Observed: The human asked to create the extra tools needed before the fundamental redesign, especially how mp3 files and image folders should be classified and reorganized.
+Changed: Added `docs/baegeum-city-v2-restored-asset-pipeline.md` with target audio/image/source folders, asset id rules, mp3/image role taxonomy, source/license expectations, and verification rules. Added `src/restored/assets/asset-manifest.js` with current legacy mp3/png/svg assets registered by id. Added `tools/check-restored-asset-pipeline.cjs` and wired it into `npm run check` so tracked asset files under `assets/` must be registered before use. Linked the asset pipeline from `docs/INDEX.md` and recorded the manifest in restored recomposition docs and `src/restored/README.md`.
+Verified: `node tools/check-restored-asset-pipeline.cjs`, `node tools/check-restored-growth-architecture.cjs`, `npm run check`, and `git diff --check` passed.
+Blocked: No files were moved yet; the current asset manifest references legacy locations until a deliberate migration is approved.
+Next: Extract restored selectors/catalogs or start moving future new art/audio through the manifest id flow before connecting illustration/conversation systems.
+Do not: Add direct mp3/image paths to `baegeum-city-v2-dice.html`, or copy GitHub/open-source assets into `assets/` before source/license review.
+
+Date: 2026-05-26
+Observed: The human asked to finish the first live restored split and to pin GitHub open-source reference links so they can be shown quickly later. The active target remains `baegeum-city-v2-dice.html`, and the next safe split was restored state/storage.
+Changed: Moved the live restored initial state into `src/restored/state/initial-state.js` and save/load plus cash-only save-code helpers into `src/restored/state/storage.js`. Updated `baegeum-city-v2-dice.html` to run as a module, import those helpers, and expose inline-handler functions back onto `window` so the existing buttons keep working. Strengthened `tools/check-restored-growth-architecture.cjs` so the restored HTML cannot re-own `INITIAL_STATE` or direct storage writes. Added `refs/github-reference-systems.md`, pinned `https://github.com/PEPEANT/MammonCity2`, listed it in `refs/open-source-candidates.md`, and added `tools/check-reference-systems.cjs` to `npm run check`.
+Verified: `node tools/check-restored-growth-architecture.cjs`, `node tools/check-reference-systems.cjs`, `npm run check`, and `git diff --check` passed. Browser verification reloaded `http://127.0.0.1:4173/baegeum-city-v2-dice.html`, clicked the start button, opened the game screen, switched to the phone tab, and showed no console errors except the existing Tailwind CDN warning.
+Blocked: The next live split is still pending: selectors/catalogs for rank, phone ownership, assets, stocks, crypto, and partners remain inside the HTML.
+Next: Extract restored selectors (`totalAsset`, `rank`, `hasPhone`, `hasSmartPhone`) and then static catalogs for ranks/assets/markets before expanding AI conversation.
+Do not: Add more inline state/storage/catalog data to `baegeum-city-v2-dice.html`, or import MammonCity2 code/assets before a license and structure review.
+
+Date: 2026-05-26
+Observed: The human asked to start recomposition now because future AI lovers/NPCs may roam through cities, and the restored HTML would become a bottleneck if UI, city, casino, ownership, and dialogue keep growing in one place.
+Changed: Added `docs/baegeum-city-v2-restored-recomposition-plan.md` and linked it from `docs/INDEX.md`. Added pre-split contracts for `src/restored/actors/actor-contract.js`, `src/restored/data/place-catalog.js`, and `src/restored/ui/shell-contract.js`, then updated the restored architecture check so AI actor location, city/place actor slots, phone-app UI shell boundaries, bottom nav ids, and line budgets are guarded before live extraction begins.
+Verified: `node tools/check-restored-growth-architecture.cjs`, `npm run check`, and `git diff --check` passed.
+Blocked: Live behavior is still mostly inside `baegeum-city-v2-dice.html`; this slice intentionally creates the recomposition rails before moving runtime code.
+Next: Run the restored architecture check and `npm run check`, then start the first live extraction with restored `initial-state` and `storage` modules.
+Do not: Split the whole restored HTML at once or add new inline AI/dialogue/casino systems before state/storage are extracted.
+
+Date: 2026-05-26
+Observed: The human wants the restored build to grow toward AI lovers, branching conversation, gambling, ownership, emotion, and illustrations, and asked to put the fundamental design/script structure into Markdown before coding more.
+Changed: Added `docs/baegeum-city-v2-restored-growth-architecture.md` and linked it from `docs/INDEX.md`. The document records current structural risks in the 1371-line single HTML, a `src/restored/` module plan, script splitting rules, relationship/emotion state, conversation branching, gambling/ownership event flow, illustration manifest rules, and the next extraction order. Added the first real guardrail scripts/modules: `src/restored/README.md`, `src/restored/data/city-catalog.js`, `src/restored/state/save-contract.js`, and `tools/check-restored-growth-architecture.cjs`; `npm run check` now runs the restored architecture check.
+Verified: `node tools/check-restored-growth-architecture.cjs`, `git diff --check`, and `npm run check` passed.
+Blocked: Full code split was not performed yet; the new guardrails intentionally create the safe starting line before moving live state out of the HTML.
+Next: Start with `src/restored/state/initial-state.js` and `storage.js`, then extract partner/asset catalogs before expanding AI conversation.
+Do not: Add more large inline script to `baegeum-city-v2-dice.html` for new lover/dialogue/illustration systems.
+
+Date: 2026-05-26
+Observed: The human clarified that news, stocks, and crypto futures feel like phone apps, not main bottom navigation tabs, and that they should be invisible before buying a phone.
+Changed: Reworked `baegeum-city-v2-dice.html` bottom navigation to only show `내정보`, `휴대폰`, `부동산`, `도박`, and `상점`. Moved 뉴스/주식/코인선물 into the new 휴대폰 tab as app views. No-phone state now shows only a phone purchase prompt; app buttons are hidden with the phone shell. Folder phone unlocks 뉴스 and 주식, while 스마트폰 unlocks 코인선물.
+Verified: `npm run check` passed, `git diff --check` reported no whitespace errors, and browser verification showed the five bottom tabs, `tab-phone` activation, no-phone locked prompt, hidden phone app shell, and zero console errors.
+Blocked: Automated temporary purchase verification was not completed because the browser read-only evaluation context did not allow the planned localStorage backup access; runtime app-unlock behavior is implemented but not persisted-tested in this loop.
+Next: Manually or safely browser-test buying 폴더폰/스마트폰 through the shop, then tune the phone app visuals if needed.
+Do not: Put 뉴스, 주식, or 코인선물 back into the main bottom navigation unless the human explicitly reverses this phone-app direction.
+
+Date: 2026-05-26
+Observed: The human rejected a smaller redesign and explicitly asked to use the provided Dice City V10.5 HTML wholesale, only retitling it as 배금도시 V2.
+Changed: Added `baegeum-city-v2-dice.html` as the active single-file restored game, changed visible Dice City branding to 배금도시 V2, gave it the separate localStorage key `baegeum_city_v2_dice_restore`, and made root `index.html` redirect to it. Existing modular city-core/editor files were preserved.
+Verified: `npm run check` passed, `git diff --check` reported no whitespace errors, the local server returned `/health` 200, and browser verification loaded `index.html` into `baegeum-city-v2-dice.html`, showed title `배금도시 V2 (Safe Restore)`, clicked `배금도시 시작`, opened the game screen on `tab-myinfo`, and had zero console errors.
+Blocked: The restored build intentionally bypasses the previous ledger/action/server-authority architecture and uses the original local single-file money mutations. This is accepted as the current product pivot, but it should not be confused with the paused online-ready city-core.
+Next: Tune copy, balance, save/restore, and mobile polish inside `baegeum-city-v2-dice.html` as the active playable build.
+Do not: Delete the previous modular city-core, editor, docs, or vendor sources unless the human gives a separate explicit cleanup request.
+
+Date: 2026-05-26
+Observed: The human pointed out that signs, entrances, buildings, and phone apps still feel like shells because the game does not prove which ones actually work.
+Changed: Added `docs/baegeum-city-v2-feature-affordance-audit.md`, `src/systems/city-feature-audit.js`, and `src/devices/phone/phone-app-catalog.js`. The settings panel now shows building/app audit counts, DIS non-wired buttons are disabled instead of pretending to work, and `npm run check` includes `tools/smoke-city-feature-audit.cjs`.
+Verified: Pending in this loop.
+Blocked: The audit intentionally reports many baegeum-city lifestyle buildings as functionless because they are still placement-only `building_shell` objects. This is a product gap, not a smoke-test failure.
+Next: Promote one lifestyle building, preferably convenience store or fast food, from visual shell to a real interaction slice with entrance/action/effect/save behavior.
+Do not: Hide missing app/building functionality with nicer art, or attach money/door/channel fields directly to `building_shell` without the owning interaction/ledger contract.
 
 Date: 2026-05-26
 Observed: The human asked to compress baegeum-city vertically and make it a clearer lifestyle/infrastructure city before continuing gameplay systems.
@@ -590,6 +649,14 @@ Next: Wire the odd-even start button to `bet_reserved` only, with no result sett
 Do not: Implement win/loss results, random settlement, or ranking updates before the bet reservation path is documented and verified.
 
 ## Loop Log
+
+Date: 2026-05-26
+Observed: The human wanted to move past verification and redesign the lobby so it only works after online connection, using Iron Line as a reference without copying the combat game.
+Changed: Added `docs/baegeum-city-v2-online-lobby-contract.md` and linked it from `docs/INDEX.md`. The contract defines online-only lobby gates, allowed state flow, minimum session/room data, Iron Line concepts to reuse, concepts to reject, and the next safe implementation slice.
+Verified: `git diff --check` and `npm.cmd run check` passed.
+Blocked: Browser automation for localhost was blocked by the client in the previous verification attempt, so the next implementation should rely on smoke tests first and browser-check only when the app tab is available.
+Next: Add a pure `online-lobby-contract` data module and smoke test before building any lobby UI.
+Do not: Build a fake offline lobby, copy Iron Line combat/team/loadout systems, or allow city entry before `join_result.ok` and version checks.
 
 Date: 2026-05-26
 Observed: Boot packet state pointed to construction UX. Pinned presets, category folding, and the `building_shell` taxonomy were already documented, leaving placement-only building card v0 as the next safe map-editor slice.

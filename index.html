@@ -5,6 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>배금도시 v2</title>
     <link rel="icon" href="data:,">
+    <script>
+      window.location.replace("./baegeum-city-v2-dice.html" + window.location.search + window.location.hash);
+    </script>
     <link rel="stylesheet" href="./src/styles/app.css">
     <link rel="stylesheet" href="./src/styles/mammon-hud-integration.css">
     <link rel="stylesheet" href="./src/styles/mobile-action-controls.css">
@@ -74,6 +77,11 @@
       <span id="venueStateLabel">venue: none</span>
       <span id="onlineRoomLabel">room: none</span>
       <span id="mapVersionLabel">map: baegeum-city-v2-map-001</span>
+      <div class="feature-audit-mini" aria-label="배금도시 기능 검증">
+        <span id="buildingAuditLabel">buildings: -</span>
+        <span id="appAuditLabel">apps: -</span>
+        <span id="riskAuditLabel">audit: -</span>
+      </div>
       <span class="hint">WASD 이동 · E 입장/나가기 · G 디버그</span>
       <div class="ost-controls" aria-label="OST controls">
         <button id="ostToggle" type="button">OST 재생</button>

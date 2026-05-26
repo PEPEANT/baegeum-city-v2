@@ -6,6 +6,7 @@
 
 - [배금도시 v2 기초 토대](baegeum-city-v2-foundation.md): 초기 구현 전 개발 원칙, 코드 크기 제한, 원본 이식 규칙, 오프라인/온라인 단계 계획.
 - [배금도시 v2 재설계 기준선](baegeum-city-v2-system-redesign-baseline.md): 첫 완성 루프, 데이터 주인, 경제/시간/온라인/UI 게이트, 지금 하지 말 것과 다음 순서를 다시 고정한 기준 문서.
+- [배금도시 V2 복원판 성장 설계](baegeum-city-v2-restored-growth-architecture.md): Dice City 기반 단일 HTML 복원판을 AI 연인, 감정선, 도박, 보유 시스템, 대화, 일러스트 중심으로 키우기 위한 폴더/모듈/상태 설계.
 - [배금도시 v2 첫 수직 조각](baegeum-city-v2-first-slice.md): 현재 구현된 오프라인 도시 코어, 실행 방법, 검증 결과, 다음 단계.
 - [배금도시 v2 첫 플레이 루프](baegeum-city-v2-first-play-loop.md): 처음 10분 동안 도시, 도박장, 환전, 홀짝 예약이 이어지는 기준 루프와 기능 판단 규칙.
 - [배금도시 v2 작업 큐](baegeum-city-v2-work-queue.md): 여러 채팅에서 동시에 개발할 때 맵에디터, 인게임, 온라인/경제 트랙을 분리하는 우선순위 문서.
@@ -20,6 +21,7 @@
 - [배금도시 v2 OST](baegeum-city-v2-ost.md): `dis-site` RECLAIM_2.5 BGM 원본 파일, 설정 패널 재생 방식, 음악 추가 규칙.
 - [배금도시 v2 채팅](baegeum-city-v2-chat.md): Drawing World 채팅 원본 고정, 월드 채팅 v1, 말풍선, 향후 온라인 전환 규칙.
 - [배금도시 v2 온라인 상태/프로토콜 설계](baegeum-city-v2-online-state-protocol.md): 플레이어/관전자/관리자 상태, 채널 분리, 서버 권위 경제 규칙.
+- [배금도시 v2 온라인 로비 계약](baegeum-city-v2-online-lobby-contract.md): 온라인 연결 성공 후에만 열리는 로비, 방 목록/참가/관전자/버전 게이트, Iron Line 참고 범위와 금지 범위.
 - [배금도시 v2 Economy Master](baegeum-city-v2-economy-master.md): `cash / bank / chips / ledger` 기준, 변경 경로, 카지노 전 경제 구현 순서.
 - [배금도시 v2 경제 루프 계약](baegeum-city-v2-economy-loop-contract.md): 돈 생성/소멸, 환전, 송금, 베팅 정산, 시간 이벤트, 서버 권위 경제 빈칸을 고정하는 계약.
 - [배금도시 v2 경제 Ledger 설계](baegeum-city-v2-economy-ledger.md): 현금/계좌/칩/아이템 변화 기록, append-only entry, 로컬 HUD 연결, 서버 권위 전환 기준.
@@ -31,6 +33,10 @@
 - [배금도시 v2 캐릭터 스킨](baegeum-city-v2-character-skins.md): Drawing World 원본 스킨 시스템 vendor 규칙, 테스트장, 본게임 연결 상태.
 - [배금도시 v2 가상 인터넷/폰 이식 계획](baegeum-city-v2-virtual-internet-phone-plan.md): MammonCity 시작 화면, 로그인, 스마트폰, DIS 커뮤니티, 주식 앱을 단계적으로 붙이는 계획.
 - [배금도시 v2 가상 인터넷 런타임](baegeum-city-v2-virtual-internet-runtime.md): `WorldClock`, 현재 채널, 현재 장소, 최근 채팅을 DIS 게시글 피드로 연결하는 현재 구현.
+- [배금도시 v2 기능 감각 검증](baegeum-city-v2-feature-affordance-audit.md): 건물/입구/간판/앱이 실제 작동 단위인지 숫자로 확인하는 런타임 검증 패널과 구현 기준.
+
+- [Baegeum City V2 Restored Recomposition Plan](baegeum-city-v2-restored-recomposition-plan.md): Bottleneck audit and split order for the Dice City-derived restored build, including AI roaming actors, city/place contracts, phone UI, and future UI surfaces.
+- [Baegeum City V2 Restored Asset Pipeline](baegeum-city-v2-restored-asset-pipeline.md): Asset folder roles, manifest ids, mp3/image classification, and checks for future illustrations, phone art, casino art, and audio.
 
 ## AI Operating Loop
 

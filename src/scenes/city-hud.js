@@ -1,3 +1,5 @@
+import { createCityFeatureAudit } from "../systems/city-feature-audit.js";
+
 export function readCityHudLabels() {
   return {
     scene: document.getElementById("sceneLabel"),
@@ -8,6 +10,9 @@ export function readCityHudLabels() {
     venue: document.getElementById("venueStateLabel"),
     onlineRoom: document.getElementById("onlineRoomLabel"),
     mapVersion: document.getElementById("mapVersionLabel"),
+    buildingAudit: document.getElementById("buildingAuditLabel"),
+    appAudit: document.getElementById("appAuditLabel"),
+    riskAudit: document.getElementById("riskAuditLabel"),
     clockTime: document.getElementById("worldClockTime"),
     clockDay: document.getElementById("worldClockDay"),
     clockPhase: document.getElementById("worldClockPhase")
@@ -25,9 +30,18 @@ export function updateCityHudLabels(game) {
   if (labels.venue) labels.venue.textContent = `venue: ${game.playerState.venueName || "none"}`;
   if (labels.onlineRoom) labels.onlineRoom.textContent = `room: ${game.playerState.onlineRoomId || "none"}`;
   if (labels.mapVersion) labels.mapVersion.textContent = `map: ${mapDebugLabel(game)}`;
+  updateFeatureAuditLabels(labels, game);
   labels.clockTime.textContent = game.clockSnapshot.timeText;
   labels.clockDay.textContent = game.clockSnapshot.dayLabel;
   labels.clockPhase.textContent = game.clockSnapshot.phaseLabel;
+}
+
+function updateFeatureAuditLabels(labels, game) {
+  if (!labels.buildingAudit && !labels.appAudit && !labels.riskAudit) return;
+  const audit = createCityFeatureAudit({ map: game.map });
+  if (labels.buildingAudit) labels.buildingAudit.textContent = `buildings: ${audit.buildings.enterable}/${audit.buildings.total} enterable · no-func ${audit.buildings.functionless}`;
+  if (labels.appAudit) labels.appAudit.textContent = `apps: ${audit.apps.openable}/${audit.apps.total} open · working ${audit.apps.workingButtonApps} · locked ${audit.apps.locked}`;
+  if (labels.riskAudit) labels.riskAudit.textContent = `audit: signs ${audit.buildings.missingSign} · entrances ${audit.buildings.missingEntrance} · preview apps ${audit.apps.preview}`;
 }
 
 function mapDebugLabel(game) {

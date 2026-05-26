@@ -45,6 +45,20 @@ body.phone-stage-active.phone-safe-layout #phone-stage.has-fullbleed-app {
   margin-top: 12px;
 }
 
+.phone-app-status {
+  display: block;
+  margin-top: 2px;
+  color: rgba(255, 231, 163, 0.72);
+  font-size: 10px;
+  letter-spacing: -0.02em;
+}
+
+.dis-community-header-btn:disabled,
+.dis-community-compact-action:disabled {
+  cursor: not-allowed;
+  opacity: 0.56;
+}
+
 @media (max-width: 600px) {
   :root {
     --phone-shell-width: clamp(156px, 38vw, 188px);
