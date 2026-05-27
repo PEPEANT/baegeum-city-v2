@@ -3,7 +3,7 @@ export const RESTORED_MARATHON_SERVER_TRANSPORT_VERSION = "restored-marathon-ser
 export const RESTORED_MARATHON_SERVER_TRANSPORT_STATUSES = Object.freeze(["unavailable", "connecting", "connected", "disconnected_grace", "expired"]);
 export const RESTORED_MARATHON_SERVER_TRANSPORT_PROVIDERS = Object.freeze(["none", "websocket", "firebase", "dev_mock"]);
 export const RESTORED_MARATHON_SERVER_AUTH_MODES = Object.freeze(["none", "session", "firebase-auth", "custom-token"]);
-export const RESTORED_MARATHON_SERVER_PACKET_TYPES = Object.freeze(["hello", "hello_result", "join_request", "join_result", "chat_send", "chat_delivered", "chat_history", "input_update", "skill_use", "attack_action", "checkpoint_reward", "respawn_notice", "state_snapshot", "race_finalized", "disconnect_notice"]);
+export const RESTORED_MARATHON_SERVER_PACKET_TYPES = Object.freeze(["hello", "hello_result", "join_request", "join_result", "chat_send", "chat_delivered", "chat_history", "input_update", "skill_use", "attack_action", "checkpoint_claim", "finish_claim", "checkpoint_reward", "respawn_notice", "state_snapshot", "race_finalized", "disconnect_notice"]);
 
 const DEFAULT_CAPABILITIES = Object.freeze({ rooms: false, chat: false, input: false, snapshots: false, admin: false });
 
@@ -141,6 +141,21 @@ export function createRestoredMarathonAttackEnvelope(attack = {}, options = {}) 
   }, options);
 }
 
+export function createRestoredMarathonCheckpointClaimEnvelope(claim = {}, options = {}) {
+  return createRestoredMarathonTransportEnvelope("checkpoint_claim", {
+    participantId: claim.participantId || "",
+    checkpointIndex: Math.max(1, Number(claim.checkpointIndex || 1)),
+    raceTimeMs: Math.max(0, Number(claim.raceTimeMs || 0))
+  }, options);
+}
+
+export function createRestoredMarathonFinishClaimEnvelope(claim = {}, options = {}) {
+  return createRestoredMarathonTransportEnvelope("finish_claim", {
+    participantId: claim.participantId || "",
+    raceTimeMs: Math.max(0, Number(claim.raceTimeMs || 0))
+  }, options);
+}
+
 export function validateRestoredMarathonTransportEnvelope(envelope = {}) {
   const errors = [];
   if (envelope.transportVersion !== RESTORED_MARATHON_SERVER_TRANSPORT_VERSION) errors.push("transport version mismatch");
@@ -152,6 +167,8 @@ export function validateRestoredMarathonTransportEnvelope(envelope = {}) {
   if (envelope.type === "input_update") validateInputPayload(envelope.payload, errors);
   if (envelope.type === "skill_use" && !envelope.payload?.skillId) errors.push("skill_use skillId required");
   if (envelope.type === "attack_action" && !envelope.payload?.attackerId) errors.push("attack_action attackerId required");
+  if (envelope.type === "checkpoint_claim" && !envelope.payload?.participantId) errors.push("checkpoint_claim participantId required");
+  if (envelope.type === "finish_claim" && !envelope.payload?.participantId) errors.push("finish_claim participantId required");
   return Object.freeze({ ok: errors.length === 0, errors: Object.freeze(errors) });
 }
 
@@ -176,6 +193,12 @@ export function validateRestoredMarathonServerTransportContract() {
   const skillEnvelope = createRestoredMarathonSkillEnvelope({ participantId: "runner:test", characterId: "runner:dororong", skillId: "skill:steady-boost" },
     { clientId: connected.clientId, roomId: connected.roomId, sequence: 4 });
   if (!validateRestoredMarathonTransportEnvelope(skillEnvelope).ok) errors.push("skill envelope should validate");
+  const checkpointEnvelope = createRestoredMarathonCheckpointClaimEnvelope({ participantId: "runner:test", checkpointIndex: 1, raceTimeMs: 1000 },
+    { clientId: connected.clientId, roomId: connected.roomId, sequence: 5 });
+  if (!validateRestoredMarathonTransportEnvelope(checkpointEnvelope).ok) errors.push("checkpoint claim envelope should validate");
+  const finishEnvelope = createRestoredMarathonFinishClaimEnvelope({ participantId: "runner:test", raceTimeMs: 1000 },
+    { clientId: connected.clientId, roomId: connected.roomId, sequence: 6 });
+  if (!validateRestoredMarathonTransportEnvelope(finishEnvelope).ok) errors.push("finish claim envelope should validate");
   const badChat = validateRestoredMarathonTransportEnvelope({ ...chatEnvelope, payload: { text: "missing channel" } });
   if (badChat.ok) errors.push("chat_send must require channel and message id");
   const historyEnvelope = createRestoredMarathonTransportEnvelope("chat_history", { serverOwned: true, messages: [] },
@@ -184,29 +207,11 @@ export function validateRestoredMarathonServerTransportContract() {
   return Object.freeze({ ok: errors.length === 0, errors: Object.freeze(errors) });
 }
 
-function validateChatSendPayload(payload = {}, errors) {
-  if (!payload.messageId) errors.push("chat messageId required");
-  if (!payload.channelId) errors.push("chat channelId required");
-  if (!payload.text) errors.push("chat text required");
-}
-
-function validateInputPayload(payload = {}, errors) {
-  if (!payload.participantId) errors.push("input participantId required");
-  if (!["recover", "steady", "push", "sprint"].includes(payload.pace)) errors.push("input pace invalid");
-  if (Math.abs(Number(payload.direction?.x || 0)) > 1 || Math.abs(Number(payload.direction?.y || 0)) > 1) errors.push("input direction invalid");
-}
-
-function normalizeStatus(status) {
-  return RESTORED_MARATHON_SERVER_TRANSPORT_STATUSES.includes(status) ? status : "unavailable";
-}
-
-function normalizeProvider(provider) {
-  return RESTORED_MARATHON_SERVER_TRANSPORT_PROVIDERS.includes(provider) ? provider : "none";
-}
-
-function normalizeAuthMode(mode) {
-  return RESTORED_MARATHON_SERVER_AUTH_MODES.includes(mode) ? mode : "none";
-}
+function validateChatSendPayload(payload = {}, errors) { if (!payload.messageId) errors.push("chat messageId required"); if (!payload.channelId) errors.push("chat channelId required"); if (!payload.text) errors.push("chat text required"); }
+function validateInputPayload(payload = {}, errors) { if (!payload.participantId) errors.push("input participantId required"); if (!["recover", "steady", "push", "sprint"].includes(payload.pace)) errors.push("input pace invalid"); if (Math.abs(Number(payload.direction?.x || 0)) > 1 || Math.abs(Number(payload.direction?.y || 0)) > 1) errors.push("input direction invalid"); }
+function normalizeStatus(status) { return RESTORED_MARATHON_SERVER_TRANSPORT_STATUSES.includes(status) ? status : "unavailable"; }
+function normalizeProvider(provider) { return RESTORED_MARATHON_SERVER_TRANSPORT_PROVIDERS.includes(provider) ? provider : "none"; }
+function normalizeAuthMode(mode) { return RESTORED_MARATHON_SERVER_AUTH_MODES.includes(mode) ? mode : "none"; }
 
 function defaultModeForProvider(provider) {
   if (provider === "firebase") return "firebase_pending";
@@ -215,9 +220,7 @@ function defaultModeForProvider(provider) {
   return "unavailable";
 }
 
-function safeText(value, maxLength) {
-  return String(value || "").replace(/\s+/g, " ").trim().slice(0, maxLength);
-}
+function safeText(value, maxLength) { return String(value || "").replace(/\s+/g, " ").trim().slice(0, maxLength); }
 
 function normalizeDirection(direction = {}) {
   return Object.freeze({
@@ -226,7 +229,4 @@ function normalizeDirection(direction = {}) {
   });
 }
 
-function clampDirection(value) {
-  const number = Number(value || 0);
-  return Math.max(-1, Math.min(1, Number.isFinite(number) ? number : 0));
-}
+function clampDirection(value) { const number = Number(value || 0); return Math.max(-1, Math.min(1, Number.isFinite(number) ? number : 0)); }

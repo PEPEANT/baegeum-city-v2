@@ -37,6 +37,24 @@ export function progressToRestoredMarathonTrailPoint(progressPercent = 0) {
   });
 }
 
+export function progressToRestoredMarathonMapPoint(progressPercent = 0, options = {}) {
+  const point = progressToRestoredMarathonTrailPoint(progressPercent);
+  const worldWidth = Math.max(1, Number(options.worldWidth) || 100);
+  const worldHeight = Math.max(1, Number(options.worldHeight) || 100);
+  const laneHalfWidthPx = Number.isFinite(Number(options.laneHalfWidthPx))
+    ? Math.abs(Number(options.laneHalfWidthPx))
+    : Infinity;
+  const laneOffsetPx = clamp(Number(options.laneOffsetPx) || 0, -laneHalfWidthPx, laneHalfWidthPx);
+  const minPercent = Number.isFinite(Number(options.minPercent)) ? Number(options.minPercent) : 0;
+  const maxPercent = Number.isFinite(Number(options.maxPercent)) ? Number(options.maxPercent) : 100;
+  return Object.freeze({
+    x: round2(clamp(point.x + (point.normal.x * laneOffsetPx / worldWidth * 100), minPercent, maxPercent)),
+    y: round2(clamp(point.y + (point.normal.y * laneOffsetPx / worldHeight * 100), minPercent, maxPercent)),
+    tangent: point.tangent,
+    normal: point.normal
+  });
+}
+
 export function estimateRestoredMarathonTrailProgressFromPoint(x = 0, y = 0) {
   let best = { progressPercent: 0, distanceSq: Infinity };
   for (let progress = 0; progress <= 100; progress += 1) {
@@ -65,6 +83,9 @@ export function validateRestoredMarathonTrailGeometryContract() {
   const finish = progressToRestoredMarathonTrailPoint(100);
   if (finish.x <= start.x || finish.y >= start.y) errors.push("trail must run from lower-left to upper-right");
   if (savePoints.at(-1).y > 40) errors.push("fifth save point should sit on the vertical climb");
+  const mappedCenter = progressToRestoredMarathonMapPoint(54, { worldWidth: 7600, worldHeight: 2600, laneOffsetPx: 0, laneHalfWidthPx: 232, minPercent: 2, maxPercent: 98 });
+  const mappedLane = progressToRestoredMarathonMapPoint(54, { worldWidth: 7600, worldHeight: 2600, laneOffsetPx: 232, laneHalfWidthPx: 232, minPercent: 2, maxPercent: 98 });
+  if (mappedCenter.x === mappedLane.x && mappedCenter.y === mappedLane.y) errors.push("map point lane offset must affect marker placement");
   return Object.freeze({ ok: errors.length === 0, errors: Object.freeze(errors) });
 }
 

@@ -1,3 +1,5 @@
+import { getPresetSkinDataUrl } from "./drawing-world-adapter.js";
+
 const RACE_SKIN_SPECS = Object.freeze([
   { id: "kaguya", name: "카구야", hair: "#f8d86d", face: "#f1c49f", shirt: "#101827", pants: "#1f2937", accent: "#ef4444", accessory: "ribbon" },
   { id: "singularity-fan", name: "특붕이", hair: "#111827", face: "#f0b894", shirt: "#14b8a6", pants: "#1f2937", accent: "#ffd86c", accessory: "spark" },
@@ -18,6 +20,7 @@ const RACE_SKIN_SPECS = Object.freeze([
   { id: "stoploss-warrior", name: "손절 전사", hair: "#7f1d1d", face: "#f0b894", shirt: "#ef4444", pants: "#1f2937", accent: "#111827", accessory: "headband" }
 ]);
 
+const DRAWING_WORLD_ORIGINAL_SKIN_IDS = new Set(["kaguya", "robot", "gpichan"]);
 const skinDataUrls = new Map();
 
 export const SINGULARITY_RACE_DEFAULT_SKIN_ID = RACE_SKIN_SPECS[0].id;
@@ -37,7 +40,8 @@ export function getSingularityRaceSkinDataUrl(skinId, direction = "side") {
   const key = `${id}:${direction}`;
   if (skinDataUrls.has(key)) return skinDataUrls.get(key);
   const spec = RACE_SKIN_SPECS.find((skin) => skin.id === id) || RACE_SKIN_SPECS[0];
-  const dataUrl = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(renderRaceSkinSvg(spec))}`;
+  const dataUrl = getDrawingWorldOriginalRaceSkinDataUrl(spec, direction)
+    || `data:image/svg+xml;charset=utf-8,${encodeURIComponent(renderRaceSkinSvg(spec))}`;
   skinDataUrls.set(key, dataUrl);
   return dataUrl;
 }
@@ -51,7 +55,15 @@ export function validateSingularityRaceSkinPresetContract() {
   });
   if (ids.has("casino-dealer") || ids.has("table-gambler") || ids.has("office-worker")) errors.push("casino or general-citizen skins must not appear in race pack");
   if (SINGULARITY_RACE_SKIN_PRESETS.length < 14) errors.push("race skin pack should have at least 14 choices");
+  DRAWING_WORLD_ORIGINAL_SKIN_IDS.forEach((id) => {
+    if (!ids.has(id)) errors.push(`Drawing World original skin missing: ${id}`);
+  });
   return Object.freeze({ ok: errors.length === 0, errors: Object.freeze(errors) });
+}
+
+function getDrawingWorldOriginalRaceSkinDataUrl(spec, direction) {
+  if (!DRAWING_WORLD_ORIGINAL_SKIN_IDS.has(spec.id)) return "";
+  return getPresetSkinDataUrl(spec.id, direction);
 }
 
 function renderRaceSkinSvg(spec) {

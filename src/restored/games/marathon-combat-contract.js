@@ -21,6 +21,9 @@ export function createRestoredMarathonAttackAction(options = {}) {
     rangeMeters,
     arcDegrees: clamp(options.arcDegrees ?? 42, 5, 100),
     selfStallMs: clamp(options.selfStallMs ?? 520, 120, 1400),
+    cooldownMs: clamp(options.cooldownMs ?? 1150, 200, 3000),
+    stunMs: clamp(options.stunMs ?? 650, 0, 1800),
+    damage: clamp(options.damage ?? 34, 0, 100),
     staminaCost: clamp(options.staminaCost ?? 12, 0, 40)
   });
 }
@@ -40,9 +43,11 @@ export function resolveRestoredMarathonAttackHit(actionInput, targetInput = {}) 
     hit,
     distanceMeters: round2(distance),
     knockbackMeters: hit ? 1.8 : 0,
-    slowMs: hit ? 900 : 0,
-    damage: hit ? 34 : 0,
-    attackerStallMs: action.selfStallMs
+    slowMs: hit ? action.stunMs : 0,
+    stunMs: hit ? action.stunMs : 0,
+    damage: hit ? action.damage : 0,
+    attackerStallMs: action.selfStallMs,
+    attackCooldownMs: action.cooldownMs
   });
 }
 
@@ -56,6 +61,7 @@ export function applyRestoredMarathonRunnerDamage(runnerInput = {}, hitInput = {
     hp,
     down,
     slowUntilMs: Math.max(runner.slowUntilMs, Number(hitInput.nowMs || 0) + Number(hitInput.slowMs || 0)),
+    stunnedUntilMs: Math.max(runner.stunnedUntilMs, Number(hitInput.nowMs || 0) + Number(hitInput.stunMs || hitInput.slowMs || 0)),
     pendingRespawnCheckpointIndex: down ? runner.lastSafeCheckpointIndex : runner.pendingRespawnCheckpointIndex
   });
 }
@@ -85,8 +91,12 @@ export function validateRestoredMarathonCombatContract() {
   });
   const hit = resolveRestoredMarathonAttackHit(attack, { runnerId: "runner:b", position: { x: 2, y: 0 }, hp: 30 });
   if (!hit.hit || hit.attackerStallMs <= 0) errors.push("mouse attack should hit in range and stall attacker");
+  if (hit.attackCooldownMs <= 0 || hit.stunMs <= 0) errors.push("basic attack should expose cooldown and stun");
   const damaged = applyRestoredMarathonRunnerDamage({ runnerId: "runner:b", hp: 30, lastSafeCheckpointIndex: 2 }, hit);
   if (!damaged.down || damaged.pendingRespawnCheckpointIndex !== 2) errors.push("downed runner should return to saved checkpoint");
+  const staged = resolveRestoredMarathonAttackHit(createRestoredMarathonAttackAction({ damage: 0 }), { runnerId: "runner:c", position: { x: 1, y: 0 }, hp: 100 });
+  const stunned = applyRestoredMarathonRunnerDamage({ runnerId: "runner:c", hp: 100 }, { ...staged, nowMs: 1000 });
+  if (stunned.hp !== 100 || stunned.stunnedUntilMs <= 1000) errors.push("pre-start attack can stun without damage");
   const respawn = createRestoredMarathonCheckpointRespawn(damaged, { checkpointMeters: [0, 500, 1000] });
   if (respawn.progressMeters !== 1000 || respawn.hp <= 0) errors.push("respawn should restore at checkpoint");
   return Object.freeze({ ok: errors.length === 0, errors: Object.freeze(errors) });
@@ -100,6 +110,7 @@ function normalizeRunner(input = {}) {
     maxHp: clamp(input.maxHp ?? 100, 1, 500),
     invulnerable: Boolean(input.invulnerable),
     slowUntilMs: Math.max(0, Number(input.slowUntilMs || 0)),
+    stunnedUntilMs: Math.max(0, Number(input.stunnedUntilMs || 0)),
     lastSafeCheckpointIndex: Math.max(0, Number(input.lastSafeCheckpointIndex || 0)),
     pendingRespawnCheckpointIndex: input.pendingRespawnCheckpointIndex
   });

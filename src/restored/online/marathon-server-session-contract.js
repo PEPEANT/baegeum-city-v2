@@ -6,10 +6,11 @@ import {
 
 export const RESTORED_MARATHON_SERVER_SESSION_VERSION = "restored-marathon-server-session-001";
 
-export const RESTORED_MARATHON_SERVER_ROLES = Object.freeze(["player", "spectator", "host", "admin", "system"]);
+export const RESTORED_MARATHON_SERVER_ROLES = Object.freeze(["player", "bot", "spectator", "host", "admin", "system"]);
 
 const PACKET_PERMISSIONS = Object.freeze({
-  player: Object.freeze(["join_request", "chat_send", "input_update", "skill_use", "attack_action", "disconnect_notice"]),
+  player: Object.freeze(["join_request", "chat_send", "input_update", "skill_use", "attack_action", "checkpoint_claim", "finish_claim", "disconnect_notice"]),
+  bot: Object.freeze(["join_request", "input_update", "skill_use", "attack_action", "checkpoint_claim", "finish_claim", "disconnect_notice"]),
   spectator: Object.freeze(["join_request", "chat_send", "disconnect_notice"]),
   host: Object.freeze(["chat_send", "host_control", "disconnect_notice"]),
   admin: Object.freeze(["chat_send", "host_control", "admin_control", "disconnect_notice"]),
@@ -18,7 +19,7 @@ const PACKET_PERMISSIONS = Object.freeze({
 
 export function createRestoredMarathonServerSession(options = {}) {
   const role = normalizeServerRole(options.role || options.participantType);
-  const participantType = normalizeParticipantType(options.participantType || role);
+  const participantType = normalizeParticipantType(options.participantType || authorityParticipantType(role));
   return Object.freeze({
     version: RESTORED_MARATHON_SERVER_SESSION_VERSION,
     sessionId: safeId(options.sessionId || `session:${options.clientId || role}`),
@@ -32,11 +33,11 @@ export function createRestoredMarathonServerSession(options = {}) {
     joinedAtMs: Math.max(0, Number(options.joinedAtMs || 0)),
     serverOwned: true,
     permissions: Object.freeze({
-      canChat: role !== "system",
+      canChat: role !== "system" && role !== "bot",
       canViewSnapshots: role !== "system",
-      canMove: role === "player",
-      canUseSkill: role === "player",
-      canAttack: role === "player",
+      canMove: role === "player" || role === "bot",
+      canUseSkill: role === "player" || role === "bot",
+      canAttack: role === "player" || role === "bot",
       canHostControl: role === "host" || role === "admin",
       canAdminControl: role === "admin"
     })
@@ -50,10 +51,10 @@ export function resolveRestoredMarathonServerJoinRole(room = {}, request = {}) {
   }
   const requestedType = normalizeParticipantType(request.participantType || requestedRole);
   const phase = room.phase || "lobby";
-  if (requestedType === "player" && phase !== "lobby") {
+  if ((requestedType === "player" || requestedType === "bot") && phase !== "lobby") {
     return Object.freeze({ role: "spectator", participantType: "spectator", converted: true, reason: "late_join_spectator" });
   }
-  return Object.freeze({ role: requestedType, participantType: requestedType, converted: false, reason: "" });
+  return Object.freeze({ role: requestedType === "bot" ? "bot" : requestedType, participantType: requestedType, converted: false, reason: "" });
 }
 
 export function canRestoredMarathonServerSessionSendPacket(session = {}, packetType = "") {
@@ -138,6 +139,9 @@ export function validateRestoredMarathonServerSessionContract(channels = []) {
   const spectator = createRestoredMarathonServerSession({ clientId: "client:spectator", participantId: "spectator:test", participantType: "spectator" });
   if (canRestoredMarathonServerSessionSendPacket(spectator, "input_update")) errors.push("spectator must not send input");
   if (!canRestoredMarathonServerSessionSendPacket(spectator, "chat_send")) errors.push("spectator must send chat");
+  const bot = createRestoredMarathonServerSession({ clientId: "client:bot", participantId: "runner:bot-test", participantType: "bot" });
+  if (!bot.permissions.canMove || !canRestoredMarathonServerSessionSendPacket(bot, "input_update")) errors.push("bot sessions should move through runner input authority");
+  if (canRestoredMarathonServerSessionSendPacket(bot, "chat_send") || bot.permissions.canChat) errors.push("bot sessions should not own chat authority");
   const host = createRestoredMarathonServerSession({ clientId: "client:host", role: "host", displayName: "Host" });
   if (!host.permissions.canHostControl || host.permissions.canAdminControl) errors.push("host permissions should be separated from admin");
   const roomChannel = channels.find((channel) => channel.type === "room") || channels[0];
@@ -159,7 +163,11 @@ function normalizeServerRole(role) {
 }
 
 function normalizeParticipantType(type) {
-  return type === "spectator" ? "spectator" : "player";
+  return ["player", "bot", "spectator", "admin"].includes(type) ? type : "player";
+}
+
+function authorityParticipantType(role) {
+  return role === "host" || role === "admin" ? "spectator" : role;
 }
 
 function normalizeMessages(messages) {
@@ -181,6 +189,7 @@ function safeText(value, maxLength) {
 function labelForRole(role) {
   if (role === "host") return "HOST";
   if (role === "admin") return "ADMIN";
+  if (role === "bot") return "BOT";
   if (role === "spectator") return "SPECTATOR";
   return "PLAYER";
 }

@@ -2,7 +2,9 @@ import { RESTORED_MARATHON_AUTHORITY, RESTORED_MARATHON_CONTRACT_VERSION, RESTOR
 import { createRestoredMarathonChannelSet } from "./marathon-channel-adapter.js";
 import { createRestoredMarathonNetcodeProfile, createRestoredMarathonPingSample, createRestoredMarathonReconciliationHint, shouldAcceptRestoredMarathonRelayPacket } from "./marathon-netcode-contract.js";
 import { appendRestoredMarathonServerChatMessage, canRestoredMarathonServerSessionSendPacket, createRestoredMarathonServerChatHistory, createRestoredMarathonServerSession, replayRestoredMarathonServerChatHistory, resolveRestoredMarathonServerJoinRole } from "./marathon-server-session-contract.js";
-import { applyRestoredMarathonServerInputEnvelope, createRestoredMarathonServerRunnerSnapshot, startRestoredMarathonServerRoom } from "./marathon-server-state-contract.js";
+import { applyRestoredMarathonServerCheckpointClaimEnvelope, applyRestoredMarathonServerFinishClaimEnvelope } from "./marathon-server-race-state.js";
+import { applyRestoredMarathonServerAttackEnvelope, applyRestoredMarathonServerInputEnvelope, applyRestoredMarathonServerSkillEnvelope, createRestoredMarathonServerRunnerSnapshot, startRestoredMarathonServerRoom } from "./marathon-server-state-contract.js";
+import { applyRestoredMarathonServerStartPositions } from "./marathon-server-start-position.js";
 import { createConfiguredRestoredMarathonServerTransport, createRestoredMarathonTransportEnvelope, validateRestoredMarathonTransportEnvelope } from "./marathon-server-transport-contract.js";
 import { createServerBackedMarathonRoomAdapter } from "./marathon-server-room-adapter.js";
 
@@ -12,7 +14,7 @@ const DEFAULT_ENDPOINT_ID = "ws://127.0.0.1:4173/dev/singularity-race";
 const DEFAULT_ROOM_ID = "room:singularity-race:ws-dev-001";
 const DEFAULT_MAP_VERSION = "baegeum-city-v2-map-001";
 const DEFAULT_VENUE_SCHEMA_VERSION = "venue-schema-001";
-const CLIENT_PACKET_TYPES = Object.freeze(["chat_send", "input_update", "skill_use", "attack_action"]);
+const CLIENT_PACKET_TYPES = Object.freeze(["chat_send", "input_update", "skill_use", "attack_action", "checkpoint_claim", "finish_claim"]);
 
 export function createRestoredMarathonWebSocketDevServerMock(options = {}) {
   const context = createServerContext(options);
@@ -59,7 +61,7 @@ function connectClient(context, options = {}) {
     requiresAuth: false, capabilities: { rooms: true, chat: true, input: true, snapshots: true, admin: false } },
   { status: "connected", clientId, serverTimeMs: context.clock() });
   const session = createRestoredMarathonServerSession({ clientId, role, displayName: options.displayName || role, joinedAtMs: context.clock() });
-  context.clients.set(clientId, { clientId, participantId: "", roomId: "", participantType: role === "spectator" ? "spectator" : "player" });
+  context.clients.set(clientId, { clientId, participantId: "", roomId: "", participantType: role === "spectator" ? "spectator" : role === "bot" ? "bot" : "player" });
   context.sessions.set(clientId, session);
   const helloResult = createRestoredMarathonTransportEnvelope("hello_result",
     { ok: true, targetClientId: clientId, roomCount: context.rooms.size, protocolVersion: RESTORED_MARATHON_CONTRACT_VERSION },
@@ -118,7 +120,8 @@ function startRace(context, transport = {}, roomId = DEFAULT_ROOM_ID, options = 
   if (!connected.ok) return failure(connected.reason);
   const room = context.rooms.get(roomId);
   if (!room) return failure("room_not_found");
-  const startedRoom = startRestoredMarathonServerRoom(room, { serverTimeMs: options.serverTimeMs ?? context.clock() });
+  const seededRoom = applyRestoredMarathonServerStartPositions(room, options.runnerPositions);
+  const startedRoom = startRestoredMarathonServerRoom(seededRoom, { serverTimeMs: options.serverTimeMs ?? context.clock() });
   context.rooms.set(roomId, startedRoom);
   return Object.freeze({ ok: true, reason: "", room: startedRoom, packets: getPackets(context, roomId) });
 }
@@ -142,23 +145,27 @@ function ingestClientEnvelope(context, transport = {}, envelope = {}, meta = {})
   });
   if (!guard.ok) return Object.freeze({ ...failure(guard.reason), pressure: guard.pressure });
   const accepted = Object.freeze({ ...envelope, receivedAtMs, direction: "client_to_server" });
-  const movement = envelope.type === "input_update"
+  const stateChange = envelope.type === "input_update"
     ? applyRestoredMarathonServerInputEnvelope(context.rooms.get(envelope.roomId), accepted, { elapsedMs: meta.elapsedMs, receivedAtMs })
-    : null;
-  if (movement && !movement.ok) return Object.freeze({ ...failure(movement.reason), pressure: guard.pressure });
-  if (movement?.ok) context.rooms.set(envelope.roomId, movement.room);
+    : envelope.type === "attack_action"
+      ? applyRestoredMarathonServerAttackEnvelope(context.rooms.get(envelope.roomId), accepted, { receivedAtMs })
+      : envelope.type === "skill_use"
+        ? applyRestoredMarathonServerSkillEnvelope(context.rooms.get(envelope.roomId), accepted, { receivedAtMs })
+        : envelope.type === "checkpoint_claim"
+          ? applyRestoredMarathonServerCheckpointClaimEnvelope(context.rooms.get(envelope.roomId), accepted, { receivedAtMs })
+          : envelope.type === "finish_claim"
+            ? applyRestoredMarathonServerFinishClaimEnvelope(context.rooms.get(envelope.roomId), accepted, { receivedAtMs })
+            : null;
+  if (stateChange && !stateChange.ok) return Object.freeze({ ...failure(stateChange.reason), pressure: guard.pressure });
+  if (stateChange?.ok) context.rooms.set(envelope.roomId, stateChange.room);
   const chat = envelope.type === "chat_send" ? appendServerChat(context, envelope, session, receivedAtMs) : null;
   if (chat && !chat.ok) return failure(chat.reason);
-  const serverEnvelope = chat?.serverEnvelope || null;
+  const serverEnvelope = chat?.serverEnvelope || stateChange?.serverEnvelope || null;
   const nextPackets = savePackets(context, envelope.roomId, serverEnvelope ? [accepted, serverEnvelope] : [accepted]);
-  return Object.freeze({ ok: true, reason: "", room: movement?.room || context.rooms.get(envelope.roomId), packets: nextPackets, pressure: guard.pressure, serverEnvelope });
+  return Object.freeze({ ok: true, reason: stateChange?.reason || "", room: stateChange?.room || context.rooms.get(envelope.roomId), packets: nextPackets, pressure: guard.pressure, serverEnvelope, stateChange });
 }
 
-function replayChatHistory(context, transport = {}, roomId = DEFAULT_ROOM_ID, options = {}) {
-  const connected = ensureKnownTransport(context, transport);
-  if (!connected.ok) return failure(connected.reason);
-  return replayChatHistoryForSession(context, roomId, context.sessions.get(transport.clientId), options);
-}
+function replayChatHistory(context, transport = {}, roomId = DEFAULT_ROOM_ID, options = {}) { const connected = ensureKnownTransport(context, transport); return connected.ok ? replayChatHistoryForSession(context, roomId, context.sessions.get(transport.clientId), options) : failure(connected.reason); }
 
 function createStateSnapshot(context, roomId = DEFAULT_ROOM_ID, options = {}) {
   const room = context.rooms.get(roomId);
@@ -188,9 +195,8 @@ function createStateSnapshot(context, roomId = DEFAULT_ROOM_ID, options = {}) {
 
 function appendParticipant(room, request) {
   if (room.participants.some((participant) => participant.participantId === request.participantId)) return room;
-  const type = request.participantType === "spectator" ? "spectator" : "player";
-  const participant = createRestoredMarathonParticipant({ participantId: request.participantId, displayName: request.nickname, type,
-    lane: type === "player" ? countRestoredMarathonRunners(room.participants) + 1 : 1 });
+  const type = normalizeParticipantType(request.participantType), lane = type === "player" || type === "bot" ? countRestoredMarathonRunners(room.participants) + 1 : 1;
+  const participant = createRestoredMarathonParticipant({ participantId: request.participantId, displayName: request.nickname, type, lane });
   return createRestoredMarathonRoom({ ...room, authority: RESTORED_MARATHON_AUTHORITY.SERVER_REQUIRED, participants: Object.freeze([...room.participants, participant]) });
 }
 
@@ -205,9 +211,7 @@ function appendServerChat(context, envelope, session, receivedAtMs) {
     { clientId: "server:ws-dev", roomId: envelope.roomId, sequence: envelope.sequence + 1, serverTimeMs: context.clock() }) });
 }
 
-function replayChatHistoryForSession(context, roomId, session, options = {}) {
-  return replayRestoredMarathonServerChatHistory(context.chatHistories.get(roomId), channelsForRoom(context, roomId), session, options);
-}
+function replayChatHistoryForSession(context, roomId, session, options = {}) { return replayRestoredMarathonServerChatHistory(context.chatHistories.get(roomId), channelsForRoom(context, roomId), session, options); }
 
 function channelsForRoom(context, roomId) {
   if (!context.channelsByRoom.has(roomId)) context.channelsByRoom.set(roomId, createRestoredMarathonChannelSet({ roomId }));
@@ -216,12 +220,7 @@ function channelsForRoom(context, roomId) {
 
 function createPingSample(context, timing = {}, previous) { const sample = createRestoredMarathonPingSample(timing, previous ?? context.lastPingSample, context.netcodeProfile); context.lastPingSample = sample; return sample; }
 
-function savePackets(context, roomId, packets) {
-  const existing = context.packetsByRoom.get(roomId) || [];
-  const next = Object.freeze([...existing, ...packets].slice(-context.packetLimit));
-  context.packetsByRoom.set(roomId, next);
-  return next;
-}
+function savePackets(context, roomId, packets) { const next = Object.freeze([...(context.packetsByRoom.get(roomId) || []), ...packets].slice(-context.packetLimit)); context.packetsByRoom.set(roomId, next); return next; }
 
 function getPackets(context, roomId = DEFAULT_ROOM_ID) { return Object.freeze([...(context.packetsByRoom.get(roomId) || [])]); }
 
@@ -239,4 +238,5 @@ function participantIdForJoin(clientId, requestedId, participantType) {
   return candidate.startsWith(prefix) ? candidate : `${prefix}${safeId(clientId)}`;
 }
 
-function normalizeClientRole(role) { return ["player", "spectator", "host", "admin"].includes(role) ? role : "player"; }
+function normalizeClientRole(role) { return ["player", "bot", "spectator", "host", "admin"].includes(role) ? role : "player"; }
+function normalizeParticipantType(type) { return ["player", "bot", "spectator", "admin"].includes(type) ? type : "player"; }

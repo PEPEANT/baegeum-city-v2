@@ -22,10 +22,16 @@ Current pre-split contracts:
 - `online/marathon-dev-room-transport.js`: temporary same-origin dev room packet relay for Singularity Race join/input/skill/attack/snapshot packets before WebSocket delivery exists.
 - `online/marathon-netcode-contract.js`: 30-runner Singularity Race latency/bandwidth budget, input coalescing, snapshot cadence, interpolation, degraded-lane rules, and relay packet pressure guard.
 - `online/marathon-server-transport-contract.js`: server-shaped Singularity Race WebSocket/Firebase-style transport config, snapshot, and packet envelope contract for future server delivery without embedded client secrets.
-- `online/marathon-server-provider-adapter.js`: pure provider-flow state machine for the first real online bridge, enforcing `hello -> join -> chat_history -> state_snapshot` and server-owned replay/snapshot packets.
-- `online/marathon-server-state-contract.js`: server-owned Singularity Race movement state, including room start, accepted input application, stale-input rejection, finish clamp, and server-owned runner snapshots.
-- `online/marathon-websocket-dev-server-mock.js`: local WebSocket-shaped server rehearsal for connected transport, room join, client packet ingest, server-owned movement, server snapshot creation, and netcode rate limiting without opening public online.
+- `online/marathon-server-provider-adapter.js`: pure provider-flow state machine for the first real online bridge, enforcing `hello -> join -> chat_history -> state_snapshot`, reconnect-grace input lock, and server-owned replay/snapshot packets.
+- `online/marathon-server-state-contract.js`: server-owned Singularity Race movement/combat state, including room start, accepted input application, stale-input rejection, attack hit validation, stun/cooldown/damage state, finish clamp, and server-owned runner snapshots.
+- `online/marathon-server-combat-state.js`: server-owned Singularity Race attack validation for range/arc/cooldown, countdown stun-only hits, racing damage, attacker action lock, and checkpoint respawn-safe combat updates.
+- `online/marathon-server-skill-state.js`: server-owned Singularity Race skill validation for server-held character/skill ids, charge and cooldown use, action lock, self effects, and nearby disruption targets.
+- `online/marathon-server-start-position.js`: server start-position seeding for the dev race release, preserving paddock progress and lane offsets before the room switches to racing.
+- `online/marathon-websocket-dev-server-mock.js`: local WebSocket-shaped server rehearsal for connected transport, room join, client packet ingest, server-owned movement/attack handling, server snapshot creation, and netcode rate limiting without opening public online.
+- `engine/simulacra-world-game-module-contract.js`: Simulacra World common module and derived-game registry contract, keeping Singularity Race active, Drawing World candidate-only, and Iron Line ops-reference-only before any runtime migration.
+- `engine/simulacra-world-shell.js`: pure shell snapshot and launch guard for the Simulacra World registry, exposing only active derived games while blocking candidate/reference entries from launching.
 - `games/singularity-race-dev-online.js`: player-page dev relay helpers plus the server `state_snapshot` to runner-display merge used before a real transport is attached.
+- `games/singularity-race-prediction.js`: connected local movement prediction and small server reconciliation helper so the local player responds immediately while snapshots remain authoritative.
 - `games/marathon-input-contract.js`: pure Singularity Race WASD, Shift sprint, E skill, and mouse attack input contract.
 - `games/marathon-character-skill-contract.js`: pure checkpoint meme-style character assignment and skill-use contract.
 - `games/marathon-combat-contract.js`: pure mouse attack, hit, runner-down, and checkpoint respawn contract.
@@ -57,6 +63,11 @@ Planning docs:
 - `docs/plans/README.md`: generated feature-plan drafts before implementation.
 - `docs/plans/restored-login-home-online-phone-migration.md`: login home, online adapter, MammonCity2 reference, and save-code retirement plan.
 - `docs/plans/restored-ui-surface-redesign.md`: pre-redesign surface checklist for My Info, home, outside, phone, cities, assets, ranking, chat, and online boundaries.
+- `docs/plans/simulacra-world-engine.md`: small branch-point plan for Simulacra World common modules, derived game registration, and anti-spaghetti migration rules.
+
+Dev surfaces:
+
+- `simulacra-world.html`: small diagnostic surface that reads `createSimulacraWorldShellSnapshot()` and exposes only launchable active derived games.
 
 Phone direction:
 

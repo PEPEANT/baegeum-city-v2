@@ -8,7 +8,7 @@ export const RESTORED_MARATHON_MAX_SPECTATORS = 100;
 
 export const RESTORED_MARATHON_AUTHORITY = Object.freeze({ LOCAL_PREVIEW: "local_preview", SERVER_REQUIRED: "server_required" });
 export const RESTORED_MARATHON_PHASES = Object.freeze(["lobby", "countdown", "racing", "finished", "abandoned"]);
-export const RESTORED_MARATHON_PACKET_TYPES = Object.freeze(["join_request", "join_result", "input_update", "checkpoint_claim", "finish_claim", "state_snapshot", "race_finalized"]);
+export const RESTORED_MARATHON_PACKET_TYPES = Object.freeze(["join_request", "join_result", "input_update", "skill_use", "attack_action", "checkpoint_claim", "finish_claim", "checkpoint_reward", "respawn_notice", "state_snapshot", "race_finalized"]);
 export const RESTORED_MARATHON_EFFECT_TYPES = Object.freeze({ RACE_RESULT: "marathon_race_result", RANKING_SNAPSHOT_CANDIDATE: "ranking_snapshot_candidate", ONLINE_AUTHORITY_REQUEST: "online_authority_request", UI_MESSAGE: "ui_message" });
 
 const RUNNER_TYPES = Object.freeze(["player", "bot"]);
@@ -61,18 +61,25 @@ export function createRestoredMarathonCourse(options = {}) {
 export function createRestoredMarathonParticipant(options = {}) {
   const type = PARTICIPANT_TYPES.includes(options.type) ? options.type : "bot";
   const finishedAtMs = options.finishedAtMs === null || options.finishedAtMs === undefined ? null : (Number.isFinite(Number(options.finishedAtMs)) ? Number(options.finishedAtMs) : null);
+  const maxHp = clamp(options.maxHp ?? 100, 1, 500);
   return Object.freeze({
     participantId: options.participantId || "",
     displayName: options.displayName || "Runner",
     type,
     lane: clamp(options.lane ?? 1, 1, RESTORED_MARATHON_MAX_RUNNERS),
+    laneOffsetPx: round2(clamp(options.laneOffsetPx ?? 0, -1000, 1000)),
     progressMeters: round2(clamp(options.progressMeters ?? 0, 0, 100000)),
     stamina: round2(clamp(options.stamina ?? 100, 0, 100)),
+    maxHp, hp: clamp(options.hp ?? maxHp, 0, maxHp),
+    slowUntilMs: Math.max(0, Number(options.slowUntilMs || 0)), stunnedUntilMs: Math.max(0, Number(options.stunnedUntilMs || 0)),
+    actionLockedUntilMs: Math.max(0, Number(options.actionLockedUntilMs || 0)), attackCooldownUntilMs: Math.max(0, Number(options.attackCooldownUntilMs || 0)),
+    lastAttackSequence: Math.max(0, Number(options.lastAttackSequence || 0)), lastSafeCheckpointIndex: Math.max(0, Number(options.lastSafeCheckpointIndex || 0)),
+    characterId: options.characterId || "runner:dororong", skillId: options.skillId || "skill:steady-boost", skillChargesRemaining: Math.max(0, Number(options.skillChargesRemaining || 0)), skillCooldownUntilMs: Math.max(0, Number(options.skillCooldownUntilMs || 0)), lastSkillSequence: Math.max(0, Number(options.lastSkillSequence || 0)),
+    lastCheckpointSequence: Math.max(0, Number(options.lastCheckpointSequence || 0)), lastRewardedCheckpointIndex: Math.max(0, Number(options.lastRewardedCheckpointIndex || 0)), lastFinishSequence: Math.max(0, Number(options.lastFinishSequence || 0)),
+    pendingRespawnCheckpointIndex: options.pendingRespawnCheckpointIndex === null || options.pendingRespawnCheckpointIndex === undefined ? null : Math.max(0, Number(options.pendingRespawnCheckpointIndex || 0)),
     nextCheckpointIndex: Math.max(1, Number(options.nextCheckpointIndex || 1)),
     checkpointLog: cloneCheckpointLog(options.checkpointLog),
-    finishedAtMs,
-    disconnected: Boolean(options.disconnected),
-    lastSequence: Math.max(0, Number(options.lastSequence || 0))
+    finishedAtMs, disconnected: Boolean(options.disconnected), lastSequence: Math.max(0, Number(options.lastSequence || 0))
   });
 }
 
@@ -126,13 +133,14 @@ function applyCheckpointProgress(participant, course, raceTimeMs) {
     checkpointLog.push(Object.freeze({ checkpointIndex: nextCheckpointIndex, meters: course.checkpointMeters[nextCheckpointIndex], raceTimeMs }));
     nextCheckpointIndex += 1;
   }
-  return Object.freeze({ ...participant, nextCheckpointIndex, checkpointLog: Object.freeze(checkpointLog) });
+  return Object.freeze({ ...participant, nextCheckpointIndex, checkpointLog: Object.freeze(checkpointLog), lastSafeCheckpointIndex: Math.max(participant.lastSafeCheckpointIndex, nextCheckpointIndex - 1) });
 }
 
 export function advanceRestoredMarathonParticipant(participantInput, controlInput = {}, elapsedMs = 1000, courseInput = {}) {
   const course = createRestoredMarathonCourse(courseInput);
   const participant = createRestoredMarathonParticipant(participantInput);
   if (!isRunnerType(participant.type) || participant.finishedAtMs !== null) return participant;
+  if (participant.hp <= 0) return participant;
 
   const pace = PACE_PROFILES[controlInput.pace] || PACE_PROFILES.steady;
   const seconds = clamp(elapsedMs, 0, 60000) / 1000;

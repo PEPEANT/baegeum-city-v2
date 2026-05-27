@@ -17,12 +17,15 @@ async function main() {
   const input = await import(pathToFileURL(path.join(root, "src/restored/games/marathon-input-contract.js")));
   const netcode = await import(pathToFileURL(path.join(root, "src/restored/online/marathon-netcode-contract.js")));
   const localSim = await import(pathToFileURL(path.join(root, "src/restored/games/singularity-race-local-sim.js")));
+  const prediction = await import(pathToFileURL(path.join(root, "src/restored/games/singularity-race-prediction.js")));
 
   const startProgress = readNumberConstant("START_LINE_PROGRESS");
   const finishProgress = readNumberConstant("LOCAL_FINISH_PROGRESS");
   const railMaxProgress = readNumberConstant("RAIL_MAX_PROGRESS");
   const runSpeed = readNumberConstant("LOCAL_RUN_PROGRESS_PER_SECOND");
   const sprintSpeed = readNumberConstant("LOCAL_SPRINT_PROGRESS_PER_SECOND");
+  const stagingRunSpeed = readNumberConstant("LOCAL_STAGING_RUN_PROGRESS_PER_SECOND");
+  const stagingSprintSpeed = readNumberConstant("LOCAL_STAGING_SPRINT_PROGRESS_PER_SECOND");
 
   assert.equal(railMaxProgress, 100, "race clamp must allow the visible finish line");
   assert(finishProgress >= 99 && finishProgress < railMaxProgress, "finish trigger must sit near the real finish");
@@ -37,33 +40,9 @@ async function main() {
 
   const runSecondsToFinish = Math.ceil((finishProgress - startProgress) / runSpeed);
   const sprintSecondsToFinish = Math.ceil((finishProgress - startProgress) / sprintSpeed);
-  assert(runSecondsToFinish > 0 && runSecondsToFinish <= 600, "normal run must be able to finish within 10 minutes");
-  assert(sprintSecondsToFinish > 0 && sprintSecondsToFinish < runSecondsToFinish, "sprint must shorten finish time");
+  assertMovementSpeedFeel({ runSecondsToFinish, sprintSecondsToFinish, runSpeed, sprintSpeed, stagingRunSpeed, stagingSprintSpeed });
 
-  const budget = netcode.estimateRestoredMarathonNetcodeBudget({ runnerCount: 30 });
-  assert.equal(budget.withinPlayerBudget, true, "30-runner player bandwidth budget must fit");
-  assert.equal(budget.withinServerBudget, true, "30-runner server egress budget must fit");
-
-  const degradedLane = netcode.chooseRestoredMarathonNetworkLane({ pingMs: 240, jitterMs: 80, packetLossPct: 3 });
-  assert.equal(degradedLane.lane, "degraded", "high ping should lower the network lane");
-  assert(degradedLane.inputHz < budget.inputHz, "bad network lane should reduce input cadence");
-  assert(degradedLane.snapshotHz < budget.snapshotHz, "bad network lane should reduce snapshot cadence");
-
-  const spamPackets = Array.from({ length: 24 }, (_, index) => ({
-    type: "input_update",
-    clientId: "client:spam",
-    sourceClientId: "client:spam",
-    sequence: index + 1,
-    receivedAtMs: 1000
-  }));
-  const spamDecision = netcode.shouldAcceptRestoredMarathonRelayPacket(spamPackets, {
-    type: "input_update",
-    clientId: "client:spam",
-    sourceClientId: "client:spam",
-    sequence: 25,
-    receivedAtMs: 1000
-  }, { nowMs: 1000 });
-  assert.equal(spamDecision.ok, false, "packet pressure guard must block input spam");
+  const network = assertNetcodePressure(netcode);
 
   const smoothStep = netcode.resolveRestoredMarathonVisualStep(
     { initialized: true, x: 0, y: 0 },
@@ -84,20 +63,114 @@ async function main() {
   );
   assert(botAdvance.runners[1].progress > startProgress, "bots must advance even when the player stops");
 
-  assert(pageSource.includes("race_finalized"), "local finish should rehearse server-owned finalization");
-  assert(pageSource.includes("server:local-preview"), "local finish packet must be marked as server-preview owned");
-  assert(pageSource.includes("race-result-panel"), "race screen needs a minimal finish result layer");
-  assert(pageSource.includes("finalizeRaceResult"), "local and server finishes should share one result finalizer");
-  assert(pageSource.includes("createConnectedFinishRanking"), "server-owned snapshots should drive connected race results");
+  const predicted = prediction.advanceSingularityRaceLocalPrediction({
+    id: "you",
+    progress: startProgress,
+    laneOffsetPx: 0,
+    serverProgress: startProgress,
+    serverLaneOffsetPx: 0
+  }, sprintFrame, 1, {
+    sprintProgressPerSecond: sprintSpeed,
+    laneSprintSpeedPxPerSecond: 126,
+    minProgress: 2.5,
+    maxProgress: railMaxProgress,
+    laneHalfWidthPx: 232,
+    correctionFactor: 0
+  });
+  assert(predicted.progress > startProgress, "connected local prediction should respond immediately to Shift+D");
+
+  assertRacePageContracts();
+  assertConnectedStartGuards();
 
   console.log("singularity race progression smoke ok");
   console.log(JSON.stringify({
     runSecondsToFinish,
     sprintSecondsToFinish,
-    serverEgressKbpsFor30: budget.serverEgressKbps,
-    degradedLane: degradedLane.lane,
-    spamDecision: spamDecision.reason
+    serverEgressKbpsFor30: network.budget.serverEgressKbps,
+    degradedLane: network.degradedLane.lane,
+    spamDecision: network.spamDecision.reason
   }, null, 2));
+}
+
+function assertRacePageContracts() {
+  assert(pageSource.includes("race_finalized"), "local finish should rehearse server-owned finalization");
+  assert(pageSource.includes("server:local-preview"), "local finish packet must be marked as server-preview owned");
+  assert(pageSource.includes("race-result-panel"), "race screen needs a minimal finish result layer");
+  assert(pageSource.includes("finalizeRaceResult"), "local and server finishes should share one result finalizer");
+  assert(pageSource.includes("createConnectedFinishRanking"), "server-owned snapshots should drive connected race results");
+}
+
+function assertMovementSpeedFeel(values) {
+  assert(values.runSecondsToFinish > 0 && values.runSecondsToFinish <= 600, "normal run must be able to finish within 10 minutes");
+  assert(values.sprintSecondsToFinish > 0 && values.sprintSecondsToFinish < values.runSecondsToFinish, "sprint must shorten finish time");
+  assert(values.stagingRunSpeed >= 1, "start paddock movement must be visible before the race opens");
+  assert(values.stagingSprintSpeed >= values.sprintSpeed, "start paddock sprint should not feel slower than active sprint");
+  assert(values.sprintSpeed >= values.runSpeed * 2, "Shift sprint must feel clearly faster than normal running");
+}
+
+function assertNetcodePressure(netcode) {
+  const budget = netcode.estimateRestoredMarathonNetcodeBudget({ runnerCount: 30 });
+  assert.equal(budget.withinPlayerBudget, true, "30-runner player bandwidth budget must fit");
+  assert.equal(budget.withinServerBudget, true, "30-runner server egress budget must fit");
+  const degradedLane = netcode.chooseRestoredMarathonNetworkLane({ pingMs: 240, jitterMs: 80, packetLossPct: 3 });
+  assert.equal(degradedLane.lane, "degraded", "high ping should lower the network lane");
+  assert(degradedLane.inputHz < budget.inputHz, "bad network lane should reduce input cadence");
+  assert(degradedLane.snapshotHz < budget.snapshotHz, "bad network lane should reduce snapshot cadence");
+  const spamPackets = Array.from({ length: 24 }, (_, index) => ({
+    type: "input_update", clientId: "client:spam", sourceClientId: "client:spam", sequence: index + 1, receivedAtMs: 1000
+  }));
+  const spamDecision = netcode.shouldAcceptRestoredMarathonRelayPacket(spamPackets, {
+    type: "input_update", clientId: "client:spam", sourceClientId: "client:spam", sequence: 25, receivedAtMs: 1000
+  }, { nowMs: 1000 });
+  assert.equal(spamDecision.ok, false, "packet pressure guard must block input spam");
+  return { budget, degradedLane, spamDecision };
+}
+
+function assertConnectedStartGuards() {
+  assert(
+    pageSource.includes("source === \"button\" ? SINGULARITY_RACE_SCREENS.QUEUE : SINGULARITY_RACE_SCREENS.RACE"),
+    "normal connected entries must land in race staging, not the room queue"
+  );
+  assert(
+    pageSource.includes("savePackets([], { reason: \"session_reset\" })"),
+    "fresh connected joins must clear stale dev packet relay storage"
+  );
+  assert(
+    pageSource.includes("state.connectedSession && state.action.raceStarted"),
+    "connected input authority must start only after the race gate opens"
+  );
+  assert(
+    pageSource.includes("state.participantType === \"spectator\" || !state.action.raceStarted"),
+    "connected attack/skill/input requests must be blocked before the start"
+  );
+  assert(
+    pageSource.includes("PLAYER_LATE_START_GRACE_MS") && pageSource.includes("SPECTATOR_LATE_JOIN_GRACE_MS"),
+    "stale start commands must not unlock a fresh player staging session forever"
+  );
+  assert(
+    pageSource.includes("startLocalCountdown(\"admin\", command)") && pageSource.includes("lastRaceControlCommandId = command.commandId"),
+    "connected joins during an active countdown must preserve the admin start gate"
+  );
+  assert(
+    pageSource.includes("runnerPositions: createConnectedRaceStartPositions()"),
+    "connected dev server start must seed from the current start paddock positions"
+  );
+  assert(
+    pageSource.includes("advanceConnectedLocalPrediction") && pageSource.includes("preserveLocalPrediction"),
+    "connected race display must use local prediction with server reconciliation"
+  );
+
+  const serverStateSource = fs.readFileSync(path.join(root, "src/restored/online/marathon-server-state-contract.js"), "utf8");
+  const wsDevServerSource = fs.readFileSync(path.join(root, "src/restored/online/marathon-websocket-dev-server-mock.js"), "utf8");
+  const startPositionSource = fs.readFileSync(path.join(root, "src/restored/online/marathon-server-start-position.js"), "utf8");
+  const predictionSource = fs.readFileSync(path.join(root, "src/restored/games/singularity-race-prediction.js"), "utf8");
+  const devOnlineSource = fs.readFileSync(path.join(root, "src/restored/games/singularity-race-dev-online.js"), "utf8");
+  assert(serverStateSource.includes("laneOffsetPx"), "server snapshots must carry authoritative road lane offsets");
+  assert(serverStateSource.includes("command.direction.y * laneSpeedPxPerSecond"), "server input must preserve W/S lane movement");
+  assert(wsDevServerSource.includes("applyRestoredMarathonServerStartPositions"), "dev server start must accept seeded race positions");
+  assert(startPositionSource.includes("progressPercent") && startPositionSource.includes("laneOffsetPx"), "server start seeding must preserve paddock progress and lane");
+  assert(predictionSource.includes("reconcileSingularityRaceLocalPrediction"), "prediction module must expose reconciliation");
+  assert(devOnlineSource.includes("serverProgress") && devOnlineSource.includes("serverLaneOffsetPx"), "snapshot merge must keep server reconciliation targets");
 }
 
 main().catch((error) => {

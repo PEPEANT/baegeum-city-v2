@@ -29,6 +29,7 @@ export function advanceSingularityLocalBotPack(runners, options = {}) {
   let moved = false;
   const nextRunners = runners.map((runner, index) => {
     if (index === 0 || runner.progress >= context.railMaxProgress) return runner;
+    if (Number(runner.stunnedUntilMs || 0) > nowMs) return runner;
     const baseSpeed = 0.085 + ((index * 17) % 11) * 0.006;
     const packBoost = runner.progress < playerProgress - 12 ? 0.035 : 0;
     const hpFactor = (runner.hp ?? 100) < 60 ? 0.72 : 1;
@@ -48,6 +49,7 @@ export function advanceSingularityWaitingBotPack(runners, options = {}) {
   let moved = false;
   const nextRunners = runners.map((runner, index) => {
     if (index === 0) return runner;
+    if (Number(runner.stunnedUntilMs || 0) > nowMs) return runner;
     const base = createSingularityStartPaddockPosition(index, context);
     const phase = (nowMs / 1000) + (index * 1.37);
     const targetProgress = clampNumber(base.progress + (Math.cos(phase * 0.7) * 0.22), context.startPaddockMinProgress, context.startPaddockMaxProgress);
@@ -69,6 +71,8 @@ export function validateSingularityRaceLocalSimContract() {
   const runners = [{ progress: 4, laneOffsetPx: 0 }, { progress: 4, laneOffsetPx: 0, hp: 100 }];
   const advanced = advanceSingularityLocalBotPack(runners, { elapsedSeconds: 1, nowMs: 900 });
   if (!advanced.moved || advanced.runners[1].progress <= runners[1].progress) errors.push("local bots must move without depending on player input");
+  const stunned = advanceSingularityLocalBotPack([{ progress: 4, laneOffsetPx: 0 }, { progress: 4, laneOffsetPx: 0, hp: 100, stunnedUntilMs: 2000 }], { elapsedSeconds: 1, nowMs: 1000 });
+  if (stunned.runners[1].progress !== 4) errors.push("stunned local bots should pause briefly");
   const nearFinish = advanceSingularityLocalBotPack([{ progress: 100, laneOffsetPx: 0 }, { progress: 99.9, laneOffsetPx: 0, hp: 100 }], { elapsedSeconds: 2, nowMs: 1200 });
   if (nearFinish.runners[1].progress > DEFAULTS.railMaxProgress) errors.push("local bot progress must clamp at the finish line");
   return Object.freeze({ ok: errors.length === 0, errors: Object.freeze(errors) });

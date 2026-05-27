@@ -23,6 +23,7 @@ Recommended first drafts:
 
 Current drafts:
 
+- `simulacra-world-engine.md`: common-engine branch plan for Simulacra World, including shared module ids, Singularity Race as the first active derived game, Drawing World as the second candidate, and Iron Line as an ops/admin reference only.
 - `restored-ranking-job-system.md`: phone ranking app, local preview boards, job/occupation boards, and online authority boundaries.
 - `restored-three-city-home-navigation.md`: home-start navigation, house-front expansion, and first Baegeum/Dice/Seosan city contexts with location-aware tabs.
 - `restored-login-home-online-phone-migration.md`: login home, visible save-code retirement, MammonCity2 reference policy, online adapter order, and phone migration boundaries.

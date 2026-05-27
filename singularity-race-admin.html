@@ -50,7 +50,7 @@
     h3,
     p { margin: 0; letter-spacing: 0; }
 
-    h1 { font-size: 28px; line-height: 1.14; }
+    h1 { font-size: 24px; line-height: 1.14; }
     h2 { font-size: 17px; line-height: 1.25; }
     h3 { font-size: 14px; line-height: 1.25; }
 
@@ -130,7 +130,7 @@
 
     .layout {
       display: grid;
-      grid-template-columns: 300px minmax(0, 1fr) 320px;
+      grid-template-columns: 260px minmax(0, 1fr) 260px;
       gap: 12px;
       align-items: stretch;
     }
@@ -141,9 +141,20 @@
       display: flex;
       justify-content: space-between;
       gap: 12px;
-      padding: 13px 14px;
+      padding: 12px 14px;
       border-bottom: 1px solid var(--line);
       background: rgba(255, 255, 255, 0.03);
+    }
+
+    .panel-header p,
+    .topbar p,
+    .screen-only-hidden {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      overflow: hidden;
+      clip: rect(0 0 0 0);
+      white-space: nowrap;
     }
 
     .badge {
@@ -164,12 +175,12 @@
     }
 
     .notice {
-      padding: 10px 11px;
+      padding: 8px 10px;
       border: 1px solid rgba(255, 224, 138, 0.3);
       border-radius: 8px;
       background: rgba(255, 224, 138, 0.07);
       color: var(--yellow);
-      font-size: 13px;
+      font-size: 12px;
       line-height: 1.45;
     }
 
@@ -199,8 +210,8 @@
 
     .room-card {
       display: grid;
-      gap: 8px;
-      padding: 10px;
+      gap: 6px;
+      padding: 9px;
       text-align: left;
     }
 
@@ -248,6 +259,8 @@
       font-weight: 900;
     }
 
+    .spectator-policy .muted { display: none; }
+
     .capacity-options {
       display: grid;
       grid-template-columns: repeat(5, minmax(0, 1fr));
@@ -271,7 +284,7 @@
 
     .camera-panel {
       display: grid;
-      grid-template-rows: auto minmax(420px, 1fr) auto;
+      grid-template-rows: auto minmax(420px, 1fr);
     }
 
     .camera-frame {
@@ -300,7 +313,6 @@
       stroke-linecap: round;
       stroke-linejoin: round;
       stroke-width: 11;
-      vector-effect: non-scaling-stroke;
     }
 
     .track-road {
@@ -309,7 +321,6 @@
       stroke-linecap: round;
       stroke-linejoin: round;
       stroke-width: 8.6;
-      vector-effect: non-scaling-stroke;
     }
 
     .track-line {
@@ -318,13 +329,11 @@
       stroke-dasharray: 1.2 2.8;
       stroke-linecap: round;
       stroke-width: 0.46;
-      vector-effect: non-scaling-stroke;
     }
 
     .save-line {
       stroke: #11161c;
       stroke-width: 0.34;
-      vector-effect: non-scaling-stroke;
     }
 
     .save-label {
@@ -388,37 +397,12 @@
       box-shadow: 0 0 0 9999px rgba(17, 19, 25, 0.08);
     }
 
-    .camera-status {
-      display: grid;
-      grid-template-columns: repeat(3, minmax(0, 1fr));
-      gap: 8px;
-      padding: 10px 12px 12px;
-      border-top: 1px solid var(--line);
-      background: var(--panel-2);
-    }
-
-    .status-pill {
-      min-width: 0;
-      padding: 9px;
-      border: 1px solid var(--line);
-      border-radius: 8px;
-      background: rgba(255, 255, 255, 0.05);
-    }
-
-    .status-pill b {
-      display: block;
-      overflow: hidden;
-      font-size: 13px;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-    }
-
     .runner-row {
       display: grid;
-      grid-template-columns: 30px minmax(0, 1fr) auto;
+      grid-template-columns: 26px minmax(0, 1fr) auto;
       gap: 8px;
       align-items: center;
-      padding: 9px;
+      padding: 8px;
       text-align: left;
     }
 
@@ -438,9 +422,11 @@
     .chat-panel {
       display: grid;
       grid-column: 1 / -1;
-      grid-template-columns: 300px minmax(0, 1fr);
+      grid-template-columns: minmax(0, 1fr);
       gap: 12px;
     }
+
+    .chat-panel > aside.panel { display: none; }
 
     .channel-tab {
       min-height: 38px;
@@ -477,6 +463,11 @@
       border-color: rgba(255, 224, 138, 0.32);
       background: rgba(255, 224, 138, 0.08);
       color: var(--yellow);
+    }
+
+    .message.is-empty {
+      color: var(--muted);
+      text-align: center;
     }
 
     .message b {
@@ -533,9 +524,6 @@
         min-height: 440px;
       }
 
-      .camera-status {
-        grid-template-columns: 1fr;
-      }
     }
   </style>
 </head>
@@ -543,12 +531,12 @@
   <main class="shell">
     <header class="topbar">
       <div>
-        <h1>특이점레이스 방장 페이지</h1>
-        <p>개발 전용 관전자 화면입니다. 방 전체를 보고, 플레이어를 선택해 감시카메라처럼 따라볼 수 있습니다.</p>
+        <h1>특이점레이스 방장</h1>
+        <p>방장 조작 화면</p>
       </div>
       <nav class="top-actions" aria-label="빠른 이동">
-        <a class="is-primary" id="admin-direct-game-link" href="./singularity-race.html?devOnline=1&amp;adminLaunch=1">게임 바로 보기</a>
-        <a id="admin-lobby-link" href="./singularity-race.html?devOnline=1">로비 열기</a>
+        <a class="is-primary" id="admin-direct-game-link" href="./singularity-race.html?devOnline=1&amp;adminLaunch=1">게임 보기</a>
+        <a id="admin-lobby-link" href="./singularity-race.html?devOnline=1">로비</a>
       </nav>
     </header>
 
@@ -556,8 +544,8 @@
       <aside class="panel">
         <div class="panel-header">
           <div>
-            <h2>방 목록</h2>
-            <p>지금은 개발 방 하나만 열려 있습니다.</p>
+            <h2>방 관리</h2>
+            <p>방 관리</p>
           </div>
           <span class="badge">방장</span>
         </div>
@@ -566,31 +554,33 @@
           <div class="room-list" id="room-list" aria-label="방 목록"></div>
           <div class="spectator-policy" aria-label="관전자 정원">
             <div class="spectator-policy-head">
-              <span>관전자 정원</span>
+              <span>관전자</span>
               <span id="spectator-capacity-label">0 / 32명</span>
             </div>
             <div class="capacity-options" id="spectator-capacity-options"></div>
-            <p class="muted" id="spectator-policy-note">중도입장은 관전자로만 받습니다.</p>
+            <p class="muted" id="spectator-policy-note">관전자 정원</p>
           </div>
           <div class="quick-actions" aria-label="방장 조작">
-            <button class="button is-primary" id="admin-start-button" type="button">10초 카운트다운 시작</button>
+            <button class="button is-primary" id="admin-start-button" type="button">시작</button>
+            <button class="button" id="admin-add-bots-button" type="button">봇 넣기</button>
+            <button class="button" id="admin-clear-bots-button" type="button">봇 비우기</button>
             <button class="button is-warn" id="camera-all-button" type="button">전체 보기</button>
           </div>
-          <p class="muted" id="admin-start-status">실제 공개 온라인에서는 이 버튼이 서버 권한을 확인한 뒤 동작해야 합니다.</p>
+          <p class="muted" id="admin-start-status">대기 중</p>
         </div>
       </aside>
 
       <section class="panel camera-panel">
         <div class="panel-header">
           <div>
-            <h2>전체 맵 감시카메라</h2>
+            <h2>전체 맵</h2>
             <p id="camera-title">전체 코스를 보고 있습니다.</p>
           </div>
-          <span class="badge">관전자</span>
+          <span class="badge">보기</span>
         </div>
         <div class="camera-frame" id="host-camera" aria-label="방장 미리보기 카메라">
           <div class="camera-map">
-            <svg viewBox="0 0 100 100" preserveAspectRatio="xMidYMid meet" aria-label="마라톤 전체 맵">
+            <svg viewBox="0 0 100 100" preserveAspectRatio="none" aria-label="마라톤 전체 맵">
               <path class="track-wall" id="track-wall" d="" />
               <path class="track-road" id="track-road" d="" />
               <path class="track-line" id="track-line" d="" />
@@ -600,20 +590,15 @@
           <div class="camera-window" id="camera-window" hidden></div>
           <div id="runner-markers"></div>
         </div>
-        <div class="camera-status">
-          <div class="status-pill"><b id="room-name">개발 방 001</b><span class="muted">현재 방</span></div>
-          <div class="status-pill"><b id="watch-target">전체 보기</b><span class="muted">카메라 대상</span></div>
-          <div class="status-pill"><b id="race-state">대기 중</b><span class="muted">경기 상태</span></div>
-        </div>
       </section>
 
       <aside class="panel">
         <div class="panel-header">
           <div>
-            <h2>플레이어 보기</h2>
-            <p>이름을 누르면 해당 플레이어를 따라봅니다.</p>
+            <h2>선수</h2>
+            <p>선수 목록</p>
           </div>
-          <span class="badge">추적</span>
+          <span class="badge" id="runner-count-badge">0명</span>
         </div>
         <div class="body runner-list" id="runner-watch-list" aria-label="플레이어 보기"></div>
       </aside>
@@ -632,14 +617,14 @@
         <section class="panel">
           <div class="panel-header">
             <div>
-              <h2 id="chat-title">방장 채팅</h2>
-              <p id="chat-channel">방장 채널</p>
+              <h2 id="chat-title">채팅</h2>
+              <p id="chat-channel">채팅</p>
             </div>
-            <span class="badge">채팅</span>
+            <span class="badge">방장</span>
           </div>
           <div class="messages" id="messages" aria-live="polite"></div>
           <form class="chat-form" id="chat-form">
-            <input id="chat-input" maxlength="160" autocomplete="off" placeholder="방장 메시지 입력" />
+            <input id="chat-input" maxlength="160" autocomplete="off" placeholder="메시지 입력" />
             <button type="submit">전송</button>
           </form>
         </section>
@@ -674,7 +659,7 @@
     import {
       createRestoredMarathonTrailSvgPath,
       listRestoredMarathonTrailSavePoints,
-      progressToRestoredMarathonTrailPoint
+      progressToRestoredMarathonMapPoint
     } from "./src/restored/games/marathon-trail-geometry.js";
     import {
       getPlayableSkinPresets,
@@ -682,15 +667,19 @@
     } from "./src/skins/drawing-world-adapter.js";
     import {
       createSingularityRaceStartCountdownCommand,
-      getSingularityRaceControlPhaseLabel,
+      createSingularityRaceTestBotsCommand,
       openSingularityRaceControlBroadcast,
       publishSingularityRaceControlCommand,
-      readSingularityRaceControlCommand,
-      writeSingularityRaceControlCommand
+      readSingularityRaceTestBotsCommand,
+      writeSingularityRaceControlCommand,
+      writeSingularityRaceTestBotsCommand
     } from "./src/restored/games/singularity-race-control.js";
 
     const MAX_RUNNERS = 30;
     const COURSE_METERS = 42195;
+    const TRACK_WORLD_WIDTH = 7600;
+    const TRACK_WORLD_HEIGHT = 2600;
+    const ROAD_LANE_HALF_WIDTH_PX = 232;
     const DEFAULT_DEV_ROOM_ID = "room:singularity-race:dev-001";
     const devOnlineEnabled = new URLSearchParams(window.location.search).get("devOnline") === "1";
     const initialRoomPolicy = readRestoredMarathonRoomPolicy(window.localStorage, DEFAULT_DEV_ROOM_ID);
@@ -706,7 +695,8 @@
     const activeRoomId = rooms[0]?.roomId || DEFAULT_DEV_ROOM_ID;
     const roomPolicy = readRestoredMarathonRoomPolicy(window.localStorage, activeRoomId, initialRoomPolicy);
     const channels = adapter.channels?.length ? adapter.channels : createRestoredMarathonChannelSet({ roomId: activeRoomId });
-    const visibleChannels = filterVisibleRestoredMarathonChannels(channels, connected ? "admin" : "spectator");
+    const visibleChannels = filterVisibleRestoredMarathonChannels(channels, connected ? "admin" : "spectator")
+      .filter((channel) => channel.type !== "system");
     const roomPacketTransport = connected ? createRestoredMarathonDevRoomTransport({
       roomId: activeRoomId,
       clientId: "client:singularity-race-host-camera",
@@ -735,15 +725,15 @@
       spectatorCapacityOptions: document.querySelector("#spectator-capacity-options"),
       spectatorPolicyNote: document.querySelector("#spectator-policy-note"),
       startButton: document.querySelector("#admin-start-button"),
+      addBotsButton: document.querySelector("#admin-add-bots-button"),
+      clearBotsButton: document.querySelector("#admin-clear-bots-button"),
       startStatus: document.querySelector("#admin-start-status"),
       cameraAll: document.querySelector("#camera-all-button"),
       cameraTitle: document.querySelector("#camera-title"),
       cameraWindow: document.querySelector("#camera-window"),
       runnerMarkers: document.querySelector("#runner-markers"),
       runnerList: document.querySelector("#runner-watch-list"),
-      roomName: document.querySelector("#room-name"),
-      watchTarget: document.querySelector("#watch-target"),
-      raceState: document.querySelector("#race-state"),
+      runnerCountBadge: document.querySelector("#runner-count-badge"),
       savePoints: document.querySelector("#save-points"),
       trackWall: document.querySelector("#track-wall"),
       trackRoad: document.querySelector("#track-road"),
@@ -758,7 +748,7 @@
     };
     const state = {
       selectedRunnerId: "",
-      activeChannel: (connected ? visibleChannels.find((channel) => channel.type === "admin") : visibleChannels[0])?.channelId || "lobby:singularity-race:public",
+      activeChannel: (connected ? visibleChannels.find((channel) => channel.type === "room") : visibleChannels[0])?.channelId || "lobby:singularity-race:public",
       messages: chatTransport.seedMessages(createInitialRestoredMarathonChannelMessages(channels)),
       packets: roomPacketTransport ? roomPacketTransport.loadPackets([]) : [],
       roomPolicy,
@@ -778,6 +768,16 @@
       publishRaceStartControl();
     });
 
+    elements.addBotsButton.addEventListener("click", () => {
+      if (!connected) return;
+      publishTestBotControl(MAX_RUNNERS);
+    });
+
+    elements.clearBotsButton.addEventListener("click", () => {
+      if (!connected) return;
+      publishTestBotControl(0);
+    });
+
     elements.cameraAll.addEventListener("click", () => {
       state.selectedRunnerId = "";
       render();
@@ -792,7 +792,7 @@
         roomId: activeRoomId,
         maxSpectators
       });
-      elements.startStatus.textContent = `관전자 정원을 ${state.roomPolicy.maxSpectators}명으로 저장했습니다.`;
+      elements.startStatus.textContent = `관전자 ${state.roomPolicy.maxSpectators}명`;
       renderRooms();
       renderSpectatorPolicy();
     });
@@ -862,14 +862,14 @@
 
     function renderGate() {
       elements.gate.textContent = connected
-        ? "개발 방이 열려 있습니다. 현재 페이지는 방장/관전자 감시 화면입니다."
-        : "개발 방이 닫혀 있습니다. 주소에 ?devOnline=1을 붙이면 방장 화면이 열립니다.";
+        ? "개발 방 열림"
+        : "방 닫힘";
       elements.gate.classList.toggle("is-open", connected);
       elements.startButton.disabled = !connected;
+      elements.addBotsButton.disabled = !connected;
+      elements.clearBotsButton.disabled = !connected;
       elements.input.disabled = !connected;
       elements.submit.disabled = !connected;
-      elements.roomName.textContent = connected ? "개발 방 001" : "방 닫힘";
-      elements.raceState.textContent = connected ? resolveRaceStateLabel() : "연결 전";
     }
 
     function renderRooms() {
@@ -888,11 +888,12 @@
         const meta = document.createElement("div");
         meta.className = "room-meta";
         const maxSpectators = state.roomPolicy.maxSpectators;
-        meta.innerHTML = `<span>선수 ${room.players || 0}/${room.maxPlayers || MAX_RUNNERS}</span><span>관전자 ${room.spectators || 0}/${maxSpectators}</span><span>${connected ? "보기 가능" : "닫힘"}</span>`;
+        const visibleRunners = state.runners.length;
+        meta.innerHTML = `<span>선수 ${visibleRunners}/${room.maxPlayers || MAX_RUNNERS}</span><span>관전자 ${room.spectators || 0}/${maxSpectators}</span>`;
         const action = document.createElement("a");
         action.className = "room-action is-primary";
         action.href = "./singularity-race.html?devOnline=1&adminLaunch=1";
-        action.textContent = "방 보기";
+        action.textContent = "보기";
         row.append(title, meta, action);
         return row;
       });
@@ -909,9 +910,7 @@
       const room = rooms[0] || {};
       const spectatorCount = room.spectators || 0;
       elements.spectatorCapacityLabel.textContent = `${spectatorCount} / ${state.roomPolicy.maxSpectators}명`;
-      elements.spectatorPolicyNote.textContent = state.roomPolicy.maxSpectators === 0
-        ? "관전자 중도입장을 닫았습니다."
-        : "경기 중 새 입장은 선수 대신 관전자로만 받습니다.";
+      elements.spectatorPolicyNote.textContent = "";
       elements.spectatorCapacityOptions.replaceChildren(...listRestoredMarathonSpectatorCapOptions().map((cap) => {
         const button = document.createElement("button");
         button.className = `capacity-option${cap === state.roomPolicy.maxSpectators ? " is-active" : ""}`;
@@ -923,12 +922,22 @@
     }
 
     function refreshRunners() {
-      state.packets = roomPacketTransport ? roomPacketTransport.loadPackets(state.packets) : state.packets;
+      state.packets = roomPacketTransport ? roomPacketTransport.loadPackets([]) : [];
       const snapshot = [...state.packets].reverse().find((packet) => packet.type === "state_snapshot");
-      const participants = Array.isArray(snapshot?.payload?.participants) ? snapshot.payload.participants : [];
+      const botTargetCount = readTestBotControl()?.botCount || 0;
+      const participants = (Array.isArray(snapshot?.payload?.participants) ? snapshot.payload.participants : [])
+        .filter((participant) => shouldShowAdminParticipant(participant, botTargetCount));
       const seeded = participants.map((participant, index) => createRunnerFromParticipant(participant, index));
-      state.runners = fillRunnerPreviewPack(seeded);
+      state.runners = fillRunnerPreviewPack(seeded, botTargetCount);
       if (state.selectedRunnerId && !state.runners.some((runner) => runner.id === state.selectedRunnerId)) state.selectedRunnerId = "";
+    }
+
+    function shouldShowAdminParticipant(participant, botTargetCount) {
+      const participantId = String(participant?.participantId || "");
+      if (participantId.startsWith("runner:bot-")) return botTargetCount > 0;
+      const type = participant?.type || (participantId.startsWith("runner:bot-") ? "bot" : participantId.startsWith("runner:") ? "player" : "");
+      if (type === "bot") return botTargetCount > 0;
+      return type === "player";
     }
 
     function createRunnerFromParticipant(participant, index) {
@@ -937,22 +946,23 @@
         id: participant.participantId || `runner:${index + 1}`,
         name: participant.displayName || `선수 ${index + 1}`,
         progress,
-        laneOffset: ((index % 6) - 2.5) * 0.72,
+        laneOffsetPx: resolveAdminRunnerLaneOffsetPx(participant, index),
         status: participant.finishedAtMs ? "완주" : "대기",
         skinId: skinPresets[index % skinPresets.length]?.id || "default"
       };
     }
 
-    function fillRunnerPreviewPack(seed) {
+    function fillRunnerPreviewPack(seed, targetCount = 0) {
       const runners = [...seed];
       const names = ["나", "하늘", "보리", "초코", "모찌", "루미", "궤도", "픽셀", "대시", "민트", "젤리", "연", "물결", "햇살", "네온", "사이다", "구름", "베리", "스파크", "푸딩", "망고", "비스킷", "점이", "루비", "클로버", "자두", "토스트", "태피", "코코", "유자"];
       const clockDrift = ((Date.now() / 1000) % 20) * 0.05;
-      for (let index = runners.length; index < MAX_RUNNERS; index += 1) {
+      const count = Math.max(0, Math.min(MAX_RUNNERS, Math.round(Number(targetCount) || 0)));
+      for (let index = runners.length; index < count; index += 1) {
         runners.push({
           id: `preview:${index + 1}`,
           name: names[index] || `선수 ${index + 1}`,
           progress: Math.min(96, 3.4 + (index % 15) * 0.18 + Math.floor(index / 15) * 1.2 + clockDrift),
-          laneOffset: ((index % 10) - 4.5) * 0.62,
+          laneOffsetPx: clampNumber(((index % 10) - 4.5) * 42, -ROAD_LANE_HALF_WIDTH_PX, ROAD_LANE_HALF_WIDTH_PX),
           status: connected ? "대기" : "미리보기",
           skinId: skinPresets[index % skinPresets.length]?.id || "default"
         });
@@ -987,15 +997,21 @@
         const point = runnerToMapPoint(selected);
         elements.cameraWindow.style.left = `${point.x}%`;
         elements.cameraWindow.style.top = `${point.y}%`;
-        elements.cameraTitle.textContent = `${selected.name} 선수를 따라보는 중입니다.`;
-        elements.watchTarget.textContent = selected.name;
+        elements.cameraTitle.textContent = `${selected.name} 보기`;
       } else {
-        elements.cameraTitle.textContent = "전체 코스를 보고 있습니다.";
-        elements.watchTarget.textContent = "전체 보기";
+        elements.cameraTitle.textContent = "전체 맵";
       }
     }
 
     function renderRunnerList() {
+      elements.runnerCountBadge.textContent = `${state.runners.length}명`;
+      if (!state.runners.length) {
+        const empty = document.createElement("div");
+        empty.className = "message is-empty";
+        empty.textContent = "선수가 없습니다.";
+        elements.runnerList.replaceChildren(empty);
+        return;
+      }
       elements.runnerList.replaceChildren(...state.runners.map((runner) => {
         const row = document.createElement("button");
         row.className = "runner-row";
@@ -1013,7 +1029,7 @@
         name.textContent = runner.name;
         const meta = document.createElement("div");
         meta.className = "runner-meta";
-        meta.innerHTML = `<span>${runner.status}</span><span>레인 ${Math.round(runner.laneOffset * 10) / 10}</span>`;
+        meta.textContent = runner.status;
         info.append(name, meta);
         const progress = document.createElement("div");
         progress.className = "runner-progress";
@@ -1037,12 +1053,22 @@
         return button;
       }));
       const channel = findRestoredMarathonChannel(channels, state.activeChannel);
-      elements.chatTitle.textContent = channel?.label || "채팅";
+      elements.chatTitle.textContent = "채팅";
       elements.chatChannel.textContent = channelLabel(channel);
     }
 
     function renderMessages() {
-      const rows = state.messages.filter((message) => message.channelId === state.activeChannel).slice(-60);
+      const rows = state.messages
+        .filter((message) => message.channelId === state.activeChannel)
+        .filter((message) => message.senderType !== "system" && message.type !== "system")
+        .slice(-60);
+      if (!rows.length) {
+        const empty = document.createElement("div");
+        empty.className = "message is-empty";
+        empty.textContent = "아직 메시지가 없습니다.";
+        elements.messages.replaceChildren(empty);
+        return;
+      }
       elements.messages.replaceChildren(...rows.map((message) => {
         const row = document.createElement("div");
         row.className = `message${message.senderType === "admin" ? " is-admin" : ""}${message.senderType === "system" ? " is-system" : ""}`;
@@ -1062,7 +1088,9 @@
         "Spectator channel is ready for public viewing.": "관전자 채널이 열렸습니다.",
         "Admin channel is dev-only until real server auth exists.": "방장 채널은 실제 서버 인증 전까지 개발 전용입니다.",
         "Admin direct game launch joined DEV room.": "방장 페이지에서 개발 방에 바로 입장했습니다.",
-        "DEV connected room joined after join_result ok.": "개발 연결 방 입장이 확인되었습니다."
+        "DEV connected room joined after join_result ok.": "개발 연결 방 입장이 확인되었습니다.",
+        "Gate locked. Attacks open after admin countdown.": "아직 출발 전입니다. 방장 시작 후 공격할 수 있습니다.",
+        "Gate locked. Skills open after admin countdown.": "아직 출발 전입니다. 방장 시작 후 스킬을 사용할 수 있습니다."
       })[message.text] || message.text;
     }
 
@@ -1080,38 +1108,67 @@
       });
       writeSingularityRaceControlCommand(window.localStorage, command);
       publishSingularityRaceControlCommand(raceControlBroadcast, command);
-      elements.startStatus.textContent = "10초 카운트다운 신호를 보냈습니다.";
+      elements.startStatus.textContent = "카운트다운 시작";
+      render();
+    }
+
+    function publishTestBotControl(botCount) {
+      const command = createSingularityRaceTestBotsCommand({
+        nowMs: Date.now(),
+        roomId: activeRoomId,
+        sourceClientId: "client:singularity-race-host",
+        botCount
+      });
+      writeSingularityRaceTestBotsCommand(window.localStorage, command);
+      publishSingularityRaceControlCommand(raceControlBroadcast, command);
+      if (botCount <= 0) roomPacketTransport?.savePackets([], { reason: "clear_test_bots" });
+      refreshRunners();
+      elements.startStatus.textContent = botCount > 0
+        ? "봇 30명"
+        : "봇 없음";
       render();
     }
 
     function runnerToMapPoint(runner) {
-      const point = progressToRestoredMarathonTrailPoint(runner.progress);
-      return {
-        x: Math.max(2, Math.min(98, point.x + point.normal.x * runner.laneOffset)),
-        y: Math.max(2, Math.min(98, point.y + point.normal.y * runner.laneOffset))
-      };
+      const laneOffsetPx = clampNumber(Number(runner.laneOffsetPx) || 0, -ROAD_LANE_HALF_WIDTH_PX, ROAD_LANE_HALF_WIDTH_PX);
+      return progressToRestoredMarathonMapPoint(runner.progress, {
+        laneOffsetPx,
+        laneHalfWidthPx: ROAD_LANE_HALF_WIDTH_PX,
+        worldWidth: TRACK_WORLD_WIDTH,
+        worldHeight: TRACK_WORLD_HEIGHT,
+        minPercent: 2,
+        maxPercent: 98
+      });
+    }
+
+    function resolveAdminRunnerLaneOffsetPx(participant, index) {
+      if (Number.isFinite(Number(participant?.laneOffsetPx))) {
+        return clampNumber(Number(participant.laneOffsetPx), -ROAD_LANE_HALF_WIDTH_PX, ROAD_LANE_HALF_WIDTH_PX);
+      }
+      return clampNumber(((index % 6) - 2.5) * 64, -ROAD_LANE_HALF_WIDTH_PX, ROAD_LANE_HALF_WIDTH_PX);
+    }
+
+    function clampNumber(value, min, max) {
+      const number = Number.isFinite(Number(value)) ? Number(value) : min;
+      return Math.max(min, Math.min(max, number));
     }
 
     function getSelectedRunner() {
       return state.runners.find((runner) => runner.id === state.selectedRunnerId) || null;
     }
 
-    function resolveRaceStateLabel() {
-      return getSingularityRaceControlPhaseLabel(readRaceControl(), Date.now());
-    }
-
-    function readRaceControl() {
-      return readSingularityRaceControlCommand(window.localStorage, activeRoomId);
+    function readTestBotControl() {
+      return readSingularityRaceTestBotsCommand(window.localStorage, activeRoomId);
     }
 
     function channelLabel(channel) {
       if (!channel) return "채팅";
       return ({
-        lobby: "로비 채널",
-        room: "방 채널",
-        spectator: "관전자 채널",
-        admin: "방장 채널",
-        system: "공지 채널"
+        lobby: "로비",
+        room: "레이스",
+        spectator: "관전자",
+        admin: "방장",
+        system: "공지"
       })[channel.type] || channel.label || "채팅";
     }
 

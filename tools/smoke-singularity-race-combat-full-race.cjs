@@ -12,15 +12,8 @@ async function main() {
   const skills = await import(pathToFileURL(path.join(root, "src/restored/games/marathon-character-skill-contract.js")));
   const combat = await import(pathToFileURL(path.join(root, "src/restored/games/marathon-combat-contract.js")));
 
-  const rewardPlan = skills.createRestoredMarathonCheckpointRewardPlan(9);
-  assert.equal(rewardPlan.length, 9, "N-stage reward plan should support future rounds");
-  assert.deepEqual([...skills.RESTORED_MARATHON_CHARACTER_GRADES], ["D", "C", "B", "A", "S"]);
-  for (const grade of skills.RESTORED_MARATHON_CHARACTER_GRADES) {
-    assert(skills.RESTORED_MARATHON_MEME_CHARACTER_CATALOG.some((item) => item.grade === grade), `${grade} grade must exist`);
-  }
-  assert(skills.listRestoredMarathonCharacterGradePool(1).every((item) => item.grade === "D"), "round 1 should start low grade");
-  assert(skills.listRestoredMarathonCharacterGradePool(4).some((item) => item.grade === "B"), "middle rounds should unlock B grade");
-  assert(skills.listRestoredMarathonCharacterGradePool(9).some((item) => item.grade === "S"), "late rounds should unlock S grade");
+  assertCharacterGradePlan(skills);
+  assertBasicAttackStaging(combat);
 
   const runners = Array.from({ length: 30 }, (_, index) => ({
     id: `runner:${index + 1}`,
@@ -107,6 +100,27 @@ async function main() {
 
   console.log("Singularity Race combat full-race smoke passed.");
   console.log(JSON.stringify({ finished: runners.length, attackHits, downs, respawns, skillUses, grades: [...seenGrades].sort() }, null, 2));
+}
+
+function assertCharacterGradePlan(skills) {
+  const rewardPlan = skills.createRestoredMarathonCheckpointRewardPlan(9);
+  assert.equal(rewardPlan.length, 9, "N-stage reward plan should support future rounds");
+  assert.deepEqual([...skills.RESTORED_MARATHON_CHARACTER_GRADES], ["D", "C", "B", "A", "S"]);
+  for (const grade of skills.RESTORED_MARATHON_CHARACTER_GRADES) {
+    assert(skills.RESTORED_MARATHON_MEME_CHARACTER_CATALOG.some((item) => item.grade === grade), `${grade} grade must exist`);
+  }
+  assert(skills.listRestoredMarathonCharacterGradePool(1).every((item) => item.grade === "D"), "round 1 should start low grade");
+  assert(skills.listRestoredMarathonCharacterGradePool(4).some((item) => item.grade === "B"), "middle rounds should unlock B grade");
+  assert(skills.listRestoredMarathonCharacterGradePool(9).some((item) => item.grade === "S"), "late rounds should unlock S grade");
+}
+
+function assertBasicAttackStaging(combat) {
+  const stagedAttack = combat.createRestoredMarathonAttackAction({ attackerId: "runner:1", damage: 0 });
+  const stagedHit = combat.resolveRestoredMarathonAttackHit(stagedAttack, { runnerId: "runner:2", position: { x: 1, y: 0 }, hp: 100 });
+  const stagedDamage = combat.applyRestoredMarathonRunnerDamage({ runnerId: "runner:2", hp: 100 }, { ...stagedHit, nowMs: 1000 });
+  assert(stagedAttack.cooldownMs > 0 && stagedHit.stunMs > 0, "basic attack should carry cooldown and stun");
+  assert.equal(stagedDamage.hp, 100, "pre-start attack rehearsal should stun without damage");
+  assert(stagedDamage.stunnedUntilMs > 1000, "pre-start attack rehearsal should pause the target");
 }
 
 function claimCheckpoints(runner, skills, seenGrades) {

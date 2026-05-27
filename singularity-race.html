@@ -235,7 +235,6 @@
 
     .shell[data-screen="race"] .topbar,
     .shell[data-screen="race"] .room-panel,
-    .shell[data-screen="race"] .chat-panel,
     .shell[data-screen="race"] .track-panel .panel-header,
     .shell[data-screen="race"] .action-hud,
     .shell[data-screen="race"] .checkpoint-strip,
@@ -283,28 +282,54 @@
       content: none;
     }
 
+    .shell[data-screen="race"] .chat-panel {
+      position: fixed;
+      left: 14px;
+      top: 14px;
+      z-index: 245;
+      display: flex;
+      width: min(340px, calc(100vw - 250px));
+      height: min(268px, calc(100vh - 104px));
+      min-height: 0;
+      border: 1px solid rgba(74, 91, 84, 0.2);
+      border-radius: 8px;
+      background: rgba(255, 255, 252, 0.9);
+      box-shadow: 0 14px 38px rgba(16, 19, 27, 0.16);
+      pointer-events: auto;
+      backdrop-filter: blur(14px);
+    }
+
+    .shell[data-screen="race"] .chat-panel .panel-header,
+    .shell[data-screen="race"] .channel-tabs {
+      display: none;
+    }
+
+    .shell[data-screen="race"] .chat-panel .messages {
+      min-height: 0;
+      max-height: none;
+      padding: 10px;
+    }
+
+    .shell[data-screen="race"] .chat-panel .chat-form {
+      grid-template-columns: 1fr 54px;
+      padding: 8px 10px 10px;
+    }
+
     .shell[data-screen="race"] .race-mobile-controls {
       position: fixed;
-      left: 50%;
-      bottom: 12px;
+      left: 14px;
+      top: 292px;
       z-index: 260;
-      display: grid;
-      width: min(440px, calc(100vw - 24px));
-      grid-template-columns: repeat(3, minmax(0, 1fr));
-      gap: 7px;
-      transform: translateX(-50%);
+      display: block;
+      width: min(132px, calc(100vw - 28px));
+      pointer-events: auto;
     }
 
     .shell[data-screen="race"] .race-input-controls {
-      position: fixed;
-      inset: auto 0 86px 0;
-      z-index: 250;
-      display: block;
-      pointer-events: none;
+      display: none;
     }
 
-    .shell[data-screen="race"].race-queue-open .race-input-controls,
-    .shell[data-screen="race"].race-chat-open .race-input-controls {
+    .shell[data-screen="race"].race-queue-open .race-input-controls {
       display: none;
     }
 
@@ -316,8 +341,8 @@
       position: absolute;
       left: 22px;
       bottom: 0;
-      width: 132px;
-      height: 132px;
+      width: 136px;
+      height: 136px;
       border: 1px solid rgba(74, 91, 84, 0.18);
       border-radius: 50%;
       background: rgba(255, 255, 252, 0.48);
@@ -327,18 +352,28 @@
       backdrop-filter: blur(10px);
     }
 
+    .race-dpad::before {
+      position: absolute;
+      inset: 22px;
+      border: 1px dashed rgba(74, 91, 84, 0.24);
+      border-radius: 50%;
+      content: "";
+    }
+
     .race-dpad-core {
       position: absolute;
       left: 50%;
       top: 50%;
-      width: 34px;
-      height: 34px;
+      width: 44px;
+      height: 44px;
+      border: 2px solid rgba(255, 255, 252, 0.94);
       border-radius: 50%;
-      background: rgba(74, 91, 84, 0.18);
-      transform: translate(-50%, -50%);
+      background: rgba(66, 200, 121, 0.32);
+      box-shadow: 0 8px 18px rgba(16, 19, 27, 0.18);
+      transform: translate(-50%, -50%) translate(var(--joystick-x, 0px), var(--joystick-y, 0px));
     }
 
-    .race-dpad-button,
+    .race-sprint-button,
     .race-action-button {
       border: 1px solid rgba(74, 91, 84, 0.18);
       color: #17231e;
@@ -350,35 +385,26 @@
       -webkit-user-select: none;
     }
 
-    .race-dpad-button {
+    .race-joystick-stack {
       position: absolute;
-      width: 42px;
-      height: 42px;
-      border-radius: 50%;
-      font-size: 15px;
+      left: 0;
+      bottom: 0;
+      width: 184px;
+      height: 196px;
+      pointer-events: none;
     }
 
-    .race-dpad-button[data-key="KeyW"] {
-      left: 45px;
-      top: 8px;
+    .race-sprint-button {
+      position: absolute;
+      left: 30px;
+      bottom: 148px;
+      width: 112px;
+      min-height: 42px;
+      border-radius: 999px;
+      font-size: 13px;
     }
 
-    .race-dpad-button[data-key="KeyA"] {
-      left: 8px;
-      top: 45px;
-    }
-
-    .race-dpad-button[data-key="KeyD"] {
-      right: 8px;
-      top: 45px;
-    }
-
-    .race-dpad-button[data-key="KeyS"] {
-      left: 45px;
-      bottom: 8px;
-    }
-
-    .race-dpad-button.is-held,
+    .race-sprint-button.is-held,
     .race-action-button:active {
       border-color: rgba(120, 219, 147, 0.68);
       background: rgba(66, 200, 121, 0.2);
@@ -415,8 +441,7 @@
       opacity: 0.58;
     }
 
-    .shell[data-screen="race"].race-queue-open .slot-grid,
-    .shell[data-screen="race"].race-chat-open .chat-panel {
+    .shell[data-screen="race"].race-queue-open .slot-grid {
       position: fixed;
       left: 10px;
       right: 10px;
@@ -444,11 +469,6 @@
 
     .shell[data-screen="race"].race-queue-open .runner-slot span {
       display: none;
-    }
-
-    .shell[data-screen="race"].race-chat-open .chat-panel {
-      display: flex;
-      min-height: min(52vh, 440px);
     }
 
     .race-control-button {
@@ -482,6 +502,58 @@
     .race-control-button:disabled {
       cursor: default;
       opacity: 0.78;
+    }
+
+    .race-options-button {
+      position: fixed;
+      top: 12px;
+      right: 206px;
+      z-index: 260;
+      display: none;
+      width: 42px;
+      height: 42px;
+      border: 1px solid rgba(74, 91, 84, 0.22);
+      border-radius: 50%;
+      background: rgba(255, 255, 252, 0.92);
+      box-shadow: 0 10px 26px rgba(16, 19, 27, 0.16);
+      color: #17231e;
+      font-size: 20px;
+      font-weight: 900;
+      backdrop-filter: blur(10px);
+    }
+
+    .shell[data-screen="race"] .race-options-button {
+      display: grid;
+      place-items: center;
+    }
+
+    .race-options-panel {
+      position: fixed;
+      top: 60px;
+      right: 206px;
+      z-index: 259;
+      display: none;
+      min-width: 132px;
+      padding: 8px;
+      border: 1px solid rgba(74, 91, 84, 0.2);
+      border-radius: 8px;
+      background: rgba(255, 255, 252, 0.94);
+      box-shadow: 0 14px 38px rgba(16, 19, 27, 0.16);
+      backdrop-filter: blur(14px);
+    }
+
+    .shell[data-screen="race"].race-options-open .race-options-panel {
+      display: grid;
+      gap: 7px;
+    }
+
+    .race-options-panel button {
+      min-height: 36px;
+      border: 1px solid rgba(74, 91, 84, 0.16);
+      border-radius: 8px;
+      background: rgba(255, 255, 252, 0.9);
+      color: #17231e;
+      font-weight: 900;
     }
 
     .profile-screen {
@@ -995,7 +1067,7 @@
       height: var(--track-world-height, 2600px);
       transform: translate3d(0, 0, 0);
       transform-origin: 0 0;
-      transition: transform 70ms linear;
+      transition: none;
       will-change: transform;
       pointer-events: none;
     }
@@ -1168,8 +1240,8 @@
       right: 12px;
       z-index: 220;
       display: none;
-      width: 138px;
-      height: 94px;
+      width: clamp(176px, 14vw, 220px);
+      height: clamp(124px, 9vw, 154px);
       padding: 7px;
       border: 1px solid rgba(74, 91, 84, 0.2);
       border-radius: 8px;
@@ -1339,27 +1411,53 @@
       z-index: 2;
       width: 34px;
       height: 34px;
+      --runner-facing-scale: 1;
       padding: 0;
       border: 0;
       border-radius: 50%;
       background: transparent;
       box-shadow: none;
-      filter: drop-shadow(0 7px 7px rgba(16, 19, 27, 0.38));
+      filter: drop-shadow(0 4px 4px rgba(16, 19, 27, 0.32));
       transform: translate(-50%, -50%) rotate(var(--track-counter-rotation, 0rad));
-      transition: left 80ms linear, top 80ms linear, filter 120ms ease, opacity 120ms ease;
+      transition: filter 100ms ease, opacity 120ms ease;
+      will-change: left, top, transform;
+    }
+
+    .runner-avatar::before {
+      content: "";
+      position: absolute;
+      left: 50%;
+      top: 28px;
+      width: 22px;
+      height: 6px;
+      border-radius: 999px;
+      background: rgba(31, 41, 35, 0.18);
+      transform: translateX(-50%) scaleX(0.86);
+      opacity: 0.72;
+      pointer-events: none;
+      z-index: -1;
     }
 
     .runner-avatar.is-player {
       filter:
-        drop-shadow(0 0 6px rgba(120, 219, 147, 0.95))
-        drop-shadow(0 8px 8px rgba(16, 19, 27, 0.42));
+        drop-shadow(0 0 4px rgba(120, 219, 147, 0.82))
+        drop-shadow(0 5px 5px rgba(16, 19, 27, 0.34));
     }
 
     .runner-avatar.is-colliding {
       filter:
-        drop-shadow(0 0 8px rgba(255, 224, 138, 0.92))
-        drop-shadow(0 8px 8px rgba(16, 19, 27, 0.44));
-      animation: runner-bump 0.32s ease-out both;
+        drop-shadow(0 0 6px rgba(255, 224, 138, 0.86))
+        drop-shadow(0 5px 5px rgba(16, 19, 27, 0.34));
+    }
+
+    .runner-avatar.is-facing-left {
+      --runner-facing-scale: -1;
+    }
+
+    .runner-avatar.is-stunned {
+      filter:
+        drop-shadow(0 0 7px rgba(98, 206, 255, 0.84))
+        drop-shadow(0 5px 5px rgba(16, 19, 27, 0.34));
     }
 
     .runner-avatar img {
@@ -1367,6 +1465,36 @@
       height: 100%;
       object-fit: contain;
       background: transparent;
+      transform-origin: 50% 88%;
+      animation: runner-idle-breath 1.1s ease-in-out infinite;
+      will-change: transform;
+    }
+
+    .runner-avatar.is-running img {
+      animation: runner-run-cycle 0.32s steps(2, end) infinite;
+    }
+
+    .runner-avatar.is-sprinting img {
+      animation-duration: 0.22s;
+    }
+
+    .runner-avatar.is-running::before {
+      animation: runner-foot-shadow 0.32s steps(2, end) infinite;
+    }
+
+    .runner-avatar.is-sprinting::before {
+      animation-duration: 0.22s;
+    }
+
+    .runner-avatar.is-colliding img {
+      animation-name: runner-contact-flash;
+      animation-duration: 0.24s;
+      animation-timing-function: ease-out;
+      animation-iteration-count: 1;
+    }
+
+    .runner-avatar.is-stunned img {
+      animation: runner-stun-pulse 0.18s steps(2, end) infinite;
     }
 
     .runner-nameplate {
@@ -1406,17 +1534,39 @@
       100% { opacity: 0; transform: translate(-50%, -145%); }
     }
 
-    @keyframes runner-bump {
-      0% { transform: translate(-50%, -50%) rotate(var(--track-counter-rotation, 0rad)) scale(1); }
-      45% { transform: translate(-50%, -54%) rotate(var(--track-counter-rotation, 0rad)) scale(1.08); }
-      100% { transform: translate(-50%, -50%) rotate(var(--track-counter-rotation, 0rad)) scale(1); }
+    @keyframes runner-idle-breath {
+      0%, 100% { transform: scaleX(var(--runner-facing-scale, 1)) translateY(0) scaleY(1); }
+      50% { transform: scaleX(var(--runner-facing-scale, 1)) translateY(-1px) scaleY(1.02); }
+    }
+
+    @keyframes runner-run-cycle {
+      0% { transform: scaleX(var(--runner-facing-scale, 1)) translateY(0) skewX(-2deg) scaleX(1.03); }
+      50% { transform: scaleX(var(--runner-facing-scale, 1)) translateY(-3px) skewX(2deg) scaleX(0.98); }
+      100% { transform: scaleX(var(--runner-facing-scale, 1)) translateY(0) skewX(-2deg) scaleX(1.03); }
+    }
+
+    @keyframes runner-foot-shadow {
+      0%, 100% { transform: translateX(-50%) scaleX(0.72); opacity: 0.48; }
+      50% { transform: translateX(-50%) scaleX(1.08); opacity: 0.72; }
+    }
+
+    @keyframes runner-contact-flash {
+      0% { transform: scaleX(var(--runner-facing-scale, 1)) translateY(0) scale(1); }
+      45% { transform: scaleX(var(--runner-facing-scale, 1)) translateY(-2px) scale(1.08); }
+      100% { transform: scaleX(var(--runner-facing-scale, 1)) translateY(0) scale(1); }
+    }
+
+    @keyframes runner-stun-pulse {
+      0%, 100% { transform: scaleX(var(--runner-facing-scale, 1)) translateY(0) rotate(-3deg); opacity: 0.92; }
+      50% { transform: scaleX(var(--runner-facing-scale, 1)) translateY(-1px) rotate(3deg); opacity: 1; }
     }
 
     @media (prefers-reduced-motion: reduce) {
       .player-focus-ring,
       .track-countdown,
       .track-cue,
-      .runner-avatar.is-colliding {
+      .runner-avatar img,
+      .runner-avatar::before {
         animation: none;
       }
     }
@@ -1709,17 +1859,46 @@
         min-height: 520px;
       }
 
+      .shell[data-screen="race"] .chat-panel {
+        left: 10px;
+        top: 10px;
+        width: min(320px, calc(100vw - 166px));
+        height: 218px;
+      }
+
+      .shell[data-screen="race"] .chat-panel .messages {
+        font-size: 12px;
+      }
+
+      .shell[data-screen="race"] .race-minimap {
+        width: 138px;
+        height: 104px;
+      }
+
+      .shell[data-screen="race"] .race-options-button {
+        top: 124px;
+        right: 12px;
+        width: 40px;
+        height: 40px;
+      }
+
+      .race-options-panel {
+        top: 168px;
+        right: 12px;
+      }
+
       .shell[data-screen="race"] .race-mobile-controls {
         left: 10px;
-        right: 10px;
-        bottom: 10px;
-        width: auto;
-        grid-template-columns: repeat(3, minmax(0, 1fr));
-        transform: none;
+        top: 238px;
+        width: 112px;
       }
 
       .shell[data-screen="race"] .race-input-controls {
-        bottom: 78px;
+        position: fixed;
+        inset: auto 0 22px 0;
+        z-index: 250;
+        display: block;
+        pointer-events: none;
       }
 
       .race-dpad {
@@ -1729,24 +1908,15 @@
       }
 
       .race-dpad-core {
-        width: 30px;
-        height: 30px;
-      }
-
-      .race-dpad-button {
         width: 38px;
         height: 38px;
-        font-size: 14px;
       }
 
-      .race-dpad-button[data-key="KeyW"],
-      .race-dpad-button[data-key="KeyS"] {
-        left: 39px;
-      }
-
-      .race-dpad-button[data-key="KeyA"],
-      .race-dpad-button[data-key="KeyD"] {
-        top: 39px;
+      .race-sprint-button {
+        left: 14px;
+        bottom: 128px;
+        width: 112px;
+        min-height: 40px;
       }
 
       .race-action-buttons {
@@ -1830,7 +2000,7 @@
           <div class="controls">
             <button class="primary" id="ready-button" type="button">로비 입장</button>
             <button class="secondary" id="spectator-button" type="button">관전 입장</button>
-            <button class="ghost debug-only" id="fill-button" type="button">29명 연습 러너 채우기</button>
+            <button class="ghost debug-only" id="fill-button" type="button">봇은 방장 페이지에서 관리</button>
           </div>
 
           <div class="connected-gate debug-only" id="connected-gate">
@@ -1874,6 +2044,11 @@
             <div id="track-runners"></div>
           </div>
           <div class="race-minimap" id="race-minimap" aria-label="미니맵"></div>
+          <button class="race-options-button" id="race-options-button" type="button" aria-label="옵션">⚙</button>
+          <div class="race-options-panel" id="race-options-panel" aria-label="옵션">
+            <button id="race-options-chat" type="button">채팅 입력</button>
+            <button id="race-options-queue" type="button">대기열</button>
+          </div>
           <div class="track-hud" id="track-hud" aria-hidden="true"></div>
           <div class="race-result-panel" id="race-result-panel" aria-live="polite">
             <strong id="race-result-title">완주 완료</strong>
@@ -1883,23 +2058,18 @@
         </div>
         <div class="race-mobile-controls" id="race-mobile-controls" aria-label="모바일 경기 조작">
           <button class="race-control-button" id="race-queue-toggle" type="button">대기열 보기</button>
-          <button class="race-control-button" id="race-chat-toggle" type="button">채팅창 열기</button>
-          <button class="race-control-button" id="race-start-status" type="button" disabled>
-            플레이 시작
-            <span>관리자 대기중</span>
-          </button>
         </div>
         <div class="race-input-controls" id="race-input-controls" aria-label="경기 이동과 스킬">
-          <div class="race-dpad" aria-label="원형 이동키">
-            <span class="race-dpad-core" aria-hidden="true"></span>
-            <button class="race-dpad-button" data-key="KeyW" type="button" aria-label="위로 이동">W</button>
-            <button class="race-dpad-button" data-key="KeyA" type="button" aria-label="왼쪽 이동">A</button>
-            <button class="race-dpad-button" data-key="KeyD" type="button" aria-label="오른쪽 이동">D</button>
-            <button class="race-dpad-button" data-key="KeyS" type="button" aria-label="아래로 이동">S</button>
+          <div class="race-joystick-stack">
+            <button class="race-sprint-button" id="race-sprint-button" type="button">달리기</button>
+            <div class="race-dpad" id="race-joystick" aria-label="원형 이동키">
+              <span class="race-dpad-core" id="race-joystick-thumb" aria-hidden="true"></span>
+            </div>
           </div>
           <div class="race-action-buttons">
-            <button class="race-action-button" id="race-skill-button" type="button">스킬<span>E</span></button>
-            <button class="race-action-button" id="race-chat-action-button" type="button">채팅<span>T</span></button>
+            <button class="race-action-button" id="race-attack-button" type="button">공격<span>기본</span></button>
+            <button class="race-action-button" id="race-skill-button" type="button">스킬<span>사용</span></button>
+            <button class="race-action-button" id="race-chat-action-button" type="button">채팅<span>입력</span></button>
           </div>
         </div>
         <div class="action-hud" aria-label="local action race status">
@@ -2035,7 +2205,6 @@
       createSingularityCheckpointDotNode,
       createSingularityPacketRowNode,
       createSingularityRunnerAvatarNode,
-      createSingularityStandingRowNode,
       getSingularityActionStatusLabel,
       getSingularitySkillDisplayName,
       rankSingularityRunnerEntries,
@@ -2062,6 +2231,9 @@
       createSingularityStartPaddockPosition
     } from "./src/restored/games/singularity-race-local-sim.js";
     import {
+      advanceSingularityRaceLocalPrediction
+    } from "./src/restored/games/singularity-race-prediction.js";
+    import {
       createSingularityRaceAnchoredCamera,
       resolveSingularityRaceScreenPointToTrackPercent
     } from "./src/restored/games/singularity-race-camera.js";
@@ -2073,12 +2245,15 @@
     } from "./src/restored/games/singularity-race-dev-online.js";
     import {
       SINGULARITY_RACE_CONTROL_STORAGE_KEY,
+      SINGULARITY_RACE_TEST_BOTS_STORAGE_KEY,
       SINGULARITY_RACE_START_COUNTDOWN_MS,
       getSingularityRaceControlPhase,
       openSingularityRaceControlBroadcast,
       parseSingularityRaceControlCommand,
       readSingularityRaceControlCommand,
-      shouldAcceptSingularityRaceControlCommand
+      readSingularityRaceTestBotsCommand,
+      shouldAcceptSingularityRaceControlCommand,
+      shouldAcceptSingularityRaceTestBotsCommand
     } from "./src/restored/games/singularity-race-control.js";
 
     const MAX_RUNNERS = 30;
@@ -2093,10 +2268,10 @@
     const ROAD_LANE_HALF_WIDTH_PX = 232;
     const LOCAL_LANE_SPEED_PX_PER_SECOND = 104;
     const LOCAL_LANE_SPRINT_SPEED_PX_PER_SECOND = 126;
-    const LOCAL_STAGING_RUN_PROGRESS_PER_SECOND = 0.66;
-    const LOCAL_STAGING_SPRINT_PROGRESS_PER_SECOND = 1.45;
-    const LOCAL_RUN_PROGRESS_PER_SECOND = 0.38;
-    const LOCAL_SPRINT_PROGRESS_PER_SECOND = 1.05;
+    const LOCAL_STAGING_RUN_PROGRESS_PER_SECOND = 1.15;
+    const LOCAL_STAGING_SPRINT_PROGRESS_PER_SECOND = 2.7;
+    const LOCAL_RUN_PROGRESS_PER_SECOND = 0.72;
+    const LOCAL_SPRINT_PROGRESS_PER_SECOND = 1.85;
     const SOFT_PASS_RADIUS = 1.2;
     const SOFT_PASS_BODY_RADIUS_PX = 78;
     const SOFT_PASS_MIN_SPEED_FACTOR = 0.62;
@@ -2108,14 +2283,25 @@
     const RAIL_MAX_PROGRESS = 100;
     const LOCAL_FINISH_PROGRESS = 99.5;
     const PLAYER_COLLISION_STALL_MS = 360;
+    const BASIC_ATTACK_COOLDOWN_MS = 1150;
+    const BASIC_ATTACK_STALL_MS = 520;
+    const BASIC_ATTACK_STUN_MS = 680;
+    const BASIC_ATTACK_DAMAGE = 24;
+    const BASIC_ATTACK_RANGE_PROGRESS = 4.2;
+    const BASIC_ATTACK_LANE_RANGE_PX = 132;
+    const BASIC_ATTACK_LANE_TO_PROGRESS = 42;
     const RACE_HUD_RENDER_INTERVAL_MS = 220;
-    const RACE_STANDINGS_RENDER_INTERVAL_MS = 700;
     const RACE_SLOT_RENDER_INTERVAL_MS = 700;
+    const PLAYER_LATE_START_GRACE_MS = 15000;
+    const SPECTATOR_LATE_JOIN_GRACE_MS = 12 * 60 * 1000;
     const STORAGE_KEY = "singularity-race:lobby-skin";
     const PROFILE_STORAGE_KEY = "singularity-race:profile:v1";
     const FEATURED_SKIN_IDS = Object.freeze(["kaguya", "singularity-fan", "robot", "gpichan", "pepe-runner", "moderator-armband", "yalrkun", "lakers-wile", "sam-altman", "demis-hassabis"]);
     const PROFILE_SKIN_LIMIT = 12;
     const VIRTUAL_MOVE_KEYS = Object.freeze(["KeyW", "KeyA", "KeyS", "KeyD"]);
+    const VIRTUAL_RELEASE_KEYS = Object.freeze([...VIRTUAL_MOVE_KEYS, "ShiftLeft", "ShiftRight"]);
+    const JOYSTICK_DEADZONE_PX = 14;
+    const JOYSTICK_MAX_RADIUS_PX = 46;
     const ACTION_CHECKPOINTS = Object.freeze(RESTORED_MARATHON_TRAIL_SAVE_POINTS.map((point) => point.progressPercent));
     const BOT_NAMES = [
       "하늘", "보리", "초코", "모찌", "루미", "궤도", "픽셀", "대시", "민트", "젤리",
@@ -2166,10 +2352,16 @@
       readyButton: document.querySelector("#ready-button"),
       previewButton: document.querySelector("#preview-button"),
       raceQueueToggle: document.querySelector("#race-queue-toggle"),
-      raceChatToggle: document.querySelector("#race-chat-toggle"),
-      raceStartStatus: document.querySelector("#race-start-status"),
+      raceOptionsButton: document.querySelector("#race-options-button"),
+      raceOptionsPanel: document.querySelector("#race-options-panel"),
+      raceOptionsChat: document.querySelector("#race-options-chat"),
+      raceOptionsQueue: document.querySelector("#race-options-queue"),
       raceInputControls: document.querySelector("#race-input-controls"),
-      virtualMoveButtons: Array.from(document.querySelectorAll(".race-dpad-button[data-key]")),
+      raceJoystick: document.querySelector("#race-joystick"),
+      raceJoystickThumb: document.querySelector("#race-joystick-thumb"),
+      raceSprintButton: document.querySelector("#race-sprint-button"),
+      virtualMoveButtons: Array.from(document.querySelectorAll("[data-key]")),
+      raceAttackButton: document.querySelector("#race-attack-button"),
       raceSkillButton: document.querySelector("#race-skill-button"),
       raceChatActionButton: document.querySelector("#race-chat-action-button"),
       fillButton: document.querySelector("#fill-button"),
@@ -2239,20 +2431,22 @@
       connectedPackets: [],
       lastConnectedSnapshotSequence: 0,
       connectedInputSequence: 0,
+      testBotTargetCount: getStoredTestBotCount(),
       netcodePressure: null,
       trackCamera: { x: 0, y: 0 },
       raceQueueOpen: false,
       raceChatOpen: false,
+      raceOptionsOpen: false,
       runnerVisuals: new Map(),
+      runnerMotion: new Map(),
       lastVisualFrameMs: 0,
       renderCache: {
         lastHudMs: 0,
-        lastStandingsMs: 0,
         lastSlotsMs: 0,
         minimapPlayerNode: null
       },
       activeChannel: initialVisibleChannels[0]?.channelId || "lobby:singularity-race:public",
-      runners: createRunners(adminLaunchEnabled ? MAX_RUNNERS : 1, initialSkin, false),
+      runners: createRunners(1, initialSkin, false),
       action: createActionRaceState(),
       messages: []
     };
@@ -2263,6 +2457,8 @@
     let unsubscribeRoomPackets = () => {};
     let raceControlBroadcast = openSingularityRaceControlBroadcast(window);
     let lastRaceControlCommandId = "";
+    let lastTestBotControlCommandId = "";
+    let activeJoystickPointerId = null;
 
     elements.shell.classList.toggle("debug-mode", debugUiEnabled);
     elements.shell.dataset.screen = state.screen;
@@ -2282,9 +2478,12 @@
     window.addEventListener("keydown", handleActionKeyDown);
     window.addEventListener("keyup", handleActionKeyUp);
     window.addEventListener("blur", releaseVirtualMoveKeys);
+    document.addEventListener("visibilitychange", () => {
+      if (document.hidden) releaseVirtualMoveKeys(false);
+    });
     window.addEventListener("resize", updateTrackCamera);
     elements.trackScene.addEventListener("click", handleTrackPointerDown);
-    setInterval(advanceActionPreview, 60);
+    requestAnimationFrame(advanceActionPreviewLoop);
 
     elements.profileForm.addEventListener("submit", (event) => {
       event.preventDefault();
@@ -2319,49 +2518,56 @@
       toggleRaceQueueOverlay();
     });
 
-    elements.raceChatToggle.addEventListener("click", () => {
-      toggleRaceChatOverlay(true);
+    elements.raceOptionsButton.addEventListener("click", () => {
+      toggleRaceOptionsPanel();
     });
 
-    for (const button of elements.virtualMoveButtons) {
-      button.addEventListener("pointerdown", (event) => {
-        event.preventDefault();
-        try {
-          button.setPointerCapture?.(event.pointerId);
-        } catch {
-          // Synthetic pointer probes and a few desktop browsers can reject capture.
-        }
-        setVirtualMoveKey(button.dataset.key, true);
-      });
-      button.addEventListener("pointerup", (event) => {
-        event.preventDefault();
-        setVirtualMoveKey(button.dataset.key, false);
-      });
-      button.addEventListener("pointercancel", () => {
-        setVirtualMoveKey(button.dataset.key, false);
-      });
-      button.addEventListener("lostpointercapture", () => {
-        setVirtualMoveKey(button.dataset.key, false);
-      });
-    }
+    elements.raceOptionsChat.addEventListener("click", () => {
+      state.raceOptionsOpen = false;
+      focusChatInput();
+    });
+
+    elements.raceOptionsQueue.addEventListener("click", () => {
+      state.raceOptionsOpen = false;
+      toggleRaceQueueOverlay();
+    });
+
+    elements.raceJoystick.addEventListener("pointerdown", startVirtualJoystick);
+    elements.raceJoystick.addEventListener("pointermove", moveVirtualJoystick);
+    elements.raceJoystick.addEventListener("pointerup", stopVirtualJoystick);
+    elements.raceJoystick.addEventListener("pointercancel", stopVirtualJoystick);
+    elements.raceJoystick.addEventListener("lostpointercapture", stopVirtualJoystick);
+
+    elements.raceSprintButton.addEventListener("pointerdown", (event) => {
+      event.preventDefault();
+      try {
+        elements.raceSprintButton.setPointerCapture?.(event.pointerId);
+      } catch {
+        // Synthetic pointer probes and a few desktop browsers can reject capture.
+      }
+      setVirtualSprint(true);
+    });
+    elements.raceSprintButton.addEventListener("pointerup", (event) => {
+      event.preventDefault();
+      setVirtualSprint(false);
+    });
+    elements.raceSprintButton.addEventListener("pointercancel", () => setVirtualSprint(false));
+    elements.raceSprintButton.addEventListener("lostpointercapture", () => setVirtualSprint(false));
+
+    elements.raceAttackButton.addEventListener("click", () => {
+      triggerVirtualAttackButton();
+    });
 
     elements.raceSkillButton.addEventListener("click", () => {
       triggerVirtualSkillButton();
     });
 
     elements.raceChatActionButton.addEventListener("click", () => {
-      toggleRaceChatOverlay(true);
+      focusChatInput();
     });
 
     elements.fillButton.addEventListener("click", () => {
-      if (state.connectedSession) {
-        pushSystem("개발 연결 방의 참가자 칸은 서버가 관리합니다.");
-        renderAll();
-        return;
-      }
-      state.runners = createRunners(MAX_RUNNERS, state.selectedSkin, state.ready);
-      state.action = createActionRaceState();
-      pushSystem("30인 로비 슬롯을 로컬 연습 러너로 채웠습니다.");
+      pushSystem("테스트 봇은 방장 페이지에서만 넣거나 비울 수 있습니다.");
       renderAll();
     });
 
@@ -2391,25 +2597,26 @@
         return;
       }
       state.participantType = participantType;
+      state.action = createActionRaceState();
       const snapshot = createConnectedMarathonStateSnapshot(result.room, {
         participantId: result.session.playerId,
         sequence: result.joinResult.sequence + 1,
         serverTimeMs: result.joinResult.serverTimeMs
       });
-      const devSnapshot = setupConnectedDevSnapshotRuntime(result.session.roomId);
+      const devSnapshot = setupConnectedDevSnapshotRuntime(result.session.roomId, {
+        botCount: state.testBotTargetCount
+      });
       state.connectedSession = result.session;
       state.connectedPackets = [result.joinRequest, result.joinResult, snapshot].map(toConnectedRelayEnvelope);
       if (devSnapshot) state.connectedPackets.push(devSnapshot);
-      state.runners = createRunners(MAX_RUNNERS, state.selectedSkin, false);
+      state.runners = createRunners(spectator ? 0 : 1, state.selectedSkin, false);
       state.lastConnectedSnapshotSequence = 0;
       applyConnectedStateSnapshot(snapshot);
       if (devSnapshot) applyConnectedStateSnapshot(devSnapshot);
       openConnectedRoomPacketRelay(result.session.roomId, state.connectedPackets);
       state.activeChannel = spectator ? findChannelIdByType("room") : result.session.roomId;
       state.ready = false;
-      if (source === "admin_direct") setScreen("race");
-      if (source === "spectator") setScreen("race");
-      if (source === "button") setScreen("queue");
+      setScreen(source === "button" ? SINGULARITY_RACE_SCREENS.QUEUE : SINGULARITY_RACE_SCREENS.RACE);
       syncLateRaceControlForConnectedSession(source);
       pushSystem(spectator ? "관전자로 입장했습니다. 채팅과 플레이어 보기가 가능합니다." : (source === "admin_direct" ? "방장 페이지에서 개발 방으로 바로 입장했습니다." : "개발 연결 방 입장이 확인되었습니다."));
       renderAll();
@@ -2438,11 +2645,30 @@
 
     function syncLateRaceControlForConnectedSession(source) {
       const command = readSingularityRaceControlCommand(window.localStorage, state.connectedSession?.roomId);
-      if (getSingularityRaceControlPhase(command, Date.now()) !== "running") return;
+      const now = Date.now();
+      if (shouldAcceptSingularityRaceControlCommand(command, { nowMs: now })) {
+        lastRaceControlCommandId = command.commandId;
+        setScreen("race");
+        startLocalCountdown("admin", command);
+        return;
+      }
+      if (!shouldSyncLateRaceControlCommand(command, source, now)) return;
+      lastRaceControlCommandId = command.commandId;
       setScreen("race");
       state.action.raceStarted = true;
-      startConnectedDevServerRace(Date.now());
+      startConnectedDevServerRace(now);
       if (source === "spectator") pushSystem("진행 중인 경기에 관전자로 중도 입장했습니다.");
+    }
+
+    function shouldSyncLateRaceControlCommand(command, source, now) {
+      if (getSingularityRaceControlPhase(command, now) !== "running") return false;
+      const gateOpenedMs = Number(command?.gateOpensAtMs || 0);
+      const gateAgeMs = now - gateOpenedMs;
+      if (!Number.isFinite(gateAgeMs) || gateAgeMs < 0) return false;
+      const graceMs = source === "spectator" || state.participantType === "spectator"
+        ? SPECTATOR_LATE_JOIN_GRACE_MS
+        : PLAYER_LATE_START_GRACE_MS;
+      return gateAgeMs <= graceMs;
     }
 
     elements.chatForm.addEventListener("submit", (event) => {
@@ -2555,9 +2781,6 @@
 
     function enterMapPreview() {
       setScreen(SINGULARITY_RACE_SCREENS.MAP_PREVIEW);
-      if (state.runners.length < MAX_RUNNERS) {
-        state.runners = createRunners(MAX_RUNNERS, state.selectedSkin, false);
-      }
       state.action.raceStarted = false;
       pushSystem("맵 미리보기를 열었습니다.");
       renderAll();
@@ -2565,8 +2788,8 @@
 
     function enterRaceScreen() {
       setScreen(SINGULARITY_RACE_SCREENS.RACE);
-      if (!state.connectedSession && state.runners.length < MAX_RUNNERS) {
-        state.runners = createRunners(MAX_RUNNERS, state.selectedSkin, false);
+      if (!state.connectedSession && state.runners.length < 1) {
+        state.runners = createRunners(1, state.selectedSkin, false);
       }
       pushSystem("경기장 화면으로 이동했습니다. 방장 시작을 기다립니다.");
       renderAll();
@@ -2574,13 +2797,18 @@
 
     function setupRaceControlListener() {
       window.addEventListener("storage", (event) => {
-        if (event.key !== SINGULARITY_RACE_CONTROL_STORAGE_KEY || !event.newValue) return;
-        applyRaceControlCommand(parseSingularityRaceControlCommand(event.newValue));
+        if (!event.newValue) return;
+        if (event.key === SINGULARITY_RACE_CONTROL_STORAGE_KEY) applyRaceControlCommand(parseSingularityRaceControlCommand(event.newValue));
+        if (event.key === SINGULARITY_RACE_TEST_BOTS_STORAGE_KEY) applyTestBotControlCommand(parseSingularityRaceControlCommand(event.newValue));
       });
       if (raceControlBroadcast) {
-        raceControlBroadcast.onmessage = (event) => applyRaceControlCommand(event.data);
+        raceControlBroadcast.onmessage = (event) => {
+          applyRaceControlCommand(event.data);
+          applyTestBotControlCommand(event.data);
+        };
       }
       applyRaceControlCommand(readSingularityRaceControlCommand(window.localStorage));
+      applyTestBotControlCommand(readSingularityRaceTestBotsCommand(window.localStorage, DEV_ROOM_ID));
     }
 
     function applyRaceControlCommand(command) {
@@ -2590,10 +2818,35 @@
       })) return;
       lastRaceControlCommandId = command.commandId;
       setScreen(SINGULARITY_RACE_SCREENS.RACE);
-      if (!state.connectedSession && state.runners.length < MAX_RUNNERS) {
-        state.runners = createRunners(MAX_RUNNERS, state.selectedSkin, false);
+      if (!state.connectedSession && state.runners.length < 1) {
+        state.runners = createRunners(1, state.selectedSkin, false);
       }
       startLocalCountdown("admin", command);
+      renderAll();
+    }
+
+    function applyTestBotControlCommand(command) {
+      if (!shouldAcceptSingularityRaceTestBotsCommand(command, {
+        lastCommandId: lastTestBotControlCommandId,
+        roomId: DEV_ROOM_ID
+      })) return;
+      lastTestBotControlCommandId = command.commandId;
+      state.testBotTargetCount = Math.max(0, Math.min(MAX_RUNNERS, Math.round(Number(command.botCount) || 0)));
+      if (state.action.raceStarted) {
+        pushSystem("경기 진행 중에는 테스트 봇 수를 바꾸지 않습니다.");
+        return;
+      }
+      if (state.connectedSession) {
+        const snapshot = setupConnectedDevSnapshotRuntime(state.connectedSession.roomId, {
+          botCount: state.testBotTargetCount
+        });
+        state.lastConnectedSnapshotSequence = 0;
+        if (snapshot) publishConnectedServerSnapshot(snapshot);
+      }
+      syncLocalTestBotPack();
+      pushSystem(state.testBotTargetCount > 0
+        ? `방장이 테스트 봇 ${state.testBotTargetCount}명을 켰습니다.`
+        : "방장이 테스트 봇을 비웠습니다.");
       renderAll();
     }
 
@@ -2652,6 +2905,33 @@
       });
     }
 
+    function getStoredTestBotCount() {
+      const command = readSingularityRaceTestBotsCommand(window.localStorage, DEV_ROOM_ID);
+      return Math.max(0, Math.min(MAX_RUNNERS, Math.round(Number(command?.botCount) || 0)));
+    }
+
+    function syncLocalTestBotPack() {
+      if (state.connectedSession) return;
+      const targetCount = Math.max(1, Math.min(MAX_RUNNERS, state.testBotTargetCount || 0));
+      if (state.testBotTargetCount <= 0) {
+        state.runners = state.runners.filter((runner) => !isTestBotRunner(runner)).slice(0, 1);
+        if (!state.runners.length) state.runners = createRunners(1, state.selectedSkin, false);
+        return;
+      }
+      const currentPlayer = state.runners.find((runner) => runner.id === "you") || createRunners(1, state.selectedSkin, false)[0];
+      const next = [currentPlayer];
+      const existingBots = state.runners.filter((runner) => isTestBotRunner(runner));
+      for (let index = 1; index < targetCount; index += 1) {
+        next.push(existingBots[index - 1] || createRunners(index + 1, state.selectedSkin, false)[index]);
+      }
+      state.runners = next;
+    }
+
+    function isTestBotRunner(runner) {
+      const id = String(runner?.id || "");
+      return id.startsWith("bot-") || id.startsWith("runner:bot-");
+    }
+
     function createStartPaddockPosition(index) {
       return createSingularityStartPaddockPosition(index, {
         startLineProgress: START_LINE_PROGRESS,
@@ -2677,9 +2957,10 @@
       };
     }
 
-    function setupConnectedDevSnapshotRuntime(roomId) {
+    function setupConnectedDevSnapshotRuntime(roomId, options = {}) {
       if (!devOnlineEnabled || !roomId) return null;
       const spectator = state.participantType === "spectator";
+      const targetRunnerCount = Math.max(spectator ? 0 : 1, Math.min(MAX_RUNNERS, Math.round(Number(options.botCount) || 0)));
       connectedDevServer = createRestoredMarathonWebSocketDevServerMock({
         roomId,
         clock: () => Date.now(),
@@ -2690,14 +2971,18 @@
         packetLimit: 720
       });
       connectedDevClients = [];
-      for (let index = 0; index < MAX_RUNNERS; index += 1) {
-        const participantId = spectator ? `runner:bot-${index + 1}` : (index === 0 ? "runner:you" : `runner:bot-${index}`);
+      for (let index = 0; index < targetRunnerCount; index += 1) {
+        const isLocalPlayer = !spectator && index === 0;
+        const participantId = isLocalPlayer ? "runner:you" : `runner:bot-${spectator ? index + 1 : index}`;
+        const participantType = isLocalPlayer ? "player" : "bot";
         const connected = connectedDevServer.connectClient({
-          clientId: !spectator && index === 0 ? "client:singularity-race-lobby" : `client:singularity-race-bot:${index + 1}`
+          clientId: isLocalPlayer ? "client:singularity-race-lobby" : `client:singularity-race-bot:${index + 1}`,
+          role: participantType
         });
         const joined = connectedDevServer.joinRoom(connected.transport, {
           participantId,
-          nickname: !spectator && index === 0 ? state.nickname : BOT_NAMES[index % BOT_NAMES.length],
+          participantType,
+          nickname: isLocalPlayer ? state.nickname : BOT_NAMES[index % BOT_NAMES.length],
           sequence: index + 2,
           mapVersion: "baegeum-city-v2-map-001"
         });
@@ -2716,10 +3001,29 @@
 
     function startConnectedDevServerRace(now = Date.now()) {
       if (!connectedDevServer || !state.connectedSession || state.action.connectedServerRaceStarted) return false;
-      const started = connectedDevServer.startRace(connectedDevClients[0]?.transport, state.connectedSession.roomId, { serverTimeMs: now });
+      const started = connectedDevServer.startRace(connectedDevClients[0]?.transport, state.connectedSession.roomId, {
+        serverTimeMs: now,
+        runnerPositions: createConnectedRaceStartPositions()
+      });
       if (!started.ok) return false;
       state.action.connectedServerRaceStarted = true;
       return true;
+    }
+
+    function createConnectedRaceStartPositions() {
+      return state.runners.slice(0, MAX_RUNNERS).map((runner) => ({
+        participantId: connectedParticipantIdForRunner(runner.id),
+        progressPercent: clampNumber(runner.progress || START_LINE_PROGRESS, START_LINE_PROGRESS, LOCAL_FINISH_PROGRESS),
+        laneOffsetPx: clampNumber(runner.laneOffsetPx || 0, -ROAD_LANE_HALF_WIDTH_PX, ROAD_LANE_HALF_WIDTH_PX)
+      }));
+    }
+
+    function connectedParticipantIdForRunner(runnerId) {
+      if (runnerId === "you") return "runner:you";
+      const id = String(runnerId || "");
+      if (id.startsWith("runner:")) return id;
+      if (id.startsWith("bot-")) return `runner:${id}`;
+      return `runner:${id || "bot"}`;
     }
 
     function createActionRaceState() {
@@ -2731,7 +3035,10 @@
       return {
         keys: {},
         lastTickMs: 0,
+        lastMovementInputAtMs: 0,
+        lastFacingDirection: "right",
         stallUntilMs: 0,
+        attackCooldownUntilMs: 0,
         checkpointIndex: 0,
         hp: 100,
         maxHp: 100,
@@ -2752,7 +3059,6 @@
         playerFinished: false,
         finalResult: null,
         finishAnnounced: false,
-        lastLocalRank: 1,
         lastCollisionCueMs: 0,
         packetLog: [
           { type: "input_update", detail: "WASD / Shift" },
@@ -2776,7 +3082,12 @@
       if (state.participantType === "spectator") return;
       if (state.action.finalResult) return;
       state.action.keys[event.code] = true;
+      recordMovementInput(event.code);
       if (state.connectedSession) {
+        if (!state.action.raceStarted) {
+          if (event.code === "KeyE" && !event.repeat) renderAll();
+          return;
+        }
         publishConnectedInputRequest(event.code === "KeyE");
         if (event.code === "KeyE" && !event.repeat) requestConnectedSkill();
         renderAll();
@@ -2794,7 +3105,7 @@
       if (!state.action.keys[event.code]) return;
       state.action.keys[event.code] = false;
       if (state.connectedSession) {
-        publishConnectedInputRequest(false);
+        if (state.action.raceStarted) publishConnectedInputRequest(false);
         renderAll();
       }
     }
@@ -2803,101 +3114,185 @@
       if (state.screen !== SINGULARITY_RACE_SCREENS.RACE) return;
       if (state.participantType === "spectator") return;
       if (state.action.finalResult) return;
-      if (state.connectedSession) {
-        requestConnectedAttack(event);
-        return;
-      }
-      if (!state.action.raceStarted) {
-        pushSystem("아직 출발 전입니다. 방장 시작 후 공격할 수 있습니다.");
-        renderAll();
-        return;
-      }
-      if (isCountdownActive()) {
-        renderAll();
-        return;
-      }
-      const { x, y } = eventToTrackWorldPercent(event);
-      const aimProgress = estimateRestoredMarathonTrailProgressFromPoint(x, y);
+      performBasicAttack(event);
+    }
+
+    function performBasicAttack(event = null) {
+      const now = Date.now();
       const player = state.runners[0];
-      state.action.raceStarted = true;
-      state.action.stallUntilMs = Date.now() + 520;
-      const target = state.runners.slice(1).find((runner) => (
-        Math.abs(runner.progress - player.progress) < 8
-        && Math.abs((runner.laneOffsetPx || 0) - (player.laneOffsetPx || 0)) < 120
-      ));
+      if (!player) return false;
+      if (now < state.action.attackCooldownUntilMs) {
+        renderRaceMobileControls();
+        return false;
+      }
+      const aim = resolveBasicAttackAim(event, player);
+      const damageEnabled = state.action.raceStarted && !isCountdownActive(now);
+      const target = findBasicAttackTarget(player, aim.direction) || (event ? null : findNearestBasicAttackTarget(player));
+      const attackDirection = target
+        ? (Number(target.progress) >= Number(player.progress) ? 1 : -1)
+        : aim.direction;
+      const attackAim = target
+        ? {
+          x: (Number(target.progress) || 0) - (Number(player.progress) || 0) || attackDirection * 0.1,
+          y: attackLanePosition(target) - attackLanePosition(player)
+        }
+        : { x: attackDirection, y: 0 };
       const action = createRestoredMarathonAttackAction({
         attackerId: "runner:you",
-        origin: { x: player.progress, y: player.laneOffsetPx || 0 },
-        aim: { x: aimProgress >= player.progress ? 1 : -1, y: 0 }
+        origin: { x: player.progress, y: attackLanePosition(player) },
+        aim: attackAim,
+        rangeMeters: BASIC_ATTACK_RANGE_PROGRESS,
+        selfStallMs: BASIC_ATTACK_STALL_MS,
+        cooldownMs: BASIC_ATTACK_COOLDOWN_MS,
+        stunMs: BASIC_ATTACK_STUN_MS,
+        damage: damageEnabled ? BASIC_ATTACK_DAMAGE : 0
       });
-      pushActionPacket(
-        createRestoredMarathonAttackEnvelope(action, createActionPacketOptions()),
-        target ? `aim ${target.name}` : "miss"
-      );
+      state.action.attackCooldownUntilMs = now + action.cooldownMs;
+      state.action.stallUntilMs = Math.max(state.action.stallUntilMs, now + action.selfStallMs);
+      state.runners[0] = { ...player, collisionAtMs: now };
+      if (!state.connectedSession) {
+        pushActionPacket(
+          createRestoredMarathonAttackEnvelope(action, createActionPacketOptions()),
+          target ? `basic ${target.name}` : "basic miss"
+        );
+      }
+      if (state.connectedSession && state.action.raceStarted) requestConnectedAttack(event, action);
       if (!target) {
-        pushSystem("Attack missed. Running would have been faster.");
+        setRaceCue("hit", "MISS", player.progress, "you");
+        pushSystem("공격이 빗나갔습니다. 공격 중에는 잠깐 멈춥니다.");
         renderAll();
-        return;
+        return false;
       }
       const hit = resolveRestoredMarathonAttackHit(action, {
-          runnerId: target.id,
-          position: { x: target.progress, y: target.laneOffsetPx || 0 },
-          hp: target.hp ?? 100,
+        runnerId: target.id,
+        position: { x: target.progress, y: attackLanePosition(target) },
+        hp: target.hp ?? 100,
         maxHp: target.maxHp ?? 100
       });
-      if (hit.hit) {
-        const damaged = applyRestoredMarathonRunnerDamage({
-          runnerId: target.id,
-          hp: target.hp ?? 100,
-          maxHp: target.maxHp ?? 100,
-          lastSafeCheckpointIndex: target.lastSafeCheckpointIndex ?? 0
-        }, { ...hit, nowMs: Date.now() });
-        target.hp = damaged.hp;
-        if (damaged.down) {
-          const respawn = createRestoredMarathonCheckpointRespawn(damaged, { checkpointMeters: [0, ...ACTION_CHECKPOINTS] });
-          target.progress = Math.max(0, respawn.progressMeters);
-          target.hp = respawn.hp;
-          target.lastSafeCheckpointIndex = respawn.checkpointIndex;
-          setRaceCue("respawn", `RESPAWN ${target.name}`, target.progress, target.id);
-          pushActionPacket(
-            createRestoredMarathonTransportEnvelope("respawn_notice", {
-              participantId: target.id,
-              checkpointIndex: respawn.checkpointIndex,
-              progressMeters: respawn.progressMeters
-            }, createActionPacketOptions()),
-            `${target.name} checkpoint ${respawn.checkpointIndex}`
-          );
-          pushSystem(`Attack downed ${target.name}. Respawned at checkpoint ${respawn.checkpointIndex}.`);
-        } else {
-          target.progress = Math.max(3, target.progress - 4);
-          setRaceCue("hit", `HIT ${target.name}`, target.progress, target.id);
-          pushSystem(`Attack hit ${target.name}. HP ${target.hp}/${target.maxHp}. You stalled for ${hit.attackerStallMs}ms.`);
-        }
+      if (!hit.hit) {
+        setRaceCue("hit", "MISS", player.progress, "you");
+        pushSystem("공격 사거리가 살짝 빗나갔습니다.");
+        renderAll();
+        return false;
+      }
+      const effectiveHit = {
+        ...hit,
+        damage: damageEnabled ? hit.damage : 0,
+        slowMs: BASIC_ATTACK_STUN_MS,
+        stunMs: BASIC_ATTACK_STUN_MS,
+        nowMs: now
+      };
+      const damaged = applyRestoredMarathonRunnerDamage({
+        runnerId: target.id,
+        hp: target.hp ?? 100,
+        maxHp: target.maxHp ?? 100,
+        stunnedUntilMs: target.stunnedUntilMs ?? 0,
+        slowUntilMs: target.slowUntilMs ?? 0,
+        lastSafeCheckpointIndex: target.lastSafeCheckpointIndex ?? 0
+      }, effectiveHit);
+      target.hp = damaged.hp;
+      target.stunnedUntilMs = damaged.stunnedUntilMs;
+      target.slowUntilMs = damaged.slowUntilMs;
+      target.collisionAtMs = now;
+      if (damageEnabled && damaged.down) {
+        const respawn = createRestoredMarathonCheckpointRespawn(damaged, { checkpointMeters: [0, ...ACTION_CHECKPOINTS] });
+        target.progress = Math.max(0, respawn.progressMeters);
+        target.hp = respawn.hp;
+        target.lastSafeCheckpointIndex = respawn.checkpointIndex;
+        setRaceCue("respawn", `RESPAWN ${target.name}`, target.progress, target.id);
+        pushActionPacket(
+          createRestoredMarathonTransportEnvelope("respawn_notice", {
+            participantId: target.id,
+            checkpointIndex: respawn.checkpointIndex,
+            progressMeters: respawn.progressMeters
+          }, createActionPacketOptions()),
+          `${target.name} checkpoint ${respawn.checkpointIndex}`
+        );
+        pushSystem(`${target.name} 다운. 체크포인트로 복귀했습니다.`);
+      } else {
+        setRaceCue("hit", damageEnabled ? `HIT ${target.name}` : `STUN ${target.name}`, target.progress, target.id);
+        pushSystem(damageEnabled
+          ? `${target.name} 명중. 잠깐 멈추게 만들었습니다.`
+          : `${target.name} 스턴. 시작 전이라 체력은 줄지 않습니다.`);
       }
       resolveSingleRailCollisions("attack");
       renderAll();
+      return true;
     }
 
-    function requestConnectedAttack(event) {
-      if (state.participantType === "spectator") return;
-      const { x, y } = eventToTrackWorldPercent(event);
-      const aimProgress = estimateRestoredMarathonTrailProgressFromPoint(x, y);
+    function resolveBasicAttackAim(event, player) {
+      if (event) {
+        const { x, y } = eventToTrackWorldPercent(event);
+        const aimProgress = estimateRestoredMarathonTrailProgressFromPoint(x, y);
+        return { direction: aimProgress >= player.progress ? 1 : -1, progress: aimProgress };
+      }
+      const facing = state.runnerMotion.get("you")?.facing || "right";
+      return { direction: facing === "left" ? -1 : 1, progress: player.progress + (facing === "left" ? -1 : 1) };
+    }
+
+    function findBasicAttackTarget(player, direction) {
+      const candidates = state.runners.slice(1)
+        .filter((runner) => !runner.finishedAtMs && runner.hp !== 0)
+        .map((runner) => ({
+          runner,
+          progressDelta: (Number(runner.progress) || 0) - (Number(player.progress) || 0),
+          laneDelta: Math.abs((Number(runner.laneOffsetPx) || 0) - (Number(player.laneOffsetPx) || 0))
+        }))
+        .filter((entry) => entry.laneDelta <= BASIC_ATTACK_LANE_RANGE_PX)
+        .filter((entry) => direction > 0
+          ? entry.progressDelta >= -0.45 && entry.progressDelta <= BASIC_ATTACK_RANGE_PROGRESS
+          : entry.progressDelta <= 0.45 && entry.progressDelta >= -BASIC_ATTACK_RANGE_PROGRESS)
+        .sort((left, right) => Math.abs(left.progressDelta) - Math.abs(right.progressDelta) || left.laneDelta - right.laneDelta);
+      return candidates[0]?.runner || null;
+    }
+
+    function findNearestBasicAttackTarget(player) {
+      const candidates = state.runners.slice(1)
+        .filter((runner) => !runner.finishedAtMs && runner.hp !== 0)
+        .map((runner) => ({
+          runner,
+          progressDelta: Math.abs((Number(runner.progress) || 0) - (Number(player.progress) || 0)),
+          laneDelta: Math.abs((Number(runner.laneOffsetPx) || 0) - (Number(player.laneOffsetPx) || 0))
+        }))
+        .filter((entry) => entry.progressDelta <= BASIC_ATTACK_RANGE_PROGRESS && entry.laneDelta <= BASIC_ATTACK_LANE_RANGE_PX)
+        .sort((left, right) => left.progressDelta - right.progressDelta || left.laneDelta - right.laneDelta);
+      return candidates[0]?.runner || null;
+    }
+
+    function attackLanePosition(runner) {
+      return (Number(runner?.laneOffsetPx) || 0) / BASIC_ATTACK_LANE_TO_PROGRESS;
+    }
+
+    function isRunnerStunned(runner, now = Date.now()) {
+      return Number(runner?.stunnedUntilMs || 0) > now;
+    }
+
+    function requestConnectedAttack(event, existingAction = null) {
+      if (state.participantType === "spectator" || !state.action.raceStarted) return;
       const player = state.runners[0];
-      const action = createRestoredMarathonAttackAction({
+      const aim = resolveBasicAttackAim(event, player);
+      const action = existingAction || createRestoredMarathonAttackAction({
         attackerId: "runner:you",
-        origin: { x: player.progress, y: player.laneOffsetPx || 0 },
-        aim: { x: aimProgress >= player.progress ? 1 : -1, y: 0 }
+        origin: { x: player.progress, y: attackLanePosition(player) },
+        aim: { x: aim.direction, y: 0 },
+        rangeMeters: BASIC_ATTACK_RANGE_PROGRESS,
+        selfStallMs: BASIC_ATTACK_STALL_MS,
+        cooldownMs: BASIC_ATTACK_COOLDOWN_MS,
+        stunMs: BASIC_ATTACK_STUN_MS,
+        damage: BASIC_ATTACK_DAMAGE
       });
       pushActionPacket(
         createRestoredMarathonAttackEnvelope(action, createActionPacketOptions()),
         "서버 요청"
       );
+      if (existingAction) return;
       pushSystem("공격 요청을 개발 방으로 보냈습니다.");
       renderAll();
     }
 
     function advanceActionPreview() {
       if (document.hidden) return;
+      if (state.screen !== SINGULARITY_RACE_SCREENS.RACE) return;
       const now = Date.now();
       if (!state.action.lastTickMs) state.action.lastTickMs = now;
       const elapsedSeconds = Math.min(0.25, (now - state.action.lastTickMs) / 1000);
@@ -2908,7 +3303,7 @@
       }
       if (isCountdownActive(now)) {
         if (!state.connectedSession) advanceWaitingBotPack(elapsedSeconds, now);
-        if (state.connectedSession) advanceConnectedDevSnapshotFeed(now);
+        if (state.action.connectedServerRaceStarted) advanceConnectedDevSnapshotFeed(now);
         advanceLocalPlayerMovement(createRestoredMarathonInputFrame({
           participantId: "runner:you",
           keys: state.action.keys,
@@ -2921,8 +3316,25 @@
         renderAll();
         return;
       }
-      if (state.connectedSession) {
-        if (advanceConnectedDevSnapshotFeed(now)) renderActionPreviewFrame(now);
+      if (now < state.action.stallUntilMs) {
+        if (state.connectedSession && state.action.raceStarted) advanceConnectedDevSnapshotFeed(now);
+        else if (state.action.raceStarted) {
+          advanceLocalBotPack(elapsedSeconds);
+          resolveSingleRailCollisions("attack-stall");
+        }
+        else if (!state.action.raceStarted) advanceWaitingBotPack(elapsedSeconds, now);
+        renderActionPreviewFrame(now);
+        return;
+      }
+      if (state.connectedSession && state.action.raceStarted) {
+        const frame = createRestoredMarathonInputFrame({
+          participantId: "runner:you",
+          keys: state.action.keys,
+          sequence: Math.floor(now / 180)
+        });
+        advanceConnectedDevSnapshotFeed(now);
+        advanceConnectedLocalPrediction(frame, elapsedSeconds);
+        renderActionPreviewFrame(now);
         return;
       }
       const frame = createRestoredMarathonInputFrame({
@@ -2937,17 +3349,17 @@
       } else {
         botsMoved = advanceWaitingBotPack(elapsedSeconds, now);
       }
-      if (now < state.action.stallUntilMs) {
-        if (state.action.raceStarted || botsMoved) renderActionPreviewFrame(now);
-        return;
-      }
       const moved = advanceLocalPlayerMovement(frame, elapsedSeconds, "movement");
       if (moved) {
         maybeMarkLocalFinish();
         updateActionCheckpoint();
       }
-      updateLocalRankCue();
       if (state.action.raceStarted || moved || botsMoved) renderActionPreviewFrame(now);
+    }
+
+    function advanceActionPreviewLoop() {
+      advanceActionPreview();
+      requestAnimationFrame(advanceActionPreviewLoop);
     }
 
     function advanceLocalBotPack(elapsedSeconds) {
@@ -3011,7 +3423,7 @@
     }
 
     function requestConnectedSkill() {
-      if (state.participantType === "spectator") return;
+      if (state.participantType === "spectator" || !state.action.raceStarted) return;
       pushActionPacket(
         createRestoredMarathonSkillEnvelope({
           participantId: "runner:you",
@@ -3085,6 +3497,8 @@
       state.action.raceFinished = Boolean(options.raceFinished);
       state.action.keys = {};
       for (const button of elements.virtualMoveButtons) button.classList.remove("is-held");
+      elements.raceSprintButton.classList.remove("is-held");
+      updateJoystickThumb(0, 0);
       state.action.finalResult = Object.freeze({
         source: options.source || "local",
         title: options.title || (state.action.raceFinished ? "경기 종료" : "완주 완료"),
@@ -3167,14 +3581,6 @@
       return Number.isFinite(Number(participant.progressPercent)) ? Number(participant.progressPercent) : 0;
     }
 
-    function updateLocalRankCue() {
-      const rank = rankSingularityRunnerEntries(state.runners).findIndex((entry) => entry.runner.id === "you") + 1;
-      if (!rank || rank === state.action.lastLocalRank) return;
-      if (state.action.raceCue && Date.now() - state.action.raceCue.createdAtMs < 1200) return;
-      state.action.lastLocalRank = rank;
-      setRaceCue("rank", `순위 #${rank}`, state.runners[0].progress, "you");
-    }
-
     function createActionPacketOptions() {
       return {
         clientId: "client:singularity-race-lobby",
@@ -3189,11 +3595,12 @@
         detail: detail || `${envelope.roomId} #${envelope.sequence}`
       });
       state.action.packetLog = state.action.packetLog.slice(-8);
-      publishConnectedPacket(envelope, detail);
+      const published = publishConnectedPacket(envelope, detail);
+      if (published) forwardActionPacketToConnectedDevServer(envelope);
     }
 
     function publishConnectedInputRequest(skillPressed) {
-      if (state.participantType === "spectator") return;
+      if (state.participantType === "spectator" || !state.action.raceStarted) return;
       const frame = createRestoredMarathonInputFrame({
         participantId: "runner:you",
         keys: state.action.keys,
@@ -3269,17 +3676,73 @@
     }
 
     function publishConnectedPacket(envelope, detail) {
-      if (!state.connectedSession || !roomPacketTransport) return;
+      if (!state.connectedSession || !roomPacketTransport) return false;
       const result = roomPacketTransport.submitPacket(state.connectedPackets, envelope, {
         reason: detail || envelope.type
       });
       if (result.ok) {
         state.connectedPackets = result.packets;
         state.netcodePressure = result.pressure || createRoomPressureReport();
-        return;
+        return true;
       }
       state.netcodePressure = result.pressure || createRoomPressureReport();
       pushSystem(`Packet relay blocked: ${result.reason}`);
+      return false;
+    }
+
+    function forwardActionPacketToConnectedDevServer(envelope) {
+      if (!connectedDevServer || !shouldForwardConnectedServerAction(envelope)) return false;
+      const client = findConnectedDevClientForEnvelope(envelope);
+      if (!client) return false;
+      const now = Date.now();
+      const result = connectedDevServer.ingestClientEnvelope(client.transport, envelope, { receivedAtMs: now, elapsedMs: 50 });
+      if (!result.ok) {
+        pushSystem(`서버 판정 거절: ${labelConnectedServerReason(result.reason)}`);
+        return false;
+      }
+      const sequence = Math.max(
+        state.lastConnectedSnapshotSequence + 1,
+        Number(connectedDevLoopState?.snapshotIndex || 0) + 1,
+        state.connectedPackets.length + 1
+      );
+      const snapshot = connectedDevServer.createStateSnapshot(envelope.roomId, { sequence, elapsedMs: 50 });
+      if (!snapshot.ok) return true;
+      if (connectedDevLoopState) {
+        connectedDevLoopState = createRestoredMarathonWebSocketDevLoopState({
+          ...connectedDevLoopState,
+          lastSnapshotAtMs: now,
+          snapshotIndex: sequence
+        });
+      }
+      publishConnectedServerSnapshot(snapshot.snapshot);
+      return true;
+    }
+
+    function shouldForwardConnectedServerAction(envelope = {}) {
+      return envelope.type === "attack_action" || envelope.type === "skill_use";
+    }
+
+    function findConnectedDevClientForEnvelope(envelope = {}) {
+      const payload = envelope.payload || {};
+      const participantId = payload.participantId || payload.attackerId || "";
+      return connectedDevClients.find((client) => client.transport.clientId === envelope.clientId)
+        || connectedDevClients.find((client) => client.participantId === participantId)
+        || null;
+    }
+
+    function labelConnectedServerReason(reason) {
+      const labels = {
+        attack_cooldown: "공격 쿨타임",
+        cooldown: "스킬 쿨타임",
+        no_charge: "스킬 횟수 없음",
+        participant_control_locked: "행동 불가",
+        participant_cannot_attack: "공격 권한 없음",
+        participant_cannot_skill: "스킬 권한 없음",
+        session_permission_denied: "세션 권한 없음",
+        stale_attack: "오래된 공격 요청",
+        stale_skill: "오래된 스킬 요청"
+      };
+      return labels[reason] || reason || "알 수 없음";
     }
 
     function createRoomPressureReport() {
@@ -3309,7 +3772,10 @@
         presets,
         startLineProgress: START_LINE_PROGRESS,
         roadLaneHalfWidthPx: ROAD_LANE_HALF_WIDTH_PX,
-        maxRunners: MAX_RUNNERS
+        maxRunners: MAX_RUNNERS,
+        preserveLocalPrediction: Boolean(state.connectedSession && state.action.raceStarted),
+        localRunnerId: "you",
+        localPredictionSnapshotCorrection: hasRecentMovementInput() ? 0.04 : 0.12
       });
       if (!merged.applied) return false;
       state.runners = [...merged.runners];
@@ -3335,6 +3801,26 @@
       return true;
     }
 
+    function advanceConnectedLocalPrediction(frame, elapsedSeconds) {
+      if (!state.connectedSession || !state.action.raceStarted || state.participantType === "spectator") return false;
+      if (state.action.finalResult || state.action.raceFinished) return false;
+      const player = state.runners[0];
+      if (!player) return false;
+      if (isRunnerStunned(player, Date.now())) return false;
+      const nextPlayer = advanceSingularityRaceLocalPrediction(player, frame, elapsedSeconds, {
+        runProgressPerSecond: LOCAL_RUN_PROGRESS_PER_SECOND,
+        sprintProgressPerSecond: LOCAL_SPRINT_PROGRESS_PER_SECOND,
+        laneSpeedPxPerSecond: LOCAL_LANE_SPEED_PX_PER_SECOND,
+        laneSprintSpeedPxPerSecond: LOCAL_LANE_SPRINT_SPEED_PX_PER_SECOND,
+        minProgress: RAIL_MIN_PROGRESS,
+        maxProgress: RAIL_MAX_PROGRESS,
+        laneHalfWidthPx: ROAD_LANE_HALF_WIDTH_PX
+      });
+      state.runners[0] = nextPlayer;
+      return Math.abs((nextPlayer.progress || 0) - (player.progress || 0)) > 0.0001
+        || Math.abs((nextPlayer.laneOffsetPx || 0) - (player.laneOffsetPx || 0)) > 0.05;
+    }
+
     function openConnectedRoomPacketRelay(roomId, initialPackets) {
       unsubscribeRoomPackets();
       roomPacketTransport = createSingularityDevRoomPacketTransport({
@@ -3345,7 +3831,7 @@
         clock: () => Date.now(),
         packetLimit: 80
       });
-      state.connectedPackets = roomPacketTransport.seedPackets([]);
+      state.connectedPackets = roomPacketTransport.savePackets([], { reason: "session_reset" }).packets;
       applyLatestConnectedStateSnapshot(state.connectedPackets);
       for (const packet of initialPackets) {
         const result = roomPacketTransport.submitPacket(state.connectedPackets, packet, { reason: packet.type });
@@ -3364,7 +3850,7 @@
           renderTrack();
           renderSlots();
           renderActionHud();
-          renderRaceStandings();
+          clearRaceStandings();
           renderRaceResultPanel();
         }
         renderConnectedGate();
@@ -3374,8 +3860,9 @@
     }
 
     function advanceLocalPlayerMovement(frame, elapsedSeconds, reason) {
-      if (state.connectedSession) return false;
+      if (state.connectedSession && state.action.raceStarted) return false;
       const player = state.runners[0];
+      if (isRunnerStunned(player, Date.now())) return false;
       const direction = frame.direction || { x: 0, y: 0 };
       if (!direction.x && !direction.y) return false;
       const sprinting = frame.mode === "sprint";
@@ -3551,14 +4038,18 @@
     }
 
     function focusChatInput() {
-      elements.chatInput.focus();
+      if (state.screen === SINGULARITY_RACE_SCREENS.RACE && state.raceQueueOpen) {
+        state.raceQueueOpen = false;
+        renderAll();
+      }
+      window.setTimeout(() => elements.chatInput.focus(), 0);
     }
 
     function toggleRaceQueueOverlay() {
       if (state.screen !== SINGULARITY_RACE_SCREENS.RACE) return;
       state.raceQueueOpen = !state.raceQueueOpen;
+      state.raceOptionsOpen = false;
       if (state.raceQueueOpen) {
-        state.raceChatOpen = false;
         releaseVirtualMoveKeys(false);
       }
       renderAll();
@@ -3566,37 +4057,134 @@
 
     function toggleRaceChatOverlay(focusInput = false) {
       if (state.screen !== SINGULARITY_RACE_SCREENS.RACE) return;
-      state.raceChatOpen = !state.raceChatOpen;
-      if (state.raceChatOpen) {
-        state.raceQueueOpen = false;
-        releaseVirtualMoveKeys(false);
-      }
+      state.raceQueueOpen = false;
+      state.raceOptionsOpen = false;
       renderAll();
-      if (state.raceChatOpen && focusInput) elements.chatInput.focus();
+      if (focusInput) focusChatInput();
     }
 
-    function setVirtualMoveKey(code, pressed) {
+    function toggleRaceOptionsPanel() {
+      if (state.screen !== SINGULARITY_RACE_SCREENS.RACE) return;
+      state.raceOptionsOpen = !state.raceOptionsOpen;
+      if (state.raceOptionsOpen) state.raceQueueOpen = false;
+      renderAll();
+    }
+
+    function startVirtualJoystick(event) {
+      if (state.participantType === "spectator" || state.action.finalResult || state.raceQueueOpen) return;
+      event.preventDefault();
+      activeJoystickPointerId = event.pointerId;
+      try {
+        elements.raceJoystick.setPointerCapture?.(event.pointerId);
+      } catch {
+        // Synthetic pointer probes and a few desktop browsers can reject capture.
+      }
+      updateVirtualJoystick(event);
+    }
+
+    function moveVirtualJoystick(event) {
+      if (activeJoystickPointerId !== event.pointerId) return;
+      event.preventDefault();
+      updateVirtualJoystick(event);
+    }
+
+    function stopVirtualJoystick(event) {
+      if (event?.pointerId !== undefined && activeJoystickPointerId !== event.pointerId) return;
+      activeJoystickPointerId = null;
+      setVirtualJoystickKeys(new Set());
+      updateJoystickThumb(0, 0);
+    }
+
+    function updateVirtualJoystick(event) {
+      const rect = elements.raceJoystick.getBoundingClientRect();
+      const centerX = rect.left + (rect.width / 2);
+      const centerY = rect.top + (rect.height / 2);
+      const rawX = event.clientX - centerX;
+      const rawY = event.clientY - centerY;
+      const distance = Math.hypot(rawX, rawY);
+      const limited = Math.min(JOYSTICK_MAX_RADIUS_PX, distance);
+      const ratio = distance > 0 ? limited / distance : 0;
+      const x = rawX * ratio;
+      const y = rawY * ratio;
+      const nextKeys = new Set();
+      if (Math.abs(rawX) >= JOYSTICK_DEADZONE_PX) nextKeys.add(rawX > 0 ? "KeyD" : "KeyA");
+      if (Math.abs(rawY) >= JOYSTICK_DEADZONE_PX) nextKeys.add(rawY > 0 ? "KeyS" : "KeyW");
+      updateJoystickThumb(x, y);
+      setVirtualJoystickKeys(nextKeys);
+    }
+
+    function updateJoystickThumb(x, y) {
+      elements.raceJoystickThumb.style.setProperty("--joystick-x", `${Math.round(x)}px`);
+      elements.raceJoystickThumb.style.setProperty("--joystick-y", `${Math.round(y)}px`);
+    }
+
+    function setVirtualJoystickKeys(nextKeys) {
+      let changed = false;
+      for (const code of VIRTUAL_MOVE_KEYS) {
+        changed = setVirtualMoveKey(code, nextKeys.has(code), false) || changed;
+      }
+      if (changed) renderAll();
+    }
+
+    function setVirtualMoveKey(code, pressed, shouldRender = true) {
       if (!VIRTUAL_MOVE_KEYS.includes(code)) return;
       if (state.participantType === "spectator") return;
       if (state.action.finalResult) return;
-      if (pressed && (state.screen !== SINGULARITY_RACE_SCREENS.RACE || state.raceQueueOpen || state.raceChatOpen)) return;
-      state.action.keys[code] = Boolean(pressed);
+      if (pressed && (state.screen !== SINGULARITY_RACE_SCREENS.RACE || state.raceQueueOpen)) return;
+      const nextPressed = Boolean(pressed);
+      if (Boolean(state.action.keys[code]) === nextPressed) return false;
+      state.action.keys[code] = nextPressed;
+      if (pressed) recordMovementInput(code);
       const button = elements.virtualMoveButtons.find((node) => node.dataset.key === code);
       button?.classList.toggle("is-held", Boolean(pressed));
-      if (state.connectedSession) publishConnectedInputRequest(false);
-      renderAll();
+      if (state.connectedSession && state.action.raceStarted) publishConnectedInputRequest(false);
+      if (shouldRender) renderAll();
+      return true;
+    }
+
+    function setVirtualSprint(pressed, shouldRender = true) {
+      if (state.participantType === "spectator" || state.action.finalResult) return false;
+      if (pressed && (state.screen !== SINGULARITY_RACE_SCREENS.RACE || state.raceQueueOpen)) return false;
+      const nextPressed = Boolean(pressed);
+      if (Boolean(state.action.keys.ShiftLeft) === nextPressed) return false;
+      state.action.keys.ShiftLeft = nextPressed;
+      elements.raceSprintButton.classList.toggle("is-held", nextPressed);
+      if (state.connectedSession && state.action.raceStarted) publishConnectedInputRequest(false);
+      if (shouldRender) renderAll();
+      return true;
     }
 
     function releaseVirtualMoveKeys(shouldRender = true) {
       let changed = false;
-      for (const code of VIRTUAL_MOVE_KEYS) {
+      for (const code of VIRTUAL_RELEASE_KEYS) {
         if (!state.action.keys[code]) continue;
         state.action.keys[code] = false;
         changed = true;
       }
       for (const button of elements.virtualMoveButtons) button.classList.remove("is-held");
-      if (changed && state.connectedSession) publishConnectedInputRequest(false);
+      elements.raceSprintButton.classList.remove("is-held");
+      updateJoystickThumb(0, 0);
+      activeJoystickPointerId = null;
+      if (changed && state.connectedSession && state.action.raceStarted) publishConnectedInputRequest(false);
       if (changed && shouldRender) renderAll();
+    }
+
+    function recordMovementInput(code) {
+      if (!VIRTUAL_MOVE_KEYS.includes(code)) return;
+      state.action.lastMovementInputAtMs = Date.now();
+      if (code === "KeyA") state.action.lastFacingDirection = "left";
+      if (code === "KeyD") state.action.lastFacingDirection = "right";
+    }
+
+    function triggerVirtualAttackButton() {
+      if (state.screen !== SINGULARITY_RACE_SCREENS.RACE) return;
+      if (state.action.finalResult) return;
+      if (state.participantType === "spectator") {
+        pushSystem("관전자는 공격할 수 없습니다.");
+        renderAll();
+        return;
+      }
+      performBasicAttack(null);
     }
 
     function triggerVirtualSkillButton() {
@@ -3608,6 +4196,10 @@
         return;
       }
       if (state.connectedSession) {
+        if (!state.action.raceStarted) {
+          renderAll();
+          return;
+        }
         publishConnectedInputRequest(true);
         requestConnectedSkill();
         renderAll();
@@ -3626,7 +4218,7 @@
       renderRaceResultPanel();
       renderSlots();
       renderActionHud();
-      renderRaceStandings();
+      clearRaceStandings();
       renderSkins();
       renderChannelTabs();
       renderMessages();
@@ -3635,7 +4227,6 @@
       renderNetcodeBudget();
       const now = Date.now();
       state.renderCache.lastHudMs = now;
-      state.renderCache.lastStandingsMs = now;
       state.renderCache.lastSlotsMs = now;
     }
 
@@ -3653,10 +4244,6 @@
         renderFlowMetrics();
         renderActionHud();
         state.renderCache.lastHudMs = now;
-      }
-      if (now - state.renderCache.lastStandingsMs >= RACE_STANDINGS_RENDER_INTERVAL_MS) {
-        renderRaceStandings();
-        state.renderCache.lastStandingsMs = now;
       }
       if (state.raceQueueOpen && now - state.renderCache.lastSlotsMs >= RACE_SLOT_RENDER_INTERVAL_MS) {
         renderSlots();
@@ -3679,7 +4266,7 @@
       document.body.dataset.screen = state.screen;
       elements.shell.classList.toggle("is-spectator", state.participantType === "spectator");
       elements.shell.classList.toggle("race-queue-open", state.screen === SINGULARITY_RACE_SCREENS.RACE && state.raceQueueOpen);
-      elements.shell.classList.toggle("race-chat-open", state.screen === SINGULARITY_RACE_SCREENS.RACE && state.raceChatOpen);
+      elements.shell.classList.toggle("race-options-open", state.screen === SINGULARITY_RACE_SCREENS.RACE && state.raceOptionsOpen);
       elements.shell.classList.toggle("race-finished", state.screen === SINGULARITY_RACE_SCREENS.RACE && Boolean(state.action.finalResult));
     }
 
@@ -3711,32 +4298,38 @@
       const spectator = state.participantType === "spectator";
       elements.raceQueueToggle.textContent = state.raceQueueOpen ? "대기열 닫기" : "대기열 보기";
       elements.raceQueueToggle.setAttribute("aria-pressed", String(state.raceQueueOpen));
-      elements.raceChatToggle.textContent = state.raceChatOpen ? "채팅창 닫기" : "채팅창 열기";
-      elements.raceChatToggle.setAttribute("aria-pressed", String(state.raceChatOpen));
-      elements.raceChatActionButton.setAttribute("aria-pressed", String(state.raceChatOpen));
+      elements.raceOptionsButton.setAttribute("aria-pressed", String(state.raceOptionsOpen));
+      elements.raceChatActionButton.setAttribute("aria-pressed", "false");
+      const now = Date.now();
+      const attackCooldownRemainingMs = Math.max(0, Number(state.action.attackCooldownUntilMs || 0) - now);
+      elements.raceAttackButton.disabled = spectator || Boolean(state.action.finalResult) || attackCooldownRemainingMs > 0;
+      elements.raceAttackButton.innerHTML = attackCooldownRemainingMs > 0
+        ? `대기<span>${Math.ceil(attackCooldownRemainingMs / 1000)}초</span>`
+        : "공격<span>기본</span>";
+      const movementDisabled = spectator || Boolean(state.action.finalResult) || state.raceQueueOpen;
+      elements.raceJoystick.setAttribute("aria-disabled", String(movementDisabled));
+      elements.raceSprintButton.disabled = movementDisabled;
+      elements.raceSprintButton.classList.toggle("is-held", Boolean(state.action.keys.ShiftLeft || state.action.keys.ShiftRight));
       for (const button of elements.virtualMoveButtons) {
         button.classList.toggle("is-held", Boolean(state.action.keys[button.dataset.key]));
         button.disabled = spectator;
       }
       if (spectator) {
-        elements.raceStartStatus.innerHTML = "관전 중<span>채팅 가능</span>";
+        elements.raceAttackButton.disabled = true;
         elements.raceSkillButton.disabled = true;
         return;
       }
       if (state.action.finalResult) {
-        elements.raceStartStatus.innerHTML = "완주 완료<span>결과 확인</span>";
+        elements.raceAttackButton.disabled = true;
         elements.raceSkillButton.disabled = true;
         return;
       }
       if (state.action.raceStarted) {
-        elements.raceStartStatus.innerHTML = "플레이 중<span>경기 진행중</span>";
         elements.raceSkillButton.disabled = false;
       } else if (isCountdownActive()) {
-        elements.raceStartStatus.innerHTML = "플레이 시작<span>카운트다운</span>";
         elements.raceSkillButton.disabled = true;
       } else {
-        elements.raceStartStatus.innerHTML = "플레이 시작<span>관리자 대기중</span>";
-        elements.raceSkillButton.disabled = false;
+        elements.raceSkillButton.disabled = true;
       }
     }
 
@@ -3898,6 +4491,7 @@
       if (state.screen === SINGULARITY_RACE_SCREENS.MAP_PREVIEW) {
         elements.trackRunners.replaceChildren();
         state.runnerVisuals.clear();
+        state.runnerMotion.clear();
         renderTrackEffects();
         renderRaceMinimap();
         updateTrackCamera();
@@ -3908,10 +4502,20 @@
       const visualTiming = createRunnerVisualTiming();
       for (const [index, runner] of state.runners.entries()) {
         const point = smoothRunnerVisualPoint(runner, index, visualTiming.elapsedMs);
-        const colliding = runner.collisionAtMs && Date.now() - runner.collisionAtMs < 520;
+        const motion = updateRunnerMotionState(runner, point, visualTiming);
+        const stunned = isRunnerStunned(runner, visualTiming.now);
+        const colliding = runner.collisionAtMs && visualTiming.now - runner.collisionAtMs < 520;
         const avatar = existing.get(runner.id) || createSingularityRunnerAvatarNode(runner);
         activeIds.add(runner.id);
-        avatar.className = `runner-avatar${runner.id === "you" ? " is-player" : ""}${colliding ? " is-colliding" : ""}`;
+        avatar.className = [
+          "runner-avatar",
+          runner.id === "you" ? "is-player" : "",
+          motion.facing === "left" ? "is-facing-left" : "",
+          motion.running ? "is-running" : "is-idle",
+          motion.sprinting ? "is-sprinting" : "",
+          stunned ? "is-stunned" : "",
+          colliding ? "is-colliding" : ""
+        ].filter(Boolean).join(" ");
         avatar.style.left = `${point.x}%`;
         avatar.style.top = `${point.y}%`;
         avatar.style.zIndex = String(4 + Math.round(runner.progress * 10));
@@ -3922,6 +4526,7 @@
         if (!activeIds.has(runnerId)) {
           node.remove();
           state.runnerVisuals.delete(runnerId);
+          state.runnerMotion.delete(runnerId);
         }
       }
       renderTrackEffects();
@@ -3933,7 +4538,50 @@
       const now = Date.now();
       const elapsedMs = state.lastVisualFrameMs ? Math.min(250, now - state.lastVisualFrameMs) : 60;
       state.lastVisualFrameMs = now;
-      return { elapsedMs };
+      return { elapsedMs, now };
+    }
+
+    function updateRunnerMotionState(runner, point, timing) {
+      const previous = state.runnerMotion.get(runner.id);
+      const elapsedSeconds = Math.max(0.016, (timing.elapsedMs || 60) / 1000);
+      const distance = previous ? Math.hypot(point.x - previous.x, point.y - previous.y) : 0;
+      const speed = distance / elapsedSeconds;
+      const movingByInput = runner.id === "you" && (hasMovementKeyHeld() || hasRecentMovementInput(timing.now));
+      const moving = runner.id === "you" ? movingByInput : distance > 0.006;
+      const facing = resolveRunnerFacing(runner, previous);
+      const lastMovedAtMs = moving ? timing.now : previous?.lastMovedAtMs || 0;
+      const running = state.screen === SINGULARITY_RACE_SCREENS.RACE
+        && !state.action.finalResult
+        && timing.now - lastMovedAtMs < 180;
+      const sprinting = running && (runner.id === "you" ? isSprintKeyHeld() : speed > 0.35);
+      const motion = Object.freeze({ x: point.x, y: point.y, progress: runner.progress, speed, facing, lastMovedAtMs, running, sprinting });
+      state.runnerMotion.set(runner.id, motion);
+      return motion;
+    }
+
+    function resolveRunnerFacing(runner, previous) {
+      if (runner.id === "you") {
+        if (state.action.keys.KeyA && !state.action.keys.KeyD) return "left";
+        if (state.action.keys.KeyD && !state.action.keys.KeyA) return "right";
+        if (hasRecentMovementInput()) return state.action.lastFacingDirection || previous?.facing || "right";
+      }
+      const progressDelta = (Number(runner.progress) || 0) - (Number(previous?.progress) || Number(runner.progress) || 0);
+      if (progressDelta < -0.002) return "left";
+      if (progressDelta > 0.002) return "right";
+      return previous?.facing || "right";
+    }
+
+    function hasMovementKeyHeld() {
+      return VIRTUAL_MOVE_KEYS.some((code) => Boolean(state.action.keys[code]));
+    }
+
+    function hasRecentMovementInput(now = Date.now()) {
+      const lastInputAtMs = Number(state.action.lastMovementInputAtMs || 0);
+      return Number.isFinite(lastInputAtMs) && now - lastInputAtMs < 160;
+    }
+
+    function isSprintKeyHeld() {
+      return Boolean(state.action.keys.ShiftLeft || state.action.keys.ShiftRight);
     }
 
     function smoothRunnerVisualPoint(runner, index, elapsedMs) {
@@ -4114,15 +4762,8 @@
       elements.actionPackets.replaceChildren(...state.action.packetLog.slice(-5).map(createSingularityPacketRowNode));
     }
 
-    function renderRaceStandings() {
-      const ranked = rankSingularityRunnerEntries(state.runners);
-      const playerRank = ranked.findIndex((entry) => entry.runner.id === "you") + 1;
-      const leaders = ranked.slice(0, 4);
-      const playerEntry = ranked[playerRank - 1];
-      const rows = playerEntry && !leaders.some((entry) => entry.runner.id === "you")
-        ? [...leaders, playerEntry]
-        : leaders;
-      elements.raceStandings.replaceChildren(...rows.map((entry) => createSingularityStandingRowNode(entry, playerRank)));
+    function clearRaceStandings() {
+      elements.raceStandings.replaceChildren();
     }
 
     function renderSkins() {
