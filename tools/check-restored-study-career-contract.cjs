@@ -55,7 +55,9 @@ function assertPureContractSource() {
   const result = contract.createRestoredCompanyShiftResult(state, { focus: 90, communication: 85, endurance: 90 });
   assert(result.ok && result.promoted, "qualified company grind should be able to promote.");
   application.applyRestoredStudyCareerResultToState(state, result);
-  assert(state.cash > 100000, "company shift should pay DP through an effect.");
+  assert(result.wageWon > 0, "company shift should expose won wages.");
+  assert(result.effects.some((effect) => effect.payload?.currency === "WON"), "study/career money effects should use won currency.");
+  assert(state.cash > 100000, "company shift should pay won through an effect.");
   assert(state.career.currentLevelId === "assistant_manager", "company shift should update career level.");
   assert(state.profile.jobTitle === "Assistant Manager", "company shift should update visible job title.");
 

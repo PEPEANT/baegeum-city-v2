@@ -54,10 +54,16 @@ async function assertPhoneAppContract() {
   assert(storeHtml.includes("BaeTalk"), "app store view must expose messenger as a store candidate.");
 
   const emptyNewsHtml = newsView.renderRestoredNewsListHtml({ newsHistory: [] });
-  const newsHtml = newsView.renderRestoredNewsListHtml({ newsHistory: [{ time: "09:30", msg: "테스트 속보" }] });
-  assert(emptyNewsHtml.includes("아직 수신된 뉴스가 없습니다"), "news app view must render an empty state.");
+  const newsHtml = newsView.renderRestoredNewsListHtml({
+    newsHistory: [{ time: "09:30", sourceLabel: "BAEGEUM WIRE", badge: "Brief", headline: "Baegeum test headline", summary: "Market summary", impact: "Player impact", tags: ["market"] }]
+  });
+  const legacyNewsHtml = newsView.renderRestoredNewsListHtml({ newsHistory: [{ time: "09:31", msg: "legacy headline" }] });
+  assert(emptyNewsHtml.includes("news-empty-state"), "news app view must render an empty state.");
+  assert(newsHtml.includes("data-news-card"), "news app view must render structured news cards.");
   assert(newsHtml.includes("09:30"), "news app view must render news time.");
-  assert(newsHtml.includes("테스트 속보"), "news app view must render news message.");
+  assert(newsHtml.includes("Baegeum test headline"), "news app view must render news headline.");
+  assert(newsHtml.includes("Player impact"), "news app view must render news impact.");
+  assert(legacyNewsHtml.includes("legacy headline"), "news app view must keep legacy message fallback.");
 
   const stockRendered = stockView.renderRestoredStockAppView({}, {
     currentTickerMsg: "시장 테스트",

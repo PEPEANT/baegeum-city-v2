@@ -9,6 +9,13 @@ const MANIFEST_PATH = path.join(ROOT, "src", "restored", "assets", "asset-manife
 const ASSETS_ROOT = path.join(ROOT, "assets");
 const TRACKED_EXTENSIONS = new Set([".mp3", ".ogg", ".wav", ".png", ".jpg", ".jpeg", ".webp", ".svg"]);
 const INBOX_PREFIX = "assets/inbox/";
+const REQUIRED_ASSET_READMES = [
+  "assets/restored/README.md",
+  "assets/restored/audio/README.md",
+  "assets/restored/images/README.md",
+  "assets/restored/source/README.md",
+  "assets/restored/manifests/README.md"
+];
 
 function normalizeRelative(filePath) {
   return path.relative(ROOT, filePath).replace(/\\/g, "/");
@@ -46,6 +53,10 @@ async function main() {
     errors.push("Missing restored asset manifest module.");
   }
 
+  for (const readme of REQUIRED_ASSET_READMES) {
+    if (!fs.existsSync(path.join(ROOT, readme))) errors.push(`Missing restored asset guide: ${readme}`);
+  }
+
   const indexText = fs.existsSync(INDEX_PATH) ? fs.readFileSync(INDEX_PATH, "utf8") : "";
   if (!indexText.includes("baegeum-city-v2-restored-asset-pipeline.md")) {
     errors.push("docs/INDEX.md must link the restored asset pipeline document.");
@@ -55,6 +66,12 @@ async function main() {
   for (const requiredText of [
     "assets/restored/audio",
     "assets/restored/images",
+    "assets/restored/images/characters",
+    "assets/restored/images/singularity-race",
+    "assets/restored/audio/singularity-race",
+    "assets/restored/source/original",
+    "assets/restored/manifests",
+    "Bug Prevention Plan",
     "assets/inbox/",
     "src/restored/assets/asset-manifest.js",
     "tools/check-restored-asset-pipeline.cjs"
@@ -72,6 +89,12 @@ async function main() {
       : ["Manifest module must export validateRestoredAssetManifest."];
 
     errors.push(...manifestErrors);
+
+    for (const role of ["character", "race", "skill", "skin", "stadium"]) {
+      if (!manifestModule.RESTORED_IMAGE_ROLES?.includes(role)) {
+        errors.push(`Manifest image roles must include ${role}.`);
+      }
+    }
 
     const manifestPaths = new Set();
     for (const asset of manifest) {

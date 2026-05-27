@@ -13,6 +13,15 @@ export const RESTORED_PLACE_CATALOG = Object.freeze([
     featureDomains: Object.freeze(["relationship", "ownership"])
   }),
   Object.freeze({
+    id: "baegeum:marathon-stadium",
+    cityId: RESTORED_CITY_IDS.BAEGEUM,
+    label: "Baegeum Marathon Stadium",
+    kind: "stadium",
+    uiSurface: "city",
+    actorSlots: Object.freeze(["runner", "spectator"]),
+    featureDomains: Object.freeze(["marathon", "online_ready", "ranking"])
+  }),
+  Object.freeze({
     id: "baegeum:job-street",
     cityId: RESTORED_CITY_IDS.BAEGEUM,
     label: "배금도시 일자리 거리",

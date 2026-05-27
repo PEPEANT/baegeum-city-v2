@@ -1,6 +1,6 @@
 # Study And Career System
 
-Conclusion: study and company work are a separate career loop: library/university raise intelligence and credits, then company shift choices pay DP and advance promotion without adding reward formulas to the HTML shell.
+Conclusion: study and company work are a separate career loop: library/university raise intelligence and credits, then company shift choices pay 원 and advance promotion without adding reward formulas to the HTML shell.
 
 ## Feature Identity
 
@@ -23,10 +23,10 @@ Conclusion: study and company work are a separate career loop: library/universit
 ```text
 library self-study
 -> intelligence and study credits rise
--> university night class costs DP but grants more credits
+-> university night class costs 원 but grants more credits
 -> company shift unlocks when intelligence and credits are high enough
 -> choose documents / overtime report / team support company work
--> company shift pays DP and adds promotion points based on the chosen work style
+-> company shift pays 원 and adds promotion points based on the chosen work style
 -> promotion changes current company level and visible job title
 ```
 
@@ -56,7 +56,7 @@ Contract version: `restored-study-career-001`.
 
 ## Economy And Ownership Impact
 
-- Cash/chips/items affected: university costs DP; company shifts pay DP. No chips.
+- Cash/chips/items affected: university costs 원; company shifts pay 원. No chips.
 - Ledger or event boundary: all money effects are `economy_ledger_entry` envelopes.
 - Inventory or asset ownership rules: none in the first slice.
 - Risks: company shifts must not become direct cash buttons detached from study gates or duplicated wage formulas in HTML.
@@ -82,7 +82,7 @@ Contract version: `restored-study-career-001`.
 
 - Job ids: `career:baegeum-office`.
 - Unlock conditions: starter company level needs intelligence 48 and credits 8.
-- Income or skill effects: company shifts pay DP, consume energy/mental, and add promotion points.
+- Income or skill effects: company shifts pay 원, consume energy/mental, and add promotion points.
 - UI display: company choices show work style, current level, projected wage, promotion hint, or the missing qualification message.
 - Ranking category: future `jobIncome`, `jobRank`, and `jobReputation`.
 - Online season behavior: none until ranking snapshots are server-owned.
@@ -114,7 +114,7 @@ Contract version: `restored-study-career-001`.
 ## Implementation Order
 
 1. Add pure study/career contract.
-2. Add application helper for `education`, `career`, profile stats, and DP effects.
+2. Add application helper for `education`, `career`, profile stats, and won/cash effects.
 3. Add place-view panel on the existing Baegeum job surface.
 4. Add library, university, and company district to the place catalog.
 5. Wire the restored HTML through one thin `completeStudyCareerAction()` hook.
@@ -127,7 +127,7 @@ Contract version: `restored-study-career-001`.
 - Narrow check: `node tools/check-restored-study-career-contract.cjs`
 - Full check: npm run check
 - Browser check: open Baegeum City -> jobs and verify the study/career panel, the three company work choices, then return to My Info and verify the education/career summary.
-- Manual play notes: library should work without DP, university should require DP, and company work choices should stay locked until study conditions are met.
+- Manual play notes: library should work without tuition, university should require 원, and company work choices should stay locked until study conditions are met.
 
 ## Do Not
 

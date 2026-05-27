@@ -5,11 +5,12 @@ import { createInitialRestoredCareerState, createInitialRestoredEducationState }
 import { createRestoredLuxuryState, createRestoredRealEstateState } from "../data/asset-catalog.js";
 import { createInitialRestoredLocationState } from "../data/location-catalog.js";
 import { createRestoredCryptoState, createRestoredStockState } from "../data/market-catalog.js";
+import { createInitialRestoredFixedJobContractState } from "../jobs/life-job-fixed-contract.js";
 import { createInitialRestoredOnlineState } from "../online/online-adapter-contract.js";
 import { createInitialRestoredProfileState } from "../player/profile-contract.js";
 import { createInitialRestoredMarketState } from "../systems/market-contract.js";
 
-export const RESTORED_INITIAL_STATE_VERSION = "restored-initial-state-003";
+export const RESTORED_INITIAL_STATE_VERSION = "restored-initial-state-005";
 
 export const EXCHANGE_RATE = 1350;
 
@@ -23,6 +24,9 @@ function createRestoredStateShape() {
     realEstate: createRestoredRealEstateState(),
     luxury: createRestoredLuxuryState(),
     profile: createInitialRestoredProfileState(),
+    fixedJobContract: createInitialRestoredFixedJobContractState(),
+    jobHistory: [],
+    jobStats: {},
     education: createInitialRestoredEducationState(),
     career: createInitialRestoredCareerState(),
     account: createInitialRestoredAccountState(),

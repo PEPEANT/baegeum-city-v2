@@ -78,8 +78,8 @@ export function scoreRestoredLifeJob(jobId, performanceInput = {}) {
   return Object.freeze({ ok: true, jobId: job.id, performance, score, grade: rule.grade, gradeRule: Object.freeze({ ...rule }) });
 }
 
-export function formatRestoredDp(amount) {
-  return `${Math.round(Number(amount) || 0).toLocaleString("en-US")} DP`;
+export function formatRestoredWon(amount) {
+  return `${Math.round(Number(amount) || 0).toLocaleString("ko-KR")}원`;
 }
 
 export function createRestoredLifeJobResult(jobId, performanceInput = {}, options = {}) {
@@ -87,16 +87,16 @@ export function createRestoredLifeJobResult(jobId, performanceInput = {}, option
   if (!job) return Object.freeze({ ok: false, reason: "unknown_job" });
   const scored = scoreRestoredLifeJob(jobId, performanceInput);
   const actorId = stringOrFallback(options.actorId, "player:local");
-  const wageDp = Math.max(0, Math.round(job.baseWageDp * scored.gradeRule.wageMultiplier));
+  const wageWon = Math.max(0, Math.round(job.baseWageWon * scored.gradeRule.wageMultiplier));
   const condition = createConditionDelta(job, scored);
   const effects = [
-    createWageEffect(actorId, job, wageDp, options),
+    createWageEffect(actorId, job, wageWon, options),
     createConditionEffect(actorId, job, condition),
     createRelationshipHookEffect(actorId, job, scored),
     freezeEffect({
       type: RESTORED_LIFE_JOB_EFFECT_TYPES.UI_MESSAGE,
       targetId: actorId,
-      payload: { message: `${job.displayName} complete: ${scored.grade} / ${formatRestoredDp(wageDp)}` }
+      payload: { message: `${job.displayName} 완료: ${scored.grade} / ${formatRestoredWon(wageWon)}` }
     })
   ];
   if (shouldGrantBonusItem(job.bonusItem, scored.grade)) effects.splice(3, 0, createBonusItemEffect(actorId, job.bonusItem));
@@ -111,8 +111,8 @@ export function createRestoredLifeJobResult(jobId, performanceInput = {}, option
     minutes: job.minutes,
     score: scored.score,
     grade: scored.grade,
-    wageDp,
-    wageText: formatRestoredDp(wageDp),
+    wageWon,
+    wageText: formatRestoredWon(wageWon),
     tasks: createRestoredLifeJobTaskDeck(job.id),
     effects: Object.freeze(effects)
   });
@@ -121,20 +121,24 @@ export function createRestoredLifeJobResult(jobId, performanceInput = {}, option
 export function validateRestoredLifeJobContract() {
   const errors = [];
   const jobs = listRestoredLifeJobs();
-  if (jobs.length !== 3) errors.push("life job catalog should include three starter jobs");
+  if (jobs.length < 10) errors.push("life job catalog should include the starter job buildings");
   if (new Set(jobs.map((job) => job.id)).size !== jobs.length) errors.push("life job ids must be unique");
   if (!getRestoredLifeJob(RESTORED_LIFE_JOB_IDS.CONVENIENCE_STORE)) errors.push("convenience store job is required");
   if (!getRestoredLifeJob(RESTORED_LIFE_JOB_IDS.FAST_FOOD)) errors.push("fast-food job is required");
   if (!getRestoredLifeJob(RESTORED_LIFE_JOB_IDS.LABOR_OFFICE)) errors.push("labor-office job is required");
-  if (jobs.some((job) => job.baseWageDp <= 0 || job.minutes <= 0 || !job.tasks.length)) errors.push("each job needs wage, duration, and tasks");
-  if (!(getRestoredLifeJob(RESTORED_LIFE_JOB_IDS.LABOR_OFFICE)?.baseWageDp > getRestoredLifeJob(RESTORED_LIFE_JOB_IDS.FAST_FOOD)?.baseWageDp)) {
+  if (!getRestoredLifeJob(RESTORED_LIFE_JOB_IDS.PC_ROOM)) errors.push("pc-room job is required");
+  if (!getRestoredLifeJob(RESTORED_LIFE_JOB_IDS.DELIVERY)) errors.push("delivery job is required");
+  if (!getRestoredLifeJob(RESTORED_LIFE_JOB_IDS.FACTORY)) errors.push("factory job is required");
+  if (!getRestoredLifeJob(RESTORED_LIFE_JOB_IDS.PORT)) errors.push("port job is required");
+  if (jobs.some((job) => job.baseWageWon <= 0 || job.minutes <= 0 || !job.tasks.length)) errors.push("each job needs wage, duration, and tasks");
+  if (!(getRestoredLifeJob(RESTORED_LIFE_JOB_IDS.LABOR_OFFICE)?.baseWageWon > getRestoredLifeJob(RESTORED_LIFE_JOB_IDS.FAST_FOOD)?.baseWageWon)) {
     errors.push("labor-office work should pay more than fast-food work");
   }
   const high = scoreRestoredLifeJob(RESTORED_LIFE_JOB_IDS.CONVENIENCE_STORE, { accuracy: 95, speed: 90, service: 95, stamina: 90, combo: 4 });
   const low = scoreRestoredLifeJob(RESTORED_LIFE_JOB_IDS.CONVENIENCE_STORE, { accuracy: 10, speed: 10, service: 10, stamina: 10, mistakes: 5 });
   if (!(high.ok && low.ok && high.score > low.score && high.grade === "S" && low.grade === "F")) errors.push("job scoring must separate high and low performance");
   const result = createRestoredLifeJobResult(RESTORED_LIFE_JOB_IDS.FAST_FOOD, { accuracy: 80, speed: 80, service: 70, stamina: 75, combo: 2 });
-  if (!result.ok || result.wageDp <= 0) errors.push("job result must produce a positive wage");
+  if (!result.ok || result.wageWon <= 0) errors.push("job result must produce a positive wage");
   if (!result.effects.some((effect) => effect.type === RESTORED_LIFE_JOB_EFFECT_TYPES.ECONOMY_LEDGER_ENTRY)) errors.push("job result must emit a wage ledger effect");
   if (!result.effects.some((effect) => effect.type === RESTORED_LIFE_JOB_EFFECT_TYPES.RELATIONSHIP_EVENT_HOOK)) errors.push("job result must expose a relationship hook");
   return Object.freeze({ ok: errors.length === 0, errors: Object.freeze(errors) });
@@ -149,14 +153,14 @@ function createConditionDelta(job, scored) {
   });
 }
 
-function createWageEffect(actorId, job, wageDp, options) {
+function createWageEffect(actorId, job, wageWon, options) {
   return freezeEffect({
     type: RESTORED_LIFE_JOB_EFFECT_TYPES.ECONOMY_LEDGER_ENTRY,
     targetId: actorId,
     payload: {
       entryType: "job_wage",
-      currency: "DP",
-      deltas: { cash: wageDp },
+      currency: "WON",
+      deltas: { cash: wageWon },
       reason: stringOrFallback(options.reason, `${job.displayName} wage`),
       placeId: job.placeId
     }

@@ -15,6 +15,20 @@ Current pre-split contracts:
 
 - `account/session-contract.js`: login/account state, online availability state, and legacy save-code visibility rules.
 - `online/online-adapter-contract.js`: unavailable-by-default online adapter snapshot, online state validation, and lobby availability guard.
+- `online/marathon-room-adapter.js`: dev-only Singularity Race room adapter and connected lobby gate helper; unavailable by default unless the caller enables dev mode or injects a connected server transport plus room list.
+- `online/marathon-server-room-adapter.js`: server-transport-backed Singularity Race room adapter shape, kept separate from the dev adapter so future WebSocket/Firebase rooms can plug in without opening public matchmaking by default.
+- `online/marathon-channel-adapter.js`: dev-only Singularity Race lobby, room, spectator, admin, and notice channel contracts plus local message shape.
+- `online/marathon-dev-chat-transport.js`: temporary same-origin dev chat relay and latest-500-message local history for Singularity Race lobby/admin pages before the real server transport exists.
+- `online/marathon-dev-room-transport.js`: temporary same-origin dev room packet relay for Singularity Race join/input/skill/attack/snapshot packets before WebSocket delivery exists.
+- `online/marathon-netcode-contract.js`: 30-runner Singularity Race latency/bandwidth budget, input coalescing, snapshot cadence, interpolation, degraded-lane rules, and relay packet pressure guard.
+- `online/marathon-server-transport-contract.js`: server-shaped Singularity Race WebSocket/Firebase-style transport config, snapshot, and packet envelope contract for future server delivery without embedded client secrets.
+- `online/marathon-server-state-contract.js`: server-owned Singularity Race movement state, including room start, accepted input application, stale-input rejection, finish clamp, and server-owned runner snapshots.
+- `online/marathon-websocket-dev-server-mock.js`: local WebSocket-shaped server rehearsal for connected transport, room join, client packet ingest, server-owned movement, server snapshot creation, and netcode rate limiting without opening public online.
+- `games/singularity-race-dev-online.js`: player-page dev relay helpers plus the server `state_snapshot` to runner-display merge used before a real transport is attached.
+- `games/marathon-input-contract.js`: pure Singularity Race WASD, Shift sprint, E skill, and mouse attack input contract.
+- `games/marathon-character-skill-contract.js`: pure checkpoint meme-style character assignment and skill-use contract.
+- `games/marathon-combat-contract.js`: pure mouse attack, hit, runner-down, and checkpoint respawn contract.
+- `games/marathon-trail-geometry.js`: single log-curve trail geometry, five save point positions, SVG path helpers, and pointer-to-progress estimation for the standalone lobby.
 - `player/profile-contract.js`: player profile, job title, residence, condition, and core stat shape for My Info.
 - `phone/phone-app-contract.js`: phone app ids, display labels, and phone/smartphone access gates.
 - `data/city-catalog.js`: restored city roles for `baegeum-city`, `dice-city`, and `seosan-city`.
@@ -32,7 +46,7 @@ Current pre-split contracts:
 - `actors/actor-contract.js`: AI actor identity, location, and memory-event shape.
 - `ui/shell-contract.js`: bottom tabs, phone apps, and major UI surfaces.
 - `ui/location-nav-contract.js`: location-aware actions for home, house-front, travel, and first city contexts.
-- `assets/asset-manifest.js`: restored mp3/image ids and legacy asset registration.
+- `assets/asset-manifest.js`: restored mp3/image ids, character/race asset roles, source/status metadata, and legacy asset registration.
 
 Planning docs:
 

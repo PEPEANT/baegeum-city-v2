@@ -26,14 +26,76 @@ export const RESTORED_PLACE_SURFACE_COPY = Object.freeze({
   job_places: Object.freeze({
     meta: "Baegeum City",
     cards: Object.freeze([
-      Object.freeze({ title: "고시원", status: "수면/저장 후보", copy: "하루를 넘기는 가장 싼 방. 생활 루프의 시작점." }),
-      Object.freeze({ title: "편의점", status: "알바 후보", copy: "짧은 근무, 낮은 보상, 초반 체력 소모 검증용." }),
-      Object.freeze({ title: "맥버거", status: "알바 후보", copy: "식사/알바/체력 회복을 한 곳에 묶을 매장." }),
-      Object.freeze({ title: "인력소", status: "직업 확장 후보", copy: "공장, 배달, 단기 일감으로 이어질 구직 허브." })
+      Object.freeze({ title: "편의점", status: "입장 가능", copy: "야간 손님, 진열, 계산을 처리하는 초반 알바 건물.", entryActionId: "convenience_store" }),
+      Object.freeze({ title: "맥버거", status: "입장 가능", copy: "주문 조리와 포장 러시를 버티는 패스트푸드 알바.", entryActionId: "fast_food" }),
+      Object.freeze({ title: "인력소", status: "입장 가능", copy: "상하차와 단기 일당으로 몸을 갈아 원화를 버는 곳.", entryActionId: "labor_office" }),
+      Object.freeze({ title: "PC방", status: "입장 가능", copy: "야간 손님과 간식 주문을 처리하는 정신 소모형 알바.", entryActionId: "pc_room" }),
+      Object.freeze({ title: "배달대행", status: "입장 가능", copy: "속도는 빠르지만 체력과 멘탈이 같이 깎이는 배달 알바.", entryActionId: "delivery" }),
+      Object.freeze({ title: "주차장", status: "입장 가능", copy: "차량 안내와 출차 줄 관리를 맡는 안정형 알바.", entryActionId: "parking_lot" }),
+      Object.freeze({ title: "세차장", status: "입장 가능", copy: "몸을 쓰지만 평판을 쌓기 좋은 세차장 근무.", entryActionId: "car_wash" }),
+      Object.freeze({ title: "청소사무소", status: "입장 가능", copy: "건물 오픈 전 청소와 비품 정리를 맡는 단기 근무.", entryActionId: "cleaning" }),
+      Object.freeze({ title: "전단지 게시판", status: "입장 가능", copy: "수입은 작지만 바로 시작할 수 있는 가장 가벼운 일.", entryActionId: "flyer" }),
+      Object.freeze({ title: "도서관", status: "입장 가능", copy: "공부로 지능과 학점을 올려 회사 루프로 넘어간다.", entryActionId: "library" }),
+      Object.freeze({ title: "대학 야간강의", status: "입장 가능", copy: "원화 수강료를 내고 학점을 빠르게 쌓는 교육 건물.", entryActionId: "university" }),
+      Object.freeze({ title: "배금 오피스", status: "입장 가능", copy: "조건을 맞추면 회사 근무와 승급 루프가 열린다.", entryActionId: "company" })
     ]),
     title: "배금도시 일자리",
-    copy: "정장 차림 사람들과 구직 전단이 뒤섞인 고용 거리입니다.",
-    actions: Object.freeze([Object.freeze({ label: "구인 게시판", tone: "indigo" })])
+    copy: "건물에 들어가 알바, 공부, 회사 근무를 시작하는 고용 거리입니다.",
+    actions: Object.freeze([Object.freeze({ label: "건물 목록 확인", tone: "indigo", message: "아래 건물 카드의 입장 버튼으로 들어가세요." })])
+  }),
+  pc_room: Object.freeze({
+    meta: "Baegeum City",
+    title: "PC방",
+    copy: "키보드 소리, 컵라면 냄새, 야간 손님이 섞인 동네 PC방입니다.",
+    actions: Object.freeze([Object.freeze({ label: "카운터 근무", tone: "indigo", message: "아래 근무 선택지에서 시작하세요." })])
+  }),
+  flyer: Object.freeze({
+    meta: "Baegeum City",
+    title: "전단지 게시판",
+    copy: "작은 수입이라도 바로 필요한 사람들을 위한 단기 모집 게시판입니다.",
+    actions: Object.freeze([Object.freeze({ label: "전단 묶음 받기", tone: "slate", message: "아래 근무 선택지에서 시작하세요." })])
+  }),
+  delivery: Object.freeze({
+    meta: "Baegeum City",
+    title: "배달대행 사무실",
+    copy: "콜이 울리고 헬멧이 줄지어 놓인 빠른 돈의 입구입니다.",
+    actions: Object.freeze([Object.freeze({ label: "배달 콜 확인", tone: "indigo", message: "아래 근무 선택지에서 시작하세요." })])
+  }),
+  parking_lot: Object.freeze({
+    meta: "Baegeum City",
+    title: "주차장",
+    copy: "차량 흐름을 정리하고 출차 줄을 버티는 안정형 일자리입니다.",
+    actions: Object.freeze([Object.freeze({ label: "정산소 들어가기", tone: "slate", message: "아래 근무 선택지에서 시작하세요." })])
+  }),
+  car_wash: Object.freeze({
+    meta: "Baegeum City",
+    title: "세차장",
+    copy: "물과 거품 냄새가 가득한 곳. 몸을 쓰는 만큼 현금이 남습니다.",
+    actions: Object.freeze([Object.freeze({ label: "세차 라인 입장", tone: "emerald", message: "아래 근무 선택지에서 시작하세요." })])
+  }),
+  cleaning: Object.freeze({
+    meta: "Baegeum City",
+    title: "청소사무소",
+    copy: "영업 전 건물과 계단을 정리하는 조용한 단기 알바입니다.",
+    actions: Object.freeze([Object.freeze({ label: "청소 도구 받기", tone: "slate", message: "아래 근무 선택지에서 시작하세요." })])
+  }),
+  library: Object.freeze({
+    meta: "Baegeum City",
+    title: "도서관",
+    copy: "지능과 학점을 쌓아 더 안정적인 직업으로 넘어가는 입구입니다.",
+    actions: Object.freeze([Object.freeze({ label: "공부 자리 찾기", tone: "indigo", message: "아래 공부/커리어 선택지에서 시작하세요." })])
+  }),
+  university: Object.freeze({
+    meta: "Baegeum City",
+    title: "대학 야간강의",
+    copy: "원화 수강료를 내고 학점을 빠르게 쌓는 밤 강의실입니다.",
+    actions: Object.freeze([Object.freeze({ label: "강의실 입장", tone: "indigo", message: "아래 공부/커리어 선택지에서 시작하세요." })])
+  }),
+  company: Object.freeze({
+    meta: "Baegeum City",
+    title: "배금 오피스",
+    copy: "서류, 야근, 팀 지원으로 승급을 노리는 첫 회사 구역입니다.",
+    actions: Object.freeze([Object.freeze({ label: "사무실 입장", tone: "slate", message: "아래 공부/커리어 선택지에서 시작하세요." })])
   }),
   shops: Object.freeze({
     meta: "Baegeum City",
@@ -57,7 +119,16 @@ export const RESTORED_PLACE_SURFACE_COPY = Object.freeze({
     actions: Object.freeze([
       Object.freeze({ label: "산책하기", tone: "pink", action: "walk" }),
       Object.freeze({ label: "휴대폰 연락처", tone: "slate", tab: "phone" })
+    ]),
+    cards: Object.freeze([
+      Object.freeze({ title: "Baegeum Marathon Stadium", status: "30 runner preview", copy: "Local player plus 29 bot runners; online room authority is prepared in the contract.", entryActionId: "marathon_stadium" })
     ])
+  }),
+  marathon_stadium: Object.freeze({
+    meta: "Baegeum City",
+    title: "Baegeum Marathon Stadium",
+    copy: "A local 2D marathon preview with 30 runners. Connected rooms will open only after the online adapter is ready.",
+    actions: Object.freeze([Object.freeze({ label: "Local Preview", tone: "indigo", message: "Use the pace buttons in the stadium panel." })])
   }),
   casino_street: Object.freeze({
     meta: "Dice City",
@@ -151,9 +222,16 @@ function renderActionButton(item) {
 }
 
 function renderSurfaceRow(item) {
-  return `<div class="flex items-start justify-between gap-3 py-3"><div><div class="text-sm font-black text-slate-800">${escapeHtml(item.title)}</div><div class="mt-0.5 text-xs text-slate-500">${escapeHtml(item.copy)}</div></div><div class="shrink-0 rounded-full bg-slate-100 px-2 py-1 text-[10px] font-black text-slate-500">${escapeHtml(item.status)}</div></div>`;
+  const entryButton = item.entryActionId
+    ? `<button onclick="enterRestoredPlaceBuilding('${escapeAttr(item.entryActionId)}')" class="mt-2 rounded-lg border border-indigo-100 bg-indigo-50 px-3 py-1.5 text-[11px] font-black text-indigo-700 active:scale-95 transition">입장</button>`
+    : "";
+  return `<div class="flex items-start justify-between gap-3 py-3"><div><div class="text-sm font-black text-slate-800">${escapeHtml(item.title)}</div><div class="mt-0.5 text-xs text-slate-500">${escapeHtml(item.copy)}</div>${entryButton}</div><div class="shrink-0 rounded-full bg-slate-100 px-2 py-1 text-[10px] font-black text-slate-500">${escapeHtml(item.status)}</div></div>`;
 }
 
 function escapeHtml(value) {
   return String(value ?? "").replace(/[&<>"']/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[char]));
+}
+
+function escapeAttr(value) {
+  return escapeHtml(value).replace(/`/g, "&#96;");
 }

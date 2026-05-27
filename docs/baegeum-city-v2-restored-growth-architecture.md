@@ -117,15 +117,21 @@ src/restored/
 
 ```text
 assets/restored/
-  partners/
-    college-student/
-      portrait-neutral.png
-      portrait-happy.png
-      event-date-01.png
-    office-worker/
-      portrait-neutral.png
-  items/
-  backgrounds/
+  images/
+    partners/
+      college-student/
+        portrait-neutral.png
+        portrait-happy.png
+        event-date-01.png
+      office-worker/
+        portrait-neutral.png
+    characters/
+    items/
+    backgrounds/
+    singularity-race/
+  audio/
+  source/
+  manifests/
 ```
 
 ## 스크립트 분리 규칙

@@ -42,7 +42,19 @@ assets/restored/
     sfx/
     voice/
     ambience/
+    singularity-race/
+      bgm/
+      sfx/
+      voice/
+      ambience/
   images/
+    characters/
+      <character-id>/
+        portrait/
+        fullbody/
+        chibi/
+        emotion/
+        cutscene/
     partners/
     items/
     backgrounds/
@@ -50,17 +62,31 @@ assets/restored/
     city/
     casino/
     phone/
+    singularity-race/
+      characters/
+      skills/
+      skins/
+      stadium/
+      ui/
   source/
+    original/
     generated/
     github/
+    human/
+    references/
     screenshots/
   manifests/
+    batches/
 ```
 
 Primary roots:
 
 - `assets/restored/audio`
 - `assets/restored/images`
+- `assets/restored/images/characters`
+- `assets/restored/images/singularity-race`
+- `assets/restored/source`
+- `assets/restored/manifests`
 
 Raw human-provided files can first land in `assets/inbox/`. That folder is quarantine and is intentionally excluded from runtime manifest coverage until a file is promoted.
 
@@ -75,9 +101,13 @@ Examples:
 ```text
 audio:bgm:reclaim-2-5:0
 image:partner:college-student:portrait-neutral
+image:character:dororong:portrait-neutral
+image:race:skill:slow-zone:icon
+image:race:skin:mint-runner:chibi-run
 image:item:ring:icon
 image:casino:odd-even:table
 image:phone:news:app-icon
+audio:race:sfx:countdown-beep
 ```
 
 Rules:
@@ -87,6 +117,8 @@ Rules:
 - Make the first segment the media type: `audio` or `image`.
 - Make the second segment the gameplay role: `bgm`, `partner`, `item`, `casino`, `phone`, and so on.
 - Use stable ids even if the file path changes later.
+- Use optional `collection` metadata for feature-owned packs such as `singularity-race`.
+- Store only asset ids in gameplay catalogs, packets, save data, and character definitions.
 
 ## Audio Rules
 
@@ -110,12 +142,17 @@ The current `reclaim-2.5` mp3 files are registered as legacy `bgm` assets.
 Images must be classified before use:
 
 - `partner`: portraits, outfits, mood states, date/event illustrations.
+- `character`: shared character illustrations that can appear in several systems.
 - `item`: inventory, gifts, luxury goods, and ownership icons.
 - `background`: phone wallpaper, room backgrounds, city scene backplates.
 - `ui`: app icons, buttons, badges, and interface-only art.
 - `city`: buildings, district thumbnails, travel images.
 - `casino`: tables, chips, cards, slot art, gambling venue images.
 - `phone`: phone app surfaces and notification art.
+- `race`: Singularity Race general art.
+- `skill`: skill icons and effect cards.
+- `skin`: playable skin and runner variants.
+- `stadium`: race course, stadium, checkpoint, and finish-line art.
 - `preview` or `reference`: local concept/reference images that should not become gameplay assets yet.
 
 Allowed runtime image extensions:
@@ -123,6 +160,38 @@ Allowed runtime image extensions:
 ```text
 .png .jpg .jpeg .webp .svg
 ```
+
+## Character Pack Rules
+
+Character assets should be grouped by stable character id before they are used in UI:
+
+```text
+assets/restored/images/characters/<character-id>/
+  portrait/portrait-neutral.webp
+  portrait/portrait-happy.webp
+  fullbody/fullbody-default.webp
+  chibi/chibi-idle.webp
+  chibi/chibi-run.webp
+  emotion/emotion-angry.webp
+  cutscene/cutscene-intro.webp
+```
+
+Singularity Race can own race-only variants without polluting shared character art:
+
+```text
+assets/restored/images/singularity-race/characters/<character-id>/
+assets/restored/images/singularity-race/skills/<skill-id>/
+assets/restored/images/singularity-race/skins/<skin-id>/
+assets/restored/images/singularity-race/stadium/
+assets/restored/audio/singularity-race/sfx/
+```
+
+Rules:
+
+- Shared `characters/` art can be reused by relationship, phone, city, and race systems.
+- `singularity-race/` art is feature-owned and can be optimized for small runner sprites, chibi poses, skill icons, and stadium UI.
+- Do not put copied meme or IP art directly into runtime folders unless source and rights are clear. Use original/parody-safe designs or keep references in `assets/restored/source/references/`.
+- Character catalogs should point to manifest ids, not paths.
 
 ## Source And License Rule
 
@@ -137,11 +206,28 @@ Minimum manifest fields:
   role: "partner",
   path: "assets/restored/images/partners/college-student/portrait-neutral.png",
   source: "generated",
-  status: "planned"
+  status: "planned",
+  collection: "relationship"
 }
 ```
 
 Open-source references belong in `refs/` first. Do not copy files from GitHub into `assets/` until the license and allowed use are recorded.
+
+Recommended optional fields:
+
+```js
+{
+  collection: "singularity-race",
+  characterId: "dororong",
+  variant: "chibi-run",
+  width: 512,
+  height: 512,
+  durationMs: 1200,
+  loop: false
+}
+```
+
+Keep these fields metadata-only until a renderer needs them.
 
 ## Runtime Rule
 
@@ -156,6 +242,21 @@ UI or system wants art/audio
 
 Future illustration and conversation systems should store only `assetId` values.
 
+## Bug Prevention Plan
+
+Likely issues and the guard to use:
+
+- Inbox leakage: runtime must never reference `assets/inbox/`; intake and asset checks guard this.
+- Duplicate names: manifest ids are stable and unique even when files are renamed.
+- Wrong feature loading: use `collection: "singularity-race"` or another collection tag for feature-owned packs.
+- Large files causing slow loads: keep masters in `assets/restored/source/original/`, then promote compressed runtime copies.
+- Broken character variants: use the character pack folder shape and variant names such as `portrait-neutral`, `chibi-run`, and `skill-icon`.
+- License/source confusion: every manifest entry needs `source` and `status`; copied external material stays reference-only until reviewed.
+- Online sync bugs: online packets and save data should send asset ids only, never raw URLs or local paths.
+- Audio autoplay errors: manifest registration does not imply automatic playback; runtime systems must request playback after user interaction.
+- Case-sensitive deployment bugs: use lowercase kebab-case file and folder names.
+- Missing runtime file bugs: `tools/check-restored-asset-pipeline.cjs` checks that manifest paths exist.
+
 ## Verification
 
 `tools/check-restored-asset-pipeline.cjs` guards this pipeline.
@@ -167,6 +268,9 @@ The check should fail when:
 - A manifest path does not exist.
 - An audio file uses an image role, or an image file uses an audio role.
 - Asset ids are duplicated.
+- A manifest entry points at `assets/inbox/`.
+- A manifest entry is missing source/status metadata.
+- The restored asset README guard files are missing.
 - This document is not linked from `docs/INDEX.md`.
 
 This gives the redesign a simple rule: add the file, register the id, then use the id.

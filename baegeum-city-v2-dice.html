@@ -116,6 +116,7 @@
                         </div>
 
                         <div class="mt-5 border-t border-gray-100 pt-5"><div class="flex items-center justify-between mb-3"><h3 class="text-sm font-black text-gray-800">캐릭터 능력치</h3><span class="text-[10px] font-bold text-gray-400">생활/직업/대화 확장 기준</span></div><div id="profile-stat-grid" class="grid grid-cols-1 sm:grid-cols-2 gap-3"></div></div>
+                        <div class="mt-5 border-t border-gray-100 pt-5"><div class="flex items-center justify-between mb-3"><h3 class="text-sm font-black text-gray-800">근무 기록</h3><span class="text-[10px] font-bold text-gray-400">알바와 노동 누적</span></div><div id="life-job-history-card"></div></div>
                         <div class="mt-5 border-t border-gray-100 pt-5"><div class="flex items-center justify-between mb-3"><h3 class="text-sm font-black text-gray-800">교육 / 커리어</h3><span class="text-[10px] font-bold text-gray-400">공부와 승급 진행</span></div><div id="study-career-summary-card"></div></div>
                         <div class="mt-5 border-t border-gray-100 pt-5"><div class="flex items-center justify-between mb-3"><h3 class="text-sm font-black text-gray-800">관계 요약</h3><span class="text-[10px] font-bold text-gray-400">상세 관리는 휴대폰</span></div><div id="relationship-summary-card"></div></div>
                         <div class="mt-5 border-t border-gray-100 pt-5"><div class="flex items-center justify-between mb-3"><h3 class="text-sm font-black text-gray-800">인벤토리</h3><span id="profile-inventory-summary" class="text-[10px] font-bold text-gray-400">0개</span></div><div id="profile-inventory-list" class="grid grid-cols-1 sm:grid-cols-2 gap-2"></div></div>
@@ -467,13 +468,17 @@
         import { createRestoredCompanyShiftPresetResult, createRestoredStudyResult } from './src/restored/career/study-career-contract.js';
         import { renderRestoredStudyCareerPlaceHtml } from './src/restored/career/study-career-place-view.js';
         import { renderRestoredStudyCareerSummaryHtml } from './src/restored/career/study-career-summary-view.js';
-        import { applyRestoredLifeJobResultToState } from './src/restored/jobs/life-job-result-application.js';
+        import { renderRestoredLifeJobHistoryHtml } from './src/restored/jobs/life-job-history-view.js';
+        import { createRestoredFixedJobContract } from './src/restored/jobs/life-job-fixed-contract.js';
+        import { applyRestoredLifeJobResultToState, markRestoredFixedJobAbsenceInState } from './src/restored/jobs/life-job-result-application.js';
         import { createRestoredLifeJobPresetResult, renderRestoredLifeJobPlaceHtml } from './src/restored/jobs/life-job-place-view.js';
+        import { advanceRestoredMarathonPreviewState, createRestoredMarathonPreviewState, renderRestoredMarathonStadiumHtml } from './src/restored/games/marathon-stadium-view.js';
         import { getRestoredRelationshipSummaryView, renderRestoredRelationshipSummaryHtml } from './src/restored/ui/relationship-summary-view.js';
+        import { createRestoredAiReporterNewsItem, createRestoredCrashNewsItem, createRestoredNewsCycleItem, getRestoredNewsTickerText, normalizeRestoredNewsItem } from './src/restored/systems/news-cycle-contract.js';
         import { getRestoredRank, getRestoredRankIndex, getRestoredTotalAsset, hasRestoredPhone, hasRestoredSmartPhone, listRestoredInventoryItems } from './src/restored/state/selectors.js';
         import { projectRestoredConsumableUse } from './src/restored/inventory/consumable-contract.js';
         import { renderRestoredInventoryPreviewHtml } from './src/restored/inventory/inventory-view.js';
-        import { RESTORED_CRASH_EXTERNAL as CRASH_EXTERNAL, RESTORED_CRASH_INTERNAL as CRASH_INTERNAL, RESTORED_MARKET_CYCLE_ORDER as CYCLE_ORDER, RESTORED_MARKET_CYCLES as CYCLES, RESTORED_MARKET_NEWS_MESSAGES as NEWS_MESSAGES } from './src/restored/data/market-catalog.js';
+        import { RESTORED_MARKET_CYCLE_ORDER as CYCLE_ORDER, RESTORED_MARKET_CYCLES as CYCLES } from './src/restored/data/market-catalog.js';
         import { createRestoredPartnerFromArchetype, pickRestoredPartnerArchetype } from './src/restored/data/partner-catalog.js';
         import { RESTORED_RANKS as RANKS } from './src/restored/data/rank-catalog.js';
         async function callGemini(prompt) {
@@ -482,16 +487,14 @@
                     let response = "";
                     if(prompt.includes("경제 뉴스 속보")) {
                         const newsTemplates = [
-                            "속보: AI 관련주 일제히 급등, '거품인가 혁신인가' 논란",
-                            "전문가 '지금이 매수 적기' vs '아직 바닥 아니다' 팽팽",
-                            "비트코인, 뜬금없는 고래 매수세에 5% 급반등 성공",
-                            "연준 의장 '금리 인하, 아직 시기상조' 발언에 시장 출렁",
-                            "글로벌 반도체 공급 부족 심화... 관련주 수혜 예상",
-                            "테슬라, 차세대 자율주행 모델 발표 루머에 시간외 급등",
-                            "국제 유가 불안정... 에너지 관련주 변동성 확대 주의",
-                            "밈코인 열풍 다시 부나? 개구리 코인 200% 폭등",
-                            "대형 헤지펀드, 기술주 비중 축소하고 현금 확보 중",
-                            "애플, 혁신적인 AR 기기 특허 공개... 메타버스 테마주 들썩"
+                            "배금전자 AI 서버 수주설 재점화... 확인 전 매수 과열 주의",
+                            "배금은행, 저신용 대출 심사 강화... 월세 부담층 상담 증가",
+                            "다이스시티 DPA 환전량 급증... 레버리지 손실 경고등",
+                            "맥버거푸드 야간 매출 회복... 단기 알바 모집 확대",
+                            "배금증권 앱 접속량 증가... AI 테마 검색어 상위권",
+                            "세이브클라우드 데이터센터 증설설... 전력비 부담도 부각",
+                            "골든캐시대부 연체율 경고... 신용도 낮은 시민 압박",
+                            "다이스호텔 예약률 상승... 야간 상권 회복 기대"
                         ];
                         response = newsTemplates[Math.floor(Math.random() * newsTemplates.length)];
                     } else if(prompt.includes("역할놀이")) {
@@ -522,6 +525,7 @@
         let activePartnerIdx = -1;
         let selectedCrypto = 'BTC';
         let activePhoneApp = 'news';
+        let marathonRaceState = null;
         let bjPlayerHand = [], bjDealerHand = [];
         let currentTickerMsg = "시장 데이터 수신 대기 중...";
         let oddEvenStreak = 0;
@@ -625,14 +629,14 @@
                 cycleIndex = 2; greedStreak = 0;
                 Object.keys(gameState.stocks).forEach(k => gameState.stocks[k].price *= 0.95);
                 Object.keys(gameState.crypto).forEach(k => gameState.crypto[k].price *= 0.95);
-                updateNews("📉 " + CRASH_INTERNAL[Math.floor(Math.random() * CRASH_INTERNAL.length)] + " (-5% 조정)");
+                updateNews(createRestoredCrashNewsItem({ type: "policy", index: gameState.newsHistory.length }));
                 showToast("건전한 조정! 정책 이슈로 잠시 주춤합니다.");
             } else if (Math.random() < 0.05) {
                 isCrash = true;
                 cycleIndex = 1; fearStreak = 0; pendingBullRun = false;
                 Object.keys(gameState.stocks).forEach(k => gameState.stocks[k].price *= 0.93);
                 Object.keys(gameState.crypto).forEach(k => gameState.crypto[k].price *= 0.93);
-                updateNews("🚨 " + CRASH_EXTERNAL[Math.floor(Math.random() * CRASH_EXTERNAL.length)] + " (-7% 급락)");
+                updateNews(createRestoredCrashNewsItem({ type: "external", index: gameState.newsHistory.length }));
             } else {
                 if (cycleIndex === 0) cycleIndex += Math.floor(Math.random() * 2);
                 else cycleIndex += (Math.floor(Math.random() * 3) - 1);
@@ -641,21 +645,26 @@
             }
             marketCycle = CYCLE_ORDER[cycleIndex];
             if (!isCrash) {
-                const msgs = NEWS_MESSAGES[marketCycle];
-                updateNews(msgs[Math.floor(Math.random() * msgs.length)]);
+                updateNews(createRestoredNewsCycleItem({ marketCycle, index: gameState.newsHistory.length }));
             }
             renderAll();
         }, 10000);
 
-        function updateNews(msg) {
-            currentTickerMsg = msg;
-            const time = new Date().toLocaleTimeString('ko-KR',{hour12:false,hour:'2-digit',minute:'2-digit'});
-            gameState.newsHistory.unshift({time, msg});
+        function createNewsTimestamp() {
+            return new Date().toLocaleTimeString('ko-KR',{hour12:false,hour:'2-digit',minute:'2-digit'});
+        }
+        function updateNews(news) {
+            const item = normalizeRestoredNewsItem(
+                typeof news === 'string' ? { time: createNewsTimestamp(), msg: news } : { time: createNewsTimestamp(), ...news },
+                gameState.newsHistory.length
+            );
+            currentTickerMsg = getRestoredNewsTickerText(item);
+            gameState.newsHistory.unshift(item);
             if(gameState.newsHistory.length > 20) gameState.newsHistory.pop();
             const stockTicker = document.getElementById('stock-marquee-text');
             const futuresTicker = document.getElementById('futures-marquee-text');
-            if(stockTicker) stockTicker.innerText = msg;
-            if(futuresTicker) futuresTicker.innerText = msg;
+            if(stockTicker) stockTicker.innerText = currentTickerMsg;
+            if(futuresTicker) futuresTicker.innerText = currentTickerMsg;
         }
         async function generateAINews() {
             const btn = document.getElementById('btn-ai-news');
@@ -665,7 +674,7 @@
             btn.disabled = true;
             const result = await callGemini("경제 뉴스 속보");
             if (result) {
-                updateNews("✨ [AI 속보] " + result);
+                updateNews(createRestoredAiReporterNewsItem({ headline: result, index: gameState.newsHistory.length }));
                 showToast("✨ AI 특파원이 속보를 전송했습니다!");
             }
             btn.innerHTML = originalText;
@@ -771,6 +780,14 @@
             saveGame();
         }
 
+        function enterRestoredPlaceBuilding(actionId) {
+            activeLocationActionId = actionId;
+            const action = { id: actionId, label: RESTORED_PLACE_SURFACE_COPY[actionId]?.title || "건물", surface: "place" };
+            renderPlaceTab(action);
+            switchTab("place");
+            saveGame();
+        }
+
         function renderLocationChrome() {
             const context = getCurrentLocationContext();
             const labelEl = document.getElementById("header-location-status");
@@ -832,21 +849,22 @@
         }
 
         function renderPlaceTab(action = null) {
-            const currentAction = action || getRestoredLocationNavAction(getCurrentLocationContextId(), activeLocationActionId);
+            const currentAction = action || getRestoredLocationNavAction(getCurrentLocationContextId(), activeLocationActionId) || (activeLocationActionId ? { id: activeLocationActionId, label: RESTORED_PLACE_SURFACE_COPY[activeLocationActionId]?.title || "건물", surface: "place" } : null);
             const copy = RESTORED_PLACE_SURFACE_COPY[currentAction?.id] || {
                 meta: getCurrentLocationContext()?.label || "Place",
                 title: currentAction?.label || "장소",
                 copy: "도시 생활의 다음 행동이 이어지는 장소입니다.",
                 actions: []
             };
-            document.getElementById("place-surface-meta").innerText = copy.meta;
-            document.getElementById("place-surface-title").innerText = copy.title;
-            document.getElementById("place-surface-copy").innerText = copy.copy;
-            const actionsEl = document.getElementById("place-surface-actions");
-            actionsEl.innerHTML = renderRestoredPlaceSurfaceHtml(copy);
+            document.getElementById("place-surface-meta").innerText = copy.meta; document.getElementById("place-surface-title").innerText = copy.title; document.getElementById("place-surface-copy").innerText = copy.copy;
+            const actionsEl = document.getElementById("place-surface-actions"); actionsEl.innerHTML = renderRestoredPlaceSurfaceHtml(copy);
+            if (currentAction?.id === "marathon_stadium") { if(!marathonRaceState) marathonRaceState = createRestoredMarathonPreviewState(); actionsEl.innerHTML += renderRestoredMarathonStadiumHtml(marathonRaceState); return; }
             actionsEl.innerHTML += renderRestoredLifeJobPlaceHtml(currentAction?.id);
             actionsEl.innerHTML += renderRestoredStudyCareerPlaceHtml(currentAction?.id, gameState);
         }
+
+        function startRestoredMarathonPreview() { marathonRaceState = createRestoredMarathonPreviewState(); renderPlaceTab({ id: "marathon_stadium", label: "Baegeum Marathon Stadium", surface: "place" }); showToast("30명 로컬 마라톤 프리뷰 시작"); }
+        function advanceRestoredMarathonPreview(pace = "steady") { if(!marathonRaceState) marathonRaceState = createRestoredMarathonPreviewState(); marathonRaceState = advanceRestoredMarathonPreviewState(marathonRaceState, pace); renderPlaceTab({ id: "marathon_stadium", label: "Baegeum Marathon Stadium", surface: "place" }); const result = marathonRaceState.resultEnvelope?.effects?.find((effect) => effect.type === "marathon_race_result"); if(result?.payload?.finishedAtMs) showToast(`완주 #${result.payload.rank}`); }
 
         function completeStudyCareerAction(actionId) {
             const result = actionId.startsWith("career:company-shift") ? createRestoredCompanyShiftPresetResult(actionId, gameState) : createRestoredStudyResult(actionId, gameState, { actorId: "player:local" });
@@ -856,10 +874,7 @@
         }
 
         function completeLifeJobShift(jobId, presetId) {
-            const result = createRestoredLifeJobPresetResult(jobId, presetId, {
-                actorId: "player:local",
-                reason: "restored life job shift"
-            });
+            const result = createRestoredLifeJobPresetResult(jobId, presetId, { actorId: "player:local", reason: "restored life job shift" });
             if(!result.ok) return showToast("근무를 시작할 수 없습니다.");
             const applied = applyRestoredLifeJobResultToState(gameState, result, { applyRelationshipHook: applyLifeJobRelationshipHook });
             saveGame();
@@ -868,6 +883,8 @@
             if(applied.relationshipApplied) showToast("인연이 성실한 하루를 기억했습니다.");
         }
 
+        function registerFixedLifeJobContract(jobId) { const registered = createRestoredFixedJobContract(jobId, gameState.fixedJobContract); if(!registered.ok) return showToast("고정 알바를 등록할 수 없습니다."); gameState.fixedJobContract = { ...registered.contract }; saveGame(); renderAll(); showToast(`${gameState.fixedJobContract.displayName} 고정 알바 등록`); }
+        function markFixedLifeJobAbsence() { const missed = markRestoredFixedJobAbsenceInState(gameState); if(!missed.ok) return showToast("등록된 고정 알바가 없습니다."); saveGame(); renderAll(); showToast("고정 알바 결근 처리: 성실도 하락"); }
         function applyLifeJobRelationshipHook(effect, result) {
             if(!gameState.partners?.length) return;
             const rel = commitRelationshipAction(0, "job_completed", {
@@ -926,6 +943,7 @@
             if(avatarEl) avatarEl.innerText = rank.rankEmoji;
             const relationshipView = getRestoredRelationshipSummaryView(gameState);
             document.getElementById('relationship-status').innerText = relationshipView.headline;
+            document.getElementById('life-job-history-card').innerHTML = renderRestoredLifeJobHistoryHtml(gameState);
             document.getElementById('study-career-summary-card').innerHTML = renderRestoredStudyCareerSummaryHtml(gameState);
             document.getElementById('relationship-summary-card').innerHTML = renderRestoredRelationshipSummaryHtml(gameState);
             renderProfileStats(profile);
@@ -1467,10 +1485,11 @@
 
         Object.assign(window, {
             activateLocationAction, adjustQty, buyAsset, closeFutures, closeGiftSelectModal, closeInteractModal, closeModal, closeWalkModal,
-            completeLifeJobShift, completeStudyCareerAction, continueDoubleUp, doPartTimeJob, generateAINews, goForWalk, goHome, hitBlackjack,
+            advanceRestoredMarathonPreview, completeLifeJobShift, completeStudyCareerAction, continueDoubleUp, doPartTimeJob, enterRestoredPlaceBuilding, generateAINews, goForWalk, goHome, hitBlackjack,
             interactPartner, openGiftSelectModal, openInteractModal, openPhoneSurface, openPosition, openShopFromPhoneLock, openTradeModal,
+            markFixedLifeJobAbsence, registerFixedLifeJobContract,
             playOddEven, resetBlackjackUI, selectCrypto, sellAsset, sendGift, setBetPercent, setCasinoGame, setFuturesMarginPercent,
-            setQtyPercent, showToast, standBlackjack, startBlackjack, startGame, stopDoubleUp, switchPhoneApp, switchTab, talkWithAI, toggleBGM,
+            setQtyPercent, showToast, standBlackjack, startBlackjack, startGame, startRestoredMarathonPreview, stopDoubleUp, switchPhoneApp, switchTab, talkWithAI, toggleBGM,
             tradeRestoredBaegeumStock, tryGetNumber, updateCasinoBetDisplay, useInventoryItem, updateLeverageUI
         });
     </script>

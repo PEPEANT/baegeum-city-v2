@@ -2,6 +2,7 @@ import { INITIAL_RESTORED_STATE, createInitialRestoredState } from "./initial-st
 import { mergeRestoredProfileState } from "../player/profile-contract.js";
 import { RESTORED_STORAGE_KEY } from "./save-contract.js";
 import { createInitialRestoredMarketState } from "../systems/market-contract.js";
+import { createInitialRestoredFixedJobContractState } from "../jobs/life-job-fixed-contract.js";
 
 export { RESTORED_STORAGE_KEY };
 
@@ -92,6 +93,12 @@ export function mergeSavedRestoredState(targetState, savedState, initialState = 
   if (savedState.profile) {
     targetState.profile = mergeRestoredProfileState(targetState.profile, savedState.profile);
   }
+
+  targetState.jobHistory = Array.isArray(savedState.jobHistory) ? savedState.jobHistory.slice(0, 20) : [];
+  targetState.jobStats = savedState.jobStats && typeof savedState.jobStats === "object" ? { ...savedState.jobStats } : {};
+  targetState.fixedJobContract = savedState.fixedJobContract && typeof savedState.fixedJobContract === "object"
+    ? { ...createInitialRestoredFixedJobContractState(), ...savedState.fixedJobContract }
+    : createInitialRestoredFixedJobContractState();
 
   if (savedState.education) {
     targetState.education = { ...targetState.education, ...savedState.education };

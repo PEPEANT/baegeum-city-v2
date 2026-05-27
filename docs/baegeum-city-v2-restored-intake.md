@@ -54,6 +54,7 @@ Useful examples:
 
 ```bash
 node tools/intake-restored-material.cjs "assets/inbox/partner.png" --role=partner --id=image:partner:college-student:portrait-neutral --write
+node tools/intake-restored-material.cjs "assets/inbox/runner.webp" --role=character --collection=singularity-race --id=image:character:dororong:chibi-run --write
 node tools/intake-restored-material.cjs "assets/inbox/casino-bgm.mp3" --role=bgm --id=audio:bgm:casino-night:loop --write
 node tools/intake-restored-material.cjs "https://github.com/owner/repo" --kind=github --name=RepoName --write
 ```
@@ -82,11 +83,16 @@ assets/restored/audio/bgm/
 assets/restored/audio/sfx/
 assets/restored/audio/voice/
 assets/restored/audio/ambience/
+assets/restored/audio/singularity-race/bgm/
+assets/restored/audio/singularity-race/sfx/
+assets/restored/audio/singularity-race/voice/
+assets/restored/audio/singularity-race/ambience/
 ```
 
 Images:
 
 ```text
+assets/restored/images/characters/
 assets/restored/images/partners/
 assets/restored/images/items/
 assets/restored/images/backgrounds/
@@ -94,13 +100,21 @@ assets/restored/images/ui/
 assets/restored/images/city/
 assets/restored/images/casino/
 assets/restored/images/phone/
+assets/restored/images/singularity-race/characters/
+assets/restored/images/singularity-race/skills/
+assets/restored/images/singularity-race/skins/
+assets/restored/images/singularity-race/stadium/
+assets/restored/images/singularity-race/ui/
 ```
 
 Reference/source-only files:
 
 ```text
+assets/restored/source/original/
 assets/restored/source/generated/
+assets/restored/source/human/
 assets/restored/source/github/
+assets/restored/source/references/
 assets/restored/source/screenshots/
 ```
 

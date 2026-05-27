@@ -39,7 +39,11 @@ const requiredChecks = Object.freeze({
   "baccarat-contract.js": "tools/check-restored-baccarat-contract.cjs",
   "slot-contract.js": "tools/check-restored-slot-contract.cjs",
   "pawnshop-contract.js": "tools/check-restored-pawnshop-contract.cjs",
-  "loan-office-contract.js": "tools/check-restored-loan-office-contract.cjs"
+  "loan-office-contract.js": "tools/check-restored-loan-office-contract.cjs",
+  "marathon-character-skill-contract.js": "tools/check-restored-marathon-contract.cjs",
+  "marathon-combat-contract.js": "tools/check-restored-marathon-contract.cjs",
+  "marathon-contract.js": "tools/check-restored-marathon-contract.cjs",
+  "marathon-input-contract.js": "tools/check-restored-marathon-contract.cjs"
 });
 
 function read(file) {

@@ -30,6 +30,13 @@ function read(relativePath) {
   const shopAction = baegeumNav.find((action) => action.id === "shops");
   assert.equal(shopAction.surface, "place", "shops should open a frontage surface before the shop tab");
 
+  const jobHtml = surface.renderRestoredPlaceSurfaceHtml(surface.RESTORED_PLACE_SURFACE_COPY.job_places);
+  assert.ok(jobHtml.includes("enterRestoredPlaceBuilding"), "job street cards should expose building entry buttons");
+  for (const actionId of ["convenience_store", "fast_food", "labor_office", "pc_room", "delivery", "library", "university", "company"]) {
+    assert.ok(jobHtml.includes(actionId), `job street should link to ${actionId}`);
+  }
+  assert.ok(read("baegeum-city-v2-dice.html").includes("function enterRestoredPlaceBuilding"), "restored HTML must expose a building-entry router");
+
   const shopHtml = surface.renderRestoredPlaceSurfaceHtml(surface.RESTORED_PLACE_SURFACE_COPY.shops);
   assert.ok(shopHtml.includes("디페이 ATM"));
   assert.ok(shopHtml.includes("1 DPA = 1,000원"));

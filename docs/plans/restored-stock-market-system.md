@@ -238,6 +238,7 @@ Current implementation status:
 - `src/restored/phone/stock-app-view.js` now renders the live phone stock app from the Baegeum Electronics snapshot instead of the legacy NASDAQ/TSLA/AAPL/NVDA table.
 - `src/restored/systems/market-order-application.js` now owns the first local order application boundary for one-share Baegeum Electronics buy/sell. It consumes `createRestoredMarketOrderPreview()`, updates `markets.portfolio.holdings`, appends order records, and keeps formulas out of the HTML shell.
 - The live phone stock app can now buy or sell one Baegeum Electronics share at the current generated DP price. The visible price and filled order price are smoke-guarded to match. This is still local-prototype state, not online/server authority.
+- `src/restored/systems/news-cycle-contract.js` now owns the phone news cycle that feeds stock and futures tickers. The copy is fictional and in-world, but shaped like real market news so later AI supercycle, credit, DPA, and Dice City events have one shared news surface.
 
 ## Ledger And Action Boundary
 

@@ -93,11 +93,21 @@ function main() {
   const help = runTool(["--help"]);
   assert(help.includes("Usage:"), "intake tool help must include usage.");
   assert(help.includes("--kind=asset|github|note"), "intake tool help must list supported kinds.");
+  assert(help.includes("--collection=singularity-race"), "intake tool help must mention collection routing.");
 
   const assetOutput = runTool(["assets/inbox/sample.png", "--role=partner", "--id=image:partner:sample:portrait"]);
   assert(assetOutput.includes("Manifest Candidate"), "asset intake output must include a manifest candidate.");
   assert(assetOutput.includes("image:partner:sample:portrait"), "asset intake output must include the requested asset id.");
   assert(assetOutput.includes("assets/restored/images/partners/sample.png"), "asset intake output must propose a restored partner image target.");
+
+  const raceOutput = runTool([
+    "assets/inbox/runner.webp",
+    "--role=character",
+    "--collection=singularity-race",
+    "--id=image:character:dororong:chibi-run"
+  ]);
+  assert(raceOutput.includes("assets/restored/images/singularity-race/characters/runner.webp"), "race character intake must route to the race character folder.");
+  assert(raceOutput.includes('collection: "singularity-race"'), "race character intake must preserve collection metadata.");
 
   const githubOutput = runTool(["https://github.com/PEPEANT/MammonCity2", "--kind=github", "--name=MammonCity2"]);
   assert(githubOutput.includes("reference only"), "GitHub intake output must stay reference only.");

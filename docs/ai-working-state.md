@@ -65,7 +65,7 @@ Dice City full-restore playable prototype is the active priority:
 44. `src/restored/phone/news-app-view.js`, `src/restored/phone/stock-app-view.js`, and `src/restored/phone/futures-app-view.js` now own the restored phone news, stock, and futures renderers. The HTML shell mounts returned view HTML and still owns market ticks, trades, and futures open/close handlers.
 45. `docs/plans/restored-stock-market-system.md` now owns the restored market expansion boundary: Domestic, United States, Crypto Spot, and Crypto Leverage tabs, realistic virtual candle charts, DP-only prices, Baegeum Electronics as V0.1, and no live financial data or real-company branding in the first slice.
 46. `src/restored/systems/market-contract.js` now owns the first pure Baegeum Electronics market contract: virtual OHLCV generation, snapshot summary, DP formatting, holding P/L, and buy/sell order previews without DOM, storage, timers, random outcomes, or live money mutation.
-47. `docs/plans/restored-life-minigame-system.md` and `src/restored/jobs/life-job-contract.js` now own the first life-job minigame lane: convenience-store and fast-food deterministic shift scoring, DP wage envelopes, condition effects, relationship hooks, and optional inventory bonuses without live HTML mutation.
+47. `docs/plans/restored-life-minigame-system.md` and `src/restored/jobs/life-job-contract.js` now own the first life-job minigame lane: convenience-store and fast-food deterministic shift scoring, won wage envelopes, condition effects, relationship hooks, and optional inventory bonuses without live HTML mutation.
 48. `src/restored/jobs/life-job-place-view.js` and `src/restored/jobs/life-job-result-application.js` now connect the first live place panels for convenience-store and fast-food shifts. The restored HTML only mounts the panel and calls `completeLifeJobShift`; wages, condition changes, inventory grants, and relationship hooks still flow through restored job envelopes.
 49. `src/restored/jobs/life-job-catalog.js` now owns the starter job catalog, keeping `src/restored/jobs/life-job-contract.js` under the file-size gate. `job:labor-office` is the third starter life-job contract and uses the same live place adapter through the existing `labor_office` place action. It pays more than fast-food, costs more energy, and can grant `work_gloves` as a high-grade inventory reward.
 50. `src/restored/career/study-career-contract.js` now owns the first study-gated career lane: library self-study, university night classes, Baegeum office qualification, company shift wages, and promotion state. The restored HTML mounts it only inside Baegeum City job places through `completeStudyCareerAction()`.
@@ -73,6 +73,547 @@ Dice City full-restore playable prototype is the active priority:
 52. Company work is no longer a single generic button. `study-career-contract.js` defines `documents`, `overtime-report`, and `team-support` company shift presets, and the Baegeum City job surface renders those choices without duplicating wage or promotion formulas in HTML.
 53. `src/restored/phone/stock-app-view.js` now renders the live phone stock app from the Baegeum Electronics market snapshot. The visible stock app is DP-only and no longer renders the legacy NASDAQ/TSLA/AAPL/NVDA table.
 54. `src/restored/systems/market-order-application.js` now owns the local Baegeum Electronics one-share order application path. The live stock app can call `tradeRestoredBaegeumStock('buy'|'sell')`, update `markets.portfolio.holdings`, preserve orders through storage, and reflect holdings in total asset selectors without reviving legacy stock rows.
+55. `src/restored/career/study-career-place-view.js` now guards locked company-shift toast buttons against nested double-quote `onclick` breakage. Locked company actions render safe single-quoted `showToast(...)` calls and the study/career smoke check covers the regression.
+56. `src/restored/systems/news-cycle-contract.js` now owns the realistic-looking fictional phone news cycle. The live restored HTML creates cycle, crash, and AI-flash news through that contract, and `src/restored/phone/news-app-view.js` renders source-labeled article cards instead of flat legacy messages.
+57. Life-job and study/career money effects now use `currency: "WON"` and render wages/tuition as `원`. DPA remains reserved for Dice City exchange/casino token flows.
+58. Starter labor surfaces now use Korean job/task copy and preview expected won wage, energy, mental, time, and reputation effects before the player chooses a work preset. News copy is also guarded so ordinary work is described as won/cash income, not DP/DPA income.
+59. The Baegeum job-street surface now has building-entry buttons for starter work, study, and company buildings. The life-job catalog covers convenience store, fast-food, labor office, PC room, flyer, delivery, parking, car wash, cleaning, factory, port, and market helper work, while `enterRestoredPlaceBuilding(actionId)` opens the selected building panel without adding bottom tabs.
+60. Life-job completions now write local `jobHistory` and `jobStats` state. My Info renders a `life-job-history-card` with total shifts, total won income, latest job result, current same-job streak, and recent completed shifts.
+61. Fixed part-time work now has a first local contract slice. Job panels expose `고정 알바 등록`, `fixedJobContract` stores one active job with reliability/attendance/streak/fixed-job income, matching shifts update it through the life-job result application, and My Info renders the fixed-job summary inside `life-job-history-card`.
+62. Marathon stadium now has a first online-ready restored contract and local 2D preview. `src/restored/games/marathon-contract.js` owns 30-runner caps, checkpoints, ranking, result envelopes, and online packet vocabulary; `src/restored/games/marathon-stadium-view.js` mounts a local player plus 29 bot runners from the Baegeum street surface.
+63. `특이점레이스` now has a separate public local lobby entry at `singularity-race.html`. It is not the Baegeum City page; it shows 30 runner slots, local readiness, lobby chat, and Drawing World-derived skin cards through `src/skins/drawing-world-adapter.js`.
+64. Singularity Race now has a dev-only connected marathon room adapter in `src/restored/online/marathon-room-adapter.js`. The normal lobby remains local; `?devOnline=1` opens the connected-only gate, and the UI switches to `DEV ROOM` only after `join_result ok`.
+65. Singularity Race now has dev-only pre-created lobby, room, spectator, admin, and notice chat channels in `src/restored/online/marathon-channel-adapter.js`. The public lobby and separate `singularity-race-admin.html?devOnline=1` page share the local dev chat log under `singularity-race:chat:v1`.
+66. Restored assets now have a promoted `assets/restored/` folder structure for audio, images, source material, manifest batches, shared characters, and Singularity Race-specific art. Runtime use still goes through `src/restored/assets/asset-manifest.js`, not raw paths.
+67. Singularity Race server transport now has a WebSocket/Firebase-style config boundary and a server-transport-backed room adapter shape. It still does not open public online by default; a connected transport snapshot plus server-provided room list must be injected before the connected lobby opens.
+68. Singularity Race now has a local WebSocket-shaped dev server mock in `src/restored/online/marathon-websocket-dev-server-mock.js`. It rehearses connected transport, room list, join result, client packet ingest, server snapshot creation, and packet pressure limiting without opening a public port.
+69. Singularity Race now uses `src/restored/games/marathon-trail-geometry.js` for the public course shape: one shared log-curve 2D trail, five save points, SVG path generation, pointer-to-progress estimation, and matching marathon-distance checkpoints. `singularity-race.html` renders all available runners on that single trail instead of separate horizontal lanes.
+70. The standalone Singularity Race lobby now has local-only race feedback on the trail: a player focus ring, progress/next-save pill, checkpoint/skill/hit/respawn/finish cue labels, and reset behavior when filling the 30-runner local practice slots.
+71. Singularity Race local practice now has a deterministic bot pack and compact standings strip. Local bots advance after practice starts, runner slots show current progress, and the standings strip keeps the leaders plus YOU visible without changing server authority.
+72. Singularity Race admin now has a direct dev game entry. The lobby still exposes `admin-page-link`, and `singularity-race-admin.html?devOnline=1` now exposes `admin-direct-game-link` to `singularity-race.html?devOnline=1&adminLaunch=1`; that query makes the lobby auto-join the dev room and show `DEV ROOM`.
+73. Singularity Race admin now has a dev room packet monitor. `singularity-race-admin.html?devOnline=1` imports the dev room transport, reads the room-scoped relay log without writing packets, and shows packet count, latest packet source, and relay guard state beside the separated admin/chat channels.
+74. Singularity Race local practice now starts with all 30 runners on one shared rail. The local preview uses single-rail collision spacing so runners bump and stall instead of visually passing through each other, and `T` focuses the current chat input while `Enter` still submits through the channel transport.
+75. Singularity Race now renders the lobby trail inside a large camera-followed track world. The SVG rail uses non-scaling strokes for consistent width, runner sprites no longer sit on dark translucent cards, and the skin picker exposes all playable presets with `baegeum-hood`, `gpichan`, `robot`, and `kaguya` first.
+76. Singularity Race now uses a wider two-column lobby layout, a `7600x2600` track world, a thicker visible rail, same-progress side-by-side start formation, smoother 60ms local preview ticks, persistent runner DOM nodes, and slower local pacing aimed at an 8-10 minute party race.
+77. Singularity Race local practice now uses an extra-wide 5x-style road surface, keeps all 30 runners in one same-progress start row, gates the race behind a local countdown, and replaces hard runner blocking with local-only soft pass pressure.
+78. Singularity Race track camera now centers directly on the player in the large `7600x2600` world instead of anchoring the player near the left edge.
+79. Singularity Race now uses a free 2D start paddock instead of a one-row start. Runners own `progress` plus `laneOffsetPx`, the start gate stays closed until a dev admin 10-second countdown signal, and the gate disappears on `GO`.
+80. Singularity Race staging bots now request their own render pass when their paddock simulation moves, so the visible bot pack no longer appears frozen when the local player stops moving before the admin countdown.
+81. Singularity Race player movement now separates staging forward speed from race forward speed. `Shift` visibly boosts forward progress, while `W/S` lateral movement is slightly slower so moving down no longer reads like the real speed control.
+82. Singularity Race now has an anti-teleport display guard for bots and future remote players. Netcode owns the visual step/snap policy, and the lobby smooths non-player runner coordinates instead of drawing every target correction instantly.
+83. Singularity Race anti-teleport follow-up now cleans stale runner visual caches when runner DOM nodes disappear and guards the smoothing/HUD tokens in the marathon contract check.
+84. Singularity Race local collision now uses soft body pressure instead of ghost pass-through: close runners get speed drag, a collision glow, a tiny lane push, and a tiny forward/back separation while staying smooth.
+85. Singularity Race road-wall access now uses a wider lane clamp so runners can move close to the visible road walls instead of stopping at a transparent inner buffer.
+86. Singularity Race runner names now live inside each runner avatar as a foot-level nameplate, keeping the head area free for future HP bars and preventing sprint/interpolation from visually separating names from sprites.
+87. Singularity Race dev online rehearsal now marks connected `state_snapshot` packets as server-owned and carries snapshot id, server tick/snapshot cadence, ping sample, and reconciliation metadata. This is still dev-only and does not expose public matchmaking.
+88. Singularity Race admin is now a simplified future host/spectator camera page: Korean visible copy, room list, direct game/lobby links, whole-course camera, per-player watch list, countdown control, and separated chat channels instead of raw packet metrics.
+89. Singularity Race player entry now follows a simple first-use loop: nickname plus skin selection, compact room list, room waiting view, then race screen. Dev protocol, packet, netcode, raw room id, and server-lock labels are hidden from normal players unless `?debug=1` is used.
+90. Singularity Race race screen now isolates in-game UI: after room ready/game entry, the top lobby status, room waiting sidebar, and chat sidebar are hidden so the stadium surface is not overlapped by lobby panels.
+91. Singularity Race lobby now shows only a simple room list before room entry. Lobby chat, participant count, ready count, quick entry, and notice/debug rows are hidden from the lobby screen; those surfaces belong to the room, race, admin, or debug views.
+92. Singularity Race room waiting is now a simple `대기열`: normal players see runner slots, `맵 미리보기`, and chat only. Top status metrics, participant/ready counters, ready button, duplicate room card, channel tabs, badges, and explanatory copy are hidden from the queue screen.
+93. Singularity Race now separates `mapPreview` from `race`. The normal player path is `profile -> lobby -> queue -> mapPreview -> queue`; the map preview button no longer starts the race, and admin/direct start remains the path into `race`.
+94. Singularity Race player screen ids and short flow copy now live in `src/restored/games/singularity-race-flow.js`. The player page imports those constants/helpers so `profile`, `lobby`, `queue`, `mapPreview`, and `race` do not drift back into duplicated string checks.
+95. Singularity Race runner display helpers now live in `src/restored/games/singularity-race-runner-view.js`. Runner avatars, queue slots, standings rows, checkpoint dots, action packet rows, skill labels, and action status labels are no longer hand-built inline in `singularity-race.html`.
+96. Singularity Race track effect helpers now live in `src/restored/games/singularity-race-track.js`. The player focus ring, start gate, countdown badge, progress pill, and short track cue labels are separated from movement, collision, and camera math.
+97. Singularity Race player script is split along the requested boundaries: `singularity-race-flow.js` for screen state/copy, `singularity-race-queue.js` for queue slots/chat rows, `singularity-race-track.js` for track effects, `singularity-race-local-sim.js` for local bots/start paddock, and `singularity-race-dev-online.js` for dev relay wrappers. `singularity-race.html` remains the controller shell.
+98. Singularity Race race-control signaling now lives in `src/restored/games/singularity-race-control.js`. The player page and host page share the same dev-only start-countdown command shape, local storage key, broadcast channel name, and race-control phase labels.
+99. Singularity Race lobby/queue/chat/track styling now follows a Drawing World-inspired paper-grid direction: light panels, compact chat, pale stadium field, and muted green-gray rails instead of black outer curbs.
+100. Singularity Race skin picker now keeps the requested named set in the normal profile flow: `kaguya`, `singularity-fan`, `robot`, `gpichan`, `pepe-runner`, `moderator-armband`, `yalrkun`, `lakers-wile`, `sam-altman`, and `demis-hassabis`; casino/general-citizen presets remain excluded.
+
+101. Singularity Race first-use profile screen now keeps the 12-skin picker compact on phone widths by using a denser mobile skin-card grid instead of a long one-column stack.
+102. Singularity Race map preview is now a real whole-course overview: it hides runner/HUD overlays, disables the player-follow camera, and fits the full trail/save-point/finish schematic into the preview panel.
+103. Singularity Race race screen is now stripped down to the stadium surface only while the in-game UI is being redesigned: lobby chrome, track header, bottom HUD cards, checkpoint strip, standings, packet rails, progress pill, map caption, and start-gate label are hidden in `race`.
+104. Singularity Race phone-width race screen now has exactly three bottom controls over the clean stadium surface: `대기열 보기/닫기`, `채팅창 열기/닫기`, and disabled `플레이 시작 / 관리자 대기중`; queue and chat open as mutually exclusive overlays.
+105. Singularity Race race screen now has PC-and-mobile auxiliary controls: a left circular `W/A/S/D` pad and right-side `스킬(E)` plus `채팅(T)` buttons. The touch/mouse pad feeds the same movement key state as the keyboard, and queue/chat overlays hide the movement controls while open.
+106. Singularity Race local race progression now reaches the actual finish clamp at 100% instead of stopping at 96%. Local finish only rehearses a server-owned `race_finalized` preview packet, while `tools/smoke-singularity-race-progression.cjs` checks start-to-finish reachability, Shift+D sprint input, 30-runner bandwidth budget, degraded ping lane reduction, packet pressure blocking, anti-teleport smoothing, and bot movement while the player is stopped.
+107. Singularity Race now has a first server-owned movement-state contract. `src/restored/online/marathon-server-state-contract.js` applies accepted `input_update` envelopes to server room participants, rejects stale input, prevents lateral-only input from increasing progress, stamps finish time, and emits server-owned runner snapshots. The WebSocket-shaped dev mock now starts a server-owned race, applies input during `racing`, and includes `movementAuthority: "server"` in snapshots.
+108. Singularity Race connected display now consumes server-owned `state_snapshot` rows. `src/restored/games/singularity-race-dev-online.js` merges snapshot participants into runner display state, and `singularity-race.html` applies the newest snapshot to progress, lane offset, server sequence, race phase, standings, and camera rendering.
+109. Singularity Race dev chat history now keeps the latest 500 local messages across lobby/race/admin refreshes. This is still development-only local history; public online chat must become server-owned, channel-scoped, paginated, and moderation-aware.
+
+Date: 2026-05-28
+Observed: The human asked for chat records to keep remaining, and for the next real-online plan plus a road-follow camera plan for the curved track segment.
+Changed: Raised Singularity Race dev chat retention to 500 messages in the chat transport, player page, and admin page; added a contract guard for latest-500 retention; documented real-online readiness blockers and the future curve-follow camera mode in the marathon plan.
+Verified: `node tools/check-restored-marathon-contract.cjs`, `node tools/check-size.cjs`, `git diff --check -- singularity-race.html singularity-race-admin.html src/restored/online/marathon-dev-chat-transport.js docs/plans/restored-marathon-stadium.md src/restored/README.md docs/ai-working-state.md`, and `npm.cmd run check` passed. HTTP checks returned 200 for `singularity-race.html?devOnline=1&adminLaunch=1` and `singularity-race-admin.html?devOnline=1`, with `messageLimit: 500` and the dev chat transport present on both pages.
+Blocked: Camera rotation is planned but not yet implemented because it changes pointer-to-track math and needs visual QA. Public online is still blocked on a real WebSocket/Firebase transport and server-owned chat/state persistence.
+Next: Verify chat history retention checks, then add the periodic server snapshot loop before implementing rotated camera rendering.
+Do not: Treat local dev chat history as public persistence, rotate UI overlays with the track world, or let clients author authoritative race state.
+
+Date: 2026-05-28
+Observed: The server-owned movement contract existed, but connected race rendering still treated snapshots mostly as relay/debug packets.
+Changed: Added `mergeSingularityServerSnapshotRunners()` to the dev-online helper module and wired `singularity-race.html` to apply initial and relayed `state_snapshot` packets into the connected runner display path.
+Verified: `node tools/check-restored-marathon-contract.cjs`, `node tools/smoke-singularity-race-server-state.cjs`, and `node tools/smoke-singularity-race-progression.cjs` passed.
+Blocked: The page still uses the dev room relay for visible connected packets; a real WebSocket/Firebase provider is not attached yet.
+Next: Add the actual transport-backed snapshot loop or a deterministic in-page WS-dev harness so the connected UI receives periodic server snapshots instead of one-shot local relay rows.
+Do not: Let client-owned progress, local finish, local collision, or local bot state become public online authority.
+
+Date: 2026-05-28
+Observed: The next online step was to stop treating connected movement as a packet log only and start proving server-owned position state before any public WebSocket/Firebase provider exists.
+Changed: Added `src/restored/online/marathon-server-state-contract.js`, extended `input_update` envelopes to preserve normalized direction/mode, wired `singularity-race.html` connected input publishing to send that direction/mode, and updated `src/restored/online/marathon-websocket-dev-server-mock.js` so accepted input advances server-owned runner state during `racing`. Added `tools/smoke-singularity-race-server-state.cjs` to simulate a short server-owned race from start to finish.
+Verified: `node tools/smoke-singularity-race-server-state.cjs` passed with server-owned finish at 120m, finish time 56000ms, last sequence 58, and `movementAuthority: "server"` in the snapshot. `node tools/check-restored-marathon-contract.cjs` and `node tools/check-size.cjs` passed.
+Blocked: This is still a local dev mock, not a public socket. The player page does not yet render authoritative server movement snapshots into the connected race view.
+Next: Feed server-owned `state_snapshot` rows into the connected race renderer with reconciliation so the player page can visually follow server authority instead of local movement when `?devOnline=1`.
+Do not: Trust client progress, local collision, or local finish packets for connected ranking, rewards, or anti-cheat.
+
+Date: 2026-05-27
+Observed: The human asked Codex to keep running the game and self-verify what blocks starting at the line, avoiding ping problems, and reaching the finish.
+Changed: Opened the race progress clamp from `96` to `100`, added `LOCAL_FINISH_PROGRESS`, changed local finish from a cosmetic "finish ready" cue to a local server-owned finalization rehearsal, added `createLocalFinishRanking()`, updated the local bot sim finish clamp, and added `tools/smoke-singularity-race-progression.cjs` for repeatable progression/netcode checks.
+Verified: `node tools/smoke-singularity-race-progression.cjs` passed with normal run finish in 252 seconds, sprint finish in 91 seconds, 30-runner server egress at 1881.6 kbps, degraded lane on bad ping, and `rate_limited` spam blocking. `node tools/check-restored-marathon-contract.cjs` passed. Browser smoke on `http://127.0.0.1:4173/singularity-race.html?adminLaunch=1` confirmed race-only UI, exactly three bottom controls, no normal hidden debug/skin/chat residue, no mobile horizontal overflow, countdown signal to `GO`, Shift+D movement, bots moving while the player stops, chat overlay focus, queue overlay with 30 slots, and a saved mobile race screenshot at `C:/tmp/singularity-race-race-verify.png`.
+Blocked: Real public online is still not enabled; final ranking and anti-cheat authority must move to the real server transport before public release.
+Next: Add server-owned movement/reconciliation behind a real WebSocket/Firebase transport so the client sends only input and receives authoritative snapshots.
+Do not: Let client-owned local progress, local bot state, or local finish ranking become public online authority.
+
+Date: 2026-05-27
+Observed: The human asked to add a mobile circular key plus chat-window and skill buttons, and wanted PC to have the same support.
+Changed: Added `race-input-controls` to `singularity-race.html`: a circular directional pad, skill button, and chat shortcut button. Wired pointer down/up/cancel to the existing WASD action key state, routed the skill button through the same E-skill path, routed the chat shortcut through the race chat overlay, hid movement controls while queue/chat overlays are open, and guarded pointer capture so synthetic or unusual desktop pointer events do not break the controls. Updated the marathon plan and contract check.
+Verified: `node tools/check-restored-marathon-contract.cjs`, `node tools/check-size.cjs`, `git diff --check -- singularity-race.html tools/check-restored-marathon-contract.cjs docs/plans/restored-marathon-stadium.md docs/ai-working-state.md`, and `npm.cmd run check` passed. Browser smoke confirmed mobile 390px and PC 1366px show the circular pad, `스킬 E`, `채팅 T`, and the existing three bottom controls without horizontal overflow; synthetic pointer down/up on `W` toggled the held state; the chat shortcut opened the chat overlay, focused input, and hid movement controls.
+Blocked: None.
+Next: Tune final in-game HUD placement around these controls after the race HUD redesign direction is chosen.
+
+Date: 2026-05-27
+Observed: The human asked for a final mobile race-screen pass with only three buttons: a queue button, chat open/close, and play start with `관리자 대기중`.
+Changed: Added `race-mobile-controls` to `singularity-race.html`, wired queue/chat toggles through `raceQueueOpen` and `raceChatOpen`, made queue/chat overlays mutually exclusive, kept the play-start status disabled for host/admin authority, and made race slot rendering populate the overlay when opened from the race screen. Updated the marathon plan and contract check to guard the new mobile control surface.
+Verified: `node tools/check-restored-marathon-contract.cjs`, `node tools/check-size.cjs`, `git diff --check -- singularity-race.html tools/check-restored-marathon-contract.cjs docs/plans/restored-marathon-stadium.md docs/ai-working-state.md`, and `npm.cmd run check` passed. Browser smoke at 390px width confirmed `screen: race`, no horizontal overflow, exactly 3 visible bottom buttons, labels `대기열 보기`, `채팅창 열기`, and `플레이 시작 / 관리자 대기중`, disabled play-start status, a 30-slot queue overlay, and a chat overlay that closes the queue and focuses chat input.
+Blocked: None.
+Next: Redesign the final in-game HUD on top of these three mobile controls without reviving the old bottom-card stack.
+
+Date: 2026-05-27
+Observed: The human said the race screen still showed unwanted UI under the stadium and asked to remove it before redesigning the in-game interface.
+Changed: Updated `singularity-race.html` so `race` hides the track header, action HUD, checkpoint strip, standings, debug packet rail, runner slot grid, queue actions, progress pill, trail caption, and `START GATE` text while keeping the stadium surface and runner objects visible. Updated the marathon plan and contract check to guard the race-only surface.
+Verified: `node tools/check-restored-marathon-contract.cjs`, `node tools/check-size.cjs`, `git diff --check -- singularity-race.html tools/check-restored-marathon-contract.cjs docs/plans/restored-marathon-stadium.md docs/ai-working-state.md`, and `npm.cmd run check` passed. Browser smoke at 390px width confirmed `screen: race`, no horizontal overflow, a 372x826 stadium scene, hidden topbar/room/chat/header/action/checkpoint/standing/packet/slot/queue/progress/caption UI, and no start-gate text.
+Blocked: None.
+Next: Redesign the in-game HUD from a clean stadium-only baseline instead of patching the old bottom cards.
+
+Date: 2026-05-27
+Observed: The human pointed out that `맵 미리보기` was still showing a cropped player-follow view with runners and HUD instead of the whole map.
+Changed: Updated `singularity-race.html` so `mapPreview` uses a full-panel course overview, hides runner avatars/effects/HUD, uses preview-specific trail stroke sizes, ignores race clicks outside the race screen, and resets the track camera to the origin for the overview. Updated the marathon plan and contract check to guard the overview behavior.
+Verified: `node tools/check-restored-marathon-contract.cjs`, `node tools/check-size.cjs`, `git diff --check -- singularity-race.html tools/check-restored-marathon-contract.cjs docs/plans/restored-marathon-stadium.md docs/ai-working-state.md`, and `npm.cmd run check` passed. Browser smoke at 390px width confirmed `screen: mapPreview`, no horizontal overflow, a 342x608 map scene, hidden runners/HUD, and `translate3d(0px, 0px, 0px)` camera transform while the full course was visible.
+Blocked: None.
+Next: Keep the race screen player-follow camera separate from the map-preview overview and tune map labels only if the final art style changes.
+
+Date: 2026-05-27
+Observed: The requested named skin set made the first-use profile picker longer on phone-sized screens because the mobile CSS still forced skin cards into one column.
+Changed: Updated `singularity-race.html` so the profile skin picker keeps three columns on mobile, trims profile-card spacing on narrow screens, and preserves the simple nickname/skin/start flow.
+Verified: `node tools/check-restored-marathon-contract.cjs`, `node tools/check-size.cjs`, `git diff --check -- singularity-race.html src/skins/singularity-race-skin-presets.js tools/check-restored-marathon-contract.cjs docs/plans/restored-marathon-stadium.md docs/ai-working-state.md`, and `npm.cmd run check` passed. Browser smoke at 390px width confirmed the first-use profile screen shows the 12 race skins in a compact grid without horizontal overflow.
+Blocked: None.
+Next: Move on to the next visible simplification or gameplay/networking cleanup after the skin/profile entry stays stable.
+
+Date: 2026-05-27
+Observed: The human wanted Kaguya, Robot, GPichan, and the existing/additional `특붕이` back, renamed several meme skins, requested a blue armband on `완장`, and asked to add Sam Altman and Hassabis.
+Changed: Updated `src/skins/singularity-race-skin-presets.js` with the requested skin names and ids, added Kaguya/Robot/GPichan/Sam Altman/Hassabis, changed `초록 밈러너` to `페페`, changed `차트 망령` to `완장` with a blue armband overlay, changed `떡상 기도맨` to `얀르쿤`, changed `물린 고양이` to `레이커즈와일`, and made the profile picker show up to 12 prioritized race skins.
+Verified: `node tools/check-restored-marathon-contract.cjs`, `node tools/check-size.cjs`, `git diff --check -- singularity-race.html src/skins/singularity-race-skin-presets.js tools/check-restored-marathon-contract.cjs docs/plans/restored-marathon-stadium.md docs/ai-working-state.md`, and `npm.cmd run check` passed. Browser smoke confirmed the profile picker shows 카구야, 특붕이, 로봇, 지피쨩, 페페, 완장, 얀르쿤, 레이커즈와일, 샘 올트먼, 허사비스, 두머, and 도지 러너 without horizontal overflow.
+Blocked: None.
+Next: Verify the updated profile picker visually and keep casino/general-citizen presets out of Singularity Race.
+
+Date: 2026-05-27
+Observed: The human wanted the lobby, queue background, chat window, and race track to reference `PEPEANT/-drawing-world`, and said the black outer rail did not match the road surface.
+Changed: Restyled `singularity-race.html` with a light paper-grid body, white glass panels, brighter room/queue/chat cards, Drawing World-like compact chat bubbles, a pale stadium field, and muted green-gray SVG rails around the warm road surface. Added `src/skins/singularity-race-skin-presets.js` and switched the race page to original meme-style skins so old casino/general-citizen, robot, GPichan, and Kaguya choices no longer appear in the normal race picker.
+Verified: `node tools/check-restored-marathon-contract.cjs`, `node tools/check-size.cjs`, `git diff --check -- singularity-race.html src/skins/singularity-race-skin-presets.js tools/check-restored-marathon-contract.cjs docs/plans/restored-marathon-stadium.md docs/ai-working-state.md`, and `npm.cmd run check` passed. Browser smoke confirmed the profile screen uses the light paper-grid style with the new race skin names and no old casino/robot/anime skin labels, and direct race entry shows the pale stadium with muted green-gray rails instead of black curbs.
+Blocked: None.
+Next: Tune the exact race skin pack art/names and add mobile joystick/chat-bubble controls later if the Drawing World reference systems become part of the playable race input.
+
+Date: 2026-05-27
+Observed: After the requested HTML split, the next duplicated boundary was admin start signaling: `singularity-race.html` and `singularity-race-admin.html` both owned race-control storage keys, broadcast names, command parsing, and countdown command creation.
+Changed: Added `src/restored/games/singularity-race-control.js` for dev-only start-countdown command creation, parse/read/write, broadcast publish/open, acceptance checks, and phase labels. Updated the player and admin pages to consume that module, and updated the marathon contract check plus marathon plan.
+Verified: `node tools/check-restored-marathon-contract.cjs`, `node tools/check-size.cjs`, `git diff --check -- singularity-race.html singularity-race-admin.html src/restored/games/singularity-race-control.js tools/check-restored-marathon-contract.cjs docs/plans/restored-marathon-stadium.md docs/ai-working-state.md`, and `npm.cmd run check` passed. Browser smoke confirmed an injected race-control `start_countdown` moves the player page to `race`, shows countdown `10`, keeps the start gate visible, hides chat and room panels, fills the 30-runner pack even from a fresh profile state, and has no horizontal overflow. Admin page smoke confirmed the host page loads, exposes the countdown button, and writes a future `start_countdown` command through the shared key.
+Blocked: None.
+Next: The next useful split is either collision/soft-pass math or action packet publishing, whichever starts growing first.
+
+Date: 2026-05-27
+Observed: After runner display helpers were separated, the remaining spaghetti risk was that queue/chat, track effects, local bot simulation, and dev packet relay all still lived inside the large `singularity-race.html` script.
+Changed: Added `src/restored/games/singularity-race-queue.js`, `src/restored/games/singularity-race-track.js`, `src/restored/games/singularity-race-local-sim.js`, and `src/restored/games/singularity-race-dev-online.js`; updated `singularity-race.html` to consume those helpers; removed the old track-effect helper boundary from the contract plan; and updated the marathon contract check to validate the new modules.
+Verified: `node tools/check-restored-marathon-contract.cjs`, `node tools/check-size.cjs`, `git diff --check -- singularity-race.html src/restored/games/singularity-race-queue.js src/restored/games/singularity-race-track.js src/restored/games/singularity-race-local-sim.js src/restored/games/singularity-race-dev-online.js tools/check-restored-marathon-contract.cjs docs/plans/restored-marathon-stadium.md docs/ai-working-state.md`, and `npm.cmd run check` passed. Browser smoke confirmed mobile `profile -> lobby -> queue -> mapPreview -> queue`, lobby chat/metrics hidden, 30 queue slots, queue chat visible, map preview showing 30 runners with chat/slots hidden, and no horizontal overflow.
+Blocked: Final Playwright readback for a simulated admin countdown timed out after the storage event was sent; the race-control listener code was not changed by this split and remains covered by source/contract checks, but that manual browser readback should be repeated when the browser MCP is responsive again.
+Next: After validation, the next meaningful split is race-control/admin start signaling or collision math, depending on which part grows first.
+
+Date: 2026-05-27
+Observed: After the player flow split, the next spaghetti risk was repeated runner/slot/HUD DOM creation inside the large `singularity-race.html` script.
+Changed: Added `src/restored/games/singularity-race-runner-view.js` for runner avatar updates, queue slot rows, standings rows, checkpoint dots, packet rows, skill names, action status labels, and a validation helper. Updated `singularity-race.html` to consume those helpers while leaving camera, collision, and netcode smoothing math in place. Updated the marathon contract check and marathon plan to guard the new runner-view boundary.
+Verified: `node tools/check-restored-marathon-contract.cjs`, `node tools/check-size.cjs`, and `npm.cmd run check` passed. Browser smoke confirmed `profile -> lobby -> queue -> mapPreview -> queue`, 30 queue slots, 30 runner avatars/nameplates in map preview, 30 runner avatars/nameplates in direct race entry, 5 standings rows, 5 checkpoint dots, hidden chat/room panels in race, and no horizontal overflow. The preferred browser runtime failed to start in this sandbox, so the smoke used the same in-app Playwright fallback.
+Blocked: None.
+Next: Keep the remaining gameplay math in `singularity-race.html` until a server snapshot/reconciliation adapter needs a cleaner state boundary; the next useful split is likely track effects or action packet publishing.
+
+Date: 2026-05-27
+Observed: Final browser verification passed for the simplified player flow, so the next root cleanup was preventing the same lobby/queue/map-preview/race strings from spreading through `singularity-race.html` again.
+Changed: Added `src/restored/games/singularity-race-flow.js` for screen ids, flow order, compact Korean labels, and a validation helper. Updated `singularity-race.html` to import the flow module for screen setup, button labels, panel copy, and queue slot rendering. Updated the marathon contract check to import and validate the flow module, and refreshed the marathon plan.
+Verified: `node tools/check-restored-marathon-contract.cjs`, `node tools/check-size.cjs`, `git diff --check -- singularity-race.html src/restored/games/singularity-race-flow.js tools/check-restored-marathon-contract.cjs docs/plans/restored-marathon-stadium.md docs/ai-working-state.md`, and `npm.cmd run check` passed. Browser smoke confirmed `profile -> lobby -> queue -> mapPreview -> queue`, 30 queue slots, Korean flow copy/buttons, no horizontal overflow, and a simulated `start_countdown` signal moving the page into `race`.
+Blocked: None.
+Next: Split the remaining large `singularity-race.html` rendering/gameplay clusters only when they become risky; the most useful next target is runner rendering plus action HUD helpers, because those are the parts most likely to tangle with future server snapshots.
+
+Date: 2026-05-27
+Observed: The next root cleanup was that `맵 미리보기` still entered the actual race screen, while the internal player state still used a vague `room` name and kept a hidden ready/status-strip path.
+Changed: Updated `singularity-race.html` so the normal waiting state is `queue`, added a separate `mapPreview` state, changed the map preview button to toggle `queue -> mapPreview -> queue`, removed the dead top status-strip DOM and stale render-metrics branch, and kept `race` entry for admin/direct start paths. Also changed remaining visible development/start/skill system messages in the player page to Korean. Guarded the new queue/map-preview split in the marathon contract check and refreshed the marathon plan.
+Verified: `node tools/check-restored-marathon-contract.cjs`, `node tools/check-size.cjs`, `git diff --check -- singularity-race.html tools/check-restored-marathon-contract.cjs docs/plans/restored-marathon-stadium.md docs/ai-working-state.md`, and `npm.cmd run check` passed. Browser smoke on `http://127.0.0.1:4173/singularity-race.html?resetProfile=1` confirmed `profile -> lobby -> queue`, no status-strip DOM, 30 queue slots, visible chat, hidden track scene, and no horizontal overflow. Clicking `맵 미리보기` moved to `screen: mapPreview`, showed the track scene, hid chat/slots/room panel/action HUD, did not start the race, then `대기열로 돌아가기` returned to `screen: queue`. A simulated admin `start_countdown` control moved to `screen: race` with the track scene and countdown visible while topbar, room panel, and chat stayed hidden.
+Blocked: None.
+Next: Run marathon checks, full check, and browser-smoke `profile -> lobby -> queue -> mapPreview -> queue`, plus admin countdown into `race`.
+Do not: Use `room` as the normal player screen state or let `맵 미리보기` start the real race.
+
+Date: 2026-05-27
+Observed: The human said the room waiting view still had too much UI and should become a simple queue. The queue should not show `1/30`, ready counts, duplicate room cards, English/debug labels, or explanatory clutter; it should show slots, a map preview button, and chat only.
+Changed: Updated `singularity-race.html` so `data-screen="room"` hides the topbar subtitle, status strip, room panel, queue copy, badges, and chat channel tabs. Moved `맵 미리보기` into the slot panel, changed the room title to `대기열`, made normal queue slots render all 30 slots with simple Korean labels, and removed visible English race cue/system text from the local collision/start-gate path. Guarded the queue-only UI shape in the marathon contract check and refreshed the marathon plan.
+Verified: `node tools/check-restored-marathon-contract.cjs`, `node tools/check-size.cjs`, `git diff --check -- singularity-race.html tools/check-restored-marathon-contract.cjs docs/plans/restored-marathon-stadium.md docs/ai-working-state.md`, and `npm.cmd run check` passed. Browser smoke on `http://127.0.0.1:4173/singularity-race.html?resetProfile=1` confirmed the profile-to-lobby-to-queue flow. Desktop `1480x900`, mobile portrait `390x844`, and mobile landscape `844x390` queue views had no horizontal overflow, showed 30 slots plus `맵 미리보기` and chat, hid the status strip, duplicate room panel, channel tabs, `참가자`, `준비 완료`, `방 대기실`, `1 / 30`, `READY`, `ROOM`, and `CHAT`, and the map preview button moved to the race/map screen without bringing back room or chat panels.
+Blocked: None for the local queue UI trim.
+Next: Run static checks and browser-smoke desktop/mobile queue layouts before moving on.
+Do not: Put participant metrics, ready metrics, ready buttons, duplicate room cards, channel tabs, or English debug labels back into the normal `대기열` screen.
+
+Date: 2026-05-27
+Observed: The human said the lobby itself should have no chat and no participant or ready-complete metrics, only a simple room list.
+Changed: Updated `singularity-race.html` so `data-screen="lobby"` hides the topbar subtitle, status strip, chat panel, quick-entry button, and notice box. The visible lobby action is now a single `입장` button on the room card, with debug-only transport/protocol controls still hidden unless explicitly enabled. Guarded the lobby-only simplification in the marathon contract check and refreshed the marathon plan.
+Verified: `node tools/check-restored-marathon-contract.cjs`, `node tools/check-size.cjs`, `git diff --check -- singularity-race.html tools/check-restored-marathon-contract.cjs docs/plans/restored-marathon-stadium.md docs/ai-working-state.md`, and `npm.cmd run check` passed. Browser smoke on `http://127.0.0.1:4173/singularity-race.html?resetProfile=1` confirmed `screen: lobby`, visible room panel, hidden status strip, hidden chat panel, hidden track panel, hidden quick-entry button, hidden notice, `입장` as the only visible room action, and no visible `참가자`, `준비 완료`, or `채팅` text.
+Blocked: None for the local lobby simplification.
+Next: Browser-smoke the profile-to-lobby screen and keep room waiting/chat separated from the lobby list.
+Do not: Put chat, participant counters, ready-complete counters, quick-entry buttons, or packet/debug rows back into `data-screen="lobby"` for normal players.
+
+Date: 2026-05-27
+Observed: The human pointed out that the in-game view was still overlapped by the waiting-room sidebar and lobby chat, so the race screen did not feel separated from the lobby.
+Changed: Added race-screen CSS separation in `singularity-race.html` so `data-screen=\"race\"` hides the topbar, room panel, and chat panel, makes the track panel occupy the full grid, and keeps only the in-game stadium surface visible. The room `준비하기` action now moves into the race screen instead of leaving the player in the waiting layout. Guarded the race-only separation in the marathon contract check.
+Verified: `node tools/check-restored-marathon-contract.cjs`, `node tools/check-size.cjs`, `git diff --check -- singularity-race.html tools/check-restored-marathon-contract.cjs docs/plans/restored-marathon-stadium.md docs/ai-working-state.md`, and `npm.cmd run check` passed. Browser smoke confirmed the second ready click moves to `screen: race`, with `.topbar`, `.room-panel`, and `.chat-panel` hidden, `.track-panel` visible, one full-width grid column, and zero captured console errors.
+Blocked: None for the local UI split. Real server room state still needs backend transport later.
+Next: Keep tuning the in-game HUD density separately from lobby screens.
+Do not: Render room waiting controls or lobby chat sidebars inside `data-screen=\"race\"`.
+
+Date: 2026-05-27
+Observed: The human said the standalone Singularity Race page was too crowded because nickname, skin, lobby, room, race, chat, packet logs, netcode rows, and dev authority labels were all visible together.
+Changed: Reworked `singularity-race.html` around a player-facing screen state: `profile`, `lobby`, `room`, and `race`. First entry now asks for nickname and skin, then shows a compact room list, then a room waiting view with participant/ready/chat, then the race view. Existing dev connected gate, packet rails, netcode budget, full skin grid, and action packet rail are still present but hidden behind `?debug=1`. Normal chat now hides system/dev messages and shows a short empty state instead of old internal relay messages.
+Verified: `node tools/check-restored-marathon-contract.cjs`, `node tools/check-size.cjs`, `git diff --check -- singularity-race.html tools/check-restored-marathon-contract.cjs docs/plans/restored-marathon-stadium.md docs/ai-working-state.md`, and `npm.cmd run check` passed. Browser smoke on `http://127.0.0.1:4173/singularity-race.html?resetProfile=1` confirmed the first screen shows nickname/skin/start, the lobby, room, and race screens hide `Connected lobby gate`, `join_request`, `state_snapshot`, `net_lane`, `server_egress`, `SERVER LOCKED`, and `DEV ROOM`, race labels are Korean, mobile 390px lobby has no horizontal overflow, and captured console errors were 0.
+Blocked: Real public online still needs the backend transport and server-owned room/session state. This loop only simplified the player UI over the existing dev adapter.
+Next: Tune the exact mobile layout density, then connect the simplified room flow to real server-owned room/session state when transport work resumes.
+Do not: Put protocol packet rows, raw netcode metrics, raw room ids, or server authority debug labels back into the normal player path.
+
+Date: 2026-05-27
+Observed: The human wanted the admin page simplified into a future host/spectator camera surface, with Korean UI and no visible raw `connection gate`, channel count, stored message, or room packet metric dashboard.
+Changed: Reworked `singularity-race-admin.html` into a Korean 방장 페이지 with 방 목록, `게임 바로 보기`, lobby link, whole-course map camera, selectable player watch list, 10-second countdown control, and separated chat. The page still reads dev relay state internally but the visible operator UI is now room/camera/player focused. Updated the marathon contract check and plan to guard the host-page shape.
+Verified: `node tools/check-restored-marathon-contract.cjs`, `node tools/check-size.cjs`, `git diff --check -- singularity-race-admin.html tools/check-restored-marathon-contract.cjs docs/plans/restored-marathon-stadium.md docs/ai-working-state.md`, and `npm.cmd run check` passed. Browser smoke on `http://127.0.0.1:4173/singularity-race-admin.html?devOnline=1` confirmed the title `특이점레이스 방장 페이지`, visible `방 목록`, `전체 맵 감시카메라`, `플레이어 보기`, and `10초 카운트다운 시작`, with no visible old `connection gate` / `room packets` / `stored messages` / `visible channels` dashboard tokens in the current snapshot and zero captured console errors.
+Blocked: This remains dev-only. Real room authority, host authentication, server-owned room start time, moderation, and true spectator camera feeds still need the backend transport.
+Next: Browser-smoke `singularity-race-admin.html?devOnline=1`, then connect the host camera to real server snapshots when WebSocket/Firebase transport exists.
+Do not: Reintroduce raw packet/channel/message metrics as the primary admin UI or let the dev host page become public online authority.
+
+Date: 2026-05-27
+Observed: The next online-ready slice was not public online; the current stage needed server-owned `state_snapshot`, ping measurement, and reconciliation before a real WebSocket/Firebase transport is attached.
+Changed: Added ping sample and reconciliation helpers to the marathon netcode contract, stamped dev connected snapshots with `serverOwned`, snapshot id, server tick/snapshot cadence, ping sample, and reconciliation metadata, and made the WebSocket-shaped dev server mock emit the same server-owned snapshot shape. The lobby netcode HUD now shows server snapshot, ping sample, and reconciliation guard rows.
+Verified: `node tools/check-restored-marathon-contract.cjs`, `node tools/check-size.cjs`, `git diff --check -- singularity-race.html src/restored/online/marathon-netcode-contract.js src/restored/online/marathon-room-adapter.js src/restored/online/marathon-websocket-dev-server-mock.js tools/check-restored-marathon-contract.cjs docs/plans/restored-marathon-stadium.md docs/ai-working-state.md`, and `npm run check` passed. HTTP checks returned 200 for `singularity-race.html?devOnline=1` and `singularity-race-admin.html?devOnline=1`. Browser checks confirmed the netcode HUD rows `server_snapshot`, `ping_sample`, and `reconcile_guard`, admin auto-join produced a `state_snapshot` from `server:dev-adapter`, the admin room monitor saw the same server snapshot, and console errors were 0.
+Blocked: The first Browser-runtime connection attempt timed out, but the Playwright browser surface verified the pages afterward.
+Next: Use these server-owned dev snapshots as the handoff point for the real WebSocket/Firebase transport adapter; keep final race state, checkpoint rewards, and rankings server-owned.
+Do not: Treat dev snapshots as public online authority or accept client-sent race finalization, checkpoint rewards, or authoritative positions.
+
+Date: 2026-05-27
+Observed: The human reported that runner names appeared detached while sprinting or moving fast, and asked whether names should sit above or below the character given future health bars.
+Changed: Added `.runner-nameplate` inside each `.runner-avatar` in `singularity-race.html`, pinned under the runner's feet. The existing avatar image and the nameplate now share the same positioned parent so movement interpolation, sprinting, collision animation, and camera motion keep them together. The marathon plan now records that the head area is reserved for future health bars/status effects.
+Verified: `node tools/check-restored-marathon-contract.cjs`, `node tools/check-size.cjs`, `git diff --check -- singularity-race.html tools/check-restored-marathon-contract.cjs docs/plans/restored-marathon-stadium.md docs/ai-working-state.md`, and HTTP 200 for `http://127.0.0.1:4173/singularity-race.html` passed before the final full check.
+Blocked: The in-app browser connection reported no active Codex browser pane, so the live visual nameplate check still needs manual confirmation in the open browser.
+Next: Open the race page, sprint with `Shift`, and confirm the foot-level nameplate remains attached. Add the future HP bar above the sprite, not above the nameplate.
+Do not: Render runner names as a separate track overlay or place name text above the head where it will conflict with HP/status UI.
+
+Date: 2026-05-27
+Observed: The human said runners still could not approach the road walls because an invisible buffer seemed to block movement before the visible edge.
+Changed: Increased `ROAD_LANE_HALF_WIDTH_PX` in `singularity-race.html` from the conservative inner lane to a near-wall clamp that matches the visible road surface more closely. Added a marathon contract check so the lane clamp cannot silently shrink back below the near-wall threshold. Updated the marathon plan to document that runners should reach close to the visible walls while their centers stay inside the road.
+Verified: `node tools/check-restored-marathon-contract.cjs`, `node tools/check-size.cjs`, `git diff --check -- singularity-race.html tools/check-restored-marathon-contract.cjs docs/plans/restored-marathon-stadium.md docs/ai-working-state.md`, and HTTP 200 for `http://127.0.0.1:4173/singularity-race.html` passed before the final full check.
+Blocked: The in-app browser automation timed out while trying to open the page from `about:blank`, so visual wall-distance tuning still needs a manual/live browser pass.
+Next: Open `http://127.0.0.1:4173/singularity-race.html`, move with `W/S` to both wall sides, and tune `ROAD_LANE_HALF_WIDTH_PX` down slightly if sprites overlap the black wall too much or up slightly if a buffer is still visible.
+Do not: Reintroduce a large invisible wall buffer or let runner centers leave the road surface in local preview.
+
+Date: 2026-05-27
+Observed: The human clarified that runner contact should still be felt; runners should not pass through each other too freely, but collision must stay smooth.
+Changed: Added soft collision impulse constants and helpers in `singularity-race.html`. `resolveSingleRailCollisions()` now applies small lane and progress separation when runners overlap in progress and road position, while `calculateSoftPassPressure()` uses the same body radius for speed drag. Updated the marathon plan and contract guard so this soft-contact layer remains visible to future checks.
+Verified: `node tools/check-restored-marathon-contract.cjs`, `node tools/check-size.cjs`, `git diff --check -- singularity-race.html tools/check-restored-marathon-contract.cjs docs/plans/restored-marathon-stadium.md docs/ai-working-state.md`, and `npm run check` passed. HTTP check for `http://127.0.0.1:4173/singularity-race.html` returned 200.
+Blocked: In-app browser and fallback browser automation were unavailable/closed during this loop, so visual collision feel still needs a live browser pass by opening the game and starting the countdown. The implementation remains local/dev preview only; real online collision must be server-owned.
+Next: Open `singularity-race.html`, start from the admin countdown or local race-control command, and tune `SOFT_COLLISION_LANE_PUSH_PX` / `SOFT_COLLISION_PROGRESS_PUSH` if contact feels too sticky or too ghost-like.
+Do not: Reintroduce hard walls, remove soft collision impulses, or trust local collision order for public online results.
+
+Date: 2026-05-27
+Observed: The human asked to fix bugs and review whether anything was still missing after the ping/anti-teleport work.
+Changed: Cleaned the runner render cleanup path so removed runners also clear their visual smoothing cache in one guarded branch. Strengthened `tools/check-restored-marathon-contract.cjs` so `smoothRunnerVisualPoint`, `runnerVisuals`, `resolveRestoredMarathonVisualStep`, and the `anti_teleport` HUD row cannot be accidentally removed without failing the marathon check.
+Verified: `node tools/check-restored-marathon-contract.cjs`, `node tools/check-size.cjs`, `git diff --check -- singularity-race.html tools/check-restored-marathon-contract.cjs src/restored/online/marathon-netcode-contract.js docs/plans/restored-marathon-stadium.md docs/ai-working-state.md`, and `npm run check` passed. Local HTTP checks returned 200 for `http://127.0.0.1:4173/singularity-race.html` and `http://127.0.0.1:4173/singularity-race-admin.html?devOnline=1`; the served admin page includes the start button, direct game link, race-control storage key, and `start_countdown` command, while the served game page includes the admin link, anti-teleport HUD token, visual smoothing import, and 60ms preview loop.
+Blocked: The Codex in-app browser pane was not available during this follow-up, so the race-phase visual/admin-click browser sample still needs a live browser pass. Public online is still not implemented; current protection is local/dev display smoothing and packet-pressure rehearsal only.
+Next: When the browser pane is available, run the admin countdown from `singularity-race-admin.html?devOnline=1`, watch `singularity-race.html` enter `GO`, and sample race-phase runner jumps/console errors. After that, continue toward server-owned snapshots and reconciliation.
+Do not: Remove the smoothing cache/HUD guard, draw remote corrections directly to the screen, or treat the dev adapter as public matchmaking.
+
+Date: 2026-05-27
+Observed: The human said ping management is the top priority and asked to prevent AI/bot teleport-looking bugs or stutter before real online transport.
+Changed: Added a netcode visual smoothing policy in `src/restored/online/marathon-netcode-contract.js` and wired `singularity-race.html` so non-player runner display positions move through that max-step/snap-cap guard. The netcode HUD now shows the anti-teleport limits, and the marathon plan records that future server snapshots must render through this smoothing layer.
+Verified: Browser sampling on `http://127.0.0.1:4173/singularity-race.html` confirmed the gate-locked page showed the `anti_teleport` HUD row, kept 30 runners, had zero console errors, and moved sampled bot positions with max jump about 4.38px and no jumps above 90px over 24 samples. The later race-phase browser attempt lost the active Codex browser pane before completion, so race-start visual sampling still needs a follow-up browser pass. `node tools/check-restored-marathon-contract.cjs`, `node tools/check-size.cjs`, `git diff --check -- singularity-race.html src/restored/online/marathon-netcode-contract.js docs/plans/restored-marathon-stadium.md docs/ai-working-state.md`, and `npm run check` passed.
+Blocked: This is still a local/dev visual guard. Real public online still needs server-owned snapshots, ping measurement, reconciliation, and a connected WebSocket/Firebase transport.
+Next: Re-run a race-phase browser sample after the in-app browser pane is available, then keep moving toward authoritative server snapshots with this display guard in place.
+Do not: Draw remote/server runner corrections directly to the screen, or send per-frame positions as the online fix.
+
+Date: 2026-05-27
+Observed: The human said the local runner felt too slow, `Shift` should be the real speed-up, and the current down-lane movement looked faster than forward running.
+Changed: Tuned `singularity-race.html` movement constants so staging has quick forward movement for start positioning, race sprint is much faster than normal running, and lateral lane movement is toned down. Updated the marathon plan and contract guard for the staging sprint constant.
+Verified: Browser reload of `http://127.0.0.1:4173/singularity-race.html` confirmed the local page still opens with 30 runners, gate locked, and zero console errors. The marathon contract guard now asserts race sprint is at least 2.5x normal run, staging sprint is at least 2x staging run, and lane sprint stays capped so `W/S` does not become the main speed control. `node tools/check-restored-marathon-contract.cjs`, `node tools/check-size.cjs`, `git diff --check -- singularity-race.html tools/check-restored-marathon-contract.cjs docs/plans/restored-marathon-stadium.md docs/ai-working-state.md`, and `npm run check` passed.
+Blocked: None for local feel tuning. Real connected rooms still need server-owned movement balance values.
+Next: Tune exact public race duration later through server-owned movement balance once connected room snapshots exist.
+Do not: Let lane movement become the main speed mechanic or treat these local constants as final public online balance.
+
+Date: 2026-05-27
+Observed: The human reported that Singularity Race bots appeared to stop whenever the player stopped, which made the staging area feel player-driven instead of independently simulated.
+Changed: Updated `singularity-race.html` so local bot advancement returns a `botsMoved` signal and `advanceActionPreview()` renders when bots move even if the player is idle. Guarded the regression with `tools/check-restored-marathon-contract.cjs`.
+Verified: Browser smoke on `http://127.0.0.1:4173/singularity-race.html` confirmed the gate-locked local page keeps 30 runners, has zero console errors, and moves idle non-player bot screen positions by roughly 10-30px over 1.4 seconds without player input. `node tools/check-restored-marathon-contract.cjs`, `node tools/check-size.cjs`, `git diff --check -- singularity-race.html tools/check-restored-marathon-contract.cjs docs/ai-working-state.md`, and `npm run check` passed.
+Blocked: None for the local staging preview. Real online rooms still need server-owned bot/player snapshots and interpolation.
+Next: Continue toward server-owned race start, input buffering, and movement authority after local staging feel is accepted.
+Do not: Tie bot visibility updates to local player input, or treat local bot movement as public online authority.
+
+Date: 2026-05-27
+Observed: The human said the one-line start should be removed, 30 runners should freely occupy the wide start space, the path should stay blocked until the admin page starts a 10-second countdown, and WASD should move freely on the road instead of only along one line.
+Changed: Reworked `singularity-race.html` from start-line formation to a broad start paddock. Local runners now have lateral road offsets, pre-start bot drift, free WASD staging movement, gate-locked skill/attack behavior, a visible `START GATE`, and a `10` second admin-start countdown via separated race-control local storage/broadcast. Added `경기 시작 10초 카운트다운` to `singularity-race-admin.html?devOnline=1`, recording a monitor packet while keeping the control dev-only. Updated the marathon plan and contract guard.
+Verified: Browser smoke confirmed `singularity-race.html` shows 30 runners scattered across the start paddock, not one line: top spread about 332px, left spread about 482px, 11 visual row buckets, visible `START GATE`, `GATE LOCKED` phase/status, and zero console errors. Admin smoke on `singularity-race-admin.html?devOnline=1` confirmed the start button is enabled in `DEV ADMIN`; clicking it sends a fresh command, the game page reads `9` seconds remaining, shows `COUNTDOWN`, keeps the gate visible during countdown, then after about 10 seconds switches to `RACING`, removes the gate, and stays error-free. `node tools/check-restored-marathon-contract.cjs`, `node tools/check-size.cjs`, and `git diff --check -- singularity-race.html singularity-race-admin.html tools/check-restored-marathon-contract.cjs docs/plans/restored-marathon-stadium.md docs/ai-working-state.md` passed before the final full gate.
+Blocked: This is still dev/local race-control rehearsal. Real public online must move the start command, countdown time, gate release, position reconciliation, and collision pressure to server authority.
+Next: Run the full gate, then continue toward server-owned start countdown, input buffering, authoritative 2D road position snapshots, and real WebSocket/Firebase transport.
+Do not: Reintroduce a one-row start formation, let keyboard/attack/skill start the countdown, or treat the local admin control signal as public online authority.
+
+Date: 2026-05-27
+Observed: The human said the Singularity Race camera should be centered on the player.
+Changed: Updated `singularity-race.html` to use centered X/Y camera anchors for the track world, refreshed the marathon plan language, and guarded the centered camera constants in `tools/check-restored-marathon-contract.cjs`.
+Verified: Browser smoke on `http://127.0.0.1:4173/singularity-race.html` confirmed the player center was within about 0px horizontally and 0.2px vertically of the track-scene center at start and after preview movement to `YOU 6%`, with zero captured console errors. `node tools/check-restored-marathon-contract.cjs`, `node tools/check-size.cjs`, `git diff --check -- singularity-race.html tools/check-restored-marathon-contract.cjs docs/plans/restored-marathon-stadium.md docs/ai-working-state.md`, and `npm run check` passed.
+Blocked: None for the local camera. Real connected rooms still need server-owned movement while camera remains client-side display only.
+Next: Continue toward server-owned start countdown, input buffering, and authoritative soft-collision reconciliation when the visual feel is accepted.
+Do not: Move the camera anchor back toward the left edge unless the user explicitly asks for a look-ahead camera mode.
+
+Date: 2026-05-27
+Observed: The human said the road was still too narrow, the start should fit all 30 runners, runner contact should feel like sliding through pressure instead of hard blocking, and the start line should count down before release.
+Changed: Updated `singularity-race.html` with 580px / 460px non-scaling trail strokes, a one-row 30-runner same-progress start formation, a local `3-2-1-GO` countdown triggered by preview/input/skill/attack, and soft pass pressure that slows and offsets crowded runners without clamping progress. Updated the marathon plan and contract check so the wide road, one-row start, soft pass, and countdown stay guarded.
+Verified: Browser smoke on `http://127.0.0.1:4173/singularity-race.html` confirmed 30 runner avatars in one start row, row top spread under 1px, scene width 967px with runner bounds x=348..1252, `7600x2600` track world, 580px outline and 460px surface strokes, countdown `3` before movement, `LOCAL PREVIEW` after countdown release, preview movement to `YOU 6%`, and zero captured console errors. `node tools/check-restored-marathon-contract.cjs`, `node tools/check-size.cjs`, `git diff --check -- singularity-race.html tools/check-restored-marathon-contract.cjs docs/plans/restored-marathon-stadium.md docs/ai-working-state.md`, and `npm run check` passed.
+Blocked: Collision, countdown authority, and start placement are still local/dev previews. Real online rooms must own these rules on the server before public multiplayer.
+Next: If the visual feel is accepted, move toward server-owned start countdown, input buffering, and authoritative soft-collision reconciliation.
+Do not: Reintroduce hard local body blocking, split the start into separate progress positions, or let client-side countdown/collision become public online authority.
+
+Date: 2026-05-27
+Observed: The human said the race view was still too narrow, runners should stand side-by-side on the same starting line, walking looked choppy, and the track should feel long enough for roughly a 10-minute one-off race with content.
+Changed: Updated `singularity-race.html` so the lobby stacks room/chat controls on the left and gives the stadium a much wider viewport. Expanded the track world to `7600x2600`, widened rail strokes, set all local/dev runners to `START_LINE_PROGRESS`, added a start-stretch visual spread that keeps 30 runners side-by-side before fading into the trail, kept the start pack collision-free until the release zone, reduced local run/sprint progress rates to long-race pacing, lowered the preview jump, and changed runner rendering to persistent DOM nodes with `left/top` transitions and a 60ms local tick. Updated the marathon plan and contract guard.
+Verified: Browser smoke on `http://127.0.0.1:4173/singularity-race.html` confirmed a 967px-wide stadium viewport, `7600x2600` track world, 30 transparent runners spread from x=23 to x=951 on the same y=313 start line, `YOU 4%` at start, 118px/92px rail strokes, preview movement to `YOU 7%` with the player still visible, smooth avatar transition CSS, and zero captured console errors. `node tools/check-restored-marathon-contract.cjs`, `node tools/check-size.cjs`, `git diff --check -- singularity-race.html tools/check-restored-marathon-contract.cjs docs/plans/restored-marathon-stadium.md docs/ai-working-state.md`, and `npm run check` passed.
+Blocked: This is still a local/dev visual and pacing model. Real online movement duration, start formation, collision, interpolation, and checkpoints must be owned by the server simulation later.
+Next: Re-run full checks after doc guard updates, then tune the course pacing or start camera only if the human wants a different race duration feel.
+Do not: Compress the full course into the first viewport, stagger the initial pack by progress, or let the client-side 8-10 minute pacing become online authority.
+
+Date: 2026-05-27
+Observed: The human reported that the Singularity Race sprites had an unwanted dark translucent background, the map felt too small, the rail width looked wider near the top, the camera needed to follow the player on a huge map, and key skins such as `gpichan`, `robot`, and `kaguya` were not visible.
+Changed: Updated `singularity-race.html` to wrap the SVG trail, effects, and 30 runner sprites in a `track-world` sized for a larger map and move that world with a player-follow camera. Converted the track strokes to non-scaling SVG strokes for a constant visible rail width, removed framed dark avatar backgrounds in favor of transparent sprite layers, widened the single-rail spacing for the larger world, corrected pointer-to-progress aiming for the moved camera, and changed the skin picker to render all playable presets with featured race skins first. Updated the marathon plan and smoke contract guard.
+Verified: `node tools/check-restored-marathon-contract.cjs`, `node tools/check-size.cjs`, `npm run check`, `git diff --check -- singularity-race.html tools/check-restored-marathon-contract.cjs docs/plans/restored-marathon-stadium.md docs/ai-working-state.md`, and browser smoke on `http://127.0.0.1:4173/singularity-race.html` passed. Browser smoke confirmed 30 transparent-background runner avatars, a 2800x1180 camera-followed track world, player kept visible after preview movement, fixed 54px/42px trail strokes, all 15 playable skin cards, featured `gpichan`/`robot`/`kaguya` skin ids, and zero captured console errors.
+Blocked: This remains a local/dev visual and collision preview. Real online cameras, interpolation, server-owned collision, and authoritative positions still need backend simulation.
+Next: Tune the race scene width/side-panel layout only if the human wants more runners visible in the viewport at once; otherwise continue toward server-owned movement/collision.
+Do not: Reintroduce dark sprite cards, fit the whole marathon route into the small viewport, or treat the client camera/collision preview as online authority.
+
+Date: 2026-05-27
+Observed: The human clarified that when entering the stadium, everyone should run together on one rail, runners should collide instead of passing through each other, and chat should be opened with `T`.
+Changed: Updated `singularity-race.html` so the local lobby starts with 30 runners, renders runner avatars directly on the trail centerline, applies local-only single-rail collision spacing and bump feedback, blocks player dash/run movement behind the nearest runner ahead, and focuses chat with `T`. Updated the marathon plan and smoke check to guard the no-pass rail and chat hotkey.
+Verified: Browser smoke on `http://127.0.0.1:4173/singularity-race.html` confirmed 30 runner avatars, 30 runner slots, 5 standings rows, `T` focusing `#chat-input`, preview movement producing `BUMP` collision feedback, and zero captured console errors. `node tools/check-restored-marathon-contract.cjs`, `node tools/check-size.cjs`, and `node tools/check-restored-growth-architecture.cjs` passed before the final full gate.
+Blocked: Collision is still local/dev preview. A real online room must resolve rail order, collision, stalls, and player positions on the server before rankings or rewards.
+Next: Verify the lobby, then later move this no-pass rail rule into the server simulation when real WebSocket/Firebase transport exists.
+Do not: Treat local collision order as authoritative online movement, send per-frame local positions as truth, or let chat/admin traffic share the race action packet lane.
+
+Date: 2026-05-27
+Observed: The human said to continue after the admin direct-entry page. The next useful operator slice was making the dev-only room packet lane visible from the separate admin page.
+Changed: Added a read-only room packet monitor to `singularity-race-admin.html?devOnline=1`, including a packet metric, latest packet rows, and netcode relay guard status from `src/restored/online/marathon-dev-room-transport.js`. Updated the marathon plan and smoke check so the admin monitor remains guarded.
+Verified: `node tools/check-restored-marathon-contract.cjs`, `node tools/check-size.cjs`, `node tools/check-restored-growth-architecture.cjs`, `npm run check`, `git diff --check`, and browser smoke passed. Browser smoke seeded the dev room through `singularity-race.html?devOnline=1&adminLaunch=1`, then confirmed `singularity-race-admin.html?devOnline=1` shows `DEV ADMIN`, room `room:singularity-race:dev-001`, 24 room packets, monitor rows for `join_request`, `join_result`, `state_snapshot`, relay guard `clear`, and zero console errors.
+Blocked: The monitor reads local dev relay storage only. It is not production admin authentication, public matchmaking, persistent server history, or authoritative race control.
+Next: Verify the page, then later replace this observer lane with authenticated server room telemetry once the real WebSocket/Firebase backend is chosen.
+Do not: Let the admin page write authoritative race packets, merge admin chat with race action packets, or treat dev query flags as production admin auth.
+
+Date: 2026-05-27
+Observed: The human asked to confirm the admin page link and make the admin page able to enter the game directly.
+Changed: Added a primary `게임 바로 입장` action to `singularity-race-admin.html?devOnline=1`, pointing at `singularity-race.html?devOnline=1&adminLaunch=1`. Updated `singularity-race.html` so `adminLaunch=1` automatically performs the existing dev room join flow. Updated the marathon plan and smoke check to guard the admin direct-launch path.
+Verified: `node tools/check-restored-marathon-contract.cjs`, `node tools/check-size.cjs`, `node tools/check-restored-growth-architecture.cjs`, and browser smoke passed. Browser smoke confirmed the lobby `admin-page-link`, the admin `admin-direct-game-link`, admin `DEV ADMIN` mode, direct launch URL, automatic `DEV ROOM`, `join_result ok`, joined room code, `SERVER LOCKED`, and zero captured console errors.
+Blocked: This is still a dev-only shortcut. It does not authenticate real admin authority or expose public online.
+Next: When real backend/auth is chosen, replace this query shortcut with server-authenticated admin session checks.
+Do not: Treat `adminLaunch=1` as production admin auth or expose connected admin controls without server-side authority.
+
+Date: 2026-05-27
+Observed: The local single-trail preview had visual cues, but the 30-runner room still felt static unless the user pressed the coarse preview button.
+Changed: Added local-only bot pack advancement after keyboard, skill, attack, or preview-button start; added a compact `race-standings` strip that shows the top local runners plus YOU; added local rank cue handling; and updated runner slots to show progress percent. Updated the marathon plan and smoke check to guard the standings/bot-pack layer.
+Verified: `node tools/check-restored-marathon-contract.cjs`, `node tools/check-size.cjs`, and browser smoke on `http://127.0.0.1:4173/singularity-race.html` passed. Browser smoke confirmed 30 runners, five standings rows, bot progress changes after local practice starts, SAVE 1 clearing, next SAVE 2 display, focus ring, and zero captured console errors.
+Blocked: Bot movement and standings are local/dev preview only. They do not create authoritative online movement, rank, checkpoint, finish, or reward state.
+Next: Continue toward a connected runtime/back-end adapter after choosing provider/auth, or add more local race-feel polish without presenting it as public online.
+Do not: Send per-frame local bot/player positions as authoritative online data or trust local standings for rankings/rewards.
+
+Date: 2026-05-27
+Observed: After the single-trail map landed, the next useful local preview slice was making progress, save points, and action results visible without changing online authority.
+Changed: Added the `track-effects` overlay in `singularity-race.html` with a player focus ring, progress/next-save pill, and short local visual cues for checkpoint, skill, hit, respawn, and finish-preview moments. The preview advance button now runs checkpoint detection, checkpoint detection can catch multiple crossed saves, and filling 30 local runners resets the local action race state. Updated the marathon plan and smoke check to guard the visual race-feedback layer.
+Verified: `node tools/check-restored-marathon-contract.cjs`, `node tools/check-size.cjs`, and browser smoke on `http://127.0.0.1:4173/singularity-race.html` passed. Browser smoke confirmed 30 runners, one focus ring, `SAVE 1` cue after preview advancement, SAVE 1 cleared, next SAVE 2 shown, five trail labels, five save lines, and zero captured console errors.
+Blocked: The feedback layer is cosmetic local/dev preview only. It does not replace server-owned checkpoint, hit, respawn, finish, ranking, or reward authority.
+Next: Add real connected runtime delivery or a local backend process only after the WebSocket/Firebase provider and auth/session boundary are chosen.
+Do not: Treat visual cues as authoritative online results or expose dev-only connected behavior without `?devOnline=1`.
+
+Date: 2026-05-27
+Observed: The human provided a sketch of the desired Singularity Race map: a log-scale style curved marathon stadium, one shared trail, five save points, and a finish at the upper end.
+Changed: Added `src/restored/games/marathon-trail-geometry.js`, wired the marathon course checkpoints to that five-save geometry, and changed `singularity-race.html` to render an SVG log-curve trail with checkpoint ticks, labels, finish mark, pointer-to-progress attack aiming, and 30-runner placement on the same trail. Updated the marathon plan, restored README, and marathon smoke check so the geometry stays guarded.
+Verified: `node tools/check-restored-marathon-contract.cjs`, `node tools/check-restored-growth-architecture.cjs`, `node tools/check-size.cjs`, and `npm run check` passed. Browser smoke on `http://127.0.0.1:4173/singularity-race.html` confirmed 3 trail paths, 5 save lines, labels 1-5 inside the scene, 30 filled runners on the shared trail, and zero captured console errors.
+Blocked: The trail is still a local/dev preview. Real online authority, live ping measurement, reconciliation, and server-hosted snapshots are not connected yet.
+Next: Add connected transport runtime wiring or a local backend process only after choosing the WebSocket/Firebase provider and auth/session boundary.
+Do not: Split runners into lanes, make checkpoint/finish results client-authoritative, or bypass the dev-only connected gate.
+
+Date: 2026-05-27
+Observed: The human said to continue after the server transport boundary. The safest next online step was a local WebSocket-shaped server rehearsal, not public online or Firebase secrets.
+Changed: Added `src/restored/online/marathon-websocket-dev-server-mock.js`. The mock creates connected `websocket` transport snapshots, exposes a server-backed room adapter, owns server-side join results and state snapshots, accepts only client-owned chat/input/skill/attack packets, rejects client-sent server-owned finalization packets, and applies the existing netcode packet-pressure guard. Updated marathon checks and docs.
+Verified: `node tools/check-restored-marathon-contract.cjs`, `node tools/check-size.cjs`, `node tools/check-restored-growth-architecture.cjs`, `npm run check`, and `git diff --check` passed.
+Blocked: This does not open an actual WebSocket port, run on a deployed backend, authenticate sessions, persist room history, or perform server simulation/reconciliation yet.
+Next: Wire a real local `ws://127.0.0.1` development transport or backend process behind this mock shape, then connect the dev-only lobby to it without exposing public matchmaking.
+Do not: Treat the mock as public online, let clients send `state_snapshot`, `checkpoint_reward`, `respawn_notice`, `race_finalized`, rankings, or rewards as authority, or add API keys/secrets to client config.
+
+Date: 2026-05-27
+Observed: The human clarified that Singularity Race is still not public online; the next step is to plug a real WebSocket/Firebase-like server transport behind the existing dev adapter boundary.
+Changed: Extended `src/restored/online/marathon-server-transport-contract.js` with provider config for `websocket` and `firebase`, auth-mode metadata, connected snapshot creation, capability flags, and rejection of embedded secret-like config keys. Added `src/restored/online/marathon-server-room-adapter.js` for the server-transport-backed room shape, so a connected lobby can open from an injected server transport snapshot and server room list while default/dev behavior stays unchanged. Updated the marathon contract check and docs.
+Verified: `node tools/check-restored-marathon-contract.cjs`, `node tools/check-size.cjs`, `node tools/check-restored-growth-architecture.cjs`, `npm run check`, and `git diff --check` passed.
+Blocked: No actual WebSocket server, Firebase app config, auth session, deployment, or public room registry was added. Those require explicit backend configuration and secrets outside this client contract.
+Next: Add a local WebSocket dev server mock that consumes this transport contract, or choose Firebase/WebSocket backend details and auth/session rules before wiring a real provider.
+Do not: Put API keys/tokens/secrets in client config, expose the server-backed adapter as public matchmaking without a connected backend, or make client-owned checkpoint/attack/finish data authoritative.
+
+Date: 2026-05-27
+Observed: The human expects to provide many MP3 files, photos, and character illustrations, and asked to start the structure plus likely bug-risk design before the asset volume grows.
+Changed: Created the promoted `assets/restored/` folder guide structure for audio, images, source files, and manifest batches. Expanded `docs/baegeum-city-v2-restored-asset-pipeline.md` with shared character packs, Singularity Race-specific art/audio folders, optional collection metadata, and a bug-prevention plan. Extended `src/restored/assets/asset-manifest.js` with character/race/skill/skin/stadium image roles, source/status validation, collection helpers, and raw-inbox protection. Updated the intake tool so `--collection=singularity-race` routes character, skill, skin, stadium, UI, and audio files into race-owned folders. Updated asset/intake checks and related docs.
+Verified: `node tools/check-restored-asset-pipeline.cjs`, `node tools/check-restored-intake.cjs`, and `node tools/check-size.cjs` passed.
+Blocked: No actual new MP3/image files were provided in this loop, so no runtime asset entries were promoted yet.
+Next: When files arrive, put them in `assets/inbox/`, run `node tools/intake-restored-material.cjs "<file>" --role=<role> --collection=<collection> --id=<asset-id> --write`, then promote approved runtime copies into `assets/restored/` and register manifest entries.
+Do not: Reference `assets/inbox/` from runtime code, load high-resolution source masters directly, skip source/status metadata, or put feature-specific Singularity Race art into shared character folders unless it is truly reusable.
+
+Date: 2026-05-27
+Observed: The human asked to keep going after the 30-runner ping/optimization pass. The useful next online-before-real-online step was to block packet spam in the dev room relay, not add more visible race features.
+Changed: Extended `src/restored/online/marathon-netcode-contract.js` with a packet pressure report and relay accept/reject helper for action packets. Wired `src/restored/online/marathon-dev-room-transport.js` to reject per-client `input_update`, `skill_use`, `attack_action`, `checkpoint_reward`, and `respawn_notice` spam above the 20 Hz input budget plus burst allowance while leaving join/snapshot room packets alone. `singularity-race.html` now renders a `relay_guard` budget row after the dev room joins. Updated the marathon plan, roadmap, restored README, index, plans README, and marathon smoke check.
+Verified: `node tools/check-restored-marathon-contract.cjs`, `node tools/check-size.cjs`, `npm run check`, and `git diff --check` passed. Browser smoke on `http://127.0.0.1:4173/singularity-race.html?devOnline=1` confirmed `relay_guard`, `join_result ok`, room packet rows, and zero captured console errors.
+Blocked: This still does not measure real network RTT/loss or perform server reconciliation. A real backend must consume this guard and add ping sampling, authoritative snapshots, reconnect recovery, lag compensation, and abuse logging.
+Next: Add a backend-facing WebSocket adapter or a local dev server mock that can run the same packet pressure guard outside the browser before rankings/rewards.
+Do not: Let clients bypass relay rate limits, mix chat/admin traffic into the action packet lane, or trust high-rate client input for hits, checkpoints, finish time, rankings, or rewards.
+
+Date: 2026-05-27
+Observed: The human called out that 30-player online racing will be limited by ping and optimization more than by raw feature count.
+Changed: Added `src/restored/online/marathon-netcode-contract.js` to lock the 30-runner network budget before a real server exists: 20 Hz input requests, 10 Hz compact server snapshots, per-player upstream/downstream estimates, server egress estimate, input coalescing, interpolation delay, and adaptive network lanes (`smooth`, `buffered`, `degraded`, `critical`). Wired `singularity-race.html` to render the budget in the lobby so packet pressure stays visible during testing. Updated the marathon check, restored README, roadmap, index, plans README, and marathon plan.
+Verified: `node tools/check-restored-marathon-contract.cjs`, `node tools/check-size.cjs`, `npm run check`, and `git diff --check` passed. Browser smoke on `http://127.0.0.1:4173/singularity-race.html` confirmed the visible netcode rows: `net_lane`, `input_budget`, `snapshot_budget`, and `server_egress`, with zero captured console errors.
+Blocked: Real network measurement, server-side lane decisions, packet loss simulation, rewind/reconciliation, and websocket transport are still future backend work.
+Next: When a backend is chosen, make the server consume this netcode contract for tick rate, snapshot cadence, interpolation hints, and rate limiting before adding rankings or rewards.
+Do not: Let clients send per-frame positions, raise snapshot rate without budget checks, mix chat/admin traffic into the race action stream, or make high-ping clients authoritative for hits/checkpoints/finish time.
+
+Date: 2026-05-27
+Observed: The human asked to finish the Singularity Race online-before-real-online slice. The remaining blocker was a dev-only room packet relay that could rehearse delivery between same-origin clients without claiming public server authority.
+Changed: Added `src/restored/online/marathon-dev-room-transport.js` for room-scoped join/input/skill/attack/snapshot packet relay using local dev storage plus same-origin broadcast updates. Wired `singularity-race.html?devOnline=1` so after `join_result ok`, connected key and mouse inputs publish server-shaped request envelopes to the room packet rail while the action HUD remains `SERVER LOCKED`. Updated the marathon check, roadmap, restored README, and marathon plan.
+Verified: `node tools/check-restored-marathon-contract.cjs`, `node tools/check-restored-game-contract-purity.cjs`, `node tools/check-size.cjs`, `npm run check`, and `git diff --check` passed. Browser smoke on `http://127.0.0.1:4173/singularity-race.html?devOnline=1` confirmed `DEV ROOM`, relay packet count, visible `join_result`, `state_snapshot`, `input_update`, `skill_use`, and `attack_action` rows, `SERVER LOCKED` action status, and zero captured console errors.
+Blocked: This is still not a real backend. Public multiplayer still needs authenticated WebSocket/session handling, server-owned movement simulation, attack/checkpoint validation, moderation, reconnect recovery, and persistent room history.
+Next: Choose and implement the real backend boundary for WebSocket room delivery, or keep building local race feel without presenting it as public online.
+Do not: Treat dev room relay packets as authoritative race truth, expose it without `?devOnline=1`, or let client-owned action/checkpoint/finish results feed rankings or rewards.
+
+Date: 2026-05-27
+Observed: The next Singularity Race loop was to make the local action preview visible enough to inspect before real WebSocket delivery.
+Changed: Added the standalone lobby action HUD for current checkpoint character, skill charge state, HP, local/server-lock status, cleared checkpoint strip, and a server-shaped action packet rail. The lobby now pushes `skill_use`, `attack_action`, `checkpoint_reward`, and `respawn_notice` envelopes from the existing restored contracts, while connected mode still locks local action authority. Updated the marathon plan and marathon check so the HUD remains guarded.
+Verified: `node tools/check-restored-marathon-contract.cjs`, `node tools/check-restored-game-contract-purity.cjs`, `node tools/check-size.cjs`, `npm run check`, and `git diff --check` passed. Browser smoke on `http://127.0.0.1:4173/singularity-race.html` confirmed title `특이점레이스 로비`, no public admin tab, 5 checkpoint dots, HP `100 / 100`, visible `skill_use` and `attack_action` packet entries after `E` and track click, and zero captured console errors.
+Blocked: Real multi-user movement, checkpoint reward seeds, attack hit validation, down/respawn, moderation, and admin authority still need a backend transport. The current action rail is a local protocol preview only.
+Next: Add the first real server transport adapter or a dev server mock that actually broadcasts movement/chat packets between two browser clients.
+Do not: Treat the local action packet rail as real online authority, trust client-owned attacks/checkpoints/respawns, or expose admin/player channel writes without server-authenticated roles.
+
+Date: 2026-05-27
+Observed: The human defined the next Singularity Race gameplay direction: WASD movement, Shift sprint, E skills, mouse attacks that stall the attacker, N-stage checkpoint character assignment, rare one-use skills, and checkpoint respawn after down/death.
+Changed: Added pure action-race contracts: `src/restored/games/marathon-input-contract.js`, `src/restored/games/marathon-character-skill-contract.js`, and `src/restored/games/marathon-combat-contract.js`. Extended the server transport contract with `skill_use`, `attack_action`, `checkpoint_reward`, and `respawn_notice` packet types. Wired the standalone lobby to a local action preview so `E` can use the assigned skill and mouse clicks run the attack contract, while connected mode remains server-authoritative. Updated the marathon plan, roadmap, restored README, indexes, and checks.
+Verified: `node tools/check-restored-marathon-contract.cjs`, `node tools/check-restored-game-contract-purity.cjs`, `node tools/check-size.cjs`, `npm run check`, and `git diff --check` passed. Browser smoke on `http://127.0.0.1:4173/singularity-race.html` confirmed the lobby still hides the admin channel, E skill use writes a local system message and advances the runner, mouse track click can hit a runner through the attack contract, and captured browser errors were zero.
+Blocked: WASD hold movement was added as a local feel preview, but real online movement, skill validation, attack hit validation, checkpoint character seeds, and respawns still need the server transport/room authority. The meme-style characters are original homage labels, not copied external IP assets.
+Next: Promote the local action preview into a dedicated race scene with visible checkpoints, HP/skill charge state, and a server-shaped packet rail for skill/attack/respawn before real WebSocket delivery.
+Do not: Make client-side random character rewards, rare skill charges, attack hits, deaths, respawn positions, or final race ranking authoritative.
+
+Date: 2026-05-27
+Observed: After the dev chat relay, the next online-ready boundary was to define the server-facing transport shape without pretending a backend exists.
+Changed: Added `src/restored/online/marathon-server-transport-contract.js` for unavailable-by-default server transport snapshots and validated packet envelopes for hello, join, chat, input, state snapshot, race finalization, and disconnect notices. Wired it into the marathon contract check and updated the marathon plan, roadmap, restored README, and plan indexes.
+Verified: `node tools/check-restored-marathon-contract.cjs`, `node tools/check-size.cjs`, `npm run check`, and `git diff --check` passed.
+Blocked: No real WebSocket endpoint, auth session, room registry, rate limit, moderation store, or cross-client history exists yet.
+Next: Implement the first real server boundary only when the backend location and auth/session rules are chosen; until then, keep server transport unavailable by default.
+Do not: Make the dev transport look like public matchmaking, or accept client-owned finish/chat authority as server truth.
+
+Date: 2026-05-27
+Observed: The next safe step after separate admin/channel UI was to stop having lobby/admin pages directly own the chat storage path before real server chat exists.
+Changed: Added `src/restored/online/marathon-dev-chat-transport.js` as a dev-only same-origin chat relay around the existing channel contract. Updated `singularity-race.html` and `singularity-race-admin.html` to send, seed, save, and subscribe through that transport; the closed admin page now disables chat input until `?devOnline=1` opens the dev admin gate. Updated marathon docs, restored README, roadmap, and the marathon contract check.
+Verified: `node tools/check-restored-marathon-contract.cjs`, `node tools/check-size.cjs`, `npm run check`, and `git diff --check` passed. Browser smoke confirmed the dev lobby still hides the admin channel, the closed admin page has disabled chat controls, the dev admin page exposes lobby/room/spectator/admin/notice channels, and there were zero captured browser errors.
+Blocked: The Codex in-app browser only exposed one active local tab during the smoke test, so simultaneous real-tab BroadcastChannel behavior is covered by the transport contract check rather than a two-visible-tab browser run. Real cross-client chat still needs a backend/WebSocket transport.
+Next: Add the first server-shaped transport adapter for join/input/snapshot/chat delivery while keeping local dev transport behind the explicit dev gate.
+Do not: Put lobby, spectator, room, and admin messages back into direct page-owned localStorage logic or expose admin chat without the dev/server authority gate.
+
+Date: 2026-05-27
+Observed: The human emphasized that admin pages must be separate and channel-separated, with an in-game way to check them, to avoid future lag or system coupling.
+Changed: Added an in-lobby admin-page link to `singularity-race.html`, kept it pointing at the dev-gated `singularity-race-admin.html?devOnline=1`, and changed lobby chat startup to load the channel-contract initial message set by default instead of unchannelled legacy fallback messages.
+Verified: `npm run check` and `git diff --check` passed. Browser smoke from `singularity-race.html` confirmed the in-game admin-page link opens `singularity-race-admin.html?devOnline=1`, the admin page shows `DEV ADMIN`, admin sees lobby/room/spectator/admin/notice tabs, the lobby still does not expose an admin tab, initial chat messages are stored with channel ids, and there were zero console errors.
+Blocked: Real admin auth, server delivery, moderation, and cross-client chat history still require a backend transport.
+Next: Keep replacing localStorage dev chat with server-owned channel delivery; admin controls must remain separate from player/observer channels.
+Do not: Merge admin, spectator, room, and lobby messages into one untyped runtime feed.
+
+Date: 2026-05-27
+Observed: The human asked for a separate admin page, separate spectator channel, visible channels, and chat windows before real online work.
+Changed: Added `src/restored/online/marathon-channel-adapter.js` for lobby/room/spectator/admin/system channels and message shape. Added `singularity-race-admin.html` as a dev-only admin surface, added chat channel tabs to `singularity-race.html`, and made the lobby/admin pages share local dev messages through `singularity-race:chat:v1`. Updated marathon docs, roadmap, restored README, and checks.
+Verified: `node tools/check-restored-marathon-contract.cjs`, `node tools/check-size.cjs`, `npm run check`, and `git diff --check` passed. Browser smoke confirmed the normal lobby has lobby/room/spectator/notice tabs without an admin tab, the dev lobby can write a spectator-channel message, the dev admin page opens `DEV ADMIN` with lobby/room/spectator/admin/notice tabs, admin can read the spectator channel, admin can write an admin-only message, and the public lobby cannot see the admin-only message. Console errors were zero on the checked pages.
+Blocked: Real multi-user delivery, moderation, admin authentication, and server-owned chat history still need a backend transport.
+Next: Replace localStorage dev chat with server-owned channel delivery once the real online transport exists.
+Do not: Treat localStorage chat as real multiplayer, expose the admin channel without server-authenticated admin authority, or let players send admin-channel messages.
+
+Date: 2026-05-27
+Observed: The human asked to finish the next online-before-real-online loop: dev-only connected marathon room adapter plus connected-only lobby gate.
+Changed: Added `src/restored/online/marathon-room-adapter.js` with unavailable-by-default and explicit `dev_mock` modes, room summaries, version-gated join, `join_request`, `join_result`, and `state_snapshot` packets. Wired `singularity-race.html` so default mode keeps the connected gate closed, while `?devOnline=1` enables the dev room join and disables local bot filling after server-owned room join. Updated the marathon plan, roadmap, restored README, index, and plans README.
+Verified: `node tools/check-restored-marathon-contract.cjs`, `node tools/check-size.cjs`, `npm run check`, and `git diff --check` passed. Browser smoke confirmed default `singularity-race.html` stays `LOCAL` with the connected gate closed and join disabled, while `singularity-race.html?devOnline=1` opens `DEV READY`, joins the dev room, switches to `DEV ROOM`, emits `join_request`, `join_result`, and `state_snapshot`, disables local bot filling, updates the room channel, and reports zero console errors.
+Blocked: Real public matchmaking still needs a real backend/server adapter; this dev adapter is deterministic and query-gated only.
+Next: Add a real transport-backed marathon server adapter or wire room chat delivery once backend authority exists.
+Do not: Expose the dev connected adapter without `?devOnline=1`, trust local race finish times for online rankings, or present dev room state as public online matchmaking.
+
+Date: 2026-05-27
+Observed: The human clarified that opening `baegeum-city-v2-dice.html` was wrong for Singularity Race and asked for the correct server/page again.
+Changed: Added `singularity-race.html` as a standalone one-page local lobby for `특이점레이스`, with room status, 30 runner slots, readiness, local chat, preview runners, online packet labels, and skin selection using the existing Drawing World skin adapter. Updated the marathon plan/index/plan README so future sessions point the human to the Singularity Race route instead of the Baegeum City restore.
+Verified: `npm run check` and `git diff --check` passed. Browser smoke on `http://127.0.0.1:4173/singularity-race.html` confirmed the page title, 30/30 filled runner slots, ready state, local chat message, selected Drawing World skin persistence, 12 skin cards, 12 track preview sprites, responsive mobile layout without horizontal overflow, and zero console errors.
+Blocked: Real connected rooms still need a server adapter; the new lobby is deliberately local preview and does not claim live matchmaking.
+Next: Browser-verify `http://127.0.0.1:4173/singularity-race.html`, then add a connected-only server adapter when online authority is available.
+Do not: Present the local lobby as real online matchmaking or route Singularity Race users to `baegeum-city-v2-dice.html`.
+
+Date: 2026-05-27
+Observed: The first marathon preview worked, but the user asked to keep building. The HTML shell was at the line limit, so further work needed to stay inside restored modules.
+Changed: Kept HTML unchanged and improved `marathon-stadium-view.js` with one-minute strategic race ticks, a Next Split field, and a visible read-only online packet rail for `join_request`, `input_update`, `state_snapshot`, and checkpoint/finalization packets. Adjusted marathon stamina pacing so one sprint turn advances meaningfully without draining the runner to zero.
+Verified: `node tools/check-restored-marathon-contract.cjs`, `node tools/check-restored-growth-architecture.cjs`, `npm run check`, and browser smoke passed. Browser smoke entered the stadium, clicked `sprint`, confirmed `1:00`, `516m / 42,195m`, `72%` stamina, visible `state_snapshot`, and no browser error logs.
+Blocked: Real connected rooms still need a server adapter and connected-only lobby entry.
+Next: Add a dev-only connected marathon room adapter or a local finish/medal result surface without trusting local results for online ranking.
+Do not: Add more logic to `baegeum-city-v2-dice.html`, expose offline rooms as online, or make client finish times authoritative.
+
+Date: 2026-05-27
+Observed: The human approved building a large 2D online-ready marathon stadium and asked to avoid script/file sprawl while preparing online needs.
+Changed: Added `docs/plans/restored-marathon-stadium.md`, a compact marathon contract, one local stadium preview view, a Baegeum place/catalog entry, HTML mounting from `marathon_stadium`, and a single smoke check wired into `npm run check`.
+Verified: `node tools/check-restored-marathon-contract.cjs`, `node tools/check-restored-growth-architecture.cjs`, `node tools/check-size.cjs`, `npm run check`, and browser smoke on `http://127.0.0.1:4173/baegeum-city-v2-dice.html` passed. Browser smoke entered guest mode, moved to Baegeum City, opened the marathon card, confirmed 30 runners, clicked `sprint`, saw progress update to 43m and stamina to 88%, and found no browser error logs.
+Blocked: Real connected rooms still require a server adapter; the current stadium is local practice with online packet/authority vocabulary prepared.
+Next: Add a connected-only marathon room adapter/mock test path or improve the local race with camera/finish pacing before live server work.
+Do not: Show a fake offline online lobby, trust local finish times for online rankings, or split the first marathon system into many small protocol files.
+
+Date: 2026-05-27
+Observed: The next safe job-system slice after work history was fixed part-time reliability, not broader company or business jobs.
+Changed: Added `src/restored/jobs/life-job-fixed-contract.js`, seeded and preserved `fixedJobContract`, exposed fixed-job registration from life-job panels, updated result application so matching shifts raise attendance/reliability, and documented the local-only boundary.
+Verified: `node tools/check-restored-life-job-contract.cjs`, `node tools/check-size.cjs`, `npm run check`, and `git diff --check` passed. Browser smoke used the Chrome fallback because the in-app automation pane was unavailable; it registered fixed MacBurger work, completed two steady shifts, returned to My Info, and confirmed `2회`, `91,200원`, `고정 알바: 맥버거 알바`, `성실도 22`, and no browser error logs.
+Blocked: In-app browser automation reported no active Codex pane, so the final UI smoke used the same browser plugin's Chrome surface instead.
+Next: Add absence/missed-shift events or relationship trust/stability reactions that consume the fixed-job contract through an event boundary.
+Do not: Trust local fixed-job reliability for online rankings or mutate partner state directly from job handlers.
+
+Date: 2026-05-27
+Observed: Short approval meant continuing the next safe job-system slice after building-entry verification. The next documented step was work history/streaks before fixed part-time contracts or broader company/business tiers.
+Changed: Added persisted `jobHistory` and `jobStats` fields, recorded history when life-job result envelopes are applied, rendered the My Info work-history card through `src/restored/jobs/life-job-history-view.js`, and updated the life-minigame plan/checks.
+Verified: `node tools/check-restored-life-job-contract.cjs`, `node tools/check-size.cjs`, `node tools/check-restored-player-profile.cjs`, and `npm run check` passed. Browser smoke completed two fast-food shifts and confirmed My Info shows 2 shifts, 91,200원 total work income, a 2-shift streak, and saved `jobHistory/jobStats` with no page errors.
+Blocked: None.
+Next: Add fixed part-time contracts or work absence/reliability events on top of this history state.
+Do not: Trust local `jobStats` for future online rankings or make work history mutate relationships outside the event boundary.
+
+Date: 2026-05-27
+Observed: The human asked for a simple but broad minigame/job system where each building can be entered. The existing implementation had real panels for only a few location actions, and Baegeum job-street cards were informational rows rather than entry points.
+Changed: Expanded the starter life-job catalog, mapped additional building actions to job minigame panels, added Baegeum job-street entry buttons, added a thin restored building-entry router in the HTML shell, and let library/university/company entry actions reuse the study/career panel.
+Verified: `node tools/check-restored-life-job-contract.cjs`, `node tools/check-restored-study-career-contract.cjs`, `node tools/check-restored-city-frontage-contract.cjs`, `npm run check`, and browser smoke passed. Browser smoke confirmed 12 Baegeum job-street entry buttons and working PC room, delivery, library, company, and factory building panels with no page errors.
+Blocked: None.
+Next: Add work history/streaks or fixed part-time contracts after the building-entry path is verified.
+Do not: Add more permanent bottom nav tabs for every building or describe ordinary wages as DP/DPA.
+
+Date: 2026-05-27
+Observed: Short approval meant continuing the next safe job-system slice. The labor/career contracts were mostly corrected to won, but one phone-news job story still described work as a DP supply source, and live starter job buttons still looked too much like wage-only choices.
+Changed: Replaced the remaining job-news DP wording with won/cash income wording, guarded that rule in the news-cycle smoke check, localized starter job names/tasks to Korean, and made life-job preset buttons preview wage, energy, mental, time, and reputation before applying effects.
+Verified: `node tools/check-restored-news-cycle-contract.cjs`, `node tools/check-restored-life-job-contract.cjs`, `git diff --check`, and `npm run check` passed. Browser smoke confirmed the fast-food and labor-office panels show Korean job/task copy, won wages, and energy/mental/time/reputation previews without `DP`/`DPA` leakage.
+Blocked: None.
+Next: Keep building the labor loop with work history/streak or a dedicated fixed part-time contract before adding broader company or business tiers.
+Do not: Describe ordinary labor, company wages, or study tuition as DP/DPA income.
+
+Date: 2026-05-27
+Observed: The user corrected the job-system direction: ordinary work income should be 원, not DP. The live job/career contracts still labeled wages and tuition as DP even though normal cash is separate from DPA.
+Changed: Switched life-job wages, study tuition, and company wages from DP labels to won/cash labels in contracts, place views, smoke checks, and planning docs. Kept DPA reserved for Dice City exchange/casino token flows.
+Verified: `node tools/check-restored-life-job-contract.cjs`, `node tools/check-restored-study-career-contract.cjs`, `node tools/check-restored-planning-kit.cjs`, and `npm run check` pass. Browser smoke confirmed the fast-food life-job panel and study/career panel render `원` labels and do not leak `DP`/`DPA` labels in those wage/tuition surfaces.
+Blocked: None.
+Next: Keep the first labor loop focused on 맥버거, 편의점, and 물류/인력소 work before adding broader occupation tiers.
+Do not: Rename ordinary wages to DPA/DP or mix casino token balances with normal cash income.
+
+Date: 2026-05-27
+Observed: The live phone news app existed, but market cycle updates still pushed flat legacy message strings into `newsHistory`, so the phone did not feel like a real in-world news app.
+Changed: Added the pure restored news-cycle contract, wired the HTML market/crash/AI news paths through normalized news items, upgraded the phone news renderer to source-labeled article cards, added a news-cycle check to `npm run check`, and refreshed the phone/market planning docs.
+Verified: `node tools/check-restored-news-cycle-contract.cjs`, `node tools/check-restored-phone-app-contract.cjs`, `node tools/check-restored-growth-architecture.cjs`, `node tools/check-size.cjs`, `git diff --check`, and `npm run check` passed. Browser verification on `http://127.0.0.1:4173/baegeum-city-v2-dice.html` confirmed guest entry, phone news app visibility, one structured news card, AI reporter source label, headline/impact text, and no captured page errors beyond the existing favicon 404.
+Blocked: None.
+Next: Connect later AI supercycle and market regime changes to the news contract through neutral event envelopes before adding more market classes.
+Do not: Pull live external news data, use real-company branding, or let news cards mutate market, relationship, credit, or mental state directly.
 
 Multimap safety remains verified:
 
@@ -206,6 +747,14 @@ Verified: `node tools/check-restored-study-career-contract.cjs`, `node tools/che
 Blocked: No job history, job reputation, interview/resume UI, office minigame screen, or relationship reaction has been added yet.
 Next: Add a small job-history/reputation selector or event log before expanding to interviews, resumes, rankings, or relationship reactions.
 Do not: Add wage/progression formulas inside `baegeum-city-v2-dice.html`, bypass study gates, or turn My Info into an action surface.
+
+Date: 2026-05-27
+Observed: Post-backup structure verification passed static checks, but browser probing of the Baegeum City job surface showed locked company-shift buttons with nested double quotes in their inline `onclick` attributes. Those buttons could be parsed as broken attributes before showing the condition-failure toast.
+Changed: Updated `src/restored/career/study-career-place-view.js` so disabled study/career buttons emit safe single-quoted `showToast(...)` calls with escaped payloads. The exact Korean UI labels were preserved, while the validation moved from brittle label matching to stable action-id checks plus a regression guard for broken `onclick="showToast("` output.
+Verified: `node tools/check-restored-study-career-contract.cjs`, `node tools/check-size.cjs`, `git diff --check`, and `npm run check` passed. Browser verification on `http://127.0.0.1:4173/baegeum-city-v2-dice.html` confirmed the locked company buttons render `showToast('회사 지원 조건 부족: 지능 48, 학점 8')`, clicking them shows the condition toast, and no page error appears. Console noise was limited to the existing Tailwind CDN warning and favicon 404.
+Blocked: No broader structural bug was found in the checked stock, travel, Baegeum City job, study, or company-lock flows.
+Next: If continuing structure hardening, add a focused smoke check for rendered HTML attributes from every extracted restored view module.
+Do not: Reintroduce nested JSON double-quote payloads inside double-quoted inline HTML attributes.
 
 ## Next Loop Candidate
 

@@ -45,6 +45,14 @@ Current split status:
 - `src/restored/state/selectors.js` owns total asset, rank, phone ownership, smartphone ownership, and carried inventory calculations.
 - `src/restored/account/session-contract.js` owns the restored login/account and online availability state shape.
 - `src/restored/online/online-adapter-contract.js` owns the restored online adapter snapshot, unavailable default, and lobby availability guard.
+- `src/restored/online/marathon-room-adapter.js` owns the dev-only Singularity Race connected room adapter, while `src/restored/online/marathon-server-room-adapter.js` owns the server-transport-backed adapter shape; it stays unavailable by default, opens through an explicit dev gate for local rehearsal, or opens only when a connected server transport snapshot and server room list are injected.
+- `src/restored/online/marathon-channel-adapter.js` owns the dev-only Singularity Race lobby, room, spectator, admin, and notice channel set plus local message shape.
+- `src/restored/online/marathon-dev-chat-transport.js` owns the temporary same-origin dev chat relay so lobby/admin screens no longer read or write the marathon chat log directly.
+- `src/restored/online/marathon-dev-room-transport.js` owns the temporary same-origin dev room packet relay for Singularity Race join/input/skill/attack/snapshot envelopes.
+- `src/restored/online/marathon-netcode-contract.js` owns the 30-runner Singularity Race latency/bandwidth budget, input coalescing, server snapshot cadence, interpolation buffer, degraded network lanes, and dev relay packet pressure guard.
+- `src/restored/online/marathon-server-transport-contract.js` owns the first server-shaped Singularity Race transport config/snapshot/envelope boundary for future WebSocket or Firebase join, chat, input, snapshot, finalization, and disconnect delivery. It rejects embedded secret-like config keys and does not open a socket by itself.
+- `src/restored/online/marathon-websocket-dev-server-mock.js` owns the local WebSocket-shaped server rehearsal: connected transport snapshot, room list, join result, client-packet ingest, server-owned snapshot creation, and netcode rate limiting without opening a public port.
+- `src/restored/games/marathon-input-contract.js`, `marathon-character-skill-contract.js`, and `marathon-combat-contract.js` own the first Singularity Race action layer: WASD movement, Shift sprint, E skills, mouse attack stall, checkpoint meme-style character rewards, and checkpoint respawn.
 - `src/restored/player/profile-contract.js` owns the player profile, job title, residence label, condition label, and core stats that the My Info surface renders.
 - `src/restored/phone/phone-app-contract.js` owns phone app ids, labels, icons, and phone/smartphone gates before chat, ranking, or online lobby apps are added.
 - `src/restored/phone/phone-app-ecosystem-contract.js` owns the planned phone OS/app-store catalog, including BaeTalk-style messenger, relationships, Baegeum Gallery-style community, rankings, bank/pay, map, and online lobby candidates.
@@ -135,9 +143,9 @@ Recommended online phases:
 
 1. Add a read-only online status selector and UI slot in the top bar.
 2. Add a restored online adapter contract that can return `unavailable` by default. Current status: implemented in `src/restored/online/online-adapter-contract.js`.
-3. Add dev-only mock connection for tests, not for normal offline play.
+3. Add dev-only mock connection for tests, not for normal offline play. Current Singularity Race status: `?devOnline=1` opens the dev-only marathon room adapter and requires `join_result ok` before the connected room gate switches to `DEV ROOM`; `singularity-race-admin.html?devOnline=1` opens the separate admin view and admin-only channel, with chat routed through the dev chat transport.
 4. Add phone-based online lobby entry after connected state.
-5. Add presence and chat channel sync.
+5. Add presence and chat channel sync. Current Singularity Race prep: the server transport envelope and local WebSocket-shaped server mock exist, but no real WebSocket endpoint is configured.
 6. Add read-only leaderboard snapshots.
 7. Add server-authoritative economy and casino settlement only after ledger contracts are ready.
 

@@ -1,0 +1,3617 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%2310131b'/%3E%3Cpath d='M6 20h20M7 15h18M9 10h14' stroke='%2378db93' stroke-width='3' stroke-linecap='round'/%3E%3C/svg%3E" />
+  <title>특이점레이스 로비</title>
+  <style>
+    :root {
+      --bg: #edf4ec;
+      --paper: #fbfdf9;
+      --panel: rgba(255, 255, 252, 0.94);
+      --panel-strong: #f2f7f1;
+      --line: rgba(38, 53, 47, 0.16);
+      --muted: #64746c;
+      --text: #17231e;
+      --green: #42c879;
+      --cyan: #4cc4da;
+      --pink: #ff7aa7;
+      --yellow: #ffd86c;
+      --danger: #f05d5d;
+      --world-grid: rgba(91, 119, 104, 0.12);
+      --track-grass: #dce9d8;
+      --track-grass-deep: #c8d9c2;
+      --track-rail: #61736b;
+      --track-road: #fbfbf2;
+      --track-road-shadow: #d6dfd7;
+      --shadow: 0 18px 46px rgba(48, 63, 57, 0.16);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background:
+        linear-gradient(90deg, var(--world-grid) 1px, transparent 1px),
+        linear-gradient(180deg, var(--world-grid) 1px, transparent 1px),
+        radial-gradient(circle at 78% 8%, rgba(76, 196, 218, 0.18), transparent 30%),
+        linear-gradient(180deg, rgba(255, 255, 255, 0.58), transparent 42%),
+        var(--bg);
+      background-size: 54px 54px, 54px 54px, auto, auto, auto;
+      color: var(--text);
+      font-family: "Malgun Gothic", "Apple SD Gothic Neo", system-ui, sans-serif;
+    }
+
+    button,
+    input {
+      font: inherit;
+    }
+
+    button {
+      border: 0;
+      cursor: pointer;
+    }
+
+    img {
+      display: block;
+      image-rendering: pixelated;
+    }
+
+    .shell {
+      width: min(1760px, calc(100vw - 24px));
+      min-height: 100vh;
+      margin: 0 auto;
+      padding: 18px 0;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .shell:not(.debug-mode) .debug-only {
+      display: none !important;
+    }
+
+    .shell[data-screen="profile"] .topbar,
+    .shell[data-screen="profile"] .lobby-grid,
+    .shell[data-screen="profile"] .skin-panel {
+      display: none;
+    }
+
+    .shell:not([data-screen="profile"]) .profile-screen {
+      display: none;
+    }
+
+    .shell[data-screen="lobby"] .track-panel {
+      display: none;
+    }
+
+    .shell[data-screen="lobby"] .brand p,
+    .shell[data-screen="lobby"] .chat-panel,
+    .shell[data-screen="lobby"] #preview-button,
+    .shell[data-screen="lobby"] .notice {
+      display: none;
+    }
+
+    .shell[data-screen="lobby"] .lobby-grid {
+      grid-template-columns: minmax(280px, 520px);
+      justify-content: start;
+    }
+
+    .shell[data-screen="queue"] .track-scene,
+    .shell[data-screen="queue"] .action-hud,
+    .shell[data-screen="queue"] .checkpoint-strip,
+    .shell[data-screen="queue"] .race-standings,
+    .shell[data-screen="queue"] .action-packets {
+      display: none;
+    }
+
+    .shell[data-screen="queue"] .brand p,
+    .shell[data-screen="queue"] .room-panel,
+    .shell[data-screen="queue"] .track-panel .panel-header p,
+    .shell[data-screen="queue"] .track-panel .badge,
+    .shell[data-screen="queue"] .chat-panel .panel-header p,
+    .shell[data-screen="queue"] .chat-panel .badge,
+    .shell[data-screen="queue"] .channel-tabs {
+      display: none;
+    }
+
+    .shell[data-screen="queue"] .lobby-grid {
+      grid-template-columns: minmax(0, 1.05fr) minmax(300px, 0.95fr);
+    }
+
+    .shell[data-screen="queue"] .track-panel {
+      grid-column: 1;
+      grid-row: 1;
+    }
+
+    .shell[data-screen="queue"] .chat-panel {
+      grid-column: 2;
+      grid-row: 1;
+      min-height: min(560px, calc(100vh - 132px));
+    }
+
+    .shell[data-screen="queue"] .slot-grid {
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+      max-height: min(520px, calc(100vh - 240px));
+      overflow: auto;
+      padding-top: 14px;
+    }
+
+    .shell[data-screen="queue"] .runner-slot {
+      display: flex;
+      min-height: 52px;
+      align-items: center;
+    }
+
+    .shell[data-screen="queue"] .runner-slot span {
+      display: none;
+    }
+
+    .queue-actions {
+      display: grid;
+      padding: 0 14px 14px;
+    }
+
+    .race-mobile-controls {
+      display: none;
+    }
+
+    .race-input-controls {
+      display: none;
+    }
+
+    .shell[data-screen="lobby"] .queue-actions,
+    .shell[data-screen="race"] .queue-actions {
+      display: none;
+    }
+
+    .shell[data-screen="mapPreview"] .topbar,
+    .shell[data-screen="mapPreview"] .room-panel,
+    .shell[data-screen="mapPreview"] .chat-panel,
+    .shell[data-screen="mapPreview"] .action-hud,
+    .shell[data-screen="mapPreview"] .checkpoint-strip,
+    .shell[data-screen="mapPreview"] .race-standings,
+    .shell[data-screen="mapPreview"] .action-packets,
+    .shell[data-screen="mapPreview"] .slot-grid {
+      display: none;
+    }
+
+    .shell[data-screen="mapPreview"] .lobby-grid {
+      grid-template-columns: minmax(0, 1fr);
+    }
+
+    .shell[data-screen="mapPreview"] .track-panel {
+      grid-column: 1;
+      grid-row: 1;
+    }
+
+    .shell[data-screen="mapPreview"] .track-scene {
+      min-height: min(72vh, 720px);
+    }
+
+    .shell[data-screen="mapPreview"] .track-world {
+      width: 100%;
+      height: 100%;
+      transition: none;
+    }
+
+    .shell[data-screen="mapPreview"] #track-runners,
+    .shell[data-screen="mapPreview"] .track-effects,
+    .shell[data-screen="mapPreview"] .track-hud {
+      display: none;
+    }
+
+    .shell[data-screen="mapPreview"] .trail-outline {
+      stroke-width: 38px;
+    }
+
+    .shell[data-screen="mapPreview"] .trail-surface {
+      stroke-width: 28px;
+      filter: drop-shadow(0 3px 0 var(--track-road-shadow));
+    }
+
+    .shell[data-screen="mapPreview"] .trail-centerline {
+      stroke-width: 2px;
+      stroke-dasharray: 12 14;
+    }
+
+    .shell[data-screen="mapPreview"] .trail-save-line,
+    .shell[data-screen="mapPreview"] .trail-finish-line {
+      stroke-width: 2.5px;
+    }
+
+    .shell[data-screen="mapPreview"] .trail-save-label {
+      font-size: 11px;
+      stroke-width: 1.8px;
+    }
+
+    .shell[data-screen="race"] .topbar,
+    .shell[data-screen="race"] .room-panel,
+    .shell[data-screen="race"] .chat-panel,
+    .shell[data-screen="race"] .track-panel .panel-header,
+    .shell[data-screen="race"] .action-hud,
+    .shell[data-screen="race"] .checkpoint-strip,
+    .shell[data-screen="race"] .race-standings,
+    .shell[data-screen="race"] .action-packets,
+    .shell[data-screen="race"] .slot-grid,
+    .shell[data-screen="race"] .trail-caption,
+    .shell[data-screen="race"] .track-progress-pill {
+      display: none;
+    }
+
+    .shell[data-screen="race"] .lobby-grid {
+      grid-template-columns: minmax(0, 1fr);
+    }
+
+    .shell[data-screen="race"] .track-panel {
+      grid-column: 1;
+      grid-row: 1;
+      min-height: calc(100vh - 18px);
+      border: 0;
+      background: transparent;
+      box-shadow: none;
+    }
+
+    .shell[data-screen="race"] .track-scene {
+      min-height: calc(100vh - 18px);
+      margin: 0;
+    }
+
+    .shell[data-screen="race"] .start-gate::after {
+      content: none;
+    }
+
+    .shell[data-screen="race"] .race-mobile-controls {
+      position: fixed;
+      left: 50%;
+      bottom: 12px;
+      z-index: 260;
+      display: grid;
+      width: min(440px, calc(100vw - 24px));
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 7px;
+      transform: translateX(-50%);
+    }
+
+    .shell[data-screen="race"] .race-input-controls {
+      position: fixed;
+      inset: auto 0 86px 0;
+      z-index: 250;
+      display: block;
+      pointer-events: none;
+    }
+
+    .shell[data-screen="race"].race-queue-open .race-input-controls,
+    .shell[data-screen="race"].race-chat-open .race-input-controls {
+      display: none;
+    }
+
+    .race-dpad {
+      position: absolute;
+      left: 22px;
+      bottom: 0;
+      width: 132px;
+      height: 132px;
+      border: 1px solid rgba(74, 91, 84, 0.18);
+      border-radius: 50%;
+      background: rgba(255, 255, 252, 0.48);
+      box-shadow: 0 14px 38px rgba(16, 19, 27, 0.16);
+      pointer-events: auto;
+      touch-action: none;
+      backdrop-filter: blur(10px);
+    }
+
+    .race-dpad-core {
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      width: 34px;
+      height: 34px;
+      border-radius: 50%;
+      background: rgba(74, 91, 84, 0.18);
+      transform: translate(-50%, -50%);
+    }
+
+    .race-dpad-button,
+    .race-action-button {
+      border: 1px solid rgba(74, 91, 84, 0.18);
+      color: #17231e;
+      background: rgba(255, 255, 252, 0.94);
+      box-shadow: 0 10px 26px rgba(16, 19, 27, 0.16);
+      font-weight: 1000;
+      touch-action: none;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+
+    .race-dpad-button {
+      position: absolute;
+      width: 42px;
+      height: 42px;
+      border-radius: 50%;
+      font-size: 15px;
+    }
+
+    .race-dpad-button[data-key="KeyW"] {
+      left: 45px;
+      top: 8px;
+    }
+
+    .race-dpad-button[data-key="KeyA"] {
+      left: 8px;
+      top: 45px;
+    }
+
+    .race-dpad-button[data-key="KeyD"] {
+      right: 8px;
+      top: 45px;
+    }
+
+    .race-dpad-button[data-key="KeyS"] {
+      left: 45px;
+      bottom: 8px;
+    }
+
+    .race-dpad-button.is-held,
+    .race-action-button:active {
+      border-color: rgba(120, 219, 147, 0.68);
+      background: rgba(66, 200, 121, 0.2);
+      transform: translateY(1px);
+    }
+
+    .race-action-buttons {
+      position: absolute;
+      right: 22px;
+      bottom: 0;
+      display: grid;
+      gap: 10px;
+      pointer-events: auto;
+    }
+
+    .race-action-button {
+      width: 68px;
+      height: 68px;
+      border-radius: 50%;
+      font-size: 13px;
+      line-height: 1.1;
+    }
+
+    .race-action-button span {
+      display: block;
+      margin-top: 3px;
+      color: #526057;
+      font-size: 10px;
+      font-weight: 900;
+    }
+
+    .race-action-button:disabled {
+      cursor: default;
+      opacity: 0.58;
+    }
+
+    .shell[data-screen="race"].race-queue-open .slot-grid,
+    .shell[data-screen="race"].race-chat-open .chat-panel {
+      position: fixed;
+      left: 10px;
+      right: 10px;
+      bottom: 74px;
+      z-index: 240;
+      max-height: min(52vh, 440px);
+      border: 1px solid rgba(74, 91, 84, 0.22);
+      border-radius: 8px;
+      background: rgba(255, 255, 252, 0.96);
+      box-shadow: 0 16px 42px rgba(16, 19, 27, 0.18);
+      backdrop-filter: blur(14px);
+    }
+
+    .shell[data-screen="race"].race-queue-open .slot-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 7px;
+      overflow: auto;
+      padding: 10px;
+    }
+
+    .shell[data-screen="race"].race-queue-open .runner-slot {
+      min-height: 48px;
+    }
+
+    .shell[data-screen="race"].race-queue-open .runner-slot span {
+      display: none;
+    }
+
+    .shell[data-screen="race"].race-chat-open .chat-panel {
+      display: flex;
+      min-height: min(52vh, 440px);
+    }
+
+    .race-control-button {
+      min-width: 0;
+      min-height: 48px;
+      padding: 8px 7px;
+      border: 1px solid rgba(74, 91, 84, 0.18);
+      border-radius: 8px;
+      color: #17231e;
+      background: rgba(255, 255, 252, 0.94);
+      box-shadow: 0 10px 26px rgba(16, 19, 27, 0.16);
+      font-size: 12px;
+      font-weight: 1000;
+      line-height: 1.18;
+      text-align: center;
+    }
+
+    .race-control-button span {
+      display: block;
+      margin-top: 2px;
+      color: #526057;
+      font-size: 10px;
+      font-weight: 900;
+    }
+
+    .race-control-button[aria-pressed="true"] {
+      border-color: rgba(120, 219, 147, 0.68);
+      background: rgba(66, 200, 121, 0.18);
+    }
+
+    .race-control-button:disabled {
+      cursor: default;
+      opacity: 0.78;
+    }
+
+    .profile-screen {
+      width: min(920px, 100%);
+      margin: auto;
+      display: grid;
+      gap: 14px;
+    }
+
+    .profile-hero {
+      padding: 22px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--panel);
+      box-shadow: var(--shadow);
+      display: grid;
+      gap: 18px;
+      backdrop-filter: blur(14px);
+    }
+
+    .profile-hero h1 {
+      margin: 0;
+      font-size: 38px;
+      line-height: 1;
+      letter-spacing: 0;
+    }
+
+    .profile-hero p {
+      margin: 6px 0 0;
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.5;
+    }
+
+    .profile-form {
+      display: grid;
+      gap: 14px;
+    }
+
+    .profile-name-row {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 10px;
+    }
+
+    .profile-name-row input {
+      min-height: 46px;
+      width: 100%;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--paper);
+      color: var(--text);
+      padding: 0 13px;
+    }
+
+    .profile-preview {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      padding: 12px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--panel-strong);
+    }
+
+    .profile-preview img {
+      width: 54px;
+      height: 54px;
+      object-fit: contain;
+    }
+
+    .profile-preview b,
+    .profile-preview span {
+      display: block;
+    }
+
+    .profile-preview span {
+      margin-top: 3px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .profile-skin-grid {
+      display: grid;
+      grid-template-columns: repeat(6, minmax(0, 1fr));
+      gap: 8px;
+    }
+
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      padding: 16px 18px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--panel);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(14px);
+    }
+
+    .brand {
+      min-width: 260px;
+    }
+
+    .brand h1 {
+      margin: 0;
+      font-size: 38px;
+      line-height: 1;
+      letter-spacing: 0;
+    }
+
+    .brand p {
+      margin: 8px 0 0;
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.5;
+    }
+
+    .lobby-grid {
+      display: grid;
+      grid-template-columns: 292px minmax(860px, 1fr);
+      gap: 14px;
+      align-items: start;
+      flex: 1;
+    }
+
+    .room-panel {
+      grid-column: 1;
+      grid-row: 1;
+    }
+
+    .track-panel {
+      grid-column: 2;
+      grid-row: 1 / span 2;
+    }
+
+    .chat-panel {
+      grid-column: 1;
+      grid-row: 2;
+      min-height: 520px;
+    }
+
+    .panel {
+      min-width: 0;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--panel);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+      backdrop-filter: blur(14px);
+    }
+
+    .panel-header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 14px 14px 10px;
+      border-bottom: 1px solid var(--line);
+      background: rgba(242, 247, 241, 0.86);
+    }
+
+    .panel-header h2 {
+      margin: 0;
+      font-size: 17px;
+      line-height: 1.25;
+      letter-spacing: 0;
+    }
+
+    .panel-header p {
+      margin: 5px 0 0;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.45;
+    }
+
+    .badge {
+      flex: 0 0 auto;
+      padding: 6px 8px;
+      border: 1px solid rgba(120, 219, 147, 0.35);
+      border-radius: 999px;
+      color: var(--green);
+      background: rgba(120, 219, 147, 0.08);
+      font-size: 12px;
+      line-height: 1;
+      white-space: nowrap;
+    }
+
+    .panel-body {
+      padding: 14px;
+    }
+
+    .room-name {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      padding: 12px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--panel-strong);
+    }
+
+    .room-name strong {
+      font-size: 18px;
+    }
+
+    .room-name small {
+      display: block;
+      margin-top: 4px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .signal {
+      width: 13px;
+      height: 13px;
+      border-radius: 50%;
+      background: var(--yellow);
+      box-shadow: 0 0 18px rgba(255, 224, 138, 0.7);
+    }
+
+    .signal.is-connected {
+      background: var(--green);
+      box-shadow: 0 0 18px rgba(120, 219, 147, 0.72);
+    }
+
+    .connected-gate {
+      display: grid;
+      gap: 9px;
+      margin-top: 12px;
+      padding: 10px;
+      border: 1px solid rgba(255, 224, 138, 0.3);
+      border-radius: 8px;
+      background: rgba(255, 216, 108, 0.16);
+    }
+
+    .connected-gate.is-open {
+      border-color: rgba(120, 219, 147, 0.42);
+      background: rgba(120, 219, 147, 0.08);
+    }
+
+    .connected-gate strong,
+    .connected-gate span {
+      display: block;
+      min-width: 0;
+    }
+
+    .connected-gate strong {
+      font-size: 13px;
+      line-height: 1.35;
+    }
+
+    .connected-gate span {
+      margin-top: 3px;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.45;
+    }
+
+    .connected-gate button {
+      min-height: 38px;
+      border-radius: 8px;
+      background: var(--green);
+      color: #091018;
+      font-weight: 800;
+    }
+
+    .admin-link {
+      display: flex;
+      min-height: 38px;
+      align-items: center;
+      justify-content: center;
+      margin-top: 9px;
+      border: 1px solid rgba(112, 216, 239, 0.36);
+      border-radius: 8px;
+      background: rgba(76, 196, 218, 0.12);
+      color: var(--cyan);
+      font-size: 12px;
+      font-weight: 900;
+      text-decoration: none;
+    }
+
+    .connected-gate button:disabled,
+    .ghost:disabled {
+      cursor: not-allowed;
+      opacity: 0.45;
+      transform: none;
+      filter: none;
+    }
+
+    .controls {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      margin-top: 12px;
+    }
+
+    .primary,
+    .secondary,
+    .ghost {
+      min-height: 42px;
+      border-radius: 8px;
+      color: #091018;
+      font-weight: 800;
+      line-height: 1.2;
+      transition: transform 120ms ease, filter 120ms ease;
+    }
+
+    .primary:hover,
+    .secondary:hover,
+    .ghost:hover,
+    .skin-card:hover {
+      transform: translateY(-1px);
+      filter: brightness(1.05);
+    }
+
+    .primary {
+      background: var(--green);
+    }
+
+    .primary.is-ready {
+      background: var(--pink);
+    }
+
+    .secondary {
+      background: var(--cyan);
+    }
+
+    .ghost {
+      grid-column: 1 / -1;
+      color: var(--text);
+      border: 1px solid var(--line);
+      background: rgba(255, 255, 255, 0.72);
+    }
+
+    .packet-list {
+      display: grid;
+      gap: 8px;
+      margin-top: 14px;
+    }
+
+    .packet {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      padding: 10px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.72);
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.35;
+    }
+
+    .packet strong {
+      color: var(--text);
+      font-size: 13px;
+      white-space: nowrap;
+    }
+
+    .action-hud {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 8px;
+      padding: 0 14px 10px;
+    }
+
+    .action-card {
+      min-width: 0;
+      min-height: 76px;
+      padding: 10px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.72);
+    }
+
+    .action-card span {
+      display: block;
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 800;
+      line-height: 1.2;
+      text-transform: uppercase;
+    }
+
+    .action-card strong {
+      display: block;
+      overflow: hidden;
+      margin-top: 7px;
+      color: var(--text);
+      font-size: 14px;
+      line-height: 1.25;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .action-meter {
+      height: 7px;
+      margin-top: 9px;
+      overflow: hidden;
+      border-radius: 999px;
+      background: rgba(38, 53, 47, 0.1);
+    }
+
+    .action-meter i {
+      display: block;
+      height: 100%;
+      width: 100%;
+      border-radius: inherit;
+      background: var(--green);
+    }
+
+    .checkpoint-strip {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+      gap: 8px;
+      padding: 0 14px 10px;
+    }
+
+    .checkpoint-dot {
+      min-height: 34px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.72);
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 900;
+    }
+
+    .checkpoint-dot.is-cleared {
+      border-color: rgba(120, 219, 147, 0.6);
+      background: rgba(66, 200, 121, 0.16);
+      color: var(--green);
+    }
+
+    .action-packets {
+      padding: 0 14px 10px;
+      margin-top: 0;
+    }
+
+    .race-standings {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+      gap: 8px;
+      padding: 0 14px 10px;
+    }
+
+    .standing-row {
+      min-width: 0;
+      min-height: 45px;
+      padding: 8px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.72);
+    }
+
+    .standing-row.is-player {
+      border-color: rgba(120, 219, 147, 0.58);
+      background: rgba(66, 200, 121, 0.14);
+    }
+
+    .standing-row b,
+    .standing-row span {
+      display: block;
+      min-width: 0;
+      overflow: hidden;
+      line-height: 1.2;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .standing-row b {
+      color: var(--text);
+      font-size: 12px;
+    }
+
+    .standing-row span {
+      margin-top: 5px;
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 800;
+    }
+
+    .track-panel {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .track-scene {
+      position: relative;
+      min-height: clamp(560px, 66vh, 800px);
+      margin: 14px;
+      border: 1px solid rgba(97, 115, 107, 0.26);
+      border-radius: 8px;
+      overflow: hidden;
+      background:
+        linear-gradient(90deg, rgba(97, 115, 107, 0.07) 1px, transparent 1px),
+        linear-gradient(180deg, rgba(97, 115, 107, 0.07) 1px, transparent 1px),
+        radial-gradient(circle at 78% 24%, rgba(76, 196, 218, 0.16), transparent 28%),
+        linear-gradient(180deg, var(--track-grass), var(--track-grass-deep));
+      background-size: 88px 88px, 88px 88px, auto, auto;
+    }
+
+    .track-world {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: var(--track-world-width, 7600px);
+      height: var(--track-world-height, 2600px);
+      transform: translate3d(0, 0, 0);
+      transform-origin: 0 0;
+      transition: transform 70ms linear;
+      will-change: transform;
+      pointer-events: none;
+    }
+
+    .trail-map {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 10;
+    }
+
+    .trail-outline {
+      fill: none;
+      stroke: var(--track-rail);
+      stroke-width: 580px;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      vector-effect: non-scaling-stroke;
+    }
+
+    .trail-surface {
+      fill: none;
+      stroke: var(--track-road);
+      stroke-width: 460px;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      filter: drop-shadow(0 7px 0 var(--track-road-shadow));
+      vector-effect: non-scaling-stroke;
+    }
+
+    .trail-centerline {
+      fill: none;
+      stroke: rgba(97, 115, 107, 0.38);
+      stroke-width: 3px;
+      stroke-dasharray: 24 32;
+      vector-effect: non-scaling-stroke;
+    }
+
+    .trail-save-line,
+    .trail-finish-line {
+      stroke: #4a5b54;
+      stroke-width: 2px;
+      stroke-linecap: round;
+      vector-effect: non-scaling-stroke;
+    }
+
+    .trail-save-label {
+      fill: #2e3b35;
+      font-size: 3.5px;
+      font-weight: 900;
+      dominant-baseline: central;
+      paint-order: stroke;
+      stroke: rgba(251, 251, 242, 0.85);
+      stroke-width: 0.35;
+      text-anchor: middle;
+    }
+
+    .trail-caption {
+      position: absolute;
+      left: 12px;
+      bottom: 10px;
+      z-index: 120;
+      padding: 6px 8px;
+      border: 1px solid rgba(74, 91, 84, 0.16);
+      border-radius: 8px;
+      color: #233024;
+      background: rgba(255, 255, 252, 0.82);
+      font-size: 11px;
+      font-weight: 900;
+      line-height: 1.3;
+    }
+
+    .track-effects {
+      position: absolute;
+      inset: 0;
+      z-index: 80;
+      pointer-events: none;
+    }
+
+    #track-runners {
+      position: absolute;
+      inset: 0;
+      z-index: 90;
+      pointer-events: none;
+    }
+
+    .track-hud {
+      position: absolute;
+      inset: 0;
+      z-index: 160;
+      pointer-events: none;
+    }
+
+    .track-progress-pill {
+      position: absolute;
+      top: 12px;
+      right: 12px;
+      display: grid;
+      gap: 3px;
+      min-width: 118px;
+      padding: 8px 10px;
+      border: 1px solid rgba(74, 91, 84, 0.18);
+      border-radius: 8px;
+      color: #182119;
+      background: rgba(255, 255, 252, 0.9);
+      box-shadow: 0 8px 24px rgba(16, 19, 27, 0.14);
+    }
+
+    .track-progress-pill b,
+    .track-progress-pill span {
+      line-height: 1.2;
+      white-space: nowrap;
+    }
+
+    .track-progress-pill b {
+      font-size: 14px;
+    }
+
+    .track-progress-pill span {
+      color: #435043;
+      font-size: 11px;
+      font-weight: 800;
+    }
+
+    .player-focus-ring {
+      position: absolute;
+      width: 48px;
+      height: 48px;
+      border: 2px solid rgba(120, 219, 147, 0.94);
+      border-radius: 50%;
+      box-shadow: 0 0 0 8px rgba(120, 219, 147, 0.1), 0 0 22px rgba(120, 219, 147, 0.3);
+      transform: translate(-50%, -50%);
+      animation: focus-pulse 1.35s ease-in-out infinite;
+    }
+
+    .player-focus-ring.is-checkpoint {
+      border-color: rgba(255, 224, 138, 0.96);
+      box-shadow: 0 0 0 8px rgba(255, 224, 138, 0.13), 0 0 24px rgba(255, 224, 138, 0.36);
+    }
+
+    .player-focus-ring.is-respawn {
+      border-color: rgba(255, 118, 118, 0.94);
+      box-shadow: 0 0 0 8px rgba(255, 118, 118, 0.12), 0 0 24px rgba(255, 118, 118, 0.32);
+    }
+
+    .track-cue {
+      position: absolute;
+      min-width: 70px;
+      padding: 6px 8px;
+      border: 1px solid rgba(74, 91, 84, 0.18);
+      border-radius: 8px;
+      color: #17231e;
+      background: rgba(255, 255, 252, 0.94);
+      box-shadow: 0 8px 24px rgba(16, 19, 27, 0.16);
+      font-size: 11px;
+      font-weight: 900;
+      line-height: 1.2;
+      text-align: center;
+      transform: translate(-50%, -115%);
+      animation: cue-rise 1.55s ease-out both;
+    }
+
+    .track-cue.is-hit,
+    .track-cue.is-collision,
+    .track-cue.is-respawn {
+      color: #4b1111;
+    }
+
+    .track-countdown {
+      position: absolute;
+      inset: 0;
+      display: grid;
+      place-items: center;
+      color: rgba(46, 59, 53, 0.92);
+      font-size: clamp(74px, 10vw, 148px);
+      font-weight: 1000;
+      letter-spacing: 0;
+      text-shadow: 0 6px 0 rgba(248, 250, 247, 0.72), 0 18px 42px rgba(16, 19, 27, 0.22);
+    }
+
+    .start-gate {
+      position: absolute;
+      width: 18px;
+      height: 460px;
+      border: 2px solid rgba(74, 91, 84, 0.86);
+      border-radius: 999px;
+      background:
+        repeating-linear-gradient(45deg, #4a5b54 0 12px, #ffd86c 12px 24px);
+      box-shadow: 0 16px 34px rgba(46, 59, 53, 0.2);
+      transform: translate(-50%, -50%);
+    }
+
+    .start-gate::after {
+      content: "START GATE";
+      position: absolute;
+      left: 50%;
+      top: -34px;
+      min-width: 94px;
+      padding: 6px 8px;
+      border: 1px solid rgba(74, 91, 84, 0.18);
+      border-radius: 8px;
+      background: rgba(255, 255, 252, 0.92);
+      color: #17231e;
+      font-size: 11px;
+      font-weight: 1000;
+      text-align: center;
+      transform: translateX(-50%);
+    }
+
+    .runner-avatar {
+      position: absolute;
+      z-index: 2;
+      width: 34px;
+      height: 34px;
+      padding: 0;
+      border: 0;
+      border-radius: 50%;
+      background: transparent;
+      box-shadow: none;
+      filter: drop-shadow(0 7px 7px rgba(16, 19, 27, 0.38));
+      transform: translate(-50%, -50%);
+      transition: left 80ms linear, top 80ms linear, filter 120ms ease, opacity 120ms ease;
+    }
+
+    .runner-avatar.is-player {
+      filter:
+        drop-shadow(0 0 6px rgba(120, 219, 147, 0.95))
+        drop-shadow(0 8px 8px rgba(16, 19, 27, 0.42));
+    }
+
+    .runner-avatar.is-colliding {
+      filter:
+        drop-shadow(0 0 8px rgba(255, 224, 138, 0.92))
+        drop-shadow(0 8px 8px rgba(16, 19, 27, 0.44));
+      animation: runner-bump 0.32s ease-out both;
+    }
+
+    .runner-avatar img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      background: transparent;
+    }
+
+    .runner-nameplate {
+      position: absolute;
+      left: 50%;
+      top: calc(100% + 3px);
+      max-width: 72px;
+      padding: 2px 5px;
+      border: 1px solid rgba(74, 91, 84, 0.18);
+      border-radius: 999px;
+      background: rgba(255, 255, 252, 0.9);
+      color: #17231e;
+      font-size: 9px;
+      font-weight: 900;
+      line-height: 1;
+      text-align: center;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      pointer-events: none;
+      transform: translateX(-50%);
+    }
+
+    .runner-avatar.is-player .runner-nameplate {
+      border-color: rgba(120, 219, 147, 0.58);
+      background: rgba(232, 255, 237, 0.94);
+    }
+
+    @keyframes focus-pulse {
+      0%, 100% { opacity: 0.7; transform: translate(-50%, -50%) scale(0.94); }
+      50% { opacity: 1; transform: translate(-50%, -50%) scale(1.04); }
+    }
+
+    @keyframes cue-rise {
+      0% { opacity: 0; transform: translate(-50%, -72%); }
+      15% { opacity: 1; }
+      100% { opacity: 0; transform: translate(-50%, -145%); }
+    }
+
+    @keyframes runner-bump {
+      0% { transform: translate(-50%, -50%) scale(1); }
+      45% { transform: translate(-50%, -54%) scale(1.08); }
+      100% { transform: translate(-50%, -50%) scale(1); }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .player-focus-ring,
+      .track-countdown,
+      .track-cue,
+      .runner-avatar.is-colliding {
+        animation: none;
+      }
+    }
+
+    .slot-grid {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+      gap: 8px;
+      padding: 0 14px 14px;
+    }
+
+    .runner-slot {
+      min-width: 0;
+      min-height: 70px;
+      padding: 9px 8px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: rgba(255, 255, 252, 0.72);
+    }
+
+    .runner-slot strong {
+      display: block;
+      overflow: hidden;
+      color: var(--text);
+      font-size: 12px;
+      line-height: 1.25;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .runner-slot span {
+      display: block;
+      margin-top: 6px;
+      color: var(--muted);
+      font-size: 11px;
+      line-height: 1.3;
+    }
+
+    .runner-slot.is-player {
+      border-color: rgba(120, 219, 147, 0.58);
+      background: rgba(66, 200, 121, 0.14);
+    }
+
+    .skin-grid {
+      display: grid;
+      grid-template-columns: repeat(6, minmax(0, 1fr));
+      gap: 8px;
+    }
+
+    .skin-card {
+      min-width: 0;
+      min-height: 94px;
+      padding: 9px 8px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: rgba(255, 255, 252, 0.72);
+      color: var(--text);
+      text-align: left;
+      transition: transform 120ms ease, filter 120ms ease, border-color 120ms ease;
+    }
+
+    .skin-card[aria-pressed="true"] {
+      border-color: var(--green);
+      background: rgba(66, 200, 121, 0.15);
+    }
+
+    .skin-card img {
+      width: 46px;
+      height: 46px;
+      margin-bottom: 7px;
+    }
+
+    .skin-card b {
+      display: block;
+      overflow: hidden;
+      font-size: 12px;
+      line-height: 1.3;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .skin-card span {
+      display: block;
+      margin-top: 3px;
+      color: var(--muted);
+      font-size: 11px;
+      line-height: 1.2;
+    }
+
+    .chat-panel {
+      display: flex;
+      flex-direction: column;
+      min-height: 600px;
+    }
+
+    .messages {
+      display: flex;
+      flex: 1;
+      min-height: 280px;
+      max-height: 476px;
+      flex-direction: column;
+      gap: 8px;
+      overflow: auto;
+      padding: 14px;
+    }
+
+    .channel-tabs {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 7px;
+      padding: 12px 14px 0;
+    }
+
+    .channel-tab {
+      min-height: 32px;
+      padding: 0 10px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: rgba(255, 255, 252, 0.72);
+      color: var(--text);
+      font-size: 12px;
+      font-weight: 800;
+    }
+
+    .channel-tab[aria-pressed="true"] {
+      border-color: var(--green);
+      background: rgba(66, 200, 121, 0.15);
+      color: var(--green);
+    }
+
+    .message {
+      max-width: 96%;
+      padding: 10px 11px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: rgba(255, 255, 252, 0.82);
+      line-height: 1.45;
+    }
+
+    .message.is-me {
+      align-self: flex-end;
+      border-color: rgba(112, 216, 239, 0.44);
+      background: rgba(76, 196, 218, 0.14);
+    }
+
+    .message.is-system {
+      border-color: rgba(255, 224, 138, 0.34);
+      background: rgba(255, 216, 108, 0.18);
+      color: #8a6200;
+    }
+
+    .message b {
+      display: block;
+      margin-bottom: 3px;
+      font-size: 12px;
+      color: var(--cyan);
+    }
+
+    .message span {
+      color: var(--text);
+      font-size: 13px;
+      overflow-wrap: anywhere;
+    }
+
+    .chat-form {
+      display: grid;
+      grid-template-columns: 1fr 74px;
+      gap: 8px;
+      padding: 12px 14px 14px;
+      border-top: 1px solid var(--line);
+    }
+
+    .chat-form input {
+      min-width: 0;
+      min-height: 42px;
+      padding: 0 12px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      outline: 0;
+      background: var(--paper);
+      color: var(--text);
+    }
+
+    .chat-form input:focus {
+      border-color: var(--cyan);
+    }
+
+    .chat-form button {
+      min-height: 42px;
+      border-radius: 8px;
+      background: var(--cyan);
+      color: #091018;
+      font-weight: 800;
+    }
+
+    .notice {
+      margin-top: 12px;
+      padding: 10px;
+      border: 1px solid rgba(255, 224, 138, 0.3);
+      border-radius: 8px;
+      background: rgba(255, 216, 108, 0.18);
+      color: #7b5a00;
+      font-size: 12px;
+      line-height: 1.5;
+    }
+
+    @media (max-width: 1180px) {
+      .topbar,
+      .lobby-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .room-panel,
+      .track-panel,
+      .chat-panel {
+        grid-column: auto;
+        grid-row: auto;
+      }
+
+      .topbar {
+        display: grid;
+      }
+
+    }
+
+    @media (max-width: 760px) {
+      .shell {
+        width: min(100vw - 18px, 1480px);
+        padding: 9px 0;
+      }
+
+      .brand h1 {
+        font-size: 28px;
+      }
+
+      .slot-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .action-hud {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .lobby-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .shell[data-screen="lobby"] .lobby-grid {
+        grid-template-columns: minmax(0, 1fr);
+      }
+
+      .shell[data-screen="queue"] .lobby-grid {
+        grid-template-columns: minmax(0, 1fr);
+      }
+
+      .shell[data-screen="queue"] .chat-panel {
+        grid-column: 1;
+        grid-row: 2;
+        min-height: 360px;
+      }
+
+      .shell[data-screen="queue"] .slot-grid {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        max-height: none;
+      }
+
+      .controls,
+      .skin-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .profile-name-row {
+        grid-template-columns: 1fr;
+      }
+
+      .profile-skin-grid {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+      }
+
+      .profile-skin-grid .skin-card {
+        min-height: 86px;
+        padding: 8px 6px;
+      }
+
+      .track-scene {
+        min-height: 380px;
+      }
+
+      .chat-panel {
+        min-height: 520px;
+      }
+
+      .shell[data-screen="race"] .race-mobile-controls {
+        left: 10px;
+        right: 10px;
+        bottom: 10px;
+        width: auto;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        transform: none;
+      }
+
+      .shell[data-screen="race"] .race-input-controls {
+        bottom: 78px;
+      }
+
+      .race-dpad {
+        left: 12px;
+        width: 116px;
+        height: 116px;
+      }
+
+      .race-dpad-core {
+        width: 30px;
+        height: 30px;
+      }
+
+      .race-dpad-button {
+        width: 38px;
+        height: 38px;
+        font-size: 14px;
+      }
+
+      .race-dpad-button[data-key="KeyW"],
+      .race-dpad-button[data-key="KeyS"] {
+        left: 39px;
+      }
+
+      .race-dpad-button[data-key="KeyA"],
+      .race-dpad-button[data-key="KeyD"] {
+        top: 39px;
+      }
+
+      .race-action-buttons {
+        right: 12px;
+      }
+
+      .race-action-button {
+        width: 60px;
+        height: 60px;
+        font-size: 12px;
+      }
+    }
+
+    @media (max-width: 420px) {
+      .profile-hero {
+        padding: 16px;
+      }
+
+      .profile-skin-grid {
+        gap: 6px;
+      }
+
+      .profile-skin-grid .skin-card img {
+        width: 40px;
+        height: 40px;
+        margin-bottom: 6px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="shell" id="app-shell" data-screen="profile">
+    <section class="profile-screen" id="profile-screen" aria-label="첫 접속 프로필 설정">
+      <div class="profile-hero">
+        <div>
+          <h1>특이점레이스</h1>
+          <p>닉네임과 스킨을 먼저 고른 뒤 로비에 입장합니다.</p>
+        </div>
+        <form class="profile-form" id="profile-form">
+          <div class="profile-preview">
+            <img id="profile-skin-preview" alt="선택한 스킨" />
+            <div>
+              <b id="profile-skin-name">스킨 선택</b>
+              <span>첫 접속 프로필</span>
+            </div>
+          </div>
+          <div class="profile-skin-grid" id="profile-skin-grid" aria-label="처음 선택할 스킨"></div>
+          <div class="profile-name-row">
+            <input id="nickname-input" maxlength="16" autocomplete="nickname" placeholder="닉네임 입력" />
+            <button class="primary" id="profile-start-button" type="submit">시작하기</button>
+          </div>
+        </form>
+      </div>
+    </section>
+
+    <header class="topbar">
+      <div class="brand">
+        <h1>특이점레이스</h1>
+        <p id="flow-copy">방을 고르고, 준비한 뒤, 방장이 시작하면 경기장으로 들어갑니다.</p>
+      </div>
+    </header>
+
+    <section class="lobby-grid" aria-label="Singularity Race lobby">
+      <aside class="panel room-panel">
+        <div class="panel-header">
+          <div>
+            <h2 id="room-panel-title">방 목록</h2>
+            <p id="room-panel-copy">입장할 방을 고르세요.</p>
+          </div>
+          <span class="badge" id="room-panel-badge">로비</span>
+        </div>
+        <div class="panel-body">
+          <div class="room-name">
+            <div>
+              <strong id="room-display-name">특이점 스타디움 001</strong>
+              <small id="room-code">최대 30명</small>
+            </div>
+            <span class="signal" aria-label="local preview signal"></span>
+          </div>
+
+          <div class="controls">
+            <button class="primary" id="ready-button" type="button">로비 입장</button>
+            <button class="ghost debug-only" id="fill-button" type="button">29명 연습 러너 채우기</button>
+          </div>
+
+          <div class="connected-gate debug-only" id="connected-gate">
+            <div>
+              <strong id="connected-title">개발 연결 확인</strong>
+              <span id="connected-status">개발 연결은 ?devOnline=1에서만 열립니다.</span>
+            </div>
+            <button id="join-connected-button" type="button" disabled>개발 방 입장</button>
+          </div>
+          <a class="admin-link debug-only" id="admin-page-link" href="./singularity-race-admin.html?devOnline=1">관리자 페이지 확인</a>
+
+          <div class="packet-list debug-only" id="connected-packets" aria-label="connected packet log"></div>
+          <div class="packet-list debug-only" id="netcode-budget" aria-label="30 runner netcode budget"></div>
+
+          <div class="packet-list debug-only" aria-label="online packet preparation">
+            <div class="packet"><strong>join_request</strong><span>닉네임, 스킨, 방 참가 요청</span></div>
+            <div class="packet"><strong>input_update</strong><span>WASD 2D 도로 이동, Shift 스프린트</span></div>
+            <div class="packet"><strong>state_snapshot</strong><span>서버 권위 위치와 체크포인트</span></div>
+            <div class="packet"><strong>race_finalized</strong><span>완주 시간과 순위 확정</span></div>
+          </div>
+
+          <div class="notice" id="notice">
+            실제 온라인 매칭은 아직 연결하지 않았습니다. 여기서는 로비, 슬롯, 채팅, 스킨 선택까지 바로 확인할 수 있습니다.
+          </div>
+        </div>
+      </aside>
+
+      <section class="panel track-panel">
+        <div class="panel-header">
+          <div>
+            <h2 id="track-panel-title">방 대기실</h2>
+            <p id="track-panel-copy">참가자와 준비 상태를 확인합니다.</p>
+          </div>
+          <span class="badge" id="phase-badge">대기</span>
+        </div>
+        <div class="track-scene" aria-label="track preview">
+          <div class="track-world" id="track-world">
+            <svg class="trail-map" id="trail-map" viewBox="0 0 100 100" preserveAspectRatio="none" role="img" aria-label="single trail with five save points"></svg>
+            <div class="trail-caption">자유 출발 구역 / 방장 게이트 / 5개 세이브 지점</div>
+            <div class="track-effects" id="track-effects" aria-hidden="true"></div>
+            <div id="track-runners"></div>
+          </div>
+          <div class="track-hud" id="track-hud" aria-hidden="true"></div>
+        </div>
+        <div class="race-mobile-controls" id="race-mobile-controls" aria-label="모바일 경기 조작">
+          <button class="race-control-button" id="race-queue-toggle" type="button">대기열 보기</button>
+          <button class="race-control-button" id="race-chat-toggle" type="button">채팅창 열기</button>
+          <button class="race-control-button" id="race-start-status" type="button" disabled>
+            플레이 시작
+            <span>관리자 대기중</span>
+          </button>
+        </div>
+        <div class="race-input-controls" id="race-input-controls" aria-label="경기 이동과 스킬">
+          <div class="race-dpad" aria-label="원형 이동키">
+            <span class="race-dpad-core" aria-hidden="true"></span>
+            <button class="race-dpad-button" data-key="KeyW" type="button" aria-label="위로 이동">W</button>
+            <button class="race-dpad-button" data-key="KeyA" type="button" aria-label="왼쪽 이동">A</button>
+            <button class="race-dpad-button" data-key="KeyD" type="button" aria-label="오른쪽 이동">D</button>
+            <button class="race-dpad-button" data-key="KeyS" type="button" aria-label="아래로 이동">S</button>
+          </div>
+          <div class="race-action-buttons">
+            <button class="race-action-button" id="race-skill-button" type="button">스킬<span>E</span></button>
+            <button class="race-action-button" id="race-chat-action-button" type="button">채팅<span>T</span></button>
+          </div>
+        </div>
+        <div class="action-hud" aria-label="local action race status">
+          <div class="action-card"><span>캐릭터</span><strong id="action-character">-</strong></div>
+          <div class="action-card"><span>스킬</span><strong id="action-skill">-</strong></div>
+          <div class="action-card">
+            <span>체력</span>
+            <strong id="action-hp">100 / 100</strong>
+            <div class="action-meter"><i id="action-hp-bar"></i></div>
+          </div>
+          <div class="action-card"><span>상태</span><strong id="action-status">출발 대기</strong></div>
+        </div>
+        <div class="checkpoint-strip" id="checkpoint-strip" aria-label="checkpoint reward stages"></div>
+        <div class="race-standings" id="race-standings" aria-label="local race standings"></div>
+        <div class="packet-list action-packets debug-only" id="action-packets" aria-label="action packet rail"></div>
+        <div class="slot-grid" id="runner-slots" aria-label="runner slots"></div>
+        <div class="queue-actions">
+          <button class="secondary queue-map-button" id="preview-button" type="button">맵 미리보기</button>
+        </div>
+      </section>
+
+      <aside class="panel chat-panel">
+        <div class="panel-header">
+          <div>
+            <h2>채팅</h2>
+            <p>채널: lobby:singularity-race:local-preview</p>
+          </div>
+          <span class="badge">채팅</span>
+        </div>
+        <div class="channel-tabs" id="channel-tabs" aria-label="chat channels"></div>
+        <div class="messages" id="messages" aria-live="polite"></div>
+        <form class="chat-form" id="chat-form">
+          <input id="chat-input" maxlength="120" autocomplete="off" placeholder="메시지 입력" />
+          <button type="submit">전송</button>
+        </form>
+      </aside>
+    </section>
+
+    <section class="panel skin-panel debug-only">
+      <div class="panel-header">
+        <div>
+          <h2>스킨 선택</h2>
+          <p>Drawing World 스킨 프리셋을 로비 카드로 연결했습니다.</p>
+        </div>
+        <span class="badge">스킨</span>
+      </div>
+      <div class="panel-body">
+        <div class="skin-grid" id="skin-grid" aria-label="skin presets"></div>
+      </div>
+    </section>
+  </main>
+
+  <script type="module">
+    import {
+      getSingularityRaceSkinDataUrl,
+      getSingularityRaceSkinPresets
+    } from "./src/skins/singularity-race-skin-presets.js";
+    import {
+      canOpenConnectedMarathonLobby,
+      createConnectedMarathonStateSnapshot,
+      createMarathonRoomAdapterForMode,
+      getConnectedMarathonRoomSummaries,
+      joinConnectedMarathonRoom,
+      validateRestoredMarathonRoomAdapter
+    } from "./src/restored/online/marathon-room-adapter.js";
+    import {
+      createInitialRestoredMarathonChannelMessages,
+      createRestoredMarathonChannelSet,
+      filterVisibleRestoredMarathonChannels,
+      findRestoredMarathonChannel
+    } from "./src/restored/online/marathon-channel-adapter.js";
+    import {
+      createRestoredMarathonDevChatTransport
+    } from "./src/restored/online/marathon-dev-chat-transport.js";
+    import {
+      chooseRestoredMarathonNetworkLane,
+      createRestoredMarathonNetcodeProfile,
+      createRestoredMarathonPingSample,
+      createRestoredMarathonReconciliationHint,
+      estimateRestoredMarathonNetcodeBudget,
+      resolveRestoredMarathonVisualStep
+    } from "./src/restored/online/marathon-netcode-contract.js";
+    import {
+      createRestoredMarathonAttackEnvelope,
+      createRestoredMarathonInputEnvelope,
+      createRestoredMarathonSkillEnvelope,
+      createRestoredMarathonTransportEnvelope
+    } from "./src/restored/online/marathon-server-transport-contract.js";
+    import {
+      createRestoredMarathonInputFrame
+    } from "./src/restored/games/marathon-input-contract.js";
+    import {
+      assignRestoredMarathonCheckpointCharacter,
+      createRestoredMarathonSkillUse
+    } from "./src/restored/games/marathon-character-skill-contract.js";
+    import {
+      applyRestoredMarathonRunnerDamage,
+      createRestoredMarathonAttackAction,
+      createRestoredMarathonCheckpointRespawn,
+      resolveRestoredMarathonAttackHit
+    } from "./src/restored/games/marathon-combat-contract.js";
+    import {
+      RESTORED_MARATHON_TRAIL_SAVE_POINTS,
+      createRestoredMarathonTrailSvgPath,
+      estimateRestoredMarathonTrailProgressFromPoint,
+      listRestoredMarathonTrailSavePoints,
+      progressToRestoredMarathonTrailPoint
+    } from "./src/restored/games/marathon-trail-geometry.js";
+    import {
+      SINGULARITY_RACE_SCREENS,
+      getSingularityRaceFlowCopy,
+      getSingularityRaceNotice,
+      getSingularityRacePreviewActionLabel,
+      getSingularityRacePrimaryActionLabel,
+      getSingularityRaceRoomBadge,
+      getSingularityRaceRoomCopy,
+      getSingularityRaceRoomTitle,
+      getSingularityRaceTrackCopy,
+      getSingularityRaceTrackTitle,
+      isSingularityRaceScreen
+    } from "./src/restored/games/singularity-race-flow.js";
+    import {
+      createSingularityCheckpointDotNode,
+      createSingularityPacketRowNode,
+      createSingularityRunnerAvatarNode,
+      createSingularityStandingRowNode,
+      getSingularityActionStatusLabel,
+      getSingularitySkillDisplayName,
+      rankSingularityRunnerEntries,
+      updateSingularityRunnerAvatarNode
+    } from "./src/restored/games/singularity-race-runner-view.js";
+    import {
+      createSingularityChannelTabNode,
+      createSingularityEmptyChatNode,
+      createSingularityMessageNode,
+      createSingularityQueueSlotNode,
+      filterSingularityChatMessages,
+      getSingularityChatChannelLabel
+    } from "./src/restored/games/singularity-race-queue.js";
+    import {
+      createSingularityPlayerFocusRingNode,
+      createSingularityStartGateNode,
+      createSingularityTrackCountdownNode,
+      createSingularityTrackCueNode,
+      createSingularityTrackProgressPillNode
+    } from "./src/restored/games/singularity-race-track.js";
+    import {
+      advanceSingularityLocalBotPack,
+      advanceSingularityWaitingBotPack,
+      createSingularityStartPaddockPosition
+    } from "./src/restored/games/singularity-race-local-sim.js";
+    import {
+      createSingularityConnectedRelayEnvelope,
+      createSingularityDevRoomPacketTransport,
+      createSingularityRoomPressureReport,
+      mergeSingularityServerSnapshotRunners
+    } from "./src/restored/games/singularity-race-dev-online.js";
+    import {
+      SINGULARITY_RACE_CONTROL_STORAGE_KEY,
+      SINGULARITY_RACE_START_COUNTDOWN_MS,
+      openSingularityRaceControlBroadcast,
+      parseSingularityRaceControlCommand,
+      readSingularityRaceControlCommand,
+      shouldAcceptSingularityRaceControlCommand
+    } from "./src/restored/games/singularity-race-control.js";
+
+    const MAX_RUNNERS = 30;
+    const TRACK_WORLD_WIDTH = 7600;
+    const TRACK_WORLD_HEIGHT = 2600;
+    const TRACK_CAMERA_X_ANCHOR = 0.5;
+    const TRACK_CAMERA_Y_ANCHOR = 0.5;
+    const START_LINE_PROGRESS = 4;
+    const START_PADDOCK_MIN_PROGRESS = 2.8;
+    const START_GATE_PROGRESS = 7.2;
+    const START_PADDOCK_MAX_PROGRESS = START_GATE_PROGRESS - 0.45;
+    const ROAD_LANE_HALF_WIDTH_PX = 232;
+    const LOCAL_LANE_SPEED_PX_PER_SECOND = 104;
+    const LOCAL_LANE_SPRINT_SPEED_PX_PER_SECOND = 126;
+    const LOCAL_STAGING_RUN_PROGRESS_PER_SECOND = 0.66;
+    const LOCAL_STAGING_SPRINT_PROGRESS_PER_SECOND = 1.45;
+    const LOCAL_RUN_PROGRESS_PER_SECOND = 0.38;
+    const LOCAL_SPRINT_PROGRESS_PER_SECOND = 1.05;
+    const SOFT_PASS_RADIUS = 1.2;
+    const SOFT_PASS_BODY_RADIUS_PX = 78;
+    const SOFT_PASS_MIN_SPEED_FACTOR = 0.62;
+    const SOFT_PASS_SIDE_STEP_PX = 44;
+    const SOFT_COLLISION_LANE_PUSH_PX = 8;
+    const SOFT_COLLISION_PROGRESS_PUSH = 0.018;
+    const RAIL_COLLISION_GAP = 0.72;
+    const RAIL_MIN_PROGRESS = 2.5;
+    const RAIL_MAX_PROGRESS = 100;
+    const LOCAL_FINISH_PROGRESS = 99.5;
+    const PLAYER_COLLISION_STALL_MS = 360;
+    const STORAGE_KEY = "singularity-race:lobby-skin";
+    const PROFILE_STORAGE_KEY = "singularity-race:profile:v1";
+    const FEATURED_SKIN_IDS = Object.freeze(["kaguya", "singularity-fan", "robot", "gpichan", "pepe-runner", "moderator-armband", "yalrkun", "lakers-wile", "sam-altman", "demis-hassabis"]);
+    const PROFILE_SKIN_LIMIT = 12;
+    const VIRTUAL_MOVE_KEYS = Object.freeze(["KeyW", "KeyA", "KeyS", "KeyD"]);
+    const ACTION_CHECKPOINTS = Object.freeze(RESTORED_MARATHON_TRAIL_SAVE_POINTS.map((point) => point.progressPercent));
+    const BOT_NAMES = [
+      "하늘", "보리", "초코", "모찌", "루미", "궤도", "픽셀", "대시", "민트", "젤리",
+      "연", "물결", "햇살", "네온", "사이다", "구름", "베리", "스파크", "푸딩",
+      "망고", "비스킷", "점이", "루비", "클로버", "자두", "토스트", "태피", "코코", "유자"
+    ];
+    const queryParams = new URLSearchParams(window.location.search);
+    const devOnlineEnabled = queryParams.get("devOnline") === "1";
+    const adminLaunchEnabled = queryParams.get("adminLaunch") === "1";
+    const debugUiEnabled = queryParams.get("debug") === "1";
+    if (queryParams.get("resetProfile") === "1") {
+      window.localStorage.removeItem(PROFILE_STORAGE_KEY);
+      window.localStorage.removeItem(STORAGE_KEY);
+    }
+    const roomAdapter = createMarathonRoomAdapterForMode({
+      devOnline: devOnlineEnabled,
+      clientId: "client:singularity-race-dev",
+      serverTimeMs: 1000
+    });
+    const adapterValidation = validateRestoredMarathonRoomAdapter(roomAdapter);
+    const connectedLobbyOpen = adapterValidation.ok && canOpenConnectedMarathonLobby(roomAdapter);
+    const channelSet = roomAdapter.channels?.length
+      ? roomAdapter.channels
+      : createRestoredMarathonChannelSet({ roomId: "room:singularity-race:local-preview" });
+    const visibleChannels = filterVisibleRestoredMarathonChannels(channelSet, "player");
+    const chatTransport = createRestoredMarathonDevChatTransport({
+      channels: channelSet,
+      role: "player",
+      clientId: "client:singularity-race-lobby",
+      storage: window.localStorage,
+      eventTarget: window,
+      broadcastFactory: typeof window.BroadcastChannel === "function" ? (name) => new window.BroadcastChannel(name) : null,
+      clock: () => Date.now(),
+      messageLimit: 500
+    });
+
+    const elements = {
+      shell: document.querySelector("#app-shell"),
+      flowCopy: document.querySelector("#flow-copy"),
+      profileForm: document.querySelector("#profile-form"),
+      nicknameInput: document.querySelector("#nickname-input"),
+      profileSkinGrid: document.querySelector("#profile-skin-grid"),
+      profileSkinPreview: document.querySelector("#profile-skin-preview"),
+      profileSkinName: document.querySelector("#profile-skin-name"),
+      readyButton: document.querySelector("#ready-button"),
+      previewButton: document.querySelector("#preview-button"),
+      raceQueueToggle: document.querySelector("#race-queue-toggle"),
+      raceChatToggle: document.querySelector("#race-chat-toggle"),
+      raceStartStatus: document.querySelector("#race-start-status"),
+      raceInputControls: document.querySelector("#race-input-controls"),
+      virtualMoveButtons: Array.from(document.querySelectorAll(".race-dpad-button[data-key]")),
+      raceSkillButton: document.querySelector("#race-skill-button"),
+      raceChatActionButton: document.querySelector("#race-chat-action-button"),
+      fillButton: document.querySelector("#fill-button"),
+      roomTitle: document.querySelector("#room-panel-title"),
+      roomCopy: document.querySelector("#room-panel-copy"),
+      roomBadge: document.querySelector("#room-panel-badge"),
+      roomDisplayName: document.querySelector("#room-display-name"),
+      phaseBadge: document.querySelector("#phase-badge"),
+      trackTitle: document.querySelector("#track-panel-title"),
+      trackCopy: document.querySelector("#track-panel-copy"),
+      notice: document.querySelector("#notice"),
+      trackScene: document.querySelector(".track-scene"),
+      trailMap: document.querySelector("#trail-map"),
+      trackEffects: document.querySelector("#track-effects"),
+      trackRunners: document.querySelector("#track-runners"),
+      runnerSlots: document.querySelector("#runner-slots"),
+      skinGrid: document.querySelector("#skin-grid"),
+      channelTabs: document.querySelector("#channel-tabs"),
+      messages: document.querySelector("#messages"),
+      chatForm: document.querySelector("#chat-form"),
+      chatInput: document.querySelector("#chat-input"),
+      connectedGate: document.querySelector("#connected-gate"),
+      connectedStatus: document.querySelector("#connected-status"),
+      connectedButton: document.querySelector("#join-connected-button"),
+      connectedPackets: document.querySelector("#connected-packets"),
+      netcodeBudget: document.querySelector("#netcode-budget"),
+      trackWorld: document.querySelector("#track-world"),
+      trackHud: document.querySelector("#track-hud"),
+      actionCharacter: document.querySelector("#action-character"),
+      actionSkill: document.querySelector("#action-skill"),
+      actionHp: document.querySelector("#action-hp"),
+      actionHpBar: document.querySelector("#action-hp-bar"),
+      actionStatus: document.querySelector("#action-status"),
+      checkpointStrip: document.querySelector("#checkpoint-strip"),
+      raceStandings: document.querySelector("#race-standings"),
+      actionPackets: document.querySelector("#action-packets"),
+      roomCode: document.querySelector("#room-code"),
+      connectionSignal: document.querySelector("#connection-signal") || document.querySelector(".signal"),
+      chatChannel: document.querySelector(".chat-panel .panel-header p")
+    };
+
+    const presets = prioritizeRaceSkinPresets(getSingularityRaceSkinPresets());
+    const defaultSkin = presets[0]?.id || "default";
+    const savedProfile = readPlayerProfile();
+    const initialSkin = savedProfile?.skinId || localStorage.getItem(STORAGE_KEY) || defaultSkin;
+    const netcodeProfile = createRestoredMarathonNetcodeProfile();
+    const netcodeBudget = estimateRestoredMarathonNetcodeBudget({ runnerCount: MAX_RUNNERS, profile: netcodeProfile });
+    const netcodeLane = chooseRestoredMarathonNetworkLane({ pingMs: 72, jitterMs: 18, packetLossPct: 0 }, netcodeProfile);
+    const netcodePingSample = createRestoredMarathonPingSample({ clientSentAtMs: 0, serverReceivedAtMs: 36, serverSentAtMs: 38, clientReceivedAtMs: 76 }, null, netcodeProfile);
+    const netcodeReconciliationHint = createRestoredMarathonReconciliationHint({ x: 0, y: 0, progress: 0 }, { x: 128, y: 0, progress: 0.4, laneOffsetPx: 12 }, { elapsedMs: 60 }, netcodeProfile);
+    const state = {
+      screen: savedProfile || adminLaunchEnabled
+        ? (adminLaunchEnabled ? SINGULARITY_RACE_SCREENS.RACE : SINGULARITY_RACE_SCREENS.LOBBY)
+        : SINGULARITY_RACE_SCREENS.PROFILE,
+      nickname: savedProfile?.nickname || "YOU",
+      selectedSkin: initialSkin,
+      ready: false,
+      previewTick: 0,
+      connectedSession: null,
+      connectedPackets: [],
+      lastConnectedSnapshotSequence: 0,
+      netcodePressure: null,
+      trackCamera: { x: 0, y: 0 },
+      raceQueueOpen: false,
+      raceChatOpen: false,
+      runnerVisuals: new Map(),
+      lastVisualFrameMs: 0,
+      activeChannel: visibleChannels[0]?.channelId || "lobby:singularity-race:public",
+      runners: createRunners(adminLaunchEnabled ? MAX_RUNNERS : 1, initialSkin, false),
+      action: createActionRaceState(),
+      messages: [
+        { author: "SYSTEM", text: "특이점레이스 로컬 로비가 열렸습니다.", type: "system" },
+        { author: "SYSTEM", text: "채팅과 스킨 선택은 지금 바로 동작합니다.", type: "system" }
+      ]
+    };
+    let roomPacketTransport = null;
+    let unsubscribeRoomPackets = () => {};
+    let raceControlBroadcast = openSingularityRaceControlBroadcast(window);
+    let lastRaceControlCommandId = "";
+
+    elements.shell.classList.toggle("debug-mode", debugUiEnabled);
+    elements.shell.dataset.screen = state.screen;
+    elements.nicknameInput.value = state.nickname === "YOU" ? "" : state.nickname;
+
+    setTrackWorldSize();
+    state.messages = chatTransport.seedMessages(createInitialRestoredMarathonChannelMessages(channelSet));
+    renderTrailMap();
+    renderAll();
+    setupRaceControlListener();
+
+    chatTransport.subscribe((messages) => {
+      state.messages = messages;
+      renderMessages();
+    });
+
+    window.addEventListener("keydown", handleActionKeyDown);
+    window.addEventListener("keyup", handleActionKeyUp);
+    window.addEventListener("blur", releaseVirtualMoveKeys);
+    window.addEventListener("resize", updateTrackCamera);
+    elements.trackScene.addEventListener("click", handleTrackPointerDown);
+    setInterval(advanceActionPreview, 60);
+
+    elements.profileForm.addEventListener("submit", (event) => {
+      event.preventDefault();
+      completeProfileSetup();
+    });
+
+    elements.readyButton.addEventListener("click", () => {
+      if (state.screen === SINGULARITY_RACE_SCREENS.LOBBY) {
+        enterQueue("manual");
+        return;
+      }
+      if (state.screen === SINGULARITY_RACE_SCREENS.MAP_PREVIEW) enterQueue("map_return");
+    });
+
+    elements.previewButton.addEventListener("click", () => {
+      if (state.screen === SINGULARITY_RACE_SCREENS.LOBBY) {
+        enterQueue("quick");
+        return;
+      }
+      if (state.screen === SINGULARITY_RACE_SCREENS.QUEUE) {
+        enterMapPreview();
+        return;
+      }
+      if (state.screen === SINGULARITY_RACE_SCREENS.MAP_PREVIEW) enterQueue("map_return");
+    });
+
+    elements.raceQueueToggle.addEventListener("click", () => {
+      toggleRaceQueueOverlay();
+    });
+
+    elements.raceChatToggle.addEventListener("click", () => {
+      toggleRaceChatOverlay(true);
+    });
+
+    for (const button of elements.virtualMoveButtons) {
+      button.addEventListener("pointerdown", (event) => {
+        event.preventDefault();
+        try {
+          button.setPointerCapture?.(event.pointerId);
+        } catch {
+          // Synthetic pointer probes and a few desktop browsers can reject capture.
+        }
+        setVirtualMoveKey(button.dataset.key, true);
+      });
+      button.addEventListener("pointerup", (event) => {
+        event.preventDefault();
+        setVirtualMoveKey(button.dataset.key, false);
+      });
+      button.addEventListener("pointercancel", () => {
+        setVirtualMoveKey(button.dataset.key, false);
+      });
+      button.addEventListener("lostpointercapture", () => {
+        setVirtualMoveKey(button.dataset.key, false);
+      });
+    }
+
+    elements.raceSkillButton.addEventListener("click", () => {
+      triggerVirtualSkillButton();
+    });
+
+    elements.raceChatActionButton.addEventListener("click", () => {
+      toggleRaceChatOverlay(true);
+    });
+
+    elements.fillButton.addEventListener("click", () => {
+      if (state.connectedSession) {
+        pushSystem("개발 연결 방의 참가자 칸은 서버가 관리합니다.");
+        renderAll();
+        return;
+      }
+      state.runners = createRunners(MAX_RUNNERS, state.selectedSkin, state.ready);
+      state.action = createActionRaceState();
+      pushSystem("30인 로비 슬롯을 로컬 연습 러너로 채웠습니다.");
+      renderAll();
+    });
+
+    elements.connectedButton.addEventListener("click", () => {
+      joinDevConnectedRoom("button");
+    });
+
+    if (adminLaunchEnabled) {
+      requestAnimationFrame(() => {
+        joinDevConnectedRoom("admin_direct");
+      });
+    }
+
+    function joinDevConnectedRoom(source) {
+      if (state.connectedSession) return;
+      const result = joinConnectedMarathonRoom(roomAdapter, {
+        participantId: "runner:you",
+        nickname: state.nickname,
+        skinPreset: state.selectedSkin,
+        sequence: state.connectedPackets.length + 1
+      });
+      if (!result.ok) {
+        pushSystem(`개발 방 입장 실패: ${result.reason}`);
+        renderAll();
+        return;
+      }
+      const snapshot = createConnectedMarathonStateSnapshot(result.room, {
+        participantId: result.session.playerId,
+        sequence: result.joinResult.sequence + 1,
+        serverTimeMs: result.joinResult.serverTimeMs
+      });
+      state.connectedSession = result.session;
+      state.connectedPackets = [result.joinRequest, result.joinResult, snapshot].map(toConnectedRelayEnvelope);
+      state.runners = result.room.participants.map(mapParticipantToRunner);
+      state.lastConnectedSnapshotSequence = 0;
+      applyConnectedStateSnapshot(snapshot);
+      openConnectedRoomPacketRelay(result.session.roomId, state.connectedPackets);
+      state.activeChannel = result.session.roomId;
+      state.ready = false;
+      if (source === "admin_direct") setScreen("race");
+      if (source === "button") setScreen("queue");
+      pushSystem(source === "admin_direct" ? "방장 페이지에서 개발 방으로 바로 입장했습니다." : "개발 연결 방 입장이 확인되었습니다.");
+      renderAll();
+    }
+
+    elements.chatForm.addEventListener("submit", (event) => {
+      event.preventDefault();
+      const text = elements.chatInput.value.trim().replace(/\s+/g, " ");
+      if (!text) return;
+      const appended = chatTransport.submitMessage(state.messages, {
+        channelId: state.activeChannel,
+        senderId: "player:you",
+        senderType: "player",
+        displayName: "YOU",
+        text
+      });
+      if (appended.ok) {
+        state.messages = appended.messages;
+      } else {
+        pushSystem(`Chat blocked: ${appended.reason}`);
+      }
+      elements.chatInput.value = "";
+      renderAll();
+    });
+
+    function setTrackWorldSize() {
+      elements.trackWorld.style.setProperty("--track-world-width", `${TRACK_WORLD_WIDTH}px`);
+      elements.trackWorld.style.setProperty("--track-world-height", `${TRACK_WORLD_HEIGHT}px`);
+    }
+
+    function prioritizeRaceSkinPresets(skinPresets) {
+      const byId = new Map(skinPresets.map((preset) => [preset.id, preset]));
+      const featured = FEATURED_SKIN_IDS
+        .map((id) => byId.get(id))
+        .filter(Boolean);
+      const remaining = skinPresets.filter((preset) => !FEATURED_SKIN_IDS.includes(preset.id));
+      return [...featured, ...remaining];
+    }
+
+    function readPlayerProfile() {
+      try {
+        const parsed = JSON.parse(window.localStorage.getItem(PROFILE_STORAGE_KEY) || "null");
+        if (!parsed || typeof parsed !== "object") return null;
+        const nickname = normalizeNickname(parsed.nickname);
+        const skinId = presets.some((preset) => preset.id === parsed.skinId) ? parsed.skinId : defaultSkin;
+        return { nickname, skinId };
+      } catch {
+        return null;
+      }
+    }
+
+    function savePlayerProfile(profile) {
+      const nextProfile = {
+        nickname: normalizeNickname(profile?.nickname),
+        skinId: presets.some((preset) => preset.id === profile?.skinId) ? profile.skinId : defaultSkin
+      };
+      window.localStorage.setItem(PROFILE_STORAGE_KEY, JSON.stringify(nextProfile));
+      window.localStorage.setItem(STORAGE_KEY, nextProfile.skinId);
+      return nextProfile;
+    }
+
+    function normalizeNickname(value) {
+      const text = String(value || "").trim().replace(/\s+/g, " ").slice(0, 16);
+      return text || "YOU";
+    }
+
+    function completeProfileSetup() {
+      const profile = savePlayerProfile({
+        nickname: elements.nicknameInput.value,
+        skinId: state.selectedSkin
+      });
+      state.nickname = profile.nickname;
+      state.selectedSkin = profile.skinId;
+      state.runners = createRunners(1, state.selectedSkin, false);
+      setScreen(SINGULARITY_RACE_SCREENS.LOBBY);
+      pushSystem(`${state.nickname} 님, 로비에 입장했습니다.`);
+      renderAll();
+    }
+
+    function setScreen(screen) {
+      if (!isSingularityRaceScreen(screen)) return;
+      state.screen = screen;
+      if (screen !== SINGULARITY_RACE_SCREENS.RACE) {
+        state.raceQueueOpen = false;
+        state.raceChatOpen = false;
+        releaseVirtualMoveKeys(false);
+      }
+      elements.shell.dataset.screen = screen;
+    }
+
+    function enterQueue(source = "manual") {
+      if (!readPlayerProfile()) savePlayerProfile({ nickname: state.nickname, skinId: state.selectedSkin });
+      setScreen(SINGULARITY_RACE_SCREENS.QUEUE);
+      if (connectedLobbyOpen && !state.connectedSession) {
+        joinDevConnectedRoom(source === "quick" ? "quick_entry" : "queue_entry");
+        return;
+      }
+      state.ready = false;
+      state.runners = createRunners(1, state.selectedSkin, false);
+      pushSystem(source === "map_return" ? "대기열로 돌아왔습니다." : "대기열에 입장했습니다.");
+      renderAll();
+    }
+
+    function enterMapPreview() {
+      setScreen(SINGULARITY_RACE_SCREENS.MAP_PREVIEW);
+      if (state.runners.length < MAX_RUNNERS) {
+        state.runners = createRunners(MAX_RUNNERS, state.selectedSkin, false);
+      }
+      state.action.raceStarted = false;
+      pushSystem("맵 미리보기를 열었습니다.");
+      renderAll();
+    }
+
+    function enterRaceScreen() {
+      setScreen(SINGULARITY_RACE_SCREENS.RACE);
+      if (!state.connectedSession && state.runners.length < MAX_RUNNERS) {
+        state.runners = createRunners(MAX_RUNNERS, state.selectedSkin, false);
+      }
+      pushSystem("경기장 화면으로 이동했습니다. 방장 시작을 기다립니다.");
+      renderAll();
+    }
+
+    function setupRaceControlListener() {
+      window.addEventListener("storage", (event) => {
+        if (event.key !== SINGULARITY_RACE_CONTROL_STORAGE_KEY || !event.newValue) return;
+        applyRaceControlCommand(parseSingularityRaceControlCommand(event.newValue));
+      });
+      if (raceControlBroadcast) {
+        raceControlBroadcast.onmessage = (event) => applyRaceControlCommand(event.data);
+      }
+      applyRaceControlCommand(readSingularityRaceControlCommand(window.localStorage));
+    }
+
+    function applyRaceControlCommand(command) {
+      if (!shouldAcceptSingularityRaceControlCommand(command, {
+        lastCommandId: lastRaceControlCommandId,
+        nowMs: Date.now()
+      })) return;
+      lastRaceControlCommandId = command.commandId;
+      setScreen(SINGULARITY_RACE_SCREENS.RACE);
+      if (!state.connectedSession && state.runners.length < MAX_RUNNERS) {
+        state.runners = createRunners(MAX_RUNNERS, state.selectedSkin, false);
+      }
+      startLocalCountdown("admin", command);
+      renderAll();
+    }
+
+    function startLocalCountdown(source, command = {}) {
+      if (state.action.raceStarted || isCountdownActive()) return false;
+      const now = Date.now();
+      const gateOpensAtMs = Math.max(now + 1000, Number(command.gateOpensAtMs || (now + SINGULARITY_RACE_START_COUNTDOWN_MS)));
+      state.action.countdownStartedAtMs = now;
+      state.action.countdownEndsAtMs = gateOpensAtMs;
+      state.action.countdownAnnounced = false;
+      setRaceCue("countdown", createCountdownLabel(now), state.runners[0]?.progress || START_LINE_PROGRESS, "you");
+      pushSystem(source === "admin" ? "방장이 10초 카운트다운을 시작했습니다." : "출발 카운트다운이 시작되었습니다.");
+      return true;
+    }
+
+    function isCountdownActive(now = Date.now()) {
+      return Boolean(state.action.countdownEndsAtMs && state.action.countdownEndsAtMs > now);
+    }
+
+    function finishCountdownIfReady(now = Date.now()) {
+      if (!state.action.countdownEndsAtMs || state.action.countdownEndsAtMs > now) return false;
+      if (state.action.countdownAnnounced) return false;
+      state.action.countdownAnnounced = true;
+      state.action.countdownStartedAtMs = 0;
+      state.action.countdownEndsAtMs = 0;
+      state.action.raceStarted = true;
+      setScreen("race");
+      setRaceCue("start", "GO", state.runners[0]?.progress || START_LINE_PROGRESS, "you");
+        pushSystem("출발 게이트가 열렸습니다.");
+      return true;
+    }
+
+    function createCountdownLabel(now = Date.now()) {
+      if (!isCountdownActive(now)) return "";
+      const remaining = state.action.countdownEndsAtMs - now;
+      return remaining > 650 ? String(Math.max(1, Math.ceil(remaining / 1000))) : "GO";
+    }
+
+    function createRunners(count, selectedSkin, ready) {
+      return Array.from({ length: count }, (_, index) => {
+        const preset = presets[index % presets.length];
+        const startPosition = createStartPaddockPosition(index);
+        return {
+          id: index === 0 ? "you" : `bot-${index}`,
+          name: index === 0 ? "YOU" : BOT_NAMES[(index - 1) % BOT_NAMES.length],
+          skin: index === 0 ? selectedSkin || defaultSkin : preset?.id || defaultSkin,
+          ready: index === 0 ? Boolean(ready) : index % 3 !== 0,
+          progress: startPosition.progress,
+          laneOffsetPx: startPosition.laneOffsetPx,
+          hp: 100,
+          maxHp: 100,
+          lastSafeCheckpointIndex: 0,
+          collisionAtMs: 0
+        };
+      });
+    }
+
+    function createStartPaddockPosition(index) {
+      return createSingularityStartPaddockPosition(index, {
+        startLineProgress: START_LINE_PROGRESS,
+        startPaddockMinProgress: START_PADDOCK_MIN_PROGRESS,
+        startPaddockMaxProgress: START_PADDOCK_MAX_PROGRESS,
+        roadLaneHalfWidthPx: ROAD_LANE_HALF_WIDTH_PX
+      });
+    }
+
+    function mapParticipantToRunner(participant, index) {
+      const startPosition = createStartPaddockPosition(index);
+      return {
+        id: participant.participantId === "runner:you" ? "you" : participant.participantId,
+        name: participant.displayName || `Runner ${index + 1}`,
+        skin: participant.participantId === "runner:you" ? state.selectedSkin : presets[index % presets.length]?.id || defaultSkin,
+        ready: false,
+        progress: participant.progressMeters > 0 ? Math.min(100, (participant.progressMeters / 42195) * 100) : START_LINE_PROGRESS,
+        laneOffsetPx: startPosition.laneOffsetPx,
+        hp: 100,
+        maxHp: 100,
+        lastSafeCheckpointIndex: 0,
+        collisionAtMs: 0
+      };
+    }
+
+    function createActionRaceState() {
+      const reward = assignRestoredMarathonCheckpointCharacter({
+        participantId: "runner:you",
+        checkpointIndex: 1,
+        seed: "singularity:initial"
+      });
+      return {
+        keys: {},
+        lastTickMs: 0,
+        stallUntilMs: 0,
+        checkpointIndex: 0,
+        hp: 100,
+        maxHp: 100,
+        lastSafeCheckpointIndex: 0,
+        characterId: reward.character.characterId,
+        characterLabel: reward.character.label,
+        skillId: reward.skill.skillId,
+        skillMaxCharges: reward.skill.maxCharges,
+        skillChargesRemaining: reward.skill.maxCharges,
+        raceCue: null,
+        raceStarted: false,
+        countdownStartedAtMs: 0,
+        countdownEndsAtMs: 0,
+        countdownAnnounced: false,
+        finishedLocalPreview: false,
+        lastLocalRank: 1,
+        lastCollisionCueMs: 0,
+        packetLog: [
+          { type: "input_update", detail: "WASD / Shift" },
+          { type: "skill_use", detail: "E" },
+          { type: "attack_action", detail: "Mouse" },
+          { type: "respawn_notice", detail: "Checkpoint" }
+        ]
+      };
+    }
+
+    function handleActionKeyDown(event) {
+      if (isTypingTarget(event.target)) return;
+      if (event.code === "KeyT") {
+        event.preventDefault();
+        focusChatInput();
+        return;
+      }
+      if (!["KeyW", "KeyA", "KeyS", "KeyD", "ShiftLeft", "ShiftRight", "KeyE"].includes(event.code)) return;
+      if (state.screen !== SINGULARITY_RACE_SCREENS.RACE) return;
+      event.preventDefault();
+      state.action.keys[event.code] = true;
+      if (state.connectedSession) {
+        publishConnectedInputRequest(event.code === "KeyE");
+        if (event.code === "KeyE" && !event.repeat) requestConnectedSkill();
+        renderAll();
+        return;
+      }
+      if (!state.action.raceStarted && event.code === "KeyE" && !event.repeat) {
+        pushSystem("아직 출발 전입니다. 방장 시작 후 스킬을 사용할 수 있습니다.");
+        renderAll();
+        return;
+      }
+      if (event.code === "KeyE" && !event.repeat) useActionSkill();
+    }
+
+    function handleActionKeyUp(event) {
+      if (!state.action.keys[event.code]) return;
+      state.action.keys[event.code] = false;
+      if (state.connectedSession) {
+        publishConnectedInputRequest(false);
+        renderAll();
+      }
+    }
+
+    function handleTrackPointerDown(event) {
+      if (state.screen !== SINGULARITY_RACE_SCREENS.RACE) return;
+      if (state.connectedSession) {
+        requestConnectedAttack(event);
+        return;
+      }
+      if (!state.action.raceStarted) {
+        pushSystem("아직 출발 전입니다. 방장 시작 후 공격할 수 있습니다.");
+        renderAll();
+        return;
+      }
+      if (isCountdownActive()) {
+        renderAll();
+        return;
+      }
+      const { x, y } = eventToTrackWorldPercent(event);
+      const aimProgress = estimateRestoredMarathonTrailProgressFromPoint(x, y);
+      const player = state.runners[0];
+      state.action.raceStarted = true;
+      state.action.stallUntilMs = Date.now() + 520;
+      const target = state.runners.slice(1).find((runner) => (
+        Math.abs(runner.progress - player.progress) < 8
+        && Math.abs((runner.laneOffsetPx || 0) - (player.laneOffsetPx || 0)) < 120
+      ));
+      const action = createRestoredMarathonAttackAction({
+        attackerId: "runner:you",
+        origin: { x: player.progress, y: player.laneOffsetPx || 0 },
+        aim: { x: aimProgress >= player.progress ? 1 : -1, y: 0 }
+      });
+      pushActionPacket(
+        createRestoredMarathonAttackEnvelope(action, createActionPacketOptions()),
+        target ? `aim ${target.name}` : "miss"
+      );
+      if (!target) {
+        pushSystem("Attack missed. Running would have been faster.");
+        renderAll();
+        return;
+      }
+      const hit = resolveRestoredMarathonAttackHit(action, {
+          runnerId: target.id,
+          position: { x: target.progress, y: target.laneOffsetPx || 0 },
+          hp: target.hp ?? 100,
+        maxHp: target.maxHp ?? 100
+      });
+      if (hit.hit) {
+        const damaged = applyRestoredMarathonRunnerDamage({
+          runnerId: target.id,
+          hp: target.hp ?? 100,
+          maxHp: target.maxHp ?? 100,
+          lastSafeCheckpointIndex: target.lastSafeCheckpointIndex ?? 0
+        }, { ...hit, nowMs: Date.now() });
+        target.hp = damaged.hp;
+        if (damaged.down) {
+          const respawn = createRestoredMarathonCheckpointRespawn(damaged, { checkpointMeters: [0, ...ACTION_CHECKPOINTS] });
+          target.progress = Math.max(0, respawn.progressMeters);
+          target.hp = respawn.hp;
+          target.lastSafeCheckpointIndex = respawn.checkpointIndex;
+          setRaceCue("respawn", `RESPAWN ${target.name}`, target.progress, target.id);
+          pushActionPacket(
+            createRestoredMarathonTransportEnvelope("respawn_notice", {
+              participantId: target.id,
+              checkpointIndex: respawn.checkpointIndex,
+              progressMeters: respawn.progressMeters
+            }, createActionPacketOptions()),
+            `${target.name} checkpoint ${respawn.checkpointIndex}`
+          );
+          pushSystem(`Attack downed ${target.name}. Respawned at checkpoint ${respawn.checkpointIndex}.`);
+        } else {
+          target.progress = Math.max(3, target.progress - 4);
+          setRaceCue("hit", `HIT ${target.name}`, target.progress, target.id);
+          pushSystem(`Attack hit ${target.name}. HP ${target.hp}/${target.maxHp}. You stalled for ${hit.attackerStallMs}ms.`);
+        }
+      }
+      resolveSingleRailCollisions("attack");
+      renderAll();
+    }
+
+    function requestConnectedAttack(event) {
+      const { x, y } = eventToTrackWorldPercent(event);
+      const aimProgress = estimateRestoredMarathonTrailProgressFromPoint(x, y);
+      const player = state.runners[0];
+      const action = createRestoredMarathonAttackAction({
+        attackerId: "runner:you",
+        origin: { x: player.progress, y: player.laneOffsetPx || 0 },
+        aim: { x: aimProgress >= player.progress ? 1 : -1, y: 0 }
+      });
+      pushActionPacket(
+        createRestoredMarathonAttackEnvelope(action, createActionPacketOptions()),
+        "서버 요청"
+      );
+      pushSystem("공격 요청을 개발 방으로 보냈습니다.");
+      renderAll();
+    }
+
+    function advanceActionPreview() {
+      if (document.hidden) return;
+      const now = Date.now();
+      if (!state.action.lastTickMs) state.action.lastTickMs = now;
+      const elapsedSeconds = Math.min(0.25, (now - state.action.lastTickMs) / 1000);
+      state.action.lastTickMs = now;
+      if (isCountdownActive(now)) {
+        if (!state.connectedSession) advanceWaitingBotPack(elapsedSeconds, now);
+        advanceLocalPlayerMovement(createRestoredMarathonInputFrame({
+          participantId: "runner:you",
+          keys: state.action.keys,
+          sequence: Math.floor(now / 180)
+        }), elapsedSeconds, "staging");
+        renderAll();
+        return;
+      }
+      if (finishCountdownIfReady(now)) {
+        renderAll();
+        return;
+      }
+      if (state.connectedSession) return;
+      const frame = createRestoredMarathonInputFrame({
+        participantId: "runner:you",
+        keys: state.action.keys,
+        sequence: Math.floor(now / 180)
+      });
+      let botsMoved = false;
+      if (state.action.raceStarted) {
+        botsMoved = advanceLocalBotPack(elapsedSeconds);
+        resolveSingleRailCollisions("pack");
+      } else {
+        botsMoved = advanceWaitingBotPack(elapsedSeconds, now);
+      }
+      if (now < state.action.stallUntilMs) {
+        if (state.action.raceStarted || botsMoved) renderAll();
+        return;
+      }
+      const moved = advanceLocalPlayerMovement(frame, elapsedSeconds, "movement");
+      if (moved) {
+        maybeMarkLocalFinish();
+        updateActionCheckpoint();
+      }
+      updateLocalRankCue();
+      if (state.action.raceStarted || moved || botsMoved) renderAll();
+    }
+
+    function advanceLocalBotPack(elapsedSeconds) {
+      const result = advanceSingularityLocalBotPack(state.runners, {
+        elapsedSeconds,
+        nowMs: Date.now(),
+        playerProgress: state.runners[0]?.progress || 0,
+        roadLaneHalfWidthPx: ROAD_LANE_HALF_WIDTH_PX,
+        railMaxProgress: RAIL_MAX_PROGRESS
+      });
+      state.runners = result.runners;
+      return result.moved;
+    }
+
+    function advanceWaitingBotPack(elapsedSeconds, now) {
+      const result = advanceSingularityWaitingBotPack(state.runners, {
+        elapsedSeconds,
+        nowMs: now,
+        startLineProgress: START_LINE_PROGRESS,
+        startPaddockMinProgress: START_PADDOCK_MIN_PROGRESS,
+        startPaddockMaxProgress: START_PADDOCK_MAX_PROGRESS,
+        roadLaneHalfWidthPx: ROAD_LANE_HALF_WIDTH_PX
+      });
+      state.runners = result.runners;
+      return result.moved;
+    }
+
+    function useActionSkill() {
+      if (!state.action.raceStarted || isCountdownActive()) {
+        pushSystem("아직 출발 전입니다. 방장 시작 후 스킬을 사용할 수 있습니다.");
+        renderAll();
+        return;
+      }
+      const use = createRestoredMarathonSkillUse({
+        participantId: "runner:you",
+        characterId: state.action.characterId,
+        skillId: state.action.skillId,
+        chargesRemaining: state.action.skillChargesRemaining
+      });
+      if (!use.allowed) {
+        pushSystem(`스킬 사용 불가: ${use.reason}`);
+        return;
+      }
+      state.action.raceStarted = true;
+      if (use.consumesCharge) state.action.skillChargesRemaining -= 1;
+      state.action.stallUntilMs = Date.now() + use.movementStallMs;
+      let collision = Object.freeze({ blockedPlayer: false });
+      if (use.payload.target === "self") collision = advanceLocalPlayerProgress(3, "skill");
+      if (use.payload.target !== "self") slowNearbyRunners();
+      if (!collision.blockedPlayer) setRaceCue("skill", use.skillId, state.runners[0].progress, "you");
+      pushActionPacket(
+        createRestoredMarathonSkillEnvelope({
+          participantId: "runner:you",
+          characterId: state.action.characterId,
+          skillId: use.skillId
+        }, createActionPacketOptions()),
+        use.skillId
+      );
+      pushSystem(`${state.action.characterLabel} 스킬을 사용했습니다.`);
+      renderAll();
+    }
+
+    function requestConnectedSkill() {
+      pushActionPacket(
+        createRestoredMarathonSkillEnvelope({
+          participantId: "runner:you",
+          characterId: state.action.characterId,
+          skillId: state.action.skillId
+        }, createActionPacketOptions()),
+        "서버 요청"
+      );
+      pushSystem("스킬 요청을 개발 방으로 보냈습니다.");
+    }
+
+    function updateActionCheckpoint() {
+      while (true) {
+        const nextCheckpoint = ACTION_CHECKPOINTS[state.action.checkpointIndex];
+        if (!nextCheckpoint || state.runners[0].progress < nextCheckpoint) return;
+        state.action.checkpointIndex += 1;
+        const reward = assignRestoredMarathonCheckpointCharacter({
+          participantId: "runner:you",
+          checkpointIndex: state.action.checkpointIndex,
+          seed: `runner:you:${state.action.checkpointIndex}`
+        });
+        state.action.characterId = reward.character.characterId;
+        state.action.characterLabel = reward.character.label;
+        state.action.skillId = reward.skill.skillId;
+        state.action.skillMaxCharges = reward.skill.maxCharges;
+        state.action.skillChargesRemaining = reward.skill.maxCharges;
+        state.action.lastSafeCheckpointIndex = state.action.checkpointIndex;
+        state.runners[0].lastSafeCheckpointIndex = state.action.checkpointIndex;
+        setRaceCue("checkpoint", `SAVE ${state.action.checkpointIndex}`, state.runners[0].progress, "you");
+        pushActionPacket(
+          createRestoredMarathonTransportEnvelope("checkpoint_reward", {
+            participantId: "runner:you",
+            checkpointIndex: state.action.checkpointIndex,
+            characterId: reward.character.characterId,
+            skillId: reward.skill.skillId
+          }, createActionPacketOptions()),
+          `${reward.character.label} / ${reward.skill.skillId}`
+        );
+        pushSystem(`Checkpoint ${state.action.checkpointIndex}: ${reward.character.label} joined.`);
+      }
+    }
+
+    function maybeMarkLocalFinish() {
+      const player = state.runners[0];
+      if (!player || player.progress < LOCAL_FINISH_PROGRESS || state.action.finishedLocalPreview) return;
+      state.action.finishedLocalPreview = true;
+      state.runners[0] = {
+        ...player,
+        progress: Math.max(player.progress, LOCAL_FINISH_PROGRESS)
+      };
+      setRaceCue("finish", "완주", state.runners[0].progress, "you");
+      pushActionPacket(
+        createRestoredMarathonTransportEnvelope("race_finalized", {
+          serverOwned: true,
+          finishedParticipantId: "runner:you",
+          progressPercent: Math.round(state.runners[0].progress * 10) / 10,
+          ranking: createLocalFinishRanking()
+        }, { ...createActionPacketOptions(), clientId: "server:local-preview" }),
+        "완주 / 서버 확정 대기"
+      );
+      pushSystem("완주 지점에 도착했습니다. 최종 순위는 실제 서버에서 확정합니다.");
+    }
+
+    function createLocalFinishRanking() {
+      return rankSingularityRunnerEntries(state.runners).map((entry) => ({
+        rank: entry.rank,
+        participantId: `runner:${entry.runner.id}`,
+        progressPercent: Math.round((Number(entry.runner.progress) || 0) * 10) / 10,
+        finished: entry.runner.id === "you" || (Number(entry.runner.progress) || 0) >= LOCAL_FINISH_PROGRESS
+      }));
+    }
+
+    function updateLocalRankCue() {
+      const rank = rankSingularityRunnerEntries(state.runners).findIndex((entry) => entry.runner.id === "you") + 1;
+      if (!rank || rank === state.action.lastLocalRank) return;
+      if (state.action.raceCue && Date.now() - state.action.raceCue.createdAtMs < 1200) return;
+      state.action.lastLocalRank = rank;
+      setRaceCue("rank", `순위 #${rank}`, state.runners[0].progress, "you");
+    }
+
+    function createActionPacketOptions() {
+      return {
+        clientId: "client:singularity-race-lobby",
+        roomId: state.connectedSession?.roomId || "room:singularity-race:local-preview",
+        sequence: state.connectedPackets.length + state.action.packetLog.length + 1
+      };
+    }
+
+    function pushActionPacket(envelope, detail) {
+      state.action.packetLog.push({
+        type: envelope.type,
+        detail: detail || `${envelope.roomId} #${envelope.sequence}`
+      });
+      state.action.packetLog = state.action.packetLog.slice(-8);
+      publishConnectedPacket(envelope, detail);
+    }
+
+    function publishConnectedInputRequest(skillPressed) {
+      const frame = createRestoredMarathonInputFrame({
+        participantId: "runner:you",
+        keys: state.action.keys,
+        skillPressed,
+        sequence: state.connectedPackets.length + 1
+      });
+      pushActionPacket(
+        createRestoredMarathonInputEnvelope({
+          participantId: frame.participantId,
+          pace: frame.pace,
+          mode: frame.mode,
+          direction: frame.direction,
+          raceTimeMs: Date.now()
+        }, createActionPacketOptions()),
+        frame.mode
+      );
+    }
+
+    function publishConnectedPacket(envelope, detail) {
+      if (!state.connectedSession || !roomPacketTransport) return;
+      const result = roomPacketTransport.submitPacket(state.connectedPackets, envelope, {
+        reason: detail || envelope.type
+      });
+      if (result.ok) {
+        state.connectedPackets = result.packets;
+        state.netcodePressure = result.pressure || createRoomPressureReport();
+        return;
+      }
+      state.netcodePressure = result.pressure || createRoomPressureReport();
+      pushSystem(`Packet relay blocked: ${result.reason}`);
+    }
+
+    function createRoomPressureReport() {
+      return createSingularityRoomPressureReport(roomPacketTransport, state.connectedPackets, Date.now());
+    }
+
+    function toConnectedRelayEnvelope(packet) {
+      return createSingularityConnectedRelayEnvelope(packet, {
+        connectedSession: state.connectedSession,
+        fallbackSequence: state.connectedPackets.length + 1
+      });
+    }
+
+    function applyLatestConnectedStateSnapshot(packets = state.connectedPackets) {
+      const snapshot = [...packets].reverse().find((packet) => packet?.type === "state_snapshot");
+      return applyConnectedStateSnapshot(snapshot);
+    }
+
+    function applyConnectedStateSnapshot(packet) {
+      const payload = packet?.payload;
+      if (!payload || !Array.isArray(payload.participants)) return false;
+      const sequence = Math.max(0, Number(packet.sequence || payload.sequence || 0));
+      if (sequence > 0 && sequence <= state.lastConnectedSnapshotSequence) return false;
+      const merged = mergeSingularityServerSnapshotRunners(state.runners, payload, {
+        selectedSkin: state.selectedSkin,
+        defaultSkin,
+        presets,
+        startLineProgress: START_LINE_PROGRESS,
+        roadLaneHalfWidthPx: ROAD_LANE_HALF_WIDTH_PX,
+        maxRunners: MAX_RUNNERS
+      });
+      if (!merged.applied) return false;
+      state.runners = [...merged.runners];
+      state.lastConnectedSnapshotSequence = Math.max(state.lastConnectedSnapshotSequence, sequence, merged.sequence);
+      if (payload.phase === "racing" || payload.phase === "finished") state.action.raceStarted = true;
+      if (payload.phase === "finished") state.action.finishedLocalPreview = true;
+      return true;
+    }
+
+    function openConnectedRoomPacketRelay(roomId, initialPackets) {
+      unsubscribeRoomPackets();
+      roomPacketTransport = createSingularityDevRoomPacketTransport({
+        roomId,
+        storage: window.localStorage,
+        eventTarget: window,
+        broadcastFactory: typeof window.BroadcastChannel === "function" ? (name) => new window.BroadcastChannel(name) : null,
+        clock: () => Date.now(),
+        packetLimit: 80
+      });
+      state.connectedPackets = roomPacketTransport.seedPackets([]);
+      applyLatestConnectedStateSnapshot(state.connectedPackets);
+      for (const packet of initialPackets) {
+        const result = roomPacketTransport.submitPacket(state.connectedPackets, packet, { reason: packet.type });
+        if (result.ok) {
+          state.connectedPackets = result.packets;
+          applyConnectedStateSnapshot(packet);
+        }
+      }
+      applyLatestConnectedStateSnapshot(state.connectedPackets);
+      state.netcodePressure = createRoomPressureReport();
+      unsubscribeRoomPackets = roomPacketTransport.subscribe((packets) => {
+        state.connectedPackets = packets;
+        const snapshotApplied = applyLatestConnectedStateSnapshot(packets);
+        state.netcodePressure = createRoomPressureReport();
+        if (snapshotApplied) {
+          renderTrack();
+          renderSlots();
+          renderActionHud();
+          renderRaceStandings();
+        }
+        renderConnectedGate();
+        renderConnectedPackets();
+        renderNetcodeBudget();
+      });
+    }
+
+    function advanceLocalPlayerMovement(frame, elapsedSeconds, reason) {
+      if (state.connectedSession) return false;
+      const player = state.runners[0];
+      const direction = frame.direction || { x: 0, y: 0 };
+      if (!direction.x && !direction.y) return false;
+      const sprinting = frame.mode === "sprint";
+      const staging = !state.action.raceStarted;
+      const forwardSpeed = sprinting
+        ? (staging ? LOCAL_STAGING_SPRINT_PROGRESS_PER_SECOND : LOCAL_SPRINT_PROGRESS_PER_SECOND)
+        : (staging ? LOCAL_STAGING_RUN_PROGRESS_PER_SECOND : LOCAL_RUN_PROGRESS_PER_SECOND);
+      const lateralSpeed = sprinting ? LOCAL_LANE_SPRINT_SPEED_PX_PER_SECOND : LOCAL_LANE_SPEED_PX_PER_SECOND;
+      const forwardAmount = direction.x * forwardSpeed * elapsedSeconds;
+      const lateralAmount = direction.y * lateralSpeed * elapsedSeconds;
+      const pressure = calculateSoftPassPressure(player.id, player.progress, player.laneOffsetPx || 0);
+      const maxProgress = state.action.raceStarted ? RAIL_MAX_PROGRESS : START_PADDOCK_MAX_PROGRESS;
+      const minProgress = state.action.raceStarted ? RAIL_MIN_PROGRESS : START_PADDOCK_MIN_PROGRESS;
+      const nextProgress = clampNumber(
+        (Number(player.progress) || START_LINE_PROGRESS) + (forwardAmount * pressure.speedFactor),
+        minProgress,
+        maxProgress
+      );
+      const nextLane = clampNumber(
+        (Number(player.laneOffsetPx) || 0) + lateralAmount,
+        -ROAD_LANE_HALF_WIDTH_PX,
+        ROAD_LANE_HALF_WIDTH_PX
+      );
+      const touching = pressure.intensity > 0.08 && state.action.raceStarted;
+      state.runners[0] = {
+        ...player,
+        progress: nextProgress,
+        laneOffsetPx: nextLane,
+        collisionAtMs: touching ? Date.now() : player.collisionAtMs
+      };
+      if (touching) markPlayerRailCollision(reason);
+      if (state.action.raceStarted) resolveSingleRailCollisions(reason);
+      return Math.abs(forwardAmount) > 0.0001 || Math.abs(lateralAmount) > 0.05;
+    }
+
+    function advanceLocalPlayerProgress(amount, reason) {
+      if (state.connectedSession || amount <= 0) return Object.freeze({ blockedPlayer: false });
+      const player = state.runners[0];
+      const before = Math.max(RAIL_MIN_PROGRESS, Math.min(RAIL_MAX_PROGRESS, Number(player.progress) || 0));
+      const pressure = calculateSoftPassPressure(player.id, before, player.laneOffsetPx || 0);
+      const progress = Math.min(RAIL_MAX_PROGRESS, before + (amount * pressure.speedFactor));
+      const touching = pressure.intensity > 0.08;
+      state.runners[0] = {
+        ...player,
+        progress,
+        collisionAtMs: touching ? Date.now() : player.collisionAtMs
+      };
+      if (touching) markPlayerRailCollision(reason);
+      const collision = resolveSingleRailCollisions(reason);
+      return Object.freeze({ ...collision, blockedPlayer: false });
+    }
+
+    function resolveSingleRailCollisions(reason) {
+      if (state.connectedSession || state.runners.length < 2) return Object.freeze({ blockedPlayer: false });
+      const now = Date.now();
+      const next = [...state.runners];
+      let firstCollision = null;
+
+      for (let leftIndex = 0; leftIndex < state.runners.length; leftIndex += 1) {
+        for (let rightIndex = leftIndex + 1; rightIndex < state.runners.length; rightIndex += 1) {
+          const left = next[leftIndex];
+          const right = next[rightIndex];
+          const impulse = calculateSoftCollisionImpulse(left, right, leftIndex, rightIndex);
+          if (impulse.intensity <= 0) continue;
+          next[leftIndex] = applySoftCollisionImpulse(left, impulse.left, now);
+          next[rightIndex] = applySoftCollisionImpulse(right, impulse.right, now);
+          if (!firstCollision) firstCollision = { runner: left, progress: left.progress };
+        }
+      }
+
+      state.runners = next;
+      return Object.freeze({ blockedPlayer: false, firstCollision });
+    }
+
+    function calculateSoftCollisionImpulse(left, right, leftIndex, rightIndex) {
+      const leftProgress = Number(left.progress) || 0;
+      const rightProgress = Number(right.progress) || 0;
+      const leftLane = Number(left.laneOffsetPx) || 0;
+      const rightLane = Number(right.laneOffsetPx) || 0;
+      const progressGap = Math.abs(leftProgress - rightProgress);
+      const laneGap = Math.abs(leftLane - rightLane);
+      if (!state.action.raceStarted || progressGap >= SOFT_PASS_RADIUS || laneGap >= SOFT_PASS_BODY_RADIUS_PX) {
+        return Object.freeze({ intensity: 0 });
+      }
+      const progressIntensity = 1 - (progressGap / SOFT_PASS_RADIUS);
+      const laneIntensity = 1 - (laneGap / SOFT_PASS_BODY_RADIUS_PX);
+      const intensity = progressIntensity * laneIntensity;
+      const progressDirection = Math.abs(leftProgress - rightProgress) > 0.001
+        ? Math.sign(leftProgress - rightProgress)
+        : (leftIndex < rightIndex ? -1 : 1);
+      const laneDirection = Math.abs(leftLane - rightLane) > 0.001
+        ? Math.sign(leftLane - rightLane)
+        : (leftIndex % 2 === 0 ? -1 : 1);
+      return Object.freeze({
+        intensity,
+        left: {
+          progressDelta: progressDirection * SOFT_COLLISION_PROGRESS_PUSH * intensity,
+          laneDelta: laneDirection * SOFT_COLLISION_LANE_PUSH_PX * intensity
+        },
+        right: {
+          progressDelta: -progressDirection * SOFT_COLLISION_PROGRESS_PUSH * intensity,
+          laneDelta: -laneDirection * SOFT_COLLISION_LANE_PUSH_PX * intensity
+        }
+      });
+    }
+
+    function applySoftCollisionImpulse(runner, impulse, now) {
+      return {
+        ...runner,
+        progress: clampNumber((Number(runner.progress) || START_LINE_PROGRESS) + impulse.progressDelta, RAIL_MIN_PROGRESS, RAIL_MAX_PROGRESS),
+        laneOffsetPx: clampNumber((Number(runner.laneOffsetPx) || 0) + impulse.laneDelta, -ROAD_LANE_HALF_WIDTH_PX, ROAD_LANE_HALF_WIDTH_PX),
+        collisionAtMs: now
+      };
+    }
+
+    function calculateSoftPassPressure(runnerId, progress, laneOffsetPx = 0) {
+      if (!state.action.raceStarted) {
+        return Object.freeze({ speedFactor: 1, intensity: 0 });
+      }
+      const strongest = state.runners.reduce((closest, runner) => {
+        if (runner.id === runnerId) return closest;
+        const progressGap = Math.abs((Number(runner.progress) || 0) - progress);
+        const laneGap = Math.abs((Number(runner.laneOffsetPx) || 0) - laneOffsetPx);
+        if (progressGap >= SOFT_PASS_RADIUS || laneGap >= SOFT_PASS_BODY_RADIUS_PX) return closest;
+        const progressIntensity = 1 - (progressGap / SOFT_PASS_RADIUS);
+        const laneIntensity = 1 - (laneGap / SOFT_PASS_BODY_RADIUS_PX);
+        return Math.max(closest, progressIntensity * laneIntensity);
+      }, 0);
+      if (strongest <= 0) {
+        return Object.freeze({ speedFactor: 1, intensity: 0 });
+      }
+      const speedFactor = Math.max(SOFT_PASS_MIN_SPEED_FACTOR, 1 - (strongest * (1 - SOFT_PASS_MIN_SPEED_FACTOR)));
+      return Object.freeze({ speedFactor, intensity: strongest });
+    }
+
+    function markPlayerRailCollision(reason) {
+      const now = Date.now();
+      if (now - (state.action.lastCollisionCueMs || 0) <= 900) return;
+      state.action.lastCollisionCueMs = now;
+      setRaceCue("collision", "밀림", state.runners[0].progress, "you");
+      pushSystem(reason === "skill" ? "몸싸움 때문에 스킬 이동이 느려졌습니다." : "몸싸움으로 살짝 밀리며 지나갑니다.");
+    }
+
+    function slowNearbyRunners() {
+      const playerProgress = state.runners[0].progress;
+      const playerLane = state.runners[0].laneOffsetPx || 0;
+      state.runners = state.runners.map((runner, index) => {
+        const laneGap = Math.abs((runner.laneOffsetPx || 0) - playerLane);
+        if (index === 0 || Math.abs(runner.progress - playerProgress) > 10 || laneGap > 120) return runner;
+        const shoveDirection = (runner.laneOffsetPx || 0) >= playerLane ? 1 : -1;
+        return {
+          ...runner,
+          progress: Math.max(3, runner.progress - 2.5),
+          laneOffsetPx: clampNumber((runner.laneOffsetPx || 0) + (shoveDirection * 34), -ROAD_LANE_HALF_WIDTH_PX, ROAD_LANE_HALF_WIDTH_PX),
+          ready: false
+        };
+      });
+      resolveSingleRailCollisions("skill");
+    }
+
+    function setRaceCue(type, label, progress, targetId) {
+      state.action.raceCue = Object.freeze({
+        type,
+        label,
+        progress: Math.max(0, Math.min(100, Number(progress) || 0)),
+        targetId: targetId || "you",
+        createdAtMs: Date.now()
+      });
+    }
+
+    function isTypingTarget(target) {
+      return ["INPUT", "TEXTAREA", "SELECT"].includes(target?.tagName);
+    }
+
+    function focusChatInput() {
+      elements.chatInput.focus();
+    }
+
+    function toggleRaceQueueOverlay() {
+      if (state.screen !== SINGULARITY_RACE_SCREENS.RACE) return;
+      state.raceQueueOpen = !state.raceQueueOpen;
+      if (state.raceQueueOpen) {
+        state.raceChatOpen = false;
+        releaseVirtualMoveKeys(false);
+      }
+      renderAll();
+    }
+
+    function toggleRaceChatOverlay(focusInput = false) {
+      if (state.screen !== SINGULARITY_RACE_SCREENS.RACE) return;
+      state.raceChatOpen = !state.raceChatOpen;
+      if (state.raceChatOpen) {
+        state.raceQueueOpen = false;
+        releaseVirtualMoveKeys(false);
+      }
+      renderAll();
+      if (state.raceChatOpen && focusInput) elements.chatInput.focus();
+    }
+
+    function setVirtualMoveKey(code, pressed) {
+      if (!VIRTUAL_MOVE_KEYS.includes(code)) return;
+      if (pressed && (state.screen !== SINGULARITY_RACE_SCREENS.RACE || state.raceQueueOpen || state.raceChatOpen)) return;
+      state.action.keys[code] = Boolean(pressed);
+      const button = elements.virtualMoveButtons.find((node) => node.dataset.key === code);
+      button?.classList.toggle("is-held", Boolean(pressed));
+      if (state.connectedSession) publishConnectedInputRequest(false);
+      renderAll();
+    }
+
+    function releaseVirtualMoveKeys(shouldRender = true) {
+      let changed = false;
+      for (const code of VIRTUAL_MOVE_KEYS) {
+        if (!state.action.keys[code]) continue;
+        state.action.keys[code] = false;
+        changed = true;
+      }
+      for (const button of elements.virtualMoveButtons) button.classList.remove("is-held");
+      if (changed && state.connectedSession) publishConnectedInputRequest(false);
+      if (changed && shouldRender) renderAll();
+    }
+
+    function triggerVirtualSkillButton() {
+      if (state.screen !== SINGULARITY_RACE_SCREENS.RACE) return;
+      if (state.connectedSession) {
+        publishConnectedInputRequest(true);
+        requestConnectedSkill();
+        renderAll();
+        return;
+      }
+      useActionSkill();
+    }
+
+    function renderAll() {
+      state.runners[0] = {
+        ...state.runners[0],
+        name: state.nickname,
+        skin: state.selectedSkin,
+        ready: state.ready
+      };
+      elements.shell.dataset.screen = state.screen;
+      elements.shell.classList.toggle("race-queue-open", state.screen === SINGULARITY_RACE_SCREENS.RACE && state.raceQueueOpen);
+      elements.shell.classList.toggle("race-chat-open", state.screen === SINGULARITY_RACE_SCREENS.RACE && state.raceChatOpen);
+      renderMetrics();
+      renderRaceMobileControls();
+      renderProfileSkins();
+      renderTrack();
+      renderSlots();
+      renderActionHud();
+      renderRaceStandings();
+      renderSkins();
+      renderChannelTabs();
+      renderMessages();
+      renderConnectedGate();
+      renderConnectedPackets();
+      renderNetcodeBudget();
+    }
+
+    function renderFlowMetrics() {
+      elements.readyButton.textContent = getSingularityRacePrimaryActionLabel(state.screen);
+      elements.readyButton.classList.toggle("is-ready", false);
+      elements.fillButton.disabled = Boolean(state.connectedSession);
+      elements.previewButton.textContent = getSingularityRacePreviewActionLabel(state.screen);
+      elements.roomTitle.textContent = getSingularityRaceRoomTitle(state.screen);
+      elements.roomCopy.textContent = getSingularityRaceRoomCopy(state.screen);
+      elements.roomBadge.textContent = getSingularityRaceRoomBadge(state.screen);
+      elements.roomDisplayName.textContent = "특이점 스타디움 001";
+      elements.flowCopy.textContent = getSingularityRaceFlowCopy(state.screen);
+      elements.phaseBadge.textContent = isCountdownActive()
+        ? "카운트다운"
+        : (state.action.raceStarted ? "경기 중" : "대기");
+      elements.trackTitle.textContent = getSingularityRaceTrackTitle(state.screen);
+      elements.trackCopy.textContent = getSingularityRaceTrackCopy(state.screen);
+      elements.notice.textContent = getSingularityRaceNotice(state.screen);
+    }
+
+    function renderMetrics() {
+      renderFlowMetrics();
+    }
+
+    function renderRaceMobileControls() {
+      elements.raceQueueToggle.textContent = state.raceQueueOpen ? "대기열 닫기" : "대기열 보기";
+      elements.raceQueueToggle.setAttribute("aria-pressed", String(state.raceQueueOpen));
+      elements.raceChatToggle.textContent = state.raceChatOpen ? "채팅창 닫기" : "채팅창 열기";
+      elements.raceChatToggle.setAttribute("aria-pressed", String(state.raceChatOpen));
+      elements.raceChatActionButton.setAttribute("aria-pressed", String(state.raceChatOpen));
+      for (const button of elements.virtualMoveButtons) {
+        button.classList.toggle("is-held", Boolean(state.action.keys[button.dataset.key]));
+      }
+      if (state.action.raceStarted) {
+        elements.raceStartStatus.innerHTML = "플레이 중<span>경기 진행중</span>";
+        elements.raceSkillButton.disabled = false;
+      } else if (isCountdownActive()) {
+        elements.raceStartStatus.innerHTML = "플레이 시작<span>카운트다운</span>";
+        elements.raceSkillButton.disabled = true;
+      } else {
+        elements.raceStartStatus.innerHTML = "플레이 시작<span>관리자 대기중</span>";
+        elements.raceSkillButton.disabled = false;
+      }
+    }
+
+    function renderTrailMap() {
+      const path = createRestoredMarathonTrailSvgPath();
+      const savePoints = listRestoredMarathonTrailSavePoints();
+      elements.trailMap.replaceChildren(
+        svgNode("path", { class: "trail-outline", d: path }),
+        svgNode("path", { class: "trail-surface", d: path }),
+        svgNode("path", { class: "trail-centerline", d: path }),
+        ...savePoints.flatMap((savePoint) => {
+          const labelPoint = trailSaveLabelPoint(savePoint);
+          return [
+            svgNode("line", {
+              class: "trail-save-line",
+              x1: savePoint.tick.x1,
+              y1: savePoint.tick.y1,
+              x2: savePoint.tick.x2,
+              y2: savePoint.tick.y2
+            }),
+            svgText(savePoint.index, labelPoint.x, labelPoint.y)
+          ];
+        }),
+        svgNode("line", { class: "trail-finish-line", x1: 89.5, y1: 4, x2: 96, y2: 4 }),
+        svgNode("line", { class: "trail-finish-line", x1: 92.75, y1: 1.5, x2: 92.75, y2: 6.5 })
+      );
+    }
+
+    function runnerTrailPoint(progress) {
+      const point = progressToRestoredMarathonTrailPoint(progress);
+      return {
+        x: Math.max(2, Math.min(97, point.x)),
+        y: Math.max(2, Math.min(97, point.y)),
+        tangent: point.tangent,
+        normal: point.normal
+      };
+    }
+
+    function runnerVisualPoint(runner, index) {
+      const point = runnerTrailPoint(runner.progress);
+      const laneOffsetPx = clampNumber(runner.laneOffsetPx || 0, -ROAD_LANE_HALF_WIDTH_PX, ROAD_LANE_HALF_WIDTH_PX);
+      const softPassOffsetPx = calculateSoftPassSideOffset(runner, index);
+      const normalOffsetPx = laneOffsetPx + softPassOffsetPx;
+      return {
+        x: clampNumber(
+          point.x
+            + ((point.normal?.x || 0) * normalOffsetPx / TRACK_WORLD_WIDTH * 100),
+          2,
+          98
+        ),
+        y: clampNumber(
+          point.y
+            + ((point.normal?.y || 1) * normalOffsetPx / TRACK_WORLD_HEIGHT * 100),
+          2,
+          98
+        )
+      };
+    }
+
+    function calculateSoftPassSideOffset(runner, index) {
+      const pressure = calculateSoftPassPressure(runner.id, runner.progress, runner.laneOffsetPx || 0);
+      if (pressure.intensity <= 0) return 0;
+      return ((index % 5) - 2) * SOFT_PASS_SIDE_STEP_PX * pressure.intensity;
+    }
+
+    function trackPointToPixels(point) {
+      return {
+        x: (point.x / 100) * TRACK_WORLD_WIDTH,
+        y: (point.y / 100) * TRACK_WORLD_HEIGHT
+      };
+    }
+
+    function eventToTrackWorldPercent(event) {
+      const rect = elements.trackScene.getBoundingClientRect();
+      const camera = state.trackCamera || { x: 0, y: 0 };
+      return {
+        x: clampNumber(((event.clientX - rect.left + camera.x) / TRACK_WORLD_WIDTH) * 100, 0, 100),
+        y: clampNumber(((event.clientY - rect.top + camera.y) / TRACK_WORLD_HEIGHT) * 100, 0, 100)
+      };
+    }
+
+    function updateTrackCamera() {
+      if (state.screen === SINGULARITY_RACE_SCREENS.MAP_PREVIEW) {
+        updateMapPreviewCamera();
+        return;
+      }
+      const player = state.runners[0];
+      if (!player) return;
+      const viewportWidth = elements.trackScene.clientWidth || TRACK_WORLD_WIDTH;
+      const viewportHeight = elements.trackScene.clientHeight || TRACK_WORLD_HEIGHT;
+      const playerPixel = trackPointToPixels(runnerVisualPoint(player, 0));
+      const maxX = Math.max(0, TRACK_WORLD_WIDTH - viewportWidth);
+      const maxY = Math.max(0, TRACK_WORLD_HEIGHT - viewportHeight);
+      const x = clampNumber(playerPixel.x - (viewportWidth * TRACK_CAMERA_X_ANCHOR), 0, maxX);
+      const y = clampNumber(playerPixel.y - (viewportHeight * TRACK_CAMERA_Y_ANCHOR), 0, maxY);
+      state.trackCamera = { x, y };
+      elements.trackWorld.style.transform = `translate3d(${-x}px, ${-y}px, 0)`;
+    }
+
+    function updateMapPreviewCamera() {
+      state.trackCamera = { x: 0, y: 0 };
+      elements.trackWorld.style.transform = "translate3d(0, 0, 0)";
+    }
+
+    function clampNumber(value, min, max) {
+      const number = Number.isFinite(Number(value)) ? Number(value) : min;
+      return Math.max(min, Math.min(max, number));
+    }
+
+    function trailSaveLabelPoint(savePoint) {
+      return {
+        x: Math.max(5, Math.min(95, savePoint.x - savePoint.normal.x * 7)),
+        y: Math.max(5, Math.min(95, savePoint.y - savePoint.normal.y * 7))
+      };
+    }
+
+    function svgNode(tagName, attributes) {
+      const node = document.createElementNS("http://www.w3.org/2000/svg", tagName);
+      for (const [key, value] of Object.entries(attributes)) node.setAttribute(key, String(value));
+      return node;
+    }
+
+    function svgText(text, x, y) {
+      const node = svgNode("text", { class: "trail-save-label", x, y });
+      node.textContent = String(text);
+      return node;
+    }
+
+    function renderTrack() {
+      const existing = new Map([...elements.trackRunners.children].map((node) => [node.dataset.runnerId, node]));
+      const activeIds = new Set();
+      const visualTiming = createRunnerVisualTiming();
+      for (const [index, runner] of state.runners.entries()) {
+        const point = smoothRunnerVisualPoint(runner, index, visualTiming.elapsedMs);
+        const colliding = runner.collisionAtMs && Date.now() - runner.collisionAtMs < 520;
+        const avatar = existing.get(runner.id) || createSingularityRunnerAvatarNode(runner);
+        activeIds.add(runner.id);
+        avatar.className = `runner-avatar${runner.id === "you" ? " is-player" : ""}${colliding ? " is-colliding" : ""}`;
+        avatar.style.left = `${point.x}%`;
+        avatar.style.top = `${point.y}%`;
+        avatar.style.zIndex = String(4 + Math.round(runner.progress * 10));
+        updateSingularityRunnerAvatarNode(avatar, runner, getSingularityRaceSkinDataUrl(runner.skin, "side"));
+        elements.trackRunners.append(avatar);
+      }
+      for (const [runnerId, node] of existing) {
+        if (!activeIds.has(runnerId)) {
+          node.remove();
+          state.runnerVisuals.delete(runnerId);
+        }
+      }
+      renderTrackEffects();
+      updateTrackCamera();
+    }
+
+    function createRunnerVisualTiming() {
+      const now = Date.now();
+      const elapsedMs = state.lastVisualFrameMs ? Math.min(250, now - state.lastVisualFrameMs) : 60;
+      state.lastVisualFrameMs = now;
+      return { elapsedMs };
+    }
+
+    function smoothRunnerVisualPoint(runner, index, elapsedMs) {
+      const targetPoint = runnerVisualPoint(runner, index);
+      if (runner.id === "you") return targetPoint;
+      const targetPixels = trackPointToPixels(targetPoint);
+      const previous = state.runnerVisuals.get(runner.id);
+      const visual = resolveRestoredMarathonVisualStep(previous, targetPixels, { elapsedMs }, netcodeProfile);
+      state.runnerVisuals.set(runner.id, visual);
+      return {
+        x: clampNumber((visual.x / TRACK_WORLD_WIDTH) * 100, 2, 98),
+        y: clampNumber((visual.y / TRACK_WORLD_HEIGHT) * 100, 2, 98)
+      };
+    }
+
+    function renderTrackEffects() {
+      const player = state.runners[0];
+      if (!player) return;
+      const playerPoint = runnerVisualPoint(player, 0);
+      const cue = state.action.raceCue;
+      const progressPill = createSingularityTrackProgressPillNode({
+        nickname: state.nickname,
+        progress: player.progress,
+        raceStarted: state.action.raceStarted,
+        countdownActive: isCountdownActive(),
+        checkpointIndex: state.action.checkpointIndex,
+        checkpoints: ACTION_CHECKPOINTS
+      });
+      const focus = createSingularityPlayerFocusRingNode(playerPoint, cue?.type);
+      const nodes = [focus];
+      if (!state.action.raceStarted) nodes.push(createSingularityStartGateNode(runnerTrailPoint(START_GATE_PROGRESS)));
+      if (cue && Date.now() - cue.createdAtMs < 1800) nodes.push(createSingularityTrackCueNode(cue, trackCuePoint(cue)));
+      elements.trackEffects.replaceChildren(...nodes);
+      const hudNodes = [progressPill];
+      const countdown = createSingularityTrackCountdownNode(createCountdownLabel());
+      if (countdown) hudNodes.push(countdown);
+      elements.trackHud.replaceChildren(...hudNodes);
+    }
+
+    function trackCuePoint(cue) {
+      const targetIndex = Math.max(0, state.runners.findIndex((runner) => runner.id === cue.targetId));
+      const targetRunner = state.runners[targetIndex];
+      return targetRunner ? runnerVisualPoint({ ...targetRunner, progress: cue.progress }, targetIndex) : runnerTrailPoint(cue.progress);
+    }
+
+    function renderSlots() {
+      if (!debugUiEnabled) {
+        const showQueueSlots = state.screen === SINGULARITY_RACE_SCREENS.QUEUE
+          || (state.screen === SINGULARITY_RACE_SCREENS.RACE && state.raceQueueOpen);
+        const slots = showQueueSlots
+          ? Array.from({ length: MAX_RUNNERS }, (_, index) => state.runners[index] || null)
+          : [];
+        elements.runnerSlots.replaceChildren(...slots.map((runner, index) => createSingularityQueueSlotNode(runner, index)));
+        return;
+      }
+      elements.runnerSlots.replaceChildren(...Array.from(
+        { length: MAX_RUNNERS },
+        (_, index) => createSingularityQueueSlotNode(state.runners[index], index, { debug: true })
+      ));
+    }
+
+    function renderActionHud() {
+      const player = state.runners[0];
+      const now = Date.now();
+      const maxHp = player.maxHp || state.action.maxHp || 100;
+      const hp = Math.max(0, Math.min(maxHp, player.hp ?? state.action.hp ?? maxHp));
+      const chargeText = state.action.skillMaxCharges === 0 ? "무제한" : `${state.action.skillChargesRemaining}회`;
+      elements.actionCharacter.textContent = state.action.characterLabel || "-";
+      elements.actionSkill.textContent = `${getSingularitySkillDisplayName(state.action.skillId)} / ${chargeText}`;
+      elements.actionHp.textContent = `${hp} / ${maxHp}`;
+      elements.actionHpBar.style.width = `${Math.round((hp / maxHp) * 100)}%`;
+      elements.actionStatus.textContent = getSingularityActionStatusLabel({
+        connected: Boolean(state.connectedSession),
+        debug: debugUiEnabled,
+        countdown: isCountdownActive(now),
+        raceStarted: state.action.raceStarted,
+        stalled: now < state.action.stallUntilMs
+      });
+      elements.checkpointStrip.replaceChildren(...ACTION_CHECKPOINTS.map(
+        (checkpoint, index) => createSingularityCheckpointDotNode(checkpoint, index, index < state.action.checkpointIndex)
+      ));
+      elements.actionPackets.replaceChildren(...state.action.packetLog.slice(-5).map(createSingularityPacketRowNode));
+    }
+
+    function renderRaceStandings() {
+      const ranked = rankSingularityRunnerEntries(state.runners);
+      const playerRank = ranked.findIndex((entry) => entry.runner.id === "you") + 1;
+      const leaders = ranked.slice(0, 4);
+      const playerEntry = ranked[playerRank - 1];
+      const rows = playerEntry && !leaders.some((entry) => entry.runner.id === "you")
+        ? [...leaders, playerEntry]
+        : leaders;
+      elements.raceStandings.replaceChildren(...rows.map((entry) => createSingularityStandingRowNode(entry, playerRank)));
+    }
+
+    function renderSkins() {
+      const cards = presets.map((preset) => {
+        const button = document.createElement("button");
+        button.className = "skin-card";
+        button.type = "button";
+        button.dataset.skinId = preset.id;
+        button.setAttribute("aria-pressed", String(preset.id === state.selectedSkin));
+        button.addEventListener("click", () => {
+          state.selectedSkin = preset.id;
+          localStorage.setItem(STORAGE_KEY, preset.id);
+          pushSystem(`${preset.name || preset.id} 스킨을 선택했습니다.`);
+          renderAll();
+        });
+
+        const image = document.createElement("img");
+        image.alt = `${preset.name || preset.id} skin`;
+        image.src = getSingularityRaceSkinDataUrl(preset.id, "side");
+        const title = document.createElement("b");
+        title.textContent = preset.name || preset.id;
+        const caption = document.createElement("span");
+        caption.textContent = preset.id;
+        button.append(image, title, caption);
+        return button;
+      });
+      elements.skinGrid.replaceChildren(...cards);
+    }
+
+    function renderProfileSkins() {
+      const selected = presets.find((preset) => preset.id === state.selectedSkin) || presets[0];
+      if (selected) {
+        elements.profileSkinPreview.src = getSingularityRaceSkinDataUrl(selected.id, "side");
+        elements.profileSkinName.textContent = selected.name || selected.id;
+      }
+      const cards = presets.slice(0, PROFILE_SKIN_LIMIT).map((preset) => {
+        const button = document.createElement("button");
+        button.className = "skin-card";
+        button.type = "button";
+        button.dataset.skinId = preset.id;
+        button.setAttribute("aria-pressed", String(preset.id === state.selectedSkin));
+        button.addEventListener("click", () => {
+          state.selectedSkin = preset.id;
+          window.localStorage.setItem(STORAGE_KEY, preset.id);
+          renderAll();
+        });
+        const image = document.createElement("img");
+        image.alt = `${preset.name || preset.id} skin`;
+        image.src = getSingularityRaceSkinDataUrl(preset.id, "side");
+        const title = document.createElement("b");
+        title.textContent = preset.name || preset.id;
+        button.append(image, title);
+        return button;
+      });
+      elements.profileSkinGrid.replaceChildren(...cards);
+    }
+
+    function renderConnectedGate() {
+      const summaries = getConnectedMarathonRoomSummaries(roomAdapter);
+      const summary = summaries[0];
+      const connected = Boolean(state.connectedSession);
+      elements.connectedGate.classList.toggle("is-open", connectedLobbyOpen);
+      elements.connectedButton.disabled = !connectedLobbyOpen || connected;
+      elements.connectedButton.textContent = connected ? "개발 방 입장됨" : "개발 방 입장";
+      elements.roomCode.textContent = "최대 30명 / 방장 시작 대기";
+      elements.connectionSignal.classList.toggle("is-connected", connected);
+      if (!adapterValidation.ok) {
+        elements.connectedStatus.textContent = `연결 설정 오류: ${adapterValidation.errors.join(", ")}`;
+        return;
+      }
+      if (connected) {
+        elements.connectedStatus.textContent = `개발 방 연결됨: ${state.connectedSession.roomId} / ${state.connectedSession.protocolVersion} / 중계 ${state.connectedPackets.length}`;
+        return;
+      }
+      elements.connectedStatus.textContent = connectedLobbyOpen && summary
+        ? `${summary.displayName} 개발 모드 열림: ${summary.players}/${summary.maxPlayers}명`
+        : "개발 연결은 ?devOnline=1에서만 열립니다.";
+    }
+
+    function renderConnectedPackets() {
+      if (!state.connectedPackets.length) {
+        elements.connectedPackets.replaceChildren();
+        return;
+      }
+      elements.connectedPackets.replaceChildren(...state.connectedPackets.slice(-8).map((packet) => {
+        const row = document.createElement("div");
+        row.className = "packet";
+        const title = document.createElement("strong");
+        title.textContent = packet.type;
+        const body = document.createElement("span");
+        body.textContent = `${packet.roomId} #${packet.sequence} ${packet.clientId || packet.sourceClientId || ""}`.trim();
+        row.append(title, body);
+        return row;
+      }));
+    }
+
+    function renderNetcodeBudget() {
+      const pressure = state.netcodePressure || createRoomPressureReport();
+      const rows = [
+        ["net_lane", `${netcodeLane.lane} / ${netcodeLane.interpolationDelayMs}ms buffer`],
+        ["input_budget", `${netcodeBudget.inputHz}Hz / ${netcodeBudget.upstreamKbpsPerPlayer}kbps per player`],
+        ["snapshot_budget", `${netcodeBudget.snapshotHz}Hz / ${netcodeBudget.downstreamKbpsPerPlayer}kbps per player`],
+        ["server_snapshot", `${netcodeProfile.serverTickHz}Hz tick / ${netcodeBudget.snapshotHz}Hz server-owned`],
+        ["ping_sample", `${netcodePingSample.rttMs}ms rtt / ${netcodePingSample.pingMs}ms one-way`],
+        ["reconcile_guard", `${netcodeReconciliationHint.action} / ${netcodeReconciliationHint.correctionPx}px correction`],
+        ["anti_teleport", `${netcodeProfile.visualMaxStepPxPerSecond}px/s smooth / ${netcodeProfile.visualSnapDistancePx}px snap cap`],
+        ["server_egress", `${netcodeBudget.serverEgressKbps}kbps for 30 runners`],
+        ["relay_guard", pressure
+          ? `${pressure.totalPackets}/${pressure.maxPacketsPerClient} pkts per client window${pressure.overloaded ? " / blocked" : " / clear"}`
+          : "ready before dev room join"]
+      ];
+      elements.netcodeBudget.replaceChildren(...rows.map(([titleText, bodyText]) => {
+        const row = document.createElement("div");
+        row.className = "packet";
+        const title = document.createElement("strong");
+        title.textContent = titleText;
+        const body = document.createElement("span");
+        body.textContent = bodyText;
+        row.append(title, body);
+        return row;
+      }));
+    }
+
+    function renderChannelTabs() {
+      elements.channelTabs.replaceChildren(...visibleChannels.map((channel) =>
+        createSingularityChannelTabNode(channel, state.activeChannel, (channelId) => {
+          state.activeChannel = channelId;
+          renderAll();
+        })
+      ));
+    }
+
+    function renderMessages() {
+      const channel = findRestoredMarathonChannel(channelSet, state.activeChannel);
+      if (elements.chatChannel && channel) elements.chatChannel.textContent = getSingularityChatChannelLabel(channel);
+      const messages = filterSingularityChatMessages(state.messages, channel, state.activeChannel, {
+        debug: debugUiEnabled,
+        limit: debugUiEnabled ? 40 : 8
+      });
+      if (!messages.length) {
+        elements.messages.replaceChildren(createSingularityEmptyChatNode());
+        return;
+      }
+      elements.messages.replaceChildren(...messages.map(createSingularityMessageNode));
+      elements.messages.scrollTop = elements.messages.scrollHeight;
+    }
+    function pushSystem(text) {
+      const result = chatTransport.pushSystemMessage(state.messages, {
+        channelId: state.activeChannel,
+        text
+      });
+      if (result.ok) state.messages = result.messages;
+    }
+  </script>
+</body>
+</html>

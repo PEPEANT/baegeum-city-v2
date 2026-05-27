@@ -198,7 +198,7 @@ function assertStockMarketSystemPlan(stockMarketSystemPlan) {
 }
 
 function assertLifeMinigameSystemPlan(lifeMinigameSystemPlan) {
-  assertRequiredTextList(lifeMinigameSystemPlan, ["Restored Life Minigame System", "job:convenience-store", "job:fast-food", "restored-life-job-001", "economy_ledger_entry", "player_state_patch", "relationship_event_hook", "No direct cash mutation", "No direct partner mutation"], "restored life minigame system plan");
+  assertRequiredTextList(lifeMinigameSystemPlan, ["Restored Life Minigame System", "job:convenience-store", "job:fast-food", "restored-life-job-001", "currency: \"WON\"", "won wage", "economy_ledger_entry", "player_state_patch", "relationship_event_hook", "No direct cash mutation", "No direct partner mutation"], "restored life minigame system plan");
 }
 
 function assertStudyCareerSystemPlan(studyCareerSystemPlan) {

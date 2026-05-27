@@ -8,6 +8,7 @@ export const RESTORED_AUDIO_ROLES = Object.freeze([
 ]);
 
 export const RESTORED_IMAGE_ROLES = Object.freeze([
+  "character",
   "partner",
   "item",
   "background",
@@ -15,9 +16,26 @@ export const RESTORED_IMAGE_ROLES = Object.freeze([
   "city",
   "casino",
   "phone",
+  "race",
+  "skill",
+  "skin",
+  "stadium",
   "preview",
   "reference"
 ]);
+
+export const RESTORED_ASSET_STATUSES = Object.freeze([
+  "active",
+  "available",
+  "planned",
+  "source-only",
+  "needs-review",
+  "intake-staged",
+  "legacy-active",
+  "legacy-available",
+  "legacy-reference"
+]);
+const RESTORED_INBOX_ASSET_PREFIX = ["assets", "inbox", ""].join("/");
 
 export const RESTORED_ALLOWED_EXTENSIONS = Object.freeze({
   audio: Object.freeze([".mp3", ".ogg", ".wav"]),
@@ -100,6 +118,14 @@ export function listRestoredAssetsByType(type) {
   return RESTORED_ASSET_MANIFEST.filter((asset) => asset.type === type);
 }
 
+export function listRestoredAssetsByRole(role) {
+  return RESTORED_ASSET_MANIFEST.filter((asset) => asset.role === role);
+}
+
+export function listRestoredAssetsByCollection(collection) {
+  return RESTORED_ASSET_MANIFEST.filter((asset) => asset.collection === collection);
+}
+
 export function validateRestoredAssetManifest(manifest = RESTORED_ASSET_MANIFEST) {
   const errors = [];
   const seenIds = new Set();
@@ -114,6 +140,10 @@ export function validateRestoredAssetManifest(manifest = RESTORED_ASSET_MANIFEST
       errors.push(`Duplicate asset id: ${asset.id}`);
     }
     seenIds.add(asset.id);
+
+    if (!/^[a-z0-9]+(:[a-z0-9-]+)+$/.test(asset.id)) {
+      errors.push(`${asset.id} must use lowercase colon-separated id parts.`);
+    }
 
     const allowedExtensions = RESTORED_ALLOWED_EXTENSIONS[asset.type];
     if (!allowedExtensions) {
@@ -133,6 +163,22 @@ export function validateRestoredAssetManifest(manifest = RESTORED_ASSET_MANIFEST
 
     if (!asset.path.startsWith("assets/")) {
       errors.push(`${asset.id} path must stay under assets/: ${asset.path}`);
+    }
+
+    if (asset.path.startsWith(RESTORED_INBOX_ASSET_PREFIX)) {
+      errors.push(`${asset.id} must not point at the raw inbox: ${asset.path}`);
+    }
+
+    if (!asset.source) {
+      errors.push(`${asset.id} is missing source metadata.`);
+    }
+
+    if (!RESTORED_ASSET_STATUSES.includes(asset.status)) {
+      errors.push(`${asset.id} has unsupported status: ${asset.status}`);
+    }
+
+    if (asset.collection && !/^[a-z0-9-]+$/.test(asset.collection)) {
+      errors.push(`${asset.id} has invalid collection: ${asset.collection}`);
     }
 
     const extension = getExtension(asset.path);

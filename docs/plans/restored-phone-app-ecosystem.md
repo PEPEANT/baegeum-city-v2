@@ -7,6 +7,7 @@ Conclusion: the phone should become a small in-game OS. Keep the current live ap
 - Live phone app registry is `src/restored/phone/phone-app-contract.js`.
 - Current live apps are `news`, `stock`, `relationships`, `app_store`, and `futures`.
 - The `news` app list view is extracted into `src/restored/phone/news-app-view.js`.
+- The `news` app now renders normalized article cards from `src/restored/systems/news-cycle-contract.js`: realistic-looking but fictional Baegeum City headlines, summaries, impact notes, tags, and ticker text.
 - The `stock` app view is extracted into `src/restored/phone/stock-app-view.js`.
 - The `futures` app view is extracted into `src/restored/phone/futures-app-view.js`.
 - The `relationships` app view is extracted into `src/restored/phone/relationship-app-view.js`.

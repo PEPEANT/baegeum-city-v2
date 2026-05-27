@@ -8,13 +8,25 @@ const ROOT = path.resolve(__dirname, "..");
 const AUDIO_EXTENSIONS = new Set([".mp3", ".ogg", ".wav"]);
 const IMAGE_EXTENSIONS = new Set([".png", ".jpg", ".jpeg", ".webp", ".svg"]);
 const IMAGE_FOLDER_BY_ROLE = {
+  character: "characters",
   partner: "partners",
   item: "items",
   background: "backgrounds",
   ui: "ui",
   city: "city",
   casino: "casino",
-  phone: "phone"
+  phone: "phone",
+  race: "singularity-race/ui",
+  skill: "singularity-race/skills",
+  skin: "singularity-race/skins",
+  stadium: "singularity-race/stadium"
+};
+const RACE_IMAGE_FOLDER_BY_ROLE = {
+  character: "singularity-race/characters",
+  skill: "singularity-race/skills",
+  skin: "singularity-race/skins",
+  stadium: "singularity-race/stadium",
+  ui: "singularity-race/ui"
 };
 
 function parseArgs(argv) {
@@ -34,10 +46,11 @@ function printHelp() {
   process.stdout.write(`Restored material intake
 
 Usage:
-  node tools/intake-restored-material.cjs "<file-or-url>" [--kind=asset|github|note] [--role=partner|bgm] [--id=asset:id] [--name=Name] [--write] [--force]
+  node tools/intake-restored-material.cjs "<file-or-url>" [--kind=asset|github|note] [--role=partner|bgm] [--collection=singularity-race] [--id=asset:id] [--name=Name] [--write] [--force]
 
 Examples:
   node tools/intake-restored-material.cjs "assets/inbox/partner.png" --role=partner --id=image:partner:college-student:portrait-neutral
+  node tools/intake-restored-material.cjs "assets/inbox/runner.webp" --role=character --collection=singularity-race --id=image:character:dororong:chibi-run
   node tools/intake-restored-material.cjs "assets/inbox/casino-bgm.mp3" --role=bgm --id=audio:bgm:casino-night:loop --write
   node tools/intake-restored-material.cjs "https://github.com/owner/repo" --kind=github --name=RepoName --write
 `);
@@ -90,13 +103,21 @@ function normalizePath(value) {
   return value.replace(/\\/g, "/");
 }
 
-function buildTargetPath(input, type, role) {
+function imageFolderForRole(role, flags) {
+  if (flags.collection === "singularity-race" && RACE_IMAGE_FOLDER_BY_ROLE[role]) return RACE_IMAGE_FOLDER_BY_ROLE[role];
+  return IMAGE_FOLDER_BY_ROLE[role];
+}
+
+function buildTargetPath(input, type, role, flags = {}) {
   const fileName = path.basename(input);
   if (type === "audio") {
+    if (flags.collection === "singularity-race") {
+      return normalizePath(path.join("assets", "restored", "audio", "singularity-race", role, fileName));
+    }
     return normalizePath(path.join("assets", "restored", "audio", role, fileName));
   }
 
-  const folder = IMAGE_FOLDER_BY_ROLE[role];
+  const folder = imageFolderForRole(role, flags);
   if (folder) return normalizePath(path.join("assets", "restored", "images", folder, fileName));
   return normalizePath(path.join("assets", "restored", "source", "generated", fileName));
 }
@@ -113,9 +134,10 @@ function buildAssetCard(input, flags) {
 
   const role = flags.role || defaultRole(type);
   const id = buildAssetId(input, type, role, flags);
-  const targetPath = flags.target || buildTargetPath(input, type, role);
+  const targetPath = flags.target || buildTargetPath(input, type, role, flags);
   const source = flags.source || "human-provided";
   const status = flags.status || "intake-staged";
+  const collectionLine = flags.collection ? `,\n  collection: "${flags.collection}"` : "";
 
   return {
     kind: "asset",
@@ -140,7 +162,7 @@ function buildAssetCard(input, flags) {
   role: "${role}",
   path: "${targetPath}",
   source: "${source}",
-  status: "${status}"
+  status: "${status}"${collectionLine}
 }
 \`\`\`
 
