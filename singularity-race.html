@@ -23,8 +23,9 @@
       --track-grass: #dce9d8;
       --track-grass-deep: #c8d9c2;
       --track-rail: #61736b;
-      --track-road: #fbfbf2;
-      --track-road-shadow: #d6dfd7;
+      --track-road: #d7dcde;
+      --track-road-shadow: #b7c0c2;
+      --track-centerline: #b8871f;
       --shadow: 0 18px 46px rgba(48, 63, 57, 0.16);
     }
 
@@ -276,6 +277,7 @@
       margin: 0;
       border: 0;
       border-radius: 0;
+      touch-action: none;
     }
 
     .shell[data-screen="race"] .start-gate::after {
@@ -554,6 +556,26 @@
       background: rgba(255, 255, 252, 0.9);
       color: #17231e;
       font-weight: 900;
+    }
+
+    .race-zoom-setting {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      align-items: center;
+      gap: 8px;
+      padding: 7px 8px;
+      border: 1px solid rgba(74, 91, 84, 0.16);
+      border-radius: 8px;
+      background: rgba(255, 255, 252, 0.9);
+      color: #17231e;
+      font-size: 12px;
+      font-weight: 900;
+    }
+
+    .race-zoom-setting b {
+      display: block;
+      margin-top: 2px;
+      font-size: 15px;
     }
 
     .profile-screen {
@@ -1063,8 +1085,8 @@
       position: absolute;
       top: 0;
       left: 0;
-      width: var(--track-world-width, 7600px);
-      height: var(--track-world-height, 2600px);
+      width: var(--track-world-width, 9200px);
+      height: var(--track-world-height, 3600px);
       transform: translate3d(0, 0, 0);
       transform-origin: 0 0;
       transition: none;
@@ -1101,9 +1123,10 @@
 
     .trail-centerline {
       fill: none;
-      stroke: rgba(97, 115, 107, 0.38);
+      stroke: var(--track-centerline);
       stroke-width: 3px;
       stroke-dasharray: 24 32;
+      opacity: 0.78;
       vector-effect: non-scaling-stroke;
     }
 
@@ -1271,7 +1294,7 @@
 
     .minimap-road {
       fill: none;
-      stroke: rgba(251, 251, 242, 0.96);
+      stroke: var(--track-road);
       stroke-width: 4.8;
       stroke-linecap: round;
       stroke-linejoin: round;
@@ -1365,6 +1388,48 @@
       color: #4b1111;
     }
 
+    .track-cue.has-reward {
+      display: grid;
+      min-width: 128px;
+      gap: 3px;
+      padding: 8px 10px;
+      border-color: rgba(74, 91, 84, 0.28);
+      background: rgba(255, 255, 252, 0.97);
+    }
+
+    .track-cue.has-reward b,
+    .track-cue.has-reward strong,
+    .track-cue.has-reward span {
+      min-width: 0;
+      line-height: 1.15;
+    }
+
+    .track-cue.has-reward b {
+      color: #17231e;
+      font-size: 18px;
+      font-weight: 1000;
+    }
+
+    .track-cue.has-reward strong {
+      font-size: 12px;
+      font-weight: 1000;
+    }
+
+    .track-cue.has-reward span {
+      color: #526057;
+      font-size: 10px;
+      font-weight: 900;
+    }
+
+    .track-cue.is-grade-d { box-shadow: 0 8px 24px rgba(82, 96, 111, 0.18); }
+    .track-cue.is-grade-c { box-shadow: 0 8px 24px rgba(79, 191, 122, 0.24); }
+    .track-cue.is-grade-b { box-shadow: 0 8px 24px rgba(79, 167, 255, 0.24); }
+    .track-cue.is-grade-a { box-shadow: 0 8px 24px rgba(183, 116, 255, 0.26); }
+    .track-cue.is-grade-s {
+      border-color: rgba(219, 164, 35, 0.56);
+      box-shadow: 0 8px 26px rgba(255, 210, 95, 0.34);
+    }
+
     .track-countdown {
       position: absolute;
       inset: 0;
@@ -1379,6 +1444,9 @@
 
     .start-gate {
       position: absolute;
+      --gate-open-x: 0px;
+      --gate-open-rotate: 0deg;
+      --gate-open-opacity: 1;
       width: 18px;
       height: 460px;
       border: 2px solid rgba(74, 91, 84, 0.86);
@@ -1386,7 +1454,16 @@
       background:
         repeating-linear-gradient(45deg, #4a5b54 0 12px, #ffd86c 12px 24px);
       box-shadow: 0 16px 34px rgba(46, 59, 53, 0.2);
-      transform: translate(-50%, -50%);
+      opacity: var(--gate-open-opacity);
+      transform: translate(calc(-50% + var(--gate-open-x)), -50%) rotate(var(--gate-open-rotate));
+      transform-origin: 50% 94%;
+      transition: transform 720ms cubic-bezier(0.18, 0.82, 0.22, 1), opacity 720ms ease, filter 720ms ease;
+      will-change: transform, opacity;
+    }
+
+    .start-gate.is-opening,
+    .start-gate.is-open {
+      filter: drop-shadow(18px 14px 18px rgba(46, 59, 53, 0.18));
     }
 
     .start-gate::after {
@@ -1497,6 +1574,64 @@
       animation: runner-stun-pulse 0.18s steps(2, end) infinite;
     }
 
+    .runner-avatar.is-reward-skin {
+      --runner-reward-color: #8b98a8;
+      --runner-reward-soft: rgba(139, 152, 168, 0.34);
+      box-shadow: 0 0 0 4px var(--runner-reward-soft), 0 0 16px var(--runner-reward-color);
+      animation: runner-reward-pulse 1.12s ease-in-out infinite;
+    }
+
+    .runner-avatar.is-reward-grade-d {
+      --runner-reward-color: #8b98a8;
+      --runner-reward-soft: rgba(139, 152, 168, 0.34);
+    }
+
+    .runner-avatar.is-reward-grade-c {
+      --runner-reward-color: #4fbf7a;
+      --runner-reward-soft: rgba(79, 191, 122, 0.34);
+    }
+
+    .runner-avatar.is-reward-grade-b {
+      --runner-reward-color: #4fa7ff;
+      --runner-reward-soft: rgba(79, 167, 255, 0.34);
+    }
+
+    .runner-avatar.is-reward-grade-a {
+      --runner-reward-color: #b774ff;
+      --runner-reward-soft: rgba(183, 116, 255, 0.34);
+    }
+
+    .runner-avatar.is-reward-grade-s {
+      --runner-reward-color: #ffd25f;
+      --runner-reward-soft: rgba(255, 210, 95, 0.42);
+    }
+
+    .runner-avatar.is-reward-skin::after {
+      content: attr(data-reward-grade);
+      position: absolute;
+      right: -9px;
+      top: -11px;
+      min-width: 18px;
+      height: 18px;
+      padding: 0 4px;
+      border: 2px solid rgba(255, 255, 252, 0.96);
+      border-radius: 999px;
+      background: var(--runner-reward-color);
+      color: #111820;
+      font-size: 10px;
+      font-weight: 1000;
+      line-height: 16px;
+      text-align: center;
+      box-shadow: 0 4px 10px rgba(16, 19, 27, 0.26);
+      pointer-events: none;
+      transform: scale(1);
+      animation: runner-reward-badge-pop 420ms ease-out both;
+    }
+
+    .runner-avatar.is-reward-skin img {
+      filter: drop-shadow(0 0 5px var(--runner-reward-color));
+    }
+
     .runner-nameplate {
       position: absolute;
       left: 50%;
@@ -1561,12 +1696,24 @@
       50% { transform: scaleX(var(--runner-facing-scale, 1)) translateY(-1px) rotate(3deg); opacity: 1; }
     }
 
+    @keyframes runner-reward-pulse {
+      0%, 100% { box-shadow: 0 0 0 4px var(--runner-reward-soft), 0 0 12px var(--runner-reward-color); }
+      50% { box-shadow: 0 0 0 8px rgba(255, 255, 255, 0), 0 0 22px var(--runner-reward-color); }
+    }
+
+    @keyframes runner-reward-badge-pop {
+      0% { opacity: 0; transform: scale(0.58) translateY(3px); }
+      100% { opacity: 1; transform: scale(1) translateY(0); }
+    }
+
     @media (prefers-reduced-motion: reduce) {
       .player-focus-ring,
       .track-countdown,
       .track-cue,
       .runner-avatar img,
-      .runner-avatar::before {
+      .runner-avatar::before,
+      .runner-avatar.is-reward-skin,
+      .runner-avatar.is-reward-skin::after {
         animation: none;
       }
     }
@@ -2038,8 +2185,8 @@
         </div>
         <div class="track-scene" aria-label="track preview">
           <div class="track-world" id="track-world">
-            <svg class="trail-map" id="trail-map" viewBox="0 0 100 100" preserveAspectRatio="none" role="img" aria-label="single trail with five save points"></svg>
-            <div class="trail-caption">자유 출발 구역 / 방장 게이트 / 5개 세이브 지점</div>
+            <svg class="trail-map" id="trail-map" viewBox="0 0 100 100" preserveAspectRatio="none" role="img" aria-label="single trail with three save points"></svg>
+            <div class="trail-caption">자유 출발 구역 / 방장 게이트 / 3개 세이브 지점</div>
             <div class="track-effects" id="track-effects" aria-hidden="true"></div>
             <div id="track-runners"></div>
           </div>
@@ -2048,6 +2195,10 @@
           <div class="race-options-panel" id="race-options-panel" aria-label="옵션">
             <button id="race-options-chat" type="button">채팅 입력</button>
             <button id="race-options-queue" type="button">대기열</button>
+            <div class="race-zoom-setting" aria-label="카메라 확대">
+              <span>카메라<b id="race-zoom-label">100%</b></span>
+              <button id="race-zoom-reset" type="button">100%</button>
+            </div>
           </div>
           <div class="track-hud" id="track-hud" aria-hidden="true"></div>
           <div class="race-result-panel" id="race-result-panel" aria-live="polite">
@@ -2139,6 +2290,10 @@
       readRestoredMarathonRoomPolicy
     } from "./src/restored/online/marathon-room-policy.js";
     import {
+      getFirstRestoredMarathonDevRoom,
+      readRestoredMarathonDevRooms
+    } from "./src/restored/online/marathon-dev-room-registry.js";
+    import {
       createInitialRestoredMarathonChannelMessages,
       createRestoredMarathonChannelSet,
       filterVisibleRestoredMarathonChannels,
@@ -2173,6 +2328,7 @@
     } from "./src/restored/games/marathon-input-contract.js";
     import {
       assignRestoredMarathonCheckpointCharacter,
+      getRestoredMarathonSkill,
       createRestoredMarathonSkillUse
     } from "./src/restored/games/marathon-character-skill-contract.js";
     import {
@@ -2183,6 +2339,7 @@
     } from "./src/restored/games/marathon-combat-contract.js";
     import {
       RESTORED_MARATHON_TRAIL_SAVE_POINTS,
+      createRestoredMarathonTrailSaveCheckpointMeters,
       createRestoredMarathonTrailSvgPath,
       estimateRestoredMarathonTrailProgressFromPoint,
       listRestoredMarathonTrailSavePoints,
@@ -2247,6 +2404,8 @@
       SINGULARITY_RACE_CONTROL_STORAGE_KEY,
       SINGULARITY_RACE_TEST_BOTS_STORAGE_KEY,
       SINGULARITY_RACE_START_COUNTDOWN_MS,
+      createSingularityRaceControlStorageKey,
+      createSingularityRaceTestBotsStorageKey,
       getSingularityRaceControlPhase,
       openSingularityRaceControlBroadcast,
       parseSingularityRaceControlCommand,
@@ -2257,14 +2416,19 @@
     } from "./src/restored/games/singularity-race-control.js";
 
     const MAX_RUNNERS = 30;
-    const TRACK_WORLD_WIDTH = 7600;
-    const TRACK_WORLD_HEIGHT = 2600;
+    const TRACK_WORLD_WIDTH = 9200;
+    const TRACK_WORLD_HEIGHT = 3600;
     const TRACK_CAMERA_X_ANCHOR = 0.5;
     const TRACK_CAMERA_Y_ANCHOR = 0.5;
+    const TRACK_CAMERA_DEFAULT_ZOOM = 1;
+    const TRACK_CAMERA_MIN_ZOOM = 0.72;
+    const TRACK_CAMERA_MAX_ZOOM = 1.65;
     const START_LINE_PROGRESS = 4;
     const START_PADDOCK_MIN_PROGRESS = 2.8;
     const START_GATE_PROGRESS = 7.2;
-    const START_PADDOCK_MAX_PROGRESS = START_GATE_PROGRESS - 0.45;
+    const START_GATE_CLEARANCE_PROGRESS = 0.08;
+    const START_GATE_OPEN_ANIMATION_MS = 900;
+    const START_PADDOCK_MAX_PROGRESS = START_GATE_PROGRESS - START_GATE_CLEARANCE_PROGRESS;
     const ROAD_LANE_HALF_WIDTH_PX = 232;
     const LOCAL_LANE_SPEED_PX_PER_SECOND = 104;
     const LOCAL_LANE_SPRINT_SPEED_PX_PER_SECOND = 126;
@@ -2292,6 +2456,7 @@
     const BASIC_ATTACK_LANE_TO_PROGRESS = 42;
     const RACE_HUD_RENDER_INTERVAL_MS = 220;
     const RACE_SLOT_RENDER_INTERVAL_MS = 700;
+    const RACE_REWARD_SKIN_VISUAL_MS = 6500;
     const PLAYER_LATE_START_GRACE_MS = 15000;
     const SPECTATOR_LATE_JOIN_GRACE_MS = 12 * 60 * 1000;
     const STORAGE_KEY = "singularity-race:lobby-skin";
@@ -2312,7 +2477,14 @@
     const devOnlineEnabled = queryParams.get("devOnline") === "1";
     const adminLaunchEnabled = queryParams.get("adminLaunch") === "1";
     const debugUiEnabled = queryParams.get("debug") === "1";
-    const DEV_ROOM_ID = "room:singularity-race:dev-001";
+    const devRooms = readRestoredMarathonDevRooms(window.localStorage);
+    const requestedDevRoomId = queryParams.get("roomId") || "";
+    const activeDevRoom = devRooms.find((room) => room.roomId === requestedDevRoomId)
+      || getFirstRestoredMarathonDevRoom(devRooms);
+    const orderedDevRooms = activeDevRoom
+      ? [activeDevRoom, ...devRooms.filter((room) => room.roomId !== activeDevRoom.roomId)]
+      : devRooms;
+    const DEV_ROOM_ID = activeDevRoom?.roomId || "room:singularity-race:dev-001";
     const roomPolicy = readRestoredMarathonRoomPolicy(window.localStorage, DEV_ROOM_ID);
     if (queryParams.get("resetProfile") === "1") {
       window.localStorage.removeItem(PROFILE_STORAGE_KEY);
@@ -2322,10 +2494,14 @@
       devOnline: devOnlineEnabled,
       clientId: "client:singularity-race-dev",
       serverTimeMs: 1000,
-      maxSpectators: roomPolicy.maxSpectators
+      maxSpectators: roomPolicy.maxSpectators,
+      devRooms: orderedDevRooms
     });
     const adapterValidation = validateRestoredMarathonRoomAdapter(roomAdapter);
     const connectedLobbyOpen = adapterValidation.ok && canOpenConnectedMarathonLobby(roomAdapter);
+    const canAdminDirectLaunch = adminLaunchEnabled && connectedLobbyOpen;
+    const roomControlStorageKey = createSingularityRaceControlStorageKey(DEV_ROOM_ID);
+    const testBotControlStorageKey = createSingularityRaceTestBotsStorageKey(DEV_ROOM_ID);
     const channelSet = roomAdapter.channels?.length
       ? roomAdapter.channels
       : createRestoredMarathonChannelSet({ roomId: "room:singularity-race:local-preview" });
@@ -2356,6 +2532,8 @@
       raceOptionsPanel: document.querySelector("#race-options-panel"),
       raceOptionsChat: document.querySelector("#race-options-chat"),
       raceOptionsQueue: document.querySelector("#race-options-queue"),
+      raceZoomLabel: document.querySelector("#race-zoom-label"),
+      raceZoomReset: document.querySelector("#race-zoom-reset"),
       raceInputControls: document.querySelector("#race-input-controls"),
       raceJoystick: document.querySelector("#race-joystick"),
       raceJoystickThumb: document.querySelector("#race-joystick-thumb"),
@@ -2419,8 +2597,8 @@
     const netcodePingSample = createRestoredMarathonPingSample({ clientSentAtMs: 0, serverReceivedAtMs: 36, serverSentAtMs: 38, clientReceivedAtMs: 76 }, null, netcodeProfile);
     const netcodeReconciliationHint = createRestoredMarathonReconciliationHint({ x: 0, y: 0, progress: 0 }, { x: 128, y: 0, progress: 0.4, laneOffsetPx: 12 }, { elapsedMs: 60 }, netcodeProfile);
     const state = {
-      screen: savedProfile || adminLaunchEnabled
-        ? (adminLaunchEnabled ? SINGULARITY_RACE_SCREENS.RACE : SINGULARITY_RACE_SCREENS.LOBBY)
+      screen: savedProfile || canAdminDirectLaunch
+        ? (canAdminDirectLaunch ? SINGULARITY_RACE_SCREENS.RACE : SINGULARITY_RACE_SCREENS.LOBBY)
         : SINGULARITY_RACE_SCREENS.PROFILE,
       nickname: savedProfile?.nickname || "YOU",
       selectedSkin: initialSkin,
@@ -2434,6 +2612,7 @@
       testBotTargetCount: getStoredTestBotCount(),
       netcodePressure: null,
       trackCamera: { x: 0, y: 0 },
+      cameraZoom: TRACK_CAMERA_DEFAULT_ZOOM,
       raceQueueOpen: false,
       raceChatOpen: false,
       raceOptionsOpen: false,
@@ -2459,6 +2638,8 @@
     let lastRaceControlCommandId = "";
     let lastTestBotControlCommandId = "";
     let activeJoystickPointerId = null;
+    let activePinchZoom = null;
+    let suppressNextTrackClick = false;
 
     elements.shell.classList.toggle("debug-mode", debugUiEnabled);
     elements.shell.dataset.screen = state.screen;
@@ -2483,6 +2664,11 @@
     });
     window.addEventListener("resize", updateTrackCamera);
     elements.trackScene.addEventListener("click", handleTrackPointerDown);
+    elements.trackScene.addEventListener("wheel", handleTrackWheelZoom, { passive: false });
+    elements.trackScene.addEventListener("touchstart", handleTrackPinchStart, { passive: false });
+    elements.trackScene.addEventListener("touchmove", handleTrackPinchMove, { passive: false });
+    elements.trackScene.addEventListener("touchend", handleTrackPinchEnd);
+    elements.trackScene.addEventListener("touchcancel", handleTrackPinchEnd);
     requestAnimationFrame(advanceActionPreviewLoop);
 
     elements.profileForm.addEventListener("submit", (event) => {
@@ -2532,6 +2718,10 @@
       toggleRaceQueueOverlay();
     });
 
+    elements.raceZoomReset.addEventListener("click", () => {
+      setRaceCameraZoom(TRACK_CAMERA_DEFAULT_ZOOM);
+    });
+
     elements.raceJoystick.addEventListener("pointerdown", startVirtualJoystick);
     elements.raceJoystick.addEventListener("pointermove", moveVirtualJoystick);
     elements.raceJoystick.addEventListener("pointerup", stopVirtualJoystick);
@@ -2575,7 +2765,7 @@
       joinDevConnectedRoom("button");
     });
 
-    if (adminLaunchEnabled) {
+    if (canAdminDirectLaunch) {
       requestAnimationFrame(() => {
         joinDevConnectedRoom("admin_direct");
       });
@@ -2593,6 +2783,9 @@
       });
       if (!result.ok) {
         pushSystem(`개발 방 입장 실패: ${result.reason}`);
+        if (source === "admin_direct") {
+          setScreen(savedProfile ? SINGULARITY_RACE_SCREENS.LOBBY : SINGULARITY_RACE_SCREENS.PROFILE);
+        }
         renderAll();
         return;
       }
@@ -2798,8 +2991,12 @@
     function setupRaceControlListener() {
       window.addEventListener("storage", (event) => {
         if (!event.newValue) return;
-        if (event.key === SINGULARITY_RACE_CONTROL_STORAGE_KEY) applyRaceControlCommand(parseSingularityRaceControlCommand(event.newValue));
-        if (event.key === SINGULARITY_RACE_TEST_BOTS_STORAGE_KEY) applyTestBotControlCommand(parseSingularityRaceControlCommand(event.newValue));
+        if (event.key === roomControlStorageKey || event.key === SINGULARITY_RACE_CONTROL_STORAGE_KEY) {
+          applyRaceControlCommand(parseSingularityRaceControlCommand(event.newValue));
+        }
+        if (event.key === testBotControlStorageKey || event.key === SINGULARITY_RACE_TEST_BOTS_STORAGE_KEY) {
+          applyTestBotControlCommand(parseSingularityRaceControlCommand(event.newValue));
+        }
       });
       if (raceControlBroadcast) {
         raceControlBroadcast.onmessage = (event) => {
@@ -2807,15 +3004,17 @@
           applyTestBotControlCommand(event.data);
         };
       }
-      applyRaceControlCommand(readSingularityRaceControlCommand(window.localStorage));
+      applyRaceControlCommand(readSingularityRaceControlCommand(window.localStorage, DEV_ROOM_ID));
       applyTestBotControlCommand(readSingularityRaceTestBotsCommand(window.localStorage, DEV_ROOM_ID));
     }
 
     function applyRaceControlCommand(command) {
       if (!shouldAcceptSingularityRaceControlCommand(command, {
         lastCommandId: lastRaceControlCommandId,
+        roomId: DEV_ROOM_ID,
         nowMs: Date.now()
       })) return;
+      if (state.screen === SINGULARITY_RACE_SCREENS.PROFILE && !readPlayerProfile()) return;
       lastRaceControlCommandId = command.commandId;
       setScreen(SINGULARITY_RACE_SCREENS.RACE);
       if (!state.connectedSession && state.runners.length < 1) {
@@ -2857,6 +3056,7 @@
       state.action.countdownStartedAtMs = now;
       state.action.countdownEndsAtMs = gateOpensAtMs;
       state.action.countdownAnnounced = false;
+      state.action.gateOpenedAtMs = 0;
       setRaceCue("countdown", createCountdownLabel(now), state.runners[0]?.progress || START_LINE_PROGRESS, "you");
       pushSystem(source === "admin" ? "방장이 10초 카운트다운을 시작했습니다." : "출발 카운트다운이 시작되었습니다.");
       return true;
@@ -2873,6 +3073,7 @@
       state.action.countdownStartedAtMs = 0;
       state.action.countdownEndsAtMs = 0;
       state.action.raceStarted = true;
+      state.action.gateOpenedAtMs = now;
       if (state.connectedSession) startConnectedDevServerRace(now);
       setScreen("race");
       setRaceCue("start", "GO", state.runners[0]?.progress || START_LINE_PROGRESS, "you");
@@ -2884,6 +3085,16 @@
       if (!isCountdownActive(now)) return "";
       const remaining = state.action.countdownEndsAtMs - now;
       return remaining > 650 ? String(Math.max(1, Math.ceil(remaining / 1000))) : "GO";
+    }
+
+    function getStartGateOpenProgress(now = Date.now()) {
+      if (!state.action.raceStarted) return 0;
+      if (!state.action.gateOpenedAtMs) return 1;
+      return clampNumber((now - state.action.gateOpenedAtMs) / START_GATE_OPEN_ANIMATION_MS, 0, 1);
+    }
+
+    function shouldRenderStartGate(now = Date.now()) {
+      return !state.action.raceStarted || getStartGateOpenProgress(now) < 1;
     }
 
     function createRunners(count, selectedSkin, ready) {
@@ -2900,6 +3111,10 @@
           hp: 100,
           maxHp: 100,
           lastSafeCheckpointIndex: 0,
+          rewardSkinId: "",
+          rewardSkinLabel: "",
+          rewardSkinGrade: "",
+          rewardSkinUntilMs: 0,
           collisionAtMs: 0
         };
       });
@@ -2966,7 +3181,7 @@
         clock: () => Date.now(),
         course: {
           distanceMeters: 900,
-          checkpointMeters: [0, 180, 360, 540, 720, 900]
+          checkpointMeters: createRestoredMarathonTrailSaveCheckpointMeters(900)
         },
         packetLimit: 720
       });
@@ -3001,12 +3216,15 @@
 
     function startConnectedDevServerRace(now = Date.now()) {
       if (!connectedDevServer || !state.connectedSession || state.action.connectedServerRaceStarted) return false;
+      const runnerPositions = createConnectedRaceStartPositions();
       const started = connectedDevServer.startRace(connectedDevClients[0]?.transport, state.connectedSession.roomId, {
         serverTimeMs: now,
-        runnerPositions: createConnectedRaceStartPositions()
+        runnerPositions
       });
       if (!started.ok) return false;
       state.action.connectedServerRaceStarted = true;
+      pinConnectedRaceStartPositions(runnerPositions);
+      publishConnectedStartSnapshot(now);
       return true;
     }
 
@@ -3018,6 +3236,49 @@
       }));
     }
 
+    function pinConnectedRaceStartPositions(runnerPositions = []) {
+      const byRunnerId = new Map(runnerPositions.map((position) => [runnerIdFromParticipantId(position.participantId), position]));
+      state.runners = state.runners.map((runner) => {
+        const position = byRunnerId.get(runner.id);
+        if (!position) return runner;
+        return {
+          ...runner,
+          progress: position.progressPercent,
+          laneOffsetPx: position.laneOffsetPx,
+          serverProgress: position.progressPercent,
+          serverLaneOffsetPx: position.laneOffsetPx,
+          clientPredicted: true
+        };
+      });
+    }
+
+    function publishConnectedStartSnapshot(now = Date.now()) {
+      if (!connectedDevServer || !state.connectedSession) return false;
+      const sequence = Math.max(
+        state.lastConnectedSnapshotSequence + 1,
+        Number(connectedDevLoopState?.snapshotIndex || 0) + 1,
+        state.connectedPackets.length + 1
+      );
+      const snapshot = connectedDevServer.createStateSnapshot(state.connectedSession.roomId, {
+        sequence,
+        elapsedMs: 50,
+        localRunner: state.runners[0] || {},
+        serverRunner: {
+          progress: state.runners[0]?.serverProgress ?? state.runners[0]?.progress,
+          y: state.runners[0]?.serverLaneOffsetPx ?? state.runners[0]?.laneOffsetPx
+        }
+      });
+      if (!snapshot.ok) return false;
+      if (connectedDevLoopState) {
+        connectedDevLoopState = createRestoredMarathonWebSocketDevLoopState({
+          ...connectedDevLoopState,
+          lastSnapshotAtMs: now,
+          snapshotIndex: sequence
+        });
+      }
+      return publishConnectedServerSnapshot(snapshot.snapshot);
+    }
+
     function connectedParticipantIdForRunner(runnerId) {
       if (runnerId === "you") return "runner:you";
       const id = String(runnerId || "");
@@ -3026,12 +3287,13 @@
       return `runner:${id || "bot"}`;
     }
 
+    function runnerIdFromParticipantId(participantId) {
+      const id = String(participantId || "");
+      if (id === "runner:you") return "you";
+      return id.startsWith("runner:") ? id.slice("runner:".length) : id;
+    }
+
     function createActionRaceState() {
-      const reward = assignRestoredMarathonCheckpointCharacter({
-        participantId: "runner:you",
-        checkpointIndex: 1,
-        seed: "singularity:initial"
-      });
       return {
         keys: {},
         lastTickMs: 0,
@@ -3043,16 +3305,20 @@
         hp: 100,
         maxHp: 100,
         lastSafeCheckpointIndex: 0,
-        characterId: reward.character.characterId,
-        characterLabel: reward.character.label,
-        skillId: reward.skill.skillId,
-        skillMaxCharges: reward.skill.maxCharges,
-        skillChargesRemaining: reward.skill.maxCharges,
+        characterId: "",
+        characterLabel: "기본 스킨",
+        placeholderSkinId: "",
+        placeholderSkinLabel: "",
+        placeholderSkinGrade: "",
+        skillId: "",
+        skillMaxCharges: 0,
+        skillChargesRemaining: 0,
         raceCue: null,
         raceStarted: false,
         countdownStartedAtMs: 0,
         countdownEndsAtMs: 0,
         countdownAnnounced: false,
+        gateOpenedAtMs: 0,
         connectedServerRaceStarted: false,
         finishedLocalPreview: false,
         raceFinished: false,
@@ -3088,7 +3354,7 @@
           if (event.code === "KeyE" && !event.repeat) renderAll();
           return;
         }
-        publishConnectedInputRequest(event.code === "KeyE");
+        publishConnectedInputRequest(event.code === "KeyE" && hasCurrentRewardSkill());
         if (event.code === "KeyE" && !event.repeat) requestConnectedSkill();
         renderAll();
         return;
@@ -3112,6 +3378,10 @@
 
     function handleTrackPointerDown(event) {
       if (state.screen !== SINGULARITY_RACE_SCREENS.RACE) return;
+      if (suppressNextTrackClick) {
+        suppressNextTrackClick = false;
+        return;
+      }
       if (state.participantType === "spectator") return;
       if (state.action.finalResult) return;
       performBasicAttack(event);
@@ -3388,6 +3658,11 @@
     }
 
     function useActionSkill() {
+      if (!hasCurrentRewardSkill()) {
+        pushSystem("세이브 보상을 받기 전에는 E 스킬이 없습니다.");
+        renderAll();
+        return;
+      }
       if (!state.action.raceStarted || isCountdownActive()) {
         pushSystem("아직 출발 전입니다. 방장 시작 후 스킬을 사용할 수 있습니다.");
         renderAll();
@@ -3397,6 +3672,7 @@
         participantId: "runner:you",
         characterId: state.action.characterId,
         skillId: state.action.skillId,
+        grade: state.action.placeholderSkinGrade,
         chargesRemaining: state.action.skillChargesRemaining
       });
       if (!use.allowed) {
@@ -3407,14 +3683,16 @@
       if (use.consumesCharge) state.action.skillChargesRemaining -= 1;
       state.action.stallUntilMs = Date.now() + use.movementStallMs;
       let collision = Object.freeze({ blockedPlayer: false });
-      if (use.payload.target === "self") collision = advanceLocalPlayerProgress(3, "skill");
+      if (use.payload.target === "self") collision = advanceLocalPlayerProgress(resolveRewardSkillAdvanceAmount(use), "skill");
       if (use.payload.target !== "self") slowNearbyRunners();
-      if (!collision.blockedPlayer) setRaceCue("skill", use.skillId, state.runners[0].progress, "you");
+      if (!collision.blockedPlayer) setRaceCue("skill", getSingularitySkillDisplayName(use.skillId), state.runners[0].progress, "you");
       pushActionPacket(
         createRestoredMarathonSkillEnvelope({
           participantId: "runner:you",
           characterId: state.action.characterId,
-          skillId: use.skillId
+          skillId: use.skillId,
+          rewardGrade: state.action.placeholderSkinGrade,
+          skillGrade: use.grade
         }, createActionPacketOptions()),
         use.skillId
       );
@@ -3424,15 +3702,37 @@
 
     function requestConnectedSkill() {
       if (state.participantType === "spectator" || !state.action.raceStarted) return;
+      if (!hasCurrentRewardSkill()) {
+        pushSystem("세이브 보상을 받기 전에는 E 스킬이 없습니다.");
+        renderAll();
+        return;
+      }
       pushActionPacket(
         createRestoredMarathonSkillEnvelope({
           participantId: "runner:you",
           characterId: state.action.characterId,
-          skillId: state.action.skillId
+          skillId: state.action.skillId,
+          rewardGrade: state.action.placeholderSkinGrade,
+          skillGrade: state.action.placeholderSkinGrade
         }, createActionPacketOptions()),
         "서버 요청"
       );
       pushSystem("스킬 요청을 개발 방으로 보냈습니다.");
+    }
+
+    function hasCurrentRewardSkill() {
+      return Boolean(state.action.placeholderSkinGrade && state.action.skillId);
+    }
+
+    function canUseCurrentRewardSkill() {
+      if (!hasCurrentRewardSkill()) return false;
+      return state.action.skillMaxCharges === 0 || state.action.skillChargesRemaining > 0;
+    }
+
+    function resolveRewardSkillAdvanceAmount(use) {
+      if (use.skillId === "skill:checkpoint-hop") return 3.2;
+      if (use.skillId === "skill:guard-roll") return 1.1;
+      return 1.45;
     }
 
     function updateActionCheckpoint() {
@@ -3443,26 +3743,49 @@
         const reward = assignRestoredMarathonCheckpointCharacter({
           participantId: "runner:you",
           checkpointIndex: state.action.checkpointIndex,
+          stageCount: ACTION_CHECKPOINTS.length,
           seed: `runner:you:${state.action.checkpointIndex}`
         });
         state.action.characterId = reward.character.characterId;
         state.action.characterLabel = reward.character.label;
+        state.action.placeholderSkinId = reward.placeholderSkin.skinId;
+        state.action.placeholderSkinLabel = reward.placeholderSkin.label;
+        state.action.placeholderSkinGrade = reward.placeholderSkin.grade;
         state.action.skillId = reward.skill.skillId;
         state.action.skillMaxCharges = reward.skill.maxCharges;
         state.action.skillChargesRemaining = reward.skill.maxCharges;
         state.action.lastSafeCheckpointIndex = state.action.checkpointIndex;
-        state.runners[0].lastSafeCheckpointIndex = state.action.checkpointIndex;
-        setRaceCue("checkpoint", `SAVE ${state.action.checkpointIndex}`, state.runners[0].progress, "you");
+        state.runners[0] = {
+          ...state.runners[0],
+          lastSafeCheckpointIndex: state.action.checkpointIndex,
+          rewardSkinId: reward.placeholderSkin.skinId,
+          rewardSkinLabel: reward.placeholderSkin.label,
+          rewardSkinGrade: reward.placeholderSkin.grade,
+          rewardGrade: reward.placeholderSkin.grade,
+          rewardSkinUntilMs: Date.now() + RACE_REWARD_SKIN_VISUAL_MS
+        };
+        setRaceCue("checkpoint", reward.placeholderSkin.label, state.runners[0].progress, "you", {
+          rewardGrade: reward.placeholderSkin.grade,
+          rewardLabel: reward.placeholderSkin.label,
+          rewardDetail: `${reward.character.label} / ${getSingularitySkillDisplayName(reward.skill.skillId)}`,
+          durationMs: 2800
+        });
         pushActionPacket(
           createRestoredMarathonTransportEnvelope("checkpoint_reward", {
             participantId: "runner:you",
             checkpointIndex: state.action.checkpointIndex,
             characterId: reward.character.characterId,
-            skillId: reward.skill.skillId
+            characterGrade: reward.character.grade,
+            placeholderSkinId: reward.placeholderSkin.skinId,
+            placeholderSkinLabel: reward.placeholderSkin.label,
+            placeholderSkinGrade: reward.placeholderSkin.grade,
+            rewardGrade: reward.placeholderSkin.grade,
+            skillId: reward.skill.skillId,
+            skillGrade: reward.skill.grade
           }, createActionPacketOptions()),
-          `${reward.character.label} / ${reward.skill.skillId}`
+          `${reward.placeholderSkin.label} / ${reward.character.label}`
         );
-        pushSystem(`Checkpoint ${state.action.checkpointIndex}: ${reward.character.label} joined.`);
+        pushSystem(`세이브 ${state.action.checkpointIndex}: ${reward.placeholderSkin.label} 보상.`);
       }
     }
 
@@ -3780,9 +4103,13 @@
       if (!merged.applied) return false;
       state.runners = [...merged.runners];
       state.lastConnectedSnapshotSequence = Math.max(state.lastConnectedSnapshotSequence, sequence, merged.sequence);
-      if (payload.phase === "racing" || payload.phase === "finished") state.action.raceStarted = true;
+      if (payload.phase === "racing" || payload.phase === "finished") {
+        if (!state.action.raceStarted && isCountdownActive()) state.action.gateOpenedAtMs = Date.now();
+        state.action.raceStarted = true;
+      }
       const localParticipantId = state.connectedSession?.playerId || "runner:you";
       const localSnapshot = payload.participants.find((participant) => participant.participantId === localParticipantId);
+      syncActionRewardFromServerSnapshot(localSnapshot);
       const localFinished = localSnapshot?.finishedAtMs !== null && localSnapshot?.finishedAtMs !== undefined;
       if (payload.phase === "finished" || localFinished) {
         const raceFinished = payload.phase === "finished";
@@ -3799,6 +4126,18 @@
         });
       }
       return true;
+    }
+
+    function syncActionRewardFromServerSnapshot(participant) {
+      if (!participant?.skillId || !participant.rewardGrade) return;
+      const skill = getRestoredMarathonSkill(participant.skillId);
+      state.action.characterId = participant.characterId || state.action.characterId;
+      if (!state.action.characterLabel || state.action.characterLabel === "기본 스킨") state.action.characterLabel = "보상 캐릭터";
+      state.action.placeholderSkinGrade = participant.rewardGrade;
+      state.action.placeholderSkinLabel = state.action.placeholderSkinLabel || `${participant.rewardGrade}급 임시 스킨`;
+      state.action.skillId = participant.skillId;
+      state.action.skillMaxCharges = skill.maxCharges;
+      state.action.skillChargesRemaining = Math.max(0, Number(participant.skillChargesRemaining ?? state.action.skillChargesRemaining ?? skill.maxCharges));
     }
 
     function advanceConnectedLocalPrediction(frame, elapsedSeconds) {
@@ -4023,13 +4362,17 @@
       resolveSingleRailCollisions("skill");
     }
 
-    function setRaceCue(type, label, progress, targetId) {
+    function setRaceCue(type, label, progress, targetId, options = {}) {
       state.action.raceCue = Object.freeze({
         type,
         label,
         progress: Math.max(0, Math.min(100, Number(progress) || 0)),
         targetId: targetId || "you",
-        createdAtMs: Date.now()
+        createdAtMs: Date.now(),
+        durationMs: Math.max(900, Number(options.durationMs || 1800)),
+        rewardGrade: options.rewardGrade || "",
+        rewardLabel: options.rewardLabel || "",
+        rewardDetail: options.rewardDetail || ""
       });
     }
 
@@ -4288,6 +4631,14 @@
       elements.trackTitle.textContent = getSingularityRaceTrackTitle(state.screen);
       elements.trackCopy.textContent = getSingularityRaceTrackCopy(state.screen);
       elements.notice.textContent = getSingularityRaceNotice(state.screen);
+      const summary = getConnectedMarathonRoomSummaries(roomAdapter)[0];
+      elements.roomDisplayName.textContent = summary?.displayName || activeDevRoom?.displayName || "생성된 방 없음";
+      elements.readyButton.disabled = Boolean(state.connectedSession) || (devOnlineEnabled && !connectedLobbyOpen);
+      elements.spectatorButton.disabled = Boolean(state.connectedSession) || (devOnlineEnabled && !connectedLobbyOpen);
+      if (devOnlineEnabled && !connectedLobbyOpen) {
+        elements.roomCode.textContent = "방장이 방을 만들면 입장할 수 있습니다.";
+        elements.notice.textContent = "아직 생성된 방이 없습니다. 방장 페이지에서 방을 먼저 만들어야 합니다.";
+      }
     }
 
     function renderMetrics() {
@@ -4296,16 +4647,22 @@
 
     function renderRaceMobileControls() {
       const spectator = state.participantType === "spectator";
+      renderCameraZoomLabel();
       elements.raceQueueToggle.textContent = state.raceQueueOpen ? "대기열 닫기" : "대기열 보기";
       elements.raceQueueToggle.setAttribute("aria-pressed", String(state.raceQueueOpen));
       elements.raceOptionsButton.setAttribute("aria-pressed", String(state.raceOptionsOpen));
       elements.raceChatActionButton.setAttribute("aria-pressed", "false");
       const now = Date.now();
       const attackCooldownRemainingMs = Math.max(0, Number(state.action.attackCooldownUntilMs || 0) - now);
+      const skillChargeMeta = state.action.skillMaxCharges > 0 ? `${state.action.skillChargesRemaining}회` : "무제한";
+      const skillMeta = hasCurrentRewardSkill() ? `${state.action.placeholderSkinGrade || "보상"}급 ${skillChargeMeta}` : "보상 필요";
+      const skillReady = state.action.raceStarted && !isCountdownActive(now) && canUseCurrentRewardSkill();
       elements.raceAttackButton.disabled = spectator || Boolean(state.action.finalResult) || attackCooldownRemainingMs > 0;
       elements.raceAttackButton.innerHTML = attackCooldownRemainingMs > 0
         ? `대기<span>${Math.ceil(attackCooldownRemainingMs / 1000)}초</span>`
         : "공격<span>기본</span>";
+      elements.raceSkillButton.disabled = spectator || Boolean(state.action.finalResult) || !skillReady;
+      elements.raceSkillButton.innerHTML = `스킬<span>${skillMeta}</span>`;
       const movementDisabled = spectator || Boolean(state.action.finalResult) || state.raceQueueOpen;
       elements.raceJoystick.setAttribute("aria-disabled", String(movementDisabled));
       elements.raceSprintButton.disabled = movementDisabled;
@@ -4323,13 +4680,6 @@
         elements.raceAttackButton.disabled = true;
         elements.raceSkillButton.disabled = true;
         return;
-      }
-      if (state.action.raceStarted) {
-        elements.raceSkillButton.disabled = false;
-      } else if (isCountdownActive()) {
-        elements.raceSkillButton.disabled = true;
-      } else {
-        elements.raceSkillButton.disabled = true;
       }
     }
 
@@ -4414,6 +4764,52 @@
       });
     }
 
+    function handleTrackWheelZoom(event) {
+      if (state.screen !== SINGULARITY_RACE_SCREENS.RACE) return;
+      event.preventDefault();
+      const factor = event.deltaY < 0 ? 1.08 : 0.92;
+      setRaceCameraZoom(state.cameraZoom * factor);
+    }
+
+    function handleTrackPinchStart(event) {
+      if (state.screen !== SINGULARITY_RACE_SCREENS.RACE || event.touches.length !== 2) return;
+      event.preventDefault();
+      suppressNextTrackClick = true;
+      activePinchZoom = {
+        distance: touchDistance(event.touches),
+        zoom: state.cameraZoom
+      };
+    }
+
+    function handleTrackPinchMove(event) {
+      if (!activePinchZoom || event.touches.length !== 2) return;
+      event.preventDefault();
+      suppressNextTrackClick = true;
+      const ratio = touchDistance(event.touches) / Math.max(1, activePinchZoom.distance);
+      setRaceCameraZoom(activePinchZoom.zoom * ratio);
+    }
+
+    function handleTrackPinchEnd() {
+      activePinchZoom = null;
+    }
+
+    function touchDistance(touches) {
+      const left = touches[0];
+      const right = touches[1];
+      return Math.hypot(right.clientX - left.clientX, right.clientY - left.clientY);
+    }
+
+    function setRaceCameraZoom(value) {
+      state.cameraZoom = clampNumber(value, TRACK_CAMERA_MIN_ZOOM, TRACK_CAMERA_MAX_ZOOM);
+      renderCameraZoomLabel();
+      updateTrackCamera();
+    }
+
+    function renderCameraZoomLabel() {
+      if (!elements.raceZoomLabel) return;
+      elements.raceZoomLabel.textContent = `${Math.round(state.cameraZoom * 100)}%`;
+    }
+
     function updateTrackCamera() {
       if (state.screen === SINGULARITY_RACE_SCREENS.MAP_PREVIEW) {
         updateMapPreviewCamera();
@@ -4456,7 +4852,8 @@
         previousAngleRad: state.trackCamera?.angleRad || 0,
         options: {
           anchorXRatio: TRACK_CAMERA_X_ANCHOR,
-          anchorYRatio: TRACK_CAMERA_Y_ANCHOR
+          anchorYRatio: TRACK_CAMERA_Y_ANCHOR,
+          zoom: state.cameraZoom
         }
       });
       elements.trackWorld.style.setProperty("--track-counter-rotation", `${state.trackCamera.counterRotationRad}rad`);
@@ -4505,6 +4902,8 @@
         const motion = updateRunnerMotionState(runner, point, visualTiming);
         const stunned = isRunnerStunned(runner, visualTiming.now);
         const colliding = runner.collisionAtMs && visualTiming.now - runner.collisionAtMs < 520;
+        const rewardSkinActive = isRunnerRewardSkinActive(runner, visualTiming.now);
+        const rewardSkinGrade = rewardSkinActive ? String(runner.rewardSkinGrade || "").toLowerCase() : "";
         const avatar = existing.get(runner.id) || createSingularityRunnerAvatarNode(runner);
         activeIds.add(runner.id);
         avatar.className = [
@@ -4514,8 +4913,17 @@
           motion.running ? "is-running" : "is-idle",
           motion.sprinting ? "is-sprinting" : "",
           stunned ? "is-stunned" : "",
-          colliding ? "is-colliding" : ""
+          colliding ? "is-colliding" : "",
+          rewardSkinActive ? "is-reward-skin" : "",
+          rewardSkinGrade ? `is-reward-grade-${rewardSkinGrade}` : ""
         ].filter(Boolean).join(" ");
+        if (rewardSkinActive) {
+          avatar.dataset.rewardGrade = String(runner.rewardSkinGrade || "").toUpperCase();
+          avatar.dataset.rewardLabel = runner.rewardSkinLabel || "";
+        } else {
+          delete avatar.dataset.rewardGrade;
+          delete avatar.dataset.rewardLabel;
+        }
         avatar.style.left = `${point.x}%`;
         avatar.style.top = `${point.y}%`;
         avatar.style.zIndex = String(4 + Math.round(runner.progress * 10));
@@ -4532,6 +4940,12 @@
       renderTrackEffects();
       renderRaceMinimap();
       updateTrackCamera();
+    }
+
+    function isRunnerRewardSkinActive(runner, now) {
+      const grade = String(runner?.rewardSkinGrade || "").trim();
+      const untilMs = Number(runner?.rewardSkinUntilMs || 0);
+      return Boolean(grade && Number.isFinite(untilMs) && untilMs > now);
     }
 
     function createRunnerVisualTiming() {
@@ -4617,8 +5031,13 @@
       });
       const focus = createSingularityPlayerFocusRingNode(playerPoint, cue?.type);
       const nodes = [focus];
-      if (!state.action.raceStarted) nodes.push(createSingularityStartGateNode(runnerTrailPoint(START_GATE_PROGRESS)));
-      if (cue && Date.now() - cue.createdAtMs < 1800) nodes.push(createSingularityTrackCueNode(cue, trackCuePoint(cue)));
+      const now = Date.now();
+      if (shouldRenderStartGate(now)) {
+        nodes.push(createSingularityStartGateNode(runnerTrailPoint(START_GATE_PROGRESS), {
+          openProgress: getStartGateOpenProgress(now)
+        }));
+      }
+      if (cue && now - cue.createdAtMs < (cue.durationMs || 1800)) nodes.push(createSingularityTrackCueNode(cue, trackCuePoint(cue)));
       elements.trackEffects.replaceChildren(...nodes);
       const hudNodes = [progressPill];
       const countdown = createSingularityTrackCountdownNode(createCountdownLabel());
@@ -4744,9 +5163,14 @@
       const now = Date.now();
       const maxHp = player.maxHp || state.action.maxHp || 100;
       const hp = Math.max(0, Math.min(maxHp, player.hp ?? state.action.hp ?? maxHp));
+      const hasRewardSkill = hasCurrentRewardSkill();
       const chargeText = state.action.skillMaxCharges === 0 ? "무제한" : `${state.action.skillChargesRemaining}회`;
-      elements.actionCharacter.textContent = state.action.characterLabel || "-";
-      elements.actionSkill.textContent = `${getSingularitySkillDisplayName(state.action.skillId)} / ${chargeText}`;
+      elements.actionCharacter.textContent = state.action.placeholderSkinLabel
+        ? `${state.action.placeholderSkinLabel} / ${state.action.characterLabel || "-"}`
+        : state.action.characterLabel || "기본 스킨";
+      elements.actionSkill.textContent = hasRewardSkill
+        ? `${getSingularitySkillDisplayName(state.action.skillId)} / ${chargeText}`
+        : "세이브 보상 후 해금";
       elements.actionHp.textContent = `${hp} / ${maxHp}`;
       elements.actionHpBar.style.width = `${Math.round((hp / maxHp) * 100)}%`;
       elements.actionStatus.textContent = getSingularityActionStatusLabel({
@@ -4830,7 +5254,7 @@
       elements.connectedButton.textContent = connected ? "개발 방 입장됨" : "개발 방 입장";
       elements.roomCode.textContent = summary
         ? `선수 ${summary.players}/${summary.maxPlayers} / 관전자 ${summary.spectators}/${summary.maxSpectators}`
-        : "최대 30명 / 관전자 입장 가능";
+        : (devOnlineEnabled ? "생성된 방 없음" : "최대 30명 / 관전자 입장 가능");
       elements.connectionSignal.classList.toggle("is-connected", connected);
       if (!adapterValidation.ok) {
         elements.connectedStatus.textContent = `연결 설정 오류: ${adapterValidation.errors.join(", ")}`;
@@ -4844,7 +5268,7 @@
       }
       elements.connectedStatus.textContent = connectedLobbyOpen && summary
         ? `${summary.displayName} 개발 모드 열림: 선수 ${summary.players}/${summary.maxPlayers} / 관전자 ${summary.spectators}/${summary.maxSpectators}`
-        : "개발 연결은 ?devOnline=1에서만 열립니다.";
+        : (devOnlineEnabled ? "방장 페이지에서 방을 먼저 만들어야 합니다." : "개발 연결은 ?devOnline=1에서만 열립니다.");
     }
 
     function renderConnectedPackets() {

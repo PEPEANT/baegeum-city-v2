@@ -29,6 +29,7 @@ export function validateRestoredMarathonWebSocketDevServerMockContract() {
   if (!joined.ok || joined.joinResult.type !== "join_result") errors.push("server mock join should return join_result");
   const started = server.startRace(connected.transport, joined.room.roomId, { serverTimeMs: 1000 });
   if (!started.ok || started.room.phase !== "racing") errors.push("server mock should start a server-owned race");
+  assertServerStartPositionSeeding(errors);
   assertBotParticipantSeparation(errors);
   assertSpectatorAndChat(server, joined, errors);
   assertMovementAndAuthority(server, connected.transport, joined.room.roomId, errors);
@@ -95,6 +96,20 @@ function assertProviderFlow(server, connected, errors) {
   if (!canRestoredMarathonProviderSendInput(snapshotApplied.session)) errors.push("provider should unlock input after the first authoritative snapshot");
   assertProviderReconnectFlow(server, connected, joined, snapshotApplied.session, errors);
   return { joined, session: snapshotApplied.session };
+}
+
+function assertServerStartPositionSeeding(errors) {
+  const server = createRestoredMarathonWebSocketDevServerMock({ clock: () => 1200, course: { distanceMeters: 900 } });
+  const connected = server.connectClient({ clientId: "client:start-seed" });
+  const joined = server.joinRoom(connected.transport, { participantId: "runner:you", nickname: "Seed", sequence: 2, mapVersion: DEFAULT_MAP_VERSION });
+  const started = server.startRace(connected.transport, joined.room.roomId, {
+    runnerPositions: [{ participantId: "runner:you", progressPercent: 7.12, laneOffsetPx: 123 }]
+  });
+  const snapshot = server.createStateSnapshot(joined.room.roomId, { sequence: 8 });
+  const you = snapshot.snapshot?.payload.participants.find((participant) => participant.participantId === "runner:you");
+  if (!started.ok || you?.progressPercent !== 7.12 || you?.laneOffsetPx !== 123) {
+    errors.push("server race start should snapshot seeded paddock progress and lane immediately");
+  }
 }
 
 function assertProviderReconnectFlow(server, connected, joined, session, errors) {

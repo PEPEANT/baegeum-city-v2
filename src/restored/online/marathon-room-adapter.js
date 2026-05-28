@@ -1,5 +1,6 @@
 import { canUseRestoredOnlineLobby, createRestoredOnlineAdapterSnapshot, createRestoredUnavailableOnlineAdapter, validateRestoredOnlineAdapter } from "./online-adapter-contract.js";
 import { createRestoredMarathonChannelSet, validateRestoredMarathonChannelContract } from "./marathon-channel-adapter.js";
+import { createRestoredMarathonDevRoomRecord, createRestoredMarathonRoomsFromDevRegistry, validateRestoredMarathonDevRoomRegistryContract } from "./marathon-dev-room-registry.js";
 import { createRestoredMarathonNetcodeProfile, createRestoredMarathonPingSample, createRestoredMarathonReconciliationHint } from "./marathon-netcode-contract.js";
 import { createServerBackedMarathonRoomAdapter } from "./marathon-server-room-adapter.js";
 import { RESTORED_MARATHON_AUTHORITY, RESTORED_MARATHON_CONTRACT_VERSION, RESTORED_MARATHON_DEFAULT_MAX_SPECTATORS, RESTORED_MARATHON_MAX_RUNNERS, canJoinRestoredMarathonRoom, countRestoredMarathonRunners, countRestoredMarathonSpectators, createRestoredMarathonOnlinePacket, createRestoredMarathonParticipant, createRestoredMarathonRoom, validateRestoredMarathonOnlinePacket } from "../games/marathon-contract.js";
@@ -10,8 +11,7 @@ export { createServerBackedMarathonRoomAdapter } from "./marathon-server-room-ad
 
 const DEV_PROVIDER = "dev_marathon_room";
 const DEV_ROOM_ID = "room:singularity-race:dev-001";
-const DEFAULT_MAP_VERSION = "baegeum-city-v2-map-001";
-const DEFAULT_VENUE_SCHEMA_VERSION = "venue-schema-001";
+const DEFAULT_MAP_VERSION = "baegeum-city-v2-map-001", DEFAULT_VENUE_SCHEMA_VERSION = "venue-schema-001";
 
 export function createUnavailableMarathonRoomAdapter(reason = "dev_flag_missing") {
   return Object.freeze({
@@ -28,14 +28,16 @@ export function createUnavailableMarathonRoomAdapter(reason = "dev_flag_missing"
 
 export function createDevConnectedMarathonRoomAdapter(options = {}) {
   const serverTimeMs = Math.max(0, Number(options.serverTimeMs || 1000));
-  const room = createRestoredMarathonRoom({
-    roomId: options.roomId || DEV_ROOM_ID,
-    displayName: options.displayName || "Singularity Race Dev Room 001",
-    authority: RESTORED_MARATHON_AUTHORITY.SERVER_REQUIRED,
-    maxRunners: RESTORED_MARATHON_MAX_RUNNERS,
-    maxSpectators: options.maxSpectators ?? RESTORED_MARATHON_DEFAULT_MAX_SPECTATORS,
+  const devRoomInputs = Array.isArray(options.devRooms)
+    ? options.devRooms
+    : [createRestoredMarathonDevRoomRecord({
+      roomId: options.roomId || DEV_ROOM_ID,
+      displayName: options.displayName || "Singularity Race Dev Room 001",
+      maxSpectators: options.maxSpectators,
+      createdAtMs: serverTimeMs
+    })];
+  const rooms = createRestoredMarathonRoomsFromDevRegistry(devRoomInputs, {
     mapVersion: options.mapVersion || DEFAULT_MAP_VERSION,
-    phase: "lobby",
     serverTimeMs
   });
   return Object.freeze({
@@ -57,16 +59,14 @@ export function createDevConnectedMarathonRoomAdapter(options = {}) {
         lobbyEnabled: true
       }
     }),
-    channels: createRestoredMarathonChannelSet({ roomId: room.roomId }),
-    rooms: Object.freeze([room])
+    channels: createRestoredMarathonChannelSet({ roomId: rooms[0]?.roomId || DEV_ROOM_ID }),
+    rooms
   });
 }
 
 export function createMarathonRoomAdapterForMode(options = {}) {
   if (options.serverTransport) return createServerBackedMarathonRoomAdapter({ transport: options.serverTransport, rooms: options.serverRooms });
-  return options.devOnline
-    ? createDevConnectedMarathonRoomAdapter(options)
-    : createUnavailableMarathonRoomAdapter(options.reason);
+  return options.devOnline ? createDevConnectedMarathonRoomAdapter(options) : createUnavailableMarathonRoomAdapter(options.reason);
 }
 
 export function canOpenConnectedMarathonLobby(adapter) {
@@ -218,8 +218,12 @@ export function validateRestoredMarathonRoomAdapterContract() {
   const errors = validations.flatMap((validation) => validation.errors);
   const channelValidation = validateRestoredMarathonChannelContract();
   errors.push(...channelValidation.errors);
+  const roomRegistryValidation = validateRestoredMarathonDevRoomRegistryContract();
+  errors.push(...roomRegistryValidation.errors);
   if (canOpenConnectedMarathonLobby(unavailable)) errors.push("unavailable adapter opened a lobby");
   if (!canOpenConnectedMarathonLobby(connected)) errors.push("dev connected adapter did not open a lobby");
+  const emptyDevAdapter = createDevConnectedMarathonRoomAdapter({ devRooms: [] });
+  if (canOpenConnectedMarathonLobby(emptyDevAdapter)) errors.push("empty dev room registry must not expose a lobby");
   if (!join.ok) errors.push("dev join did not return join_result ok");
   if (summary?.maxSpectators !== RESTORED_MARATHON_DEFAULT_MAX_SPECTATORS) errors.push("room summary should expose spectator capacity");
   if (!spectatorJoin.ok) errors.push("spectator should be allowed to join a racing room");
@@ -242,6 +246,4 @@ function appendJoinedParticipant(room, request) {
   });
 }
 
-function joinFailure(reason) {
-  return Object.freeze({ ok: false, reason, joinRequest: null, joinResult: null, room: null, session: null });
-}
+function joinFailure(reason) { return Object.freeze({ ok: false, reason, joinRequest: null, joinResult: null, room: null, session: null }); }

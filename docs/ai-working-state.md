@@ -1,6 +1,94 @@
 # AI Working State
 
 Date: 2026-05-28
+Observed: Bug review found that `adminLaunch=1` could still show the race surface without any created dev room, the player page always preferred the first dev room instead of the host-selected room link, and dev chat/control storage still had global keys that could leak across room delete/recreate loops.
+Changed: Gated direct race launch behind an actually open dev room, added `roomId` to admin game links and player room selection, ordered the dev adapter around the requested room, moved race-control and test-bot commands to room-scoped storage keys, split room-scoped chat storage into `marathon-dev-chat-storage.js`, and cleared room packets/chat/control keys when a dev room is created or deleted.
+Verified: `node tools/check-restored-marathon-contract.cjs`, `node tools/check-size.cjs`, `git diff --check`, and `npm.cmd run check` passed. The marathon contract check now guards the no-room/direct-room launch tokens and room-scoped chat/control helpers. Browser verification confirmed no-room `adminLaunch=1` now stays on profile with no track visible, admin room links include the selected `roomId`, direct launch joins `room:singularity-race:dev-102` when requested, and chat no longer writes the global `singularity-race:chat:v1` key.
+Blocked: This is still local dev-room rehearsal. Public online still needs server-owned room creation, host auth, room-scoped chat history, and server-side start commands.
+Next: Continue toward the real online bridge by making server-owned room creation/host auth replace the local dev room registry, or add a browser smoke for the room create/delete/link flow if UI regressions continue.
+Do not: Let `adminLaunch=1` bypass room existence, let the player page silently join the first room when a room link is provided, or store active room commands/chat in global dev keys.
+
+Date: 2026-05-28
+Observed: Singularity Race dev online still exposed a default room whenever `?devOnline=1` was open, which made the admin page look like a room already existed and could also reuse stale room packets after a delete/recreate loop.
+Changed: Added a local dev room registry, made the dev adapter accept an explicit room list, changed the admin page so rooms start empty until the host creates one, added room create/settings/delete dialogs, disabled start/direct-game actions without an active room, and made new/deleted rooms clear their room-scoped packet relay.
+Verified: `node tools/check-restored-marathon-contract.cjs`, `node tools/check-size.cjs`, and `git diff --check` passed. Browser verification confirmed admin starts with no room, `방 만들기` opens a popup and creates an empty room, settings can rename/change spectator capacity, delete removes the room and packet rows, the player lobby blocks entry while no room exists, and the player lobby enables entry once a registry room exists.
+Blocked: This is still local dev-room rehearsal; public online still needs server-owned room creation, host auth, and persistent room settings.
+Next: Continue simplifying host UI around actual operator tasks and move real room creation behind the future WebSocket/Firebase server transport.
+Do not: Reintroduce an automatically visible dev room on `?devOnline=1` or let stale room packets repopulate a newly created room.
+
+Date: 2026-05-28
+Observed: The current three-stage Singularity Race course still read too short, especially the first horizontal start and the final vertical climb, and the race camera had no player-controlled zoom.
+Changed: Kept the three save/reward stages but stretched the log-curve geometry, expanded the player/admin track world to `9200x3600`, made the road gray with a darker yellow dashed center line, and added race-camera zoom with a `100%` default, mouse-wheel zoom on PC, mobile pinch zoom, and an options reset button.
+Verified: `node tools/smoke-singularity-race-camera.cjs`, `node tools/check-restored-marathon-contract.cjs`, `node tools/smoke-singularity-race-progression.cjs`, and `node tools/check-size.cjs` passed. Browser verification on `http://127.0.0.1:4173/singularity-race.html?devOnline=1&adminLaunch=1&resetProfile=1&t=long-map-default-zoom-check` confirmed the race screen uses a `9200px x 3600px` world, starts at `100%` zoom, still shows only save markers `1,2,3`, mouse wheel zooms the camera, the reset returns to `100%`, and simulated mobile pinch zoom reaches `150%`.
+Blocked: None for the long-map and camera-zoom pass.
+Next: Continue playtesting the longer curve to tune actual race pacing; the final public duration should still be server-owned balance, not this visual world size alone.
+Do not: Reintroduce five save points or make the race camera default to a non-100% zoom.
+
+Date: 2026-05-28
+Observed: Browser playtest showed the runner could stand at the start gate, but after GO the connected preview could still pull the runner backward because local prediction reconciled against an old lobby snapshot, and the dev server loop froze modern 2026 epoch milliseconds at an old 1e12 ms clamp.
+Changed: Connected race start now pins server reconciliation targets to the current paddock positions and publishes an immediate racing snapshot. The server loop and ping sampler now accept modern epoch millisecond timestamps, and server sprint speed is aligned with the current client Shift sprint prediction for the 900m dev course.
+Verified: `node tools/smoke-singularity-race-progression.cjs`, `node tools/check-restored-marathon-contract.cjs`, and `node tools/smoke-singularity-race-server-load.cjs` passed. Browser verification on `http://127.0.0.1:4173/singularity-race.html?devOnline=1&adminLaunch=1&resetProfile=1&t=sprint-clock-sync-browser-3` confirmed the start seed stayed at 7.12%, server snapshots advanced after GO, and Shift sprint no longer rubber-banded backward on release.
+Blocked: None for this start/reconciliation fix.
+Next: Run the remaining full check gate and continue live playtesting for long-course camera/skill/combat feel.
+Do not: Let connected prediction reconcile against stale lobby snapshots or reintroduce clock clamps below current epoch milliseconds.
+
+Date: 2026-05-28
+Observed: The Singularity Race start gate still felt like it had an invisible buffer before the race opened, and the gate disappeared instantly at GO instead of reading like a physical starting barrier.
+Changed: Reduced the pre-start paddock clearance to let runners stand nearly flush with the visible gate, added `gateOpenedAtMs` and a short gate open progress window, and changed the start gate node/CSS so it slides and rotates open briefly before leaving the track. The progression smoke now guards the close-gate clearance and visible open animation.
+Verified: `node tools/smoke-singularity-race-progression.cjs`, `node tools/check-restored-marathon-contract.cjs`, `node tools/smoke-singularity-race-render-budget.cjs`, and `node tools/check-size.cjs` passed. Browser verification on `http://127.0.0.1:4173/singularity-race.html?devOnline=1&adminLaunch=1&resetProfile=1&t=gate-open-check` confirmed the runner can move close to the gate and the gate enters `is-opening` with slide/rotation values before disappearing.
+Blocked: None for this gate-feel pass.
+Next: Continue tuning live start feel only after manual playtest confirms the gate timing is readable with 30 runners crowding the line.
+Do not: Reintroduce a wide invisible pre-start wall or remove the gate instantly on GO.
+
+Date: 2026-05-28
+Observed: The D-to-S checkpoint reward loop now grants temporary E skills, but a future corrupted server participant state could still pair a low reward grade with a stronger skill id unless the skill contract guarded that pairing directly.
+Changed: Added a reward-grade skill-pool validator, made `createRestoredMarathonSkillUse()` reject grade/skill mismatches, added server skill-state validation for mismatched rewards, and documented that the server skill boundary rejects D-grade state trying to fire S-grade skills.
+Verified: `node tools/check-restored-marathon-contract.cjs`, `node tools/smoke-singularity-race-combat-full-race.cjs`, `node tools/smoke-singularity-race-progression.cjs`, `node tools/smoke-singularity-race-server-load.cjs`, `node tools/check-size.cjs`, `git diff --check`, and `npm.cmd run check` passed.
+Blocked: Final D-to-S reward skin art and live balance tuning are still placeholders.
+Next: Tune D/C/B/A/S skill pool balance and later replace placeholder reward skins with final checkpoint reward art.
+Do not: Allow a server-held reward grade and skill id to drift apart, or let client-supplied skill ids decide public-online skill authority.
+
+Date: 2026-05-28
+Observed: Singularity Race had D-to-S checkpoint reward visuals, but the skill contract still allowed character identity to imply an E skill path. That did not match the intended loop where the base/profile skin has no skill and checkpoint rewards temporarily replace the active skill.
+Changed: Locked base/profile E use behind a no-reward state, split reward-grade rolling into `src/restored/games/marathon-reward-grade.js`, made checkpoint reward grade choose the active skill pool and charge state, added reward grade propagation through local action packets and server checkpoint/snapshot state, and disabled the mobile skill button until a current reward skill exists.
+Verified: `node tools/check-restored-marathon-contract.cjs`, `node tools/smoke-singularity-race-combat-full-race.cjs`, `node tools/smoke-singularity-race-progression.cjs`, `node tools/smoke-singularity-race-server-load.cjs`, `node tools/check-size.cjs`, `git diff --check`, and `npm.cmd run check` passed. A headless Chrome playthrough confirmed the race screen starts with the skill button disabled as `스킬보상 필요`, then after sprinting past the first checkpoint it becomes enabled as a D-to-S reward skill (`스킬C급 무제한` in that run).
+Blocked: Final D-to-S reward skin art and final skill balance values are still placeholders.
+Next: Balance the D/C/B/A/S skill pools and replace placeholder reward skins with final art when assets are ready.
+Do not: Let the profile skin, character id alone, or a client-supplied skill id become public-online authority for reward skills.
+
+Date: 2026-05-28
+Observed: Checkpoint rewards now rolled a placeholder D-to-S skin grade, but the reward was still mostly a cue/HUD value; without final skin art it did not visibly feel like the runner had received anything.
+Changed: Added a temporary runner reward visual state. When the player reaches a checkpoint, the awarded placeholder skin id/label/grade is copied onto the runner with an expiry time, and the race renderer shows a grade-colored aura plus D/C/B/A/S badge on the avatar for a short confirmation window.
+Verified: `node tools/check-restored-marathon-contract.cjs`, `node tools/smoke-singularity-race-combat-full-race.cjs`, `node tools/check-size.cjs`, `git diff --check`, and `npm.cmd run check` passed. Browser automation with the local race surface reached the first checkpoint and confirmed the player avatar had `is-reward-skin is-reward-grade-c`, `data-reward-grade="C"`, and the checkpoint cue showed the matching placeholder reward.
+Blocked: Final D-to-S skin illustrations are still not connected; this remains a temporary visual badge/aura.
+Next: Replace the temporary grade aura with real D-to-S reward skin art when assets arrive, and separately review connected-mode held-input cadence before calling dev-online movement final.
+Do not: Treat the temporary grade aura as permanent profile skin ownership or server-authoritative public reward state.
+
+Date: 2026-05-28
+Observed: The three-stage Singularity Race reward loop could assign character/skill rewards, but checkpoint arrival did not yet guarantee a visible D-to-S skin-grade result while final reward skin assets are still missing.
+Changed: Added a separate placeholder skin reward roll to the checkpoint reward contract. Each checkpoint reward now carries `placeholderSkin` with `D/C/B/A/S` grade, label, swatch, and placeholder asset status. The player race cue now shows the placeholder grade card near the runner on checkpoint arrival, and checkpoint reward packets carry placeholder skin id/label/grade for future server transport use.
+Verified: `node tools/check-restored-marathon-contract.cjs`, `node tools/smoke-singularity-race-combat-full-race.cjs`, `node tools/check-size.cjs`, `git diff --check`, and `npm.cmd run check` passed. The full-race smoke observed placeholder skin grades `A/B/C/D/S` during a 30-runner run, and browser snapshot verification confirmed the race page still renders the three-save-point course.
+Blocked: No final D-to-S checkpoint skin illustrations are connected yet; this is a visible placeholder grade reward only.
+Next: Replace placeholder skins with real grade-specific skin assets once the final character illustrations are provided.
+Do not: Tie placeholder skin grade to profile skin choice or make it authoritative client state in real online mode.
+
+Date: 2026-05-28
+Observed: The Singularity Race checkpoint reward loop still used five save/reward points, which made D-to-S character rerolls happen too often on the long marathon course.
+Changed: Reduced the current race loop to three save/reward stages at 28%, 58%, and 88%. The trail geometry, standalone race course meters, server checkpoint reward stage count, local action checkpoint rewards, contract checks, full-race combat smoke, and marathon plan now agree on the three-stage loop. The reward grade ramp is now stage 1 low D/C, stage 2 A-capable, and stage 3 S-capable.
+Verified: `node tools/check-restored-marathon-contract.cjs`, `node tools/smoke-singularity-race-combat-full-race.cjs`, `node tools/smoke-singularity-race-progression.cjs`, `node tools/smoke-singularity-race-server-load.cjs`, `node tools/check-size.cjs`, `node tools/smoke-singularity-race-render-budget.cjs`, `node tools/smoke-singularity-race-mobile-race-ui.cjs`, `node tools/smoke-singularity-race-camera.cjs`, `git diff --check` on touched files, and `npm.cmd run check` passed. Browser snapshot verification on `http://127.0.0.1:4173/singularity-race.html?devOnline=1&adminLaunch=1&resetProfile=1&t=three-stage-loop-check` showed the trail labelled only `1`, `2`, and `3`.
+Blocked: None.
+Next: Tune the distance/reward feel through a real playtest before changing the stage count again.
+Do not: Reintroduce five visible save/reward points in the current Singularity Race course unless the full course pacing is retuned.
+
+Date: 2026-05-28
+Observed: A `stale-command-check` player URL correctly opened the profile flow and existing smoke checks passed, but the player page's generic start-command listener did not force the command's `roomId` to match the current dev room before accepting a fresh countdown command.
+Changed: Scoped initial and broadcast-applied Singularity Race start commands to `DEV_ROOM_ID`, added control-contract assertions for mismatched room rejection, and extended the progression smoke so future room-control changes cannot accept another room's host start command.
+Verified: `node tools/check-restored-marathon-contract.cjs`, `node tools/smoke-singularity-race-progression.cjs`, `node tools/smoke-singularity-race-mobile-race-ui.cjs`, `node tools/check-size.cjs`, `git diff --check` on touched files, and `npm.cmd run check` passed. Browser verification on `http://127.0.0.1:4173/singularity-race.html?devOnline=1&resetProfile=1&t=stale-command-check` confirmed a wrong-room start command does not enter race, and a correct-room command still cannot skip nickname/skin profile setup.
+Blocked: None.
+Next: Re-run the targeted Singularity Race checks, full `npm run check`, and browser-recheck the stale-command URL.
+Do not: Accept host start commands without a matching room id, even in dev-only localStorage/BroadcastChannel rehearsal mode.
+
+Date: 2026-05-28
 Observed: The Singularity Race race-screen controls were still mixing PC keyboard labels with mobile controls. Mobile showed visible WASD buttons, the chat and play-status buttons duplicated state that should not be on the race surface, and the chat panel opened as a bottom overlay instead of staying available like the Drawing World chat reference.
 Changed: Reworked `singularity-race.html` race UI so chat stays open as a compact top-left overlay, the queue button sits below it without overlap, the old chat-toggle and play-status buttons are removed, the minimap is larger, and a top-right gear options button is present. PC now hides the circular mobile controls. Mobile now uses a text-free dragged circular joystick, a separate hold-to-run `달리기` button, and bottom attack/skill/chat input buttons. Updated the marathon plan and contract guard to reject the old visible WASD/chat-toggle/status controls. Added `tools/smoke-singularity-race-mobile-race-ui.cjs` to keep that PC/mobile split in `npm run check`.
 Verified: `node tools/check-restored-marathon-contract.cjs`, `node tools/smoke-singularity-race-mobile-race-ui.cjs`, `node tools/check-size.cjs`, `git diff --check` on touched files, and `npm.cmd run check` passed. Browser verification opened `http://127.0.0.1:4173/singularity-race.html?devOnline=1&adminLaunch=1&resetProfile=1&t=mobile-ui-pass-2`; desktop showed no mobile circular controls, mobile showed no visible WASD buttons, chat/minimap/queue did not overlap, the old buttons were absent, and joystick drag moved/released the thumb correctly.

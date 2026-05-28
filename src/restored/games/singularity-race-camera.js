@@ -14,7 +14,8 @@ export const DEFAULT_SINGULARITY_RACE_CAMERA_OPTIONS = Object.freeze({
   rotationSmoothing: 0.18,
   maxRotationStepRad: 0.045,
   anchorXRatio: 0.5,
-  anchorYRatio: 0.5
+  anchorYRatio: 0.5,
+  zoom: 1
 });
 
 export function createSingularityRaceAnchoredCamera({
@@ -36,6 +37,7 @@ export function createSingularityRaceAnchoredCamera({
     options: config
   });
   const angleRad = smoothSingularityRaceCameraRotation(previousAngleRad, targetAngleRad, config);
+  const scale = clampNumber(config.zoom, 0.65, 1.9);
   return Object.freeze({
     mode: "anchored",
     x: playerPixel.x - anchorX,
@@ -45,10 +47,11 @@ export function createSingularityRaceAnchoredCamera({
     playerX: playerPixel.x,
     playerY: playerPixel.y,
     angleRad,
-    scale: 1,
+    scale,
     counterRotationRad: -angleRad,
     transform: [
       `translate3d(${anchorX}px, ${anchorY}px, 0)`,
+      `scale(${scale})`,
       `rotate(${angleRad}rad)`,
       `translate3d(${-playerPixel.x}px, ${-playerPixel.y}px, 0)`
     ].join(" ")
@@ -95,8 +98,9 @@ export function resolveSingularityRaceScreenPointToTrackPercent({
     const angle = camera.angleRad || 0;
     const cos = Math.cos(angle);
     const sin = Math.sin(angle);
-    const dx = screenX - camera.anchorX;
-    const dy = screenY - camera.anchorY;
+    const scale = clampNumber(camera.scale || 1, 0.65, 1.9);
+    const dx = (screenX - camera.anchorX) / scale;
+    const dy = (screenY - camera.anchorY) / scale;
     return pixelsToTrackPercent({
       x: camera.playerX + (dx * cos) + (dy * sin),
       y: camera.playerY - (dx * sin) + (dy * cos)
@@ -120,6 +124,15 @@ export function validateSingularityRaceCameraContract() {
     worldWidth: 7600,
     worldHeight: 2600
   });
+  const zoomed = createSingularityRaceAnchoredCamera({
+    progress: 90,
+    playerPixel: { x: 5000, y: 900 },
+    viewportWidth: 1000,
+    viewportHeight: 600,
+    worldWidth: 7600,
+    worldHeight: 2600,
+    options: { zoom: 1.4 }
+  });
   const center = resolveSingularityRaceScreenPointToTrackPercent({
     screenX: camera.anchorX,
     screenY: camera.anchorY,
@@ -129,7 +142,8 @@ export function validateSingularityRaceCameraContract() {
   });
   if (Math.abs(startAngle) > 0.001) errors.push("start straight should stay unrotated");
   if (Math.abs(curveAngle) < 0.2) errors.push("curve section should rotate toward the road tangent");
-  if (!camera.transform.includes("rotate(")) errors.push("anchored camera must expose a CSS rotate transform");
+  if (!camera.transform.includes("rotate(") || !camera.transform.includes("scale(")) errors.push("anchored camera must expose CSS scale and rotate transforms");
+  if (Math.abs(zoomed.scale - 1.4) > 0.001) errors.push("camera zoom should preserve requested scale");
   if (Math.abs(center.x - (5000 / 7600 * 100)) > 0.01) errors.push("screen center should map back to player x");
   if (Math.abs(center.y - (900 / 2600 * 100)) > 0.01) errors.push("screen center should map back to player y");
   return Object.freeze({ ok: errors.length === 0, errors: Object.freeze(errors) });

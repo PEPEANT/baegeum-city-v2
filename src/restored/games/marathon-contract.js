@@ -18,7 +18,7 @@ const PACE_PROFILES = Object.freeze({
   recover: Object.freeze({ speedMetersPerSecond: 3.8, staminaPerSecond: 0.38 }),
   steady: Object.freeze({ speedMetersPerSecond: 5.2, staminaPerSecond: -0.04 }),
   push: Object.freeze({ speedMetersPerSecond: 6.4, staminaPerSecond: -0.14 }),
-  sprint: Object.freeze({ speedMetersPerSecond: 7.8, staminaPerSecond: -0.4 })
+  sprint: Object.freeze({ speedMetersPerSecond: 14.86, staminaPerSecond: -0.4 })
 });
 
 const DEFAULT_COURSE = Object.freeze({
@@ -74,7 +74,7 @@ export function createRestoredMarathonParticipant(options = {}) {
     slowUntilMs: Math.max(0, Number(options.slowUntilMs || 0)), stunnedUntilMs: Math.max(0, Number(options.stunnedUntilMs || 0)),
     actionLockedUntilMs: Math.max(0, Number(options.actionLockedUntilMs || 0)), attackCooldownUntilMs: Math.max(0, Number(options.attackCooldownUntilMs || 0)),
     lastAttackSequence: Math.max(0, Number(options.lastAttackSequence || 0)), lastSafeCheckpointIndex: Math.max(0, Number(options.lastSafeCheckpointIndex || 0)),
-    characterId: options.characterId || "runner:dororong", skillId: options.skillId || "skill:steady-boost", skillChargesRemaining: Math.max(0, Number(options.skillChargesRemaining || 0)), skillCooldownUntilMs: Math.max(0, Number(options.skillCooldownUntilMs || 0)), lastSkillSequence: Math.max(0, Number(options.lastSkillSequence || 0)),
+    characterId: options.characterId || "", skillId: options.skillId || "", rewardGrade: normalizeRewardGrade(options.rewardGrade || options.placeholderSkinGrade || options.skillGrade), skillChargesRemaining: Math.max(0, Number(options.skillChargesRemaining || 0)), skillCooldownUntilMs: Math.max(0, Number(options.skillCooldownUntilMs || 0)), lastSkillSequence: Math.max(0, Number(options.lastSkillSequence || 0)),
     lastCheckpointSequence: Math.max(0, Number(options.lastCheckpointSequence || 0)), lastRewardedCheckpointIndex: Math.max(0, Number(options.lastRewardedCheckpointIndex || 0)), lastFinishSequence: Math.max(0, Number(options.lastFinishSequence || 0)),
     pendingRespawnCheckpointIndex: options.pendingRespawnCheckpointIndex === null || options.pendingRespawnCheckpointIndex === undefined ? null : Math.max(0, Number(options.pendingRespawnCheckpointIndex || 0)),
     nextCheckpointIndex: Math.max(1, Number(options.nextCheckpointIndex || 1)),
@@ -227,6 +227,8 @@ export function validateRestoredMarathonOnlinePacket(packet) {
   return Object.freeze({ ok: errors.length === 0, errors: Object.freeze(errors) });
 }
 
+function normalizeRewardGrade(value) { const grade = String(value || "").toUpperCase(); return ["D", "C", "B", "A", "S"].includes(grade) ? grade : ""; }
+
 export function validateRestoredMarathonContract() {
   const errors = [];
   const course = createRestoredMarathonCourse();
@@ -236,9 +238,7 @@ export function validateRestoredMarathonContract() {
   if (room.maxRunners > RESTORED_MARATHON_MAX_RUNNERS) errors.push("room max runners exceeds contract limit");
   if (room.maxSpectators > RESTORED_MARATHON_MAX_SPECTATORS) errors.push("room max spectators exceeds contract limit");
   if (course.checkpointMeters[0] !== 0) errors.push("course must start with checkpoint 0");
-  if (course.checkpointMeters[course.checkpointMeters.length - 1] !== course.distanceMeters) {
-    errors.push("course must end with finish checkpoint");
-  }
+  if (course.checkpointMeters[course.checkpointMeters.length - 1] !== course.distanceMeters) errors.push("course must end with finish checkpoint");
   for (const phase of ["lobby", "countdown", "racing", "finished"]) {
     if (!RESTORED_MARATHON_PHASES.includes(phase)) errors.push(`missing phase: ${phase}`);
   }

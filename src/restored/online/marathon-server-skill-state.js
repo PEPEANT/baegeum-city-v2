@@ -1,5 +1,5 @@
 import { RESTORED_MARATHON_AUTHORITY, advanceRestoredMarathonParticipant, createRestoredMarathonParticipant, createRestoredMarathonRoom } from "../games/marathon-contract.js";
-import { createRestoredMarathonSkillUse, getRestoredMarathonCharacter, getRestoredMarathonSkill } from "../games/marathon-character-skill-contract.js";
+import { createRestoredMarathonSkillUse, getRestoredMarathonSkill } from "../games/marathon-character-skill-contract.js";
 
 export const RESTORED_MARATHON_SERVER_SKILL_STATE_VERSION = "restored-marathon-server-skill-state-001";
 const SKILL_LANE_TO_PROGRESS = 42;
@@ -32,9 +32,10 @@ export function applyRestoredMarathonServerSkillCommand(roomInput = {}, commandI
   if (command.sequence <= user.lastSkillSequence) return rejected("stale_skill", room);
   const nowMs = Math.max(room.serverTimeMs, command.receivedAtMs, command.raceTimeMs);
   if (user.hp <= 0 || nowMs < user.stunnedUntilMs || nowMs < user.actionLockedUntilMs) return rejected("participant_control_locked", room);
-  const skill = getRestoredMarathonSkill(user.skillId || getRestoredMarathonCharacter(user.characterId).skillId);
+  if (!user.skillId || !user.rewardGrade) return rejected("no_reward_skill", room);
+  const skill = getRestoredMarathonSkill(user.skillId);
   const use = createRestoredMarathonSkillUse({ participantId: user.participantId, characterId: user.characterId, skillId: skill.skillId,
-    chargesRemaining: user.skillChargesRemaining, cooldownRemainingMs: Math.max(0, user.skillCooldownUntilMs - nowMs) });
+    grade: user.rewardGrade, chargesRemaining: user.skillChargesRemaining, cooldownRemainingMs: Math.max(0, user.skillCooldownUntilMs - nowMs) });
   if (!use.allowed) return rejected(use.reason, room);
   const participants = [...room.participants];
   const updatedUser = applyUserSkillState(user, room, command, use, nowMs);
@@ -47,19 +48,25 @@ export function applyRestoredMarathonServerSkillCommand(roomInput = {}, commandI
 
 export function validateRestoredMarathonServerSkillStateContract() {
   const errors = [];
-  const hopRoom = skillRoom({ characterId: "runner:recommend-fairy", skillId: "skill:checkpoint-hop", skillChargesRemaining: 1 });
+  const hopRoom = skillRoom({ characterId: "runner:recommend-fairy", skillId: "skill:checkpoint-hop", rewardGrade: "A", skillChargesRemaining: 1 });
   const hopped = applyRestoredMarathonServerSkillEnvelope(hopRoom, skillEnvelope(1, "runner:a", 2000), { receivedAtMs: 2000 });
   if (!hopped.ok || hopped.participant.progressMeters <= 12 || hopped.participant.skillChargesRemaining !== 0) errors.push("server skill should consume charge and apply self effect");
   const spamRoom = skillRoom({ characterId: "runner:dororong", skillId: "skill:steady-boost", skillChargesRemaining: 0 });
   const boosted = applyRestoredMarathonServerSkillEnvelope(spamRoom, skillEnvelope(1, "runner:a", 2100), { receivedAtMs: 2100 });
   const cooldown = applyRestoredMarathonServerSkillEnvelope(boosted.room, skillEnvelope(2, "runner:a", 2300), { receivedAtMs: 2300 });
   if (!boosted.ok || cooldown.ok || cooldown.reason !== "cooldown") errors.push("server skill should reject cooldown spam");
-  const bumpRoom = skillRoom({ characterId: "runner:comment-berserker", skillId: "skill:side-bump", skillChargesRemaining: 0 });
+  const bumpRoom = skillRoom({ characterId: "runner:comment-berserker", skillId: "skill:side-bump", rewardGrade: "B", skillChargesRemaining: 0 });
   const bumped = applyRestoredMarathonServerSkillEnvelope(bumpRoom, skillEnvelope(1, "runner:a", 2400, "runner:b"), { receivedAtMs: 2400 });
   if (!bumped.ok || !bumped.target || bumped.target.stunnedUntilMs <= 2400 || bumped.target.laneOffsetPx === 0) errors.push("nearby server skill should affect a server-owned target");
   const spectator = createRestoredMarathonRoom({ ...bumpRoom, participants: [...bumpRoom.participants, { participantId: "spectator:test", type: "spectator" }] });
   const blocked = applyRestoredMarathonServerSkillEnvelope(spectator, skillEnvelope(1, "spectator:test", 2500), { receivedAtMs: 2500 });
   if (blocked.ok || blocked.reason !== "participant_cannot_skill") errors.push("spectators must not use runner skills");
+  const noRewardRoom = skillRoom({ characterId: "", skillId: "", rewardGrade: "", skillChargesRemaining: 0 });
+  const noReward = applyRestoredMarathonServerSkillEnvelope(noRewardRoom, skillEnvelope(1, "runner:a", 2600), { receivedAtMs: 2600 });
+  if (noReward.ok || noReward.reason !== "no_reward_skill") errors.push("server skill should require a checkpoint reward grade");
+  const mismatchRoom = skillRoom({ characterId: "runner:dororong", skillId: "skill:noise-burst", rewardGrade: "D", skillChargesRemaining: 1 });
+  const mismatch = applyRestoredMarathonServerSkillEnvelope(mismatchRoom, skillEnvelope(1, "runner:a", 2700), { receivedAtMs: 2700 });
+  if (mismatch.ok || mismatch.reason !== "skill_grade_mismatch") errors.push("server skill should reject grade and skill mismatches");
   return Object.freeze({ ok: errors.length === 0, errors: Object.freeze(errors) });
 }
 
@@ -118,5 +125,5 @@ function skillEnvelope(sequence, participantId, raceTimeMs, targetId = "") {
 function skillRoom(skillState) {
   return createRestoredMarathonRoom({ roomId: "room:skill:test", phase: "racing", authority: RESTORED_MARATHON_AUTHORITY.SERVER_REQUIRED,
     course: { distanceMeters: 120, checkpointMeters: [0, 60, 120] },
-    participants: [{ participantId: "runner:a", type: "player", progressMeters: 12, ...skillState }, { participantId: "runner:b", type: "player", progressMeters: 13, hp: 100 }] });
+    participants: [{ participantId: "runner:a", type: "player", progressMeters: 12, rewardGrade: "D", ...skillState }, { participantId: "runner:b", type: "player", progressMeters: 13, hp: 100 }] });
 }

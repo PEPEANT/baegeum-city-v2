@@ -2,6 +2,7 @@ export const RESTORED_MARATHON_NETCODE_CONTRACT_VERSION = "restored-marathon-net
 
 export const RESTORED_MARATHON_NETWORK_LANES = Object.freeze(["smooth", "buffered", "degraded", "critical"]);
 export const RESTORED_MARATHON_RATE_LIMITED_PACKET_TYPES = Object.freeze(["input_update", "skill_use", "attack_action", "checkpoint_reward", "respawn_notice"]);
+const MAX_CLOCK_MS = Number.MAX_SAFE_INTEGER;
 
 const DEFAULT_PROFILE = Object.freeze({
   maxRunners: 30, serverTickHz: 20, inputHz: 20, snapshotHz: 10, fullSnapshotHz: 1,
@@ -91,8 +92,8 @@ export function resolveRestoredMarathonVisualStep(previous = {}, target = {}, ti
 
 export function createRestoredMarathonPingSample(timing = {}, previousSample = {}, profileInput = {}) {
   const profile = createRestoredMarathonNetcodeProfile(profileInput);
-  const clientSentAtMs = clampNumber(timing.clientSentAtMs ?? timing.sentAtMs ?? 0, 0, 1000000000000), serverReceivedAtMs = clampNumber(timing.serverReceivedAtMs ?? clientSentAtMs, 0, 1000000000000);
-  const serverSentAtMs = clampNumber(timing.serverSentAtMs ?? serverReceivedAtMs, serverReceivedAtMs, 1000000000000), clientReceivedAtMs = clampNumber(timing.clientReceivedAtMs ?? serverSentAtMs, clientSentAtMs, 1000000000000);
+  const clientSentAtMs = clampNumber(timing.clientSentAtMs ?? timing.sentAtMs ?? 0, 0, MAX_CLOCK_MS), serverReceivedAtMs = clampNumber(timing.serverReceivedAtMs ?? clientSentAtMs, 0, MAX_CLOCK_MS);
+  const serverSentAtMs = clampNumber(timing.serverSentAtMs ?? serverReceivedAtMs, serverReceivedAtMs, MAX_CLOCK_MS), clientReceivedAtMs = clampNumber(timing.clientReceivedAtMs ?? serverSentAtMs, clientSentAtMs, MAX_CLOCK_MS);
   const rttMs = Math.max(0, clientReceivedAtMs - clientSentAtMs - Math.max(0, serverSentAtMs - serverReceivedAtMs)), pingMs = round2(rttMs / 2), previousPingMs = Number((previousSample || {}).pingMs);
   const jitterMs = round2(Number.isFinite(previousPingMs) ? Math.abs(pingMs - previousPingMs) : 0);
   const lane = chooseRestoredMarathonNetworkLane({ pingMs, jitterMs, packetLossPct: timing.packetLossPct ?? 0 }, profile);
@@ -188,6 +189,8 @@ export function validateRestoredMarathonNetcodeContract() {
   if (smoothed.x >= 240 || !smoothed.limited || !snapped.snapped || snapped.x !== 900) errors.push("visual smoothing should limit small jumps and snap huge corrections");
   const ping = createRestoredMarathonPingSample({ clientSentAtMs: 1000, serverReceivedAtMs: 1040, serverSentAtMs: 1044, clientReceivedAtMs: 1084 });
   if (ping.rttMs !== 80 || ping.pingMs !== 40 || !ping.serverOwned) errors.push("ping sample should measure server-owned round trip time");
+  const modernPing = createRestoredMarathonPingSample({ clientSentAtMs: 1779930000000, serverReceivedAtMs: 1779930000040, serverSentAtMs: 1779930000044, clientReceivedAtMs: 1779930000084 });
+  if (modernPing.pingMs !== 40) errors.push("ping sample must not clamp modern epoch timestamps");
   const reconcile = createRestoredMarathonReconciliationHint({ x: 0, y: 0, progress: 2 }, { x: 120, y: 0, progress: 3 }, { elapsedMs: 50 });
   if (reconcile.action !== "smooth" || reconcile.correctionPx !== 120 || reconcile.progressDelta !== 1) errors.push("reconciliation hint should classify server correction");
   const frames = coalesceRestoredMarathonInputFrames([

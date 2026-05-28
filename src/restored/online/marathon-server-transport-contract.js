@@ -129,6 +129,8 @@ export function createRestoredMarathonSkillEnvelope(skillUse = {}, options = {})
     participantId: skillUse.participantId || "",
     characterId: skillUse.characterId || "",
     skillId: skillUse.skillId || "",
+    rewardGrade: skillUse.rewardGrade || "",
+    skillGrade: skillUse.skillGrade || skillUse.rewardGrade || "",
     targetId: skillUse.targetId || ""
   }, options);
 }

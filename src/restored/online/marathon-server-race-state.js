@@ -24,12 +24,14 @@ export function applyRestoredMarathonServerCheckpointClaimEnvelope(roomInput = {
   const reward = assignRestoredMarathonCheckpointCharacter({
     participantId: participant.participantId,
     checkpointIndex,
+    stageCount: Math.max(1, room.course.checkpointMeters.length - 2),
     seed: command.seed || `${room.roomId}:${participant.participantId}:${checkpointIndex}`
   });
   const updated = createRestoredMarathonParticipant({
     ...participant,
     characterId: reward.character.characterId,
     skillId: reward.skill.skillId,
+    rewardGrade: reward.placeholderSkin.grade,
     skillChargesRemaining: reward.skill.maxCharges,
     skillCooldownUntilMs: 0,
     lastCheckpointSequence: command.sequence,
@@ -101,6 +103,8 @@ export function validateRestoredMarathonServerRaceStateContract() {
   const rewarded = applyRestoredMarathonServerCheckpointClaimEnvelope(checkpointRoom, checkpointEnvelope(2, "runner:a", 1), { receivedAtMs: 1000 });
   if (!rewarded.ok || rewarded.serverEnvelope?.type !== "checkpoint_reward") errors.push("server checkpoint claim should emit checkpoint_reward");
   if (!rewarded.participant.characterId || rewarded.participant.lastRewardedCheckpointIndex !== 1) errors.push("server checkpoint reward should update runner character state");
+  if (rewarded.participant.rewardGrade !== rewarded.serverEnvelope?.payload?.placeholderSkinGrade) errors.push("server runner reward grade should match the checkpoint skin reward");
+  if (!rewarded.serverEnvelope?.payload?.placeholderSkinGrade) errors.push("server checkpoint reward should carry placeholder skin grade");
   const duplicate = applyRestoredMarathonServerCheckpointClaimEnvelope(rewarded.room, checkpointEnvelope(3, "runner:a", 1), { receivedAtMs: 1100 });
   if (duplicate.ok || duplicate.reason !== "checkpoint_already_rewarded") errors.push("server checkpoint reward must not duplicate");
   const spectator = createRestoredMarathonRoom({ ...checkpointRoom, participants: [...checkpointRoom.participants, { participantId: "spectator:a", type: "spectator" }] });
@@ -143,7 +147,12 @@ function createCheckpointRewardEnvelope(room, participant, reward, command) {
     characterId: reward.character.characterId,
     characterLabel: reward.character.label,
     characterGrade: reward.character.grade,
+    placeholderSkinId: reward.placeholderSkin.skinId,
+    placeholderSkinLabel: reward.placeholderSkin.label,
+    placeholderSkinGrade: reward.placeholderSkin.grade,
+    rewardGrade: reward.placeholderSkin.grade,
     skillId: reward.skill.skillId,
+    skillGrade: reward.skill.grade,
     skillChargesRemaining: reward.skill.maxCharges,
     serverSeedHash: reward.serverSeedHash
   }, { clientId: "server:ws-dev", roomId: room.roomId, sequence: command.sequence + 1, serverTimeMs: Math.max(room.serverTimeMs, command.receivedAtMs) });

@@ -1,11 +1,9 @@
-export const RESTORED_MARATHON_TRAIL_GEOMETRY_VERSION = "restored-marathon-trail-geometry-001";
+export const RESTORED_MARATHON_TRAIL_GEOMETRY_VERSION = "restored-marathon-trail-geometry-002";
 
 export const RESTORED_MARATHON_TRAIL_SAVE_POINTS = Object.freeze([
-  Object.freeze({ index: 1, progressPercent: 18 }),
-  Object.freeze({ index: 2, progressPercent: 36 }),
-  Object.freeze({ index: 3, progressPercent: 54 }),
-  Object.freeze({ index: 4, progressPercent: 74 }),
-  Object.freeze({ index: 5, progressPercent: 90 })
+  Object.freeze({ index: 1, progressPercent: 28 }),
+  Object.freeze({ index: 2, progressPercent: 58 }),
+  Object.freeze({ index: 3, progressPercent: 88 })
 ]);
 
 export function listRestoredMarathonTrailSavePoints() {
@@ -25,8 +23,8 @@ export function createRestoredMarathonTrailSvgPath(steps = 92) {
 
 export function progressToRestoredMarathonTrailPoint(progressPercent = 0) {
   const t = clamp(Number(progressPercent) / 100, 0, 1);
-  const x = 4 + 88 * (1 - Math.pow(1 - t, 2.35));
-  const y = 83 - 76 * Math.pow(t, 4.15);
+  const x = 2 + 92 * (1 - Math.pow(1 - t, 3.1));
+  const y = 88 - 84 * Math.pow(t, 5.2);
   const tangent = estimateTangent(t);
   const normal = normalizeVector({ x: -tangent.y, y: tangent.x });
   return Object.freeze({
@@ -74,7 +72,7 @@ export function validateRestoredMarathonTrailGeometryContract() {
   const errors = [];
   const savePoints = listRestoredMarathonTrailSavePoints();
   const path = createRestoredMarathonTrailSvgPath();
-  if (savePoints.length !== 5) errors.push("trail must expose exactly five save points");
+  if (savePoints.length !== 3) errors.push("trail must expose exactly three save points");
   if (!path.startsWith("M") || !path.includes("L")) errors.push("trail path must be SVG-ready");
   for (let index = 1; index < savePoints.length; index += 1) {
     if (savePoints[index].progressPercent <= savePoints[index - 1].progressPercent) errors.push("save points must be ordered");
@@ -82,9 +80,9 @@ export function validateRestoredMarathonTrailGeometryContract() {
   const start = progressToRestoredMarathonTrailPoint(0);
   const finish = progressToRestoredMarathonTrailPoint(100);
   if (finish.x <= start.x || finish.y >= start.y) errors.push("trail must run from lower-left to upper-right");
-  if (savePoints.at(-1).y > 40) errors.push("fifth save point should sit on the vertical climb");
-  const mappedCenter = progressToRestoredMarathonMapPoint(54, { worldWidth: 7600, worldHeight: 2600, laneOffsetPx: 0, laneHalfWidthPx: 232, minPercent: 2, maxPercent: 98 });
-  const mappedLane = progressToRestoredMarathonMapPoint(54, { worldWidth: 7600, worldHeight: 2600, laneOffsetPx: 232, laneHalfWidthPx: 232, minPercent: 2, maxPercent: 98 });
+  if (savePoints.at(-1).y > 45) errors.push("third save point should sit on the vertical climb");
+  const mappedCenter = progressToRestoredMarathonMapPoint(58, { worldWidth: 7600, worldHeight: 2600, laneOffsetPx: 0, laneHalfWidthPx: 232, minPercent: 2, maxPercent: 98 });
+  const mappedLane = progressToRestoredMarathonMapPoint(58, { worldWidth: 7600, worldHeight: 2600, laneOffsetPx: 232, laneHalfWidthPx: 232, minPercent: 2, maxPercent: 98 });
   if (mappedCenter.x === mappedLane.x && mappedCenter.y === mappedLane.y) errors.push("map point lane offset must affect marker placement");
   return Object.freeze({ ok: errors.length === 0, errors: Object.freeze(errors) });
 }
@@ -107,7 +105,7 @@ function estimateTangent(t) {
 }
 
 function rawPoint(t) {
-  return { x: 4 + 88 * (1 - Math.pow(1 - t, 2.35)), y: 83 - 76 * Math.pow(t, 4.15) };
+  return { x: 2 + 92 * (1 - Math.pow(1 - t, 3.1)), y: 88 - 84 * Math.pow(t, 5.2) };
 }
 
 function normalizeVector(vector) {

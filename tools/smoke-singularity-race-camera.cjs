@@ -22,6 +22,7 @@ const cameraPath = path.join(root, "src", "restored", "games", "singularity-race
   });
   assert.equal(anchored.mode, "anchored", "race camera should use anchored follow mode.");
   assert.ok(anchored.counterRotationRad !== 0, "runner sprites need counter rotation on the curve.");
+  assert.ok(anchored.transform.includes("scale("), "race camera should expose zoom scale in its transform.");
 
   const center = camera.resolveSingularityRaceScreenPointToTrackPercent({
     screenX: anchored.anchorX,
@@ -32,6 +33,26 @@ const cameraPath = path.join(root, "src", "restored", "games", "singularity-race
   });
   assert.ok(Math.abs(center.x - (5200 / 7600 * 100)) < 0.01, "anchor x should map to player.");
   assert.ok(Math.abs(center.y - (880 / 2600 * 100)) < 0.01, "anchor y should map to player.");
+
+  const zoomed = camera.createSingularityRaceAnchoredCamera({
+    progress: 90,
+    playerPixel: { x: 5200, y: 880 },
+    viewportWidth: 1280,
+    viewportHeight: 720,
+    worldWidth: 7600,
+    worldHeight: 2600,
+    options: { zoom: 1.5 }
+  });
+  const zoomedCenter = camera.resolveSingularityRaceScreenPointToTrackPercent({
+    screenX: zoomed.anchorX,
+    screenY: zoomed.anchorY,
+    camera: zoomed,
+    worldWidth: 7600,
+    worldHeight: 2600
+  });
+  assert.equal(zoomed.scale, 1.5, "camera zoom option should become transform scale.");
+  assert.ok(Math.abs(zoomedCenter.x - center.x) < 0.01, "zoomed anchor should still map to player x.");
+  assert.ok(Math.abs(zoomedCenter.y - center.y) < 0.01, "zoomed anchor should still map to player y.");
 
   const fixed = camera.calculateSingularityRaceCameraTargetRotation(90, {
     worldWidth: 7600,

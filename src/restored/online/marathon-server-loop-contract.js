@@ -1,6 +1,7 @@
 import { createRestoredMarathonNetcodeProfile } from "./marathon-netcode-contract.js";
 
 export const RESTORED_MARATHON_SERVER_LOOP_VERSION = "restored-marathon-server-loop-001";
+const MAX_CLOCK_MS = Number.MAX_SAFE_INTEGER;
 
 export function createRestoredMarathonServerLoopConfig(options = {}) {
   const profile = createRestoredMarathonNetcodeProfile(options.profile);
@@ -19,7 +20,7 @@ export function createRestoredMarathonServerLoopConfig(options = {}) {
 
 export function planRestoredMarathonServerFrame(state = {}, options = {}) {
   const config = createRestoredMarathonServerLoopConfig(options);
-  const nowMs = clampNumber(state.nowMs ?? 0, 0, 1000000000000);
+  const nowMs = clampNumber(state.nowMs ?? 0, 0, MAX_CLOCK_MS);
   const lastTickAtMs = clampNumber(state.lastTickAtMs ?? 0, 0, nowMs);
   const lastSnapshotAtMs = clampNumber(state.lastSnapshotAtMs ?? 0, 0, nowMs);
   const rawTicksDue = Math.max(0, Math.floor((nowMs - lastTickAtMs) / config.tickIntervalMs));
@@ -83,6 +84,8 @@ export function validateRestoredMarathonServerLoopContract() {
   const hitch = planRestoredMarathonServerFrame({ nowMs: 1000, lastTickAtMs: 0, lastSnapshotAtMs: 0 });
   if (hitch.ticksDue !== 5 || hitch.droppedTicks <= 0) errors.push("loop plan should cap catch-up ticks after a hitch");
   if (hitch.snapshotsDue !== 3 || hitch.droppedSnapshots <= 0 || hitch.lastSnapshotAtMs !== 1000) errors.push("loop plan should drop stale snapshot backlog after a hitch");
+  const modern = planRestoredMarathonServerFrame({ nowMs: 1779930000100, lastTickAtMs: 1779930000000, lastSnapshotAtMs: 1779930000000 });
+  if (modern.ticksDue < 1 || !modern.snapshotDue) errors.push("loop plan must not clamp modern epoch timestamps into a frozen clock");
   const inputBatch = coalesceRestoredMarathonServerInputBatch([
     packet("runner:a", 1),
     packet("runner:a", 2),

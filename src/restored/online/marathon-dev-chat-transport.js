@@ -5,6 +5,10 @@ import {
   createRestoredMarathonChannelSet,
   findRestoredMarathonChannel
 } from "./marathon-channel-adapter.js";
+import {
+  createRestoredMarathonDevChatStorageKey,
+  inferRestoredMarathonRoomIdFromChannels
+} from "./marathon-dev-chat-storage.js";
 
 export const RESTORED_MARATHON_DEV_CHAT_TRANSPORT_VERSION = "restored-marathon-dev-chat-transport-001";
 export const RESTORED_MARATHON_CHAT_BROADCAST_NAME = "singularity-race:chat-relay:v1";
@@ -32,12 +36,14 @@ function createTransportContext(options) {
   const channels = options.channels?.length ? options.channels : createRestoredMarathonChannelSet();
   const role = options.role || "player";
   const broadcastName = options.broadcastName || RESTORED_MARATHON_CHAT_BROADCAST_NAME;
+  const roomId = options.roomId || inferRestoredMarathonRoomIdFromChannels(channels);
   return Object.freeze({
     channels,
+    roomId,
     role,
     clientId: options.clientId || `client:${role}:local`,
     storage: options.storage || createMemoryStorage(),
-    storageKey: options.storageKey || RESTORED_MARATHON_CHAT_STORAGE_KEY,
+    storageKey: options.storageKey || createRestoredMarathonDevChatStorageKey(roomId),
     messageLimit: Math.max(20, Number(options.messageLimit || 500)),
     clock: typeof options.clock === "function" ? options.clock : (() => 0),
     eventTarget: options.eventTarget || null,
@@ -125,7 +131,7 @@ function subscribeTransportMessages(context, onMessages) {
 
 function shouldAcceptBroadcast(context, event) {
   if (!event?.data || event.data.sourceClientId === context.clientId) return false;
-  return event.data.type === "chat_messages_updated";
+  return event.data.type === "chat_messages_updated" && event.data.storageKey === context.storageKey;
 }
 
 function closeTransportSubscription(context, onStorage) {
@@ -171,6 +177,7 @@ export function validateRestoredMarathonDevChatTransportContract() {
   const spectatorSent = spectatorTransport.submitMessage(sent.messages, { channelId: room.channelId, senderId: "spectator:test", senderType: "spectator", text: "watching" });
   if (!spectatorSent.ok) errors.push(`spectator room send should pass: ${spectatorSent.reason}`);
   if (transport.loadMessages().length !== spectatorSent.messages.length) errors.push("transport must reload saved messages");
+  if (transport.storageKey === RESTORED_MARATHON_CHAT_STORAGE_KEY) errors.push("dev chat should use room-scoped storage by default");
   unsubscribe();
   if (relayedCount !== spectatorSent.messages.length) errors.push("broadcast relay must notify another local client");
   let history = spectatorSent.messages;

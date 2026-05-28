@@ -15,6 +15,7 @@ function readNumberConstant(name) {
 
 async function main() {
   const input = await import(pathToFileURL(path.join(root, "src/restored/games/marathon-input-contract.js")));
+  const marathon = await import(pathToFileURL(path.join(root, "src/restored/games/marathon-contract.js")));
   const netcode = await import(pathToFileURL(path.join(root, "src/restored/online/marathon-netcode-contract.js")));
   const localSim = await import(pathToFileURL(path.join(root, "src/restored/games/singularity-race-local-sim.js")));
   const prediction = await import(pathToFileURL(path.join(root, "src/restored/games/singularity-race-prediction.js")));
@@ -26,6 +27,8 @@ async function main() {
   const sprintSpeed = readNumberConstant("LOCAL_SPRINT_PROGRESS_PER_SECOND");
   const stagingRunSpeed = readNumberConstant("LOCAL_STAGING_RUN_PROGRESS_PER_SECOND");
   const stagingSprintSpeed = readNumberConstant("LOCAL_STAGING_SPRINT_PROGRESS_PER_SECOND");
+  const gateClearance = readNumberConstant("START_GATE_CLEARANCE_PROGRESS");
+  const gateOpenAnimationMs = readNumberConstant("START_GATE_OPEN_ANIMATION_MS");
 
   assert.equal(railMaxProgress, 100, "race clamp must allow the visible finish line");
   assert(finishProgress >= 99 && finishProgress < railMaxProgress, "finish trigger must sit near the real finish");
@@ -41,6 +44,9 @@ async function main() {
   const runSecondsToFinish = Math.ceil((finishProgress - startProgress) / runSpeed);
   const sprintSecondsToFinish = Math.ceil((finishProgress - startProgress) / sprintSpeed);
   assertMovementSpeedFeel({ runSecondsToFinish, sprintSecondsToFinish, runSpeed, sprintSpeed, stagingRunSpeed, stagingSprintSpeed });
+  assert(gateClearance <= 0.12, "start paddock clamp should let runners stand close to the gate");
+  assert(gateOpenAnimationMs >= 650, "start gate should visibly open instead of disappearing");
+  assertServerSprintMatchesClient({ marathon, sprintSpeed });
 
   const network = assertNetcodePressure(netcode);
 
@@ -108,6 +114,17 @@ function assertMovementSpeedFeel(values) {
   assert(values.sprintSpeed >= values.runSpeed * 2, "Shift sprint must feel clearly faster than normal running");
 }
 
+function assertServerSprintMatchesClient({ marathon, sprintSpeed }) {
+  const moved = marathon.advanceRestoredMarathonParticipant(
+    marathon.createRestoredMarathonParticipant({ participantId: "runner:you" }),
+    { pace: "sprint", sequence: 1, raceTimeMs: 1000 },
+    1000,
+    { distanceMeters: 900 }
+  );
+  const serverSprintPercent = moved.progressMeters / 900 * 100;
+  assert(Math.abs(serverSprintPercent - sprintSpeed) <= 0.08, "server sprint speed should match connected client prediction");
+}
+
 function assertNetcodePressure(netcode) {
   const budget = netcode.estimateRestoredMarathonNetcodeBudget({ runnerCount: 30 });
   assert.equal(budget.withinPlayerBudget, true, "30-runner player bandwidth budget must fit");
@@ -148,12 +165,29 @@ function assertConnectedStartGuards() {
     "stale start commands must not unlock a fresh player staging session forever"
   );
   assert(
+    pageSource.includes("readSingularityRaceControlCommand(window.localStorage, DEV_ROOM_ID)") &&
+      pageSource.includes("roomId: DEV_ROOM_ID"),
+    "host start commands must be scoped to the current dev room"
+  );
+  assert(
+    pageSource.includes("state.screen === SINGULARITY_RACE_SCREENS.PROFILE && !readPlayerProfile()"),
+    "host start commands must not skip the first profile setup loop"
+  );
+  assert(
     pageSource.includes("startLocalCountdown(\"admin\", command)") && pageSource.includes("lastRaceControlCommandId = command.commandId"),
     "connected joins during an active countdown must preserve the admin start gate"
   );
   assert(
-    pageSource.includes("runnerPositions: createConnectedRaceStartPositions()"),
+    pageSource.includes("const runnerPositions = createConnectedRaceStartPositions()") && pageSource.includes("runnerPositions"),
     "connected dev server start must seed from the current start paddock positions"
+  );
+  assert(
+    pageSource.includes("pinConnectedRaceStartPositions") && pageSource.includes("publishConnectedStartSnapshot"),
+    "connected race start must pin and snapshot seeded positions before prediction can correct backward"
+  );
+  assert(
+    pageSource.includes("getStartGateOpenProgress") && pageSource.includes("gateOpenedAtMs") && pageSource.includes("is-opening"),
+    "start gate should remain briefly and animate open after countdown"
   );
   assert(
     pageSource.includes("advanceConnectedLocalPrediction") && pageSource.includes("preserveLocalPrediction"),

@@ -44,12 +44,16 @@ export function parseSingularityRaceControlCommand(value) {
 }
 
 export function readSingularityRaceControlCommand(storage, roomId = "") {
-  const command = parseSingularityRaceControlCommand(storage?.getItem?.(SINGULARITY_RACE_CONTROL_STORAGE_KEY));
+  const command = parseSingularityRaceControlCommand(storage?.getItem?.(
+    createSingularityRaceControlStorageKey(roomId)
+  ));
   return command && (!roomId || command.roomId === roomId) ? command : null;
 }
 
 export function readSingularityRaceTestBotsCommand(storage, roomId = "") {
-  const command = parseSingularityRaceControlCommand(storage?.getItem?.(SINGULARITY_RACE_TEST_BOTS_STORAGE_KEY));
+  const command = parseSingularityRaceControlCommand(storage?.getItem?.(
+    createSingularityRaceTestBotsStorageKey(roomId)
+  ));
   return command?.type === SINGULARITY_RACE_CONTROL_TYPES.SET_TEST_BOTS && (!roomId || command.roomId === roomId)
     ? command
     : null;
@@ -57,7 +61,7 @@ export function readSingularityRaceTestBotsCommand(storage, roomId = "") {
 
 export function writeSingularityRaceControlCommand(storage, command) {
   try {
-    storage?.setItem?.(SINGULARITY_RACE_CONTROL_STORAGE_KEY, JSON.stringify(command));
+    storage?.setItem?.(createSingularityRaceControlStorageKey(command?.roomId), JSON.stringify(command));
     return Object.freeze({ ok: true, command });
   } catch {
     return Object.freeze({ ok: false, reason: "storage_unavailable", command });
@@ -66,11 +70,19 @@ export function writeSingularityRaceControlCommand(storage, command) {
 
 export function writeSingularityRaceTestBotsCommand(storage, command) {
   try {
-    storage?.setItem?.(SINGULARITY_RACE_TEST_BOTS_STORAGE_KEY, JSON.stringify(command));
+    storage?.setItem?.(createSingularityRaceTestBotsStorageKey(command?.roomId), JSON.stringify(command));
     return Object.freeze({ ok: true, command });
   } catch {
     return Object.freeze({ ok: false, reason: "storage_unavailable", command });
   }
+}
+
+export function createSingularityRaceControlStorageKey(roomId = "") {
+  return createRoomStorageKey(SINGULARITY_RACE_CONTROL_STORAGE_KEY, roomId);
+}
+
+export function createSingularityRaceTestBotsStorageKey(roomId = "") {
+  return createRoomStorageKey(SINGULARITY_RACE_TEST_BOTS_STORAGE_KEY, roomId);
 }
 
 export function publishSingularityRaceControlCommand(broadcast, command) {
@@ -118,13 +130,40 @@ export function validateSingularityRaceControlContract() {
   const errors = [];
   const command = createSingularityRaceStartCountdownCommand({ nowMs: 1000, roomId: "room:test" });
   const bots = createSingularityRaceTestBotsCommand({ nowMs: 1000, roomId: "room:test", botCount: 29 });
+  const stored = new Map();
+  const storage = {
+    getItem(key) {
+      return stored.get(key) || null;
+    },
+    setItem(key, value) {
+      stored.set(key, String(value));
+    }
+  };
+  writeSingularityRaceControlCommand(storage, command);
+  writeSingularityRaceTestBotsCommand(storage, bots);
   if (command.type !== "start_countdown" || command.gateOpensAtMs !== 11000) errors.push("start countdown command must keep the 10 second gate delay");
   if (bots.type !== "set_test_bots" || bots.botCount !== 29) errors.push("test bot command must keep the requested bot count");
   if (!shouldAcceptSingularityRaceControlCommand(command, { nowMs: 1000 })) errors.push("future countdown command should be accepted");
   if (shouldAcceptSingularityRaceControlCommand(command, { nowMs: 12000 })) errors.push("expired countdown command should be ignored");
+  if (shouldAcceptSingularityRaceControlCommand(command, { roomId: "room:other", nowMs: 1000 })) errors.push("start commands from another room must be ignored");
+  if (readSingularityRaceControlCommand(storage, "room:other")) errors.push("stored commands from another room must not be read");
+  if (!stored.has(createSingularityRaceControlStorageKey("room:test"))) errors.push("start commands should be stored under a room-scoped key");
+  if (stored.has(SINGULARITY_RACE_CONTROL_STORAGE_KEY)) errors.push("start commands should not reuse the global key when roomId exists");
   if (!shouldAcceptSingularityRaceTestBotsCommand(bots, { roomId: "room:test" })) errors.push("test bot commands should be accepted for the matching room");
+  if (!readSingularityRaceTestBotsCommand(storage, "room:test")) errors.push("room-scoped test bot commands should be readable");
   if (getSingularityRaceControlPhaseLabel(null, 1000) !== "대기 중") errors.push("race control labels must stay Korean");
   return Object.freeze({ ok: errors.length === 0, errors: Object.freeze(errors) });
+}
+
+function createRoomStorageKey(baseKey, roomId = "") {
+  const safeId = String(roomId || "").trim();
+  return safeId ? `${baseKey}:${safeKey(safeId)}` : baseKey;
+}
+
+function safeKey(value) {
+  return String(value || "")
+    .trim()
+    .replace(/[^a-zA-Z0-9:_-]/g, "_");
 }
 
 function clampTime(value) {

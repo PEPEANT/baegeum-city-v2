@@ -1,7 +1,7 @@
 const DEFAULTS = Object.freeze({
   startLineProgress: 4,
   startPaddockMinProgress: 2.8,
-  startPaddockMaxProgress: 6.75,
+  startPaddockMaxProgress: 7.12,
   roadLaneHalfWidthPx: 232,
   railMaxProgress: 100
 });

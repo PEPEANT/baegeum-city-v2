@@ -109,6 +109,7 @@ export function createRestoredMarathonServerRunnerSnapshot(participantInput = {}
     lastRewardedCheckpointIndex: participant.lastRewardedCheckpointIndex,
     characterId: participant.characterId,
     skillId: participant.skillId,
+    rewardGrade: participant.rewardGrade,
     skillChargesRemaining: participant.skillChargesRemaining,
     skillCooldownUntilMs: participant.skillCooldownUntilMs,
     finishedAtMs: participant.finishedAtMs,

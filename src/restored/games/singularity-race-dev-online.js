@@ -75,7 +75,7 @@ export function mergeSingularityServerSnapshotRunners(existingRunners = [], snap
       slowUntilMs: Math.max(finiteNumber(participant.slowUntilMs, 0), finiteNumber(existing?.slowUntilMs, 0)),
       lastSafeCheckpointIndex: Math.max(finiteNumber(participant.lastSafeCheckpointIndex, 0), finiteNumber(existing?.lastSafeCheckpointIndex, 0)),
       lastRewardedCheckpointIndex: Math.max(finiteNumber(participant.lastRewardedCheckpointIndex, 0), finiteNumber(existing?.lastRewardedCheckpointIndex, 0)),
-      characterId: participant.characterId || existing?.characterId || "", skillId: participant.skillId || existing?.skillId || "", skillChargesRemaining: finiteNumber(participant.skillChargesRemaining, existing?.skillChargesRemaining ?? 0), skillCooldownUntilMs: finiteNumber(participant.skillCooldownUntilMs, existing?.skillCooldownUntilMs ?? 0),
+      characterId: participant.characterId || existing?.characterId || "", skillId: participant.skillId || existing?.skillId || "", rewardGrade: participant.rewardGrade || existing?.rewardGrade || "", skillChargesRemaining: finiteNumber(participant.skillChargesRemaining, existing?.skillChargesRemaining ?? 0), skillCooldownUntilMs: finiteNumber(participant.skillCooldownUntilMs, existing?.skillCooldownUntilMs ?? 0),
       collisionAtMs: existing?.collisionAtMs ?? 0,
       serverOwned: true,
       serverProgress,
