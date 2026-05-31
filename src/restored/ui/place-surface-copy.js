@@ -121,13 +121,13 @@ export const RESTORED_PLACE_SURFACE_COPY = Object.freeze({
       Object.freeze({ label: "휴대폰 연락처", tone: "slate", tab: "phone" })
     ]),
     cards: Object.freeze([
-      Object.freeze({ title: "Baegeum Marathon Stadium", status: "30 runner preview", copy: "Local player plus 29 bot runners; online room authority is prepared in the contract.", entryActionId: "marathon_stadium" })
+      Object.freeze({ title: "Baegeum Marathon Stadium", status: "50 runner preview", copy: "Local player plus bot runners up to the room cap; online room authority is prepared in the contract.", entryActionId: "marathon_stadium" })
     ])
   }),
   marathon_stadium: Object.freeze({
     meta: "Baegeum City",
     title: "Baegeum Marathon Stadium",
-    copy: "A local 2D marathon preview with 30 runners. Connected rooms will open only after the online adapter is ready.",
+    copy: "A local 2D marathon preview with up to 50 runners. Connected rooms will open only after the online adapter is ready.",
     actions: Object.freeze([Object.freeze({ label: "Local Preview", tone: "indigo", message: "Use the pace buttons in the stadium panel." })])
   }),
   casino_street: Object.freeze({

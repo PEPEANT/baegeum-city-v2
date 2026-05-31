@@ -1,11 +1,12 @@
 import { calculateRestoredMarathonSpeedScale, progressToRestoredMarathonTrailPoint } from "./marathon-trail-geometry.js";
+import { resolveSingularityRaceLaneBoundary, resolveSingularityRaceTrackMovement } from "./singularity-race-movement-vector.js";
 
 export const SINGULARITY_RACE_PREDICTION_VERSION = "singularity-race-prediction-001";
 
-const DEFAULT_RUN_PROGRESS_PER_SECOND = 0.62;
-const DEFAULT_SPRINT_PROGRESS_PER_SECOND = 1.75;
-const DEFAULT_LANE_SPEED_PX_PER_SECOND = 150;
-const DEFAULT_LANE_SPRINT_SPEED_PX_PER_SECOND = 210;
+const DEFAULT_RUN_PROGRESS_PER_SECOND = 0.58;
+const DEFAULT_SPRINT_PROGRESS_PER_SECOND = 0.76;
+const DEFAULT_LANE_SPEED_PX_PER_SECOND = 122;
+const DEFAULT_LANE_SPRINT_SPEED_PX_PER_SECOND = 160;
 const DEFAULT_MIN_PROGRESS = 2.5;
 const DEFAULT_MAX_PROGRESS = 100;
 const DEFAULT_LANE_HALF_WIDTH_PX = 232;
@@ -30,13 +31,16 @@ export function advanceSingularityRaceLocalPrediction(runnerInput = {}, frameInp
   const maxProgress = finiteNumber(options.maxProgress, DEFAULT_MAX_PROGRESS);
   const laneHalfWidthPx = positiveNumber(options.laneHalfWidthPx, DEFAULT_LANE_HALF_WIDTH_PX);
   const trailPoint = progressToRestoredMarathonTrailPoint(finiteNumber(runner.progress, minProgress));
+  const movement = resolveSingularityRaceTrackMovement(direction, trailPoint);
   const speedScale = calculateRestoredMarathonSpeedScale(trailPoint.tangent);
-  const progress = clampNumber(finiteNumber(runner.progress, minProgress) + direction.x * progressSpeed * speedScale * elapsedSeconds, minProgress, maxProgress);
-  const laneOffsetPx = clampNumber(finiteNumber(runner.laneOffsetPx, 0) + direction.y * laneSpeed * elapsedSeconds, -laneHalfWidthPx, laneHalfWidthPx);
+  const progress = clampNumber(finiteNumber(runner.progress, minProgress) + movement.forward * progressSpeed * speedScale * elapsedSeconds, minProgress, maxProgress);
+  const laneBoundary = resolveSingularityRaceLaneBoundary(runner.laneOffsetPx, movement.lateral * laneSpeed * elapsedSeconds, laneHalfWidthPx);
   return reconcileSingularityRaceLocalPrediction({
     ...runner,
     progress,
-    laneOffsetPx,
+    laneOffsetPx: laneBoundary.laneOffsetPx,
+    laneBoundarySide: laneBoundary.boundarySide,
+    laneBoundaryTouched: laneBoundary.touchedBoundary,
     clientPredicted: true,
     clientPredictionVersion: SINGULARITY_RACE_PREDICTION_VERSION
   }, { ...options, elapsedSeconds });
@@ -84,9 +88,9 @@ export function validateSingularityRacePredictionContract() {
   const errors = [];
   const moved = advanceSingularityRaceLocalPrediction({
     id: "you",
-    progress: 10,
+    progress: 5,
     laneOffsetPx: 0,
-    serverProgress: 10,
+    serverProgress: 5,
     serverLaneOffsetPx: 0
   }, {
     mode: "sprint",
@@ -97,7 +101,17 @@ export function validateSingularityRacePredictionContract() {
     laneHalfWidthPx: 232,
     correctionFactor: 0
   });
-  if (moved.progress <= 10 || moved.laneOffsetPx >= 0) errors.push("prediction must move instantly from local input");
+  if (moved.progress <= 5 || moved.laneOffsetPx >= 0) errors.push("prediction must move instantly from local input");
+  const uphillProgress = findUphillProgress();
+  const uphill = advanceSingularityRaceLocalPrediction({
+    id: "you",
+    progress: uphillProgress,
+    laneOffsetPx: 0
+  }, {
+    mode: "sprint",
+    direction: { x: 0, y: -1 }
+  }, 1, { sprintProgressPerSecond: 1, correctionFactor: 0 });
+  if (uphill.progress <= uphillProgress) errors.push("W should advance progress on upward trail segments");
   const smoothed = reconcileSingularityRaceLocalPrediction({
     progress: 10.5,
     laneOffsetPx: 20,
@@ -135,6 +149,13 @@ function normalizeDirection(direction = {}) {
     x: clampNumber(direction.x ?? 0, -1, 1),
     y: clampNumber(direction.y ?? 0, -1, 1)
   });
+}
+
+function findUphillProgress() {
+  for (let progress = 5; progress <= 95; progress += 0.5) {
+    if (progressToRestoredMarathonTrailPoint(progress).tangent.y < -0.18) return progress;
+  }
+  return 70;
 }
 
 function valueResult(value, delta, snapped) {

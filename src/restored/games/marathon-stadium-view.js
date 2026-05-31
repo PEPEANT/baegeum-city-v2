@@ -80,7 +80,7 @@ export function renderRestoredMarathonStadiumHtml(stateInput = null) {
     <div class="col-span-1 sm:col-span-2 space-y-4">
       <div class="rounded-2xl border border-slate-200 bg-slate-950 p-4 text-white shadow-sm">
         <div class="flex items-center justify-between gap-3">
-          <div><div class="text-xs font-black uppercase text-cyan-300">Local 30 Runner Preview</div><div class="mt-1 text-lg font-black">Baegeum Marathon Stadium</div></div>
+          <div><div class="text-xs font-black uppercase text-cyan-300">Local ${RESTORED_MARATHON_MAX_RUNNERS} Runner Preview</div><div class="mt-1 text-lg font-black">Baegeum Marathon Stadium</div></div>
           <div class="flex items-center gap-2"><button onclick="startRestoredMarathonPreview()" class="rounded-full border border-white/10 bg-white/10 px-3 py-1 text-xs font-black active:scale-95">Reset</button><div class="rounded-full border border-white/10 bg-white/10 px-3 py-1 text-xs font-black">${formatRaceTime(state.raceTimeMs)}</div></div>
         </div>
         <div class="mt-4 h-40 rounded-2xl border border-cyan-400/30 bg-[radial-gradient(circle_at_center,#164e63,#0f172a_62%)] p-4">
@@ -151,7 +151,7 @@ export function validateRestoredMarathonStadiumView() {
   const html = renderRestoredMarathonStadiumHtml(state);
   const advanced = advanceRestoredMarathonPreviewState(state, "push");
   const errors = [];
-  if (state.participants.length !== RESTORED_MARATHON_MAX_RUNNERS) errors.push("local preview must seed 30 runners");
+  if (state.participants.length !== RESTORED_MARATHON_MAX_RUNNERS) errors.push("local preview must seed the runner cap");
   if (advanced.raceTimeMs !== TICK_MS) errors.push("preview should advance by one deterministic tick");
   if (advanced.participants[0].progressMeters <= state.participants[0].progressMeters) errors.push("player should advance");
   if (createPreviewPacketRail(state).length !== 4) errors.push("online packet rail must expose four packet previews");

@@ -7,6 +7,7 @@ const root = path.resolve(__dirname, "..");
 async function main() {
   const serverModule = await import(pathToFileURL(path.join(root, "src/restored/online/marathon-websocket-dev-server-mock.js")));
   const transportModule = await import(pathToFileURL(path.join(root, "src/restored/online/marathon-server-transport-contract.js")));
+  const trailGeometry = await import(pathToFileURL(path.join(root, "src/restored/games/marathon-trail-geometry.js")));
   let now = 0;
   const server = serverModule.createRestoredMarathonWebSocketDevServerMock({
     clock: () => now,
@@ -30,7 +31,7 @@ async function main() {
       participantId: "runner:server-state",
       pace: "sprint",
       raceTimeMs: now,
-      direction: { x: 1, y: 0 }
+      direction: directionForParticipant(trailGeometry, room, "runner:server-state")
     }, { clientId: connected.transport.clientId, roomId: room.roomId, sequence, serverTimeMs: now });
     const result = server.ingestClientEnvelope(connected.transport, input, { receivedAtMs: now, elapsedMs: 1000 });
     assert.equal(result.ok, true, `server input ${sequence} should be accepted`);
@@ -49,6 +50,13 @@ async function main() {
   assert.equal(row.progressMeters, 120, "snapshot should carry the authoritative finish position");
   console.log("singularity race server state smoke ok");
   console.log(JSON.stringify({ finishTimeMs: runner.finishedAtMs, lastSequence: runner.lastSequence, progressMeters: row.progressMeters }, null, 2));
+}
+
+function directionForParticipant(trailGeometry, room, participantId) {
+  const participant = room.participants.find((item) => item.participantId === participantId);
+  const progressPercent = room.course.distanceMeters > 0 ? (participant?.progressMeters || 0) / room.course.distanceMeters * 100 : 0;
+  const point = trailGeometry.progressToRestoredMarathonTrailPoint(progressPercent);
+  return Object.freeze({ x: point.tangent.x, y: point.tangent.y });
 }
 
 main().catch((error) => {

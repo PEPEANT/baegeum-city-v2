@@ -17,22 +17,22 @@ async function main() {
   const control = await import(pathToFileURL(path.join(root, "src/restored/games/singularity-race-control.js")));
   const storage = createMemoryStorage();
   const roomId = "room:singularity-race:dev-001";
-  const add = control.createSingularityRaceTestBotsCommand({ nowMs: 1000, roomId, botCount: 30 });
+  const add = control.createSingularityRaceTestBotsCommand({ nowMs: 1000, roomId, botCount: 50 });
   const clear = control.createSingularityRaceTestBotsCommand({ nowMs: 2000, roomId, botCount: 0 });
 
   assert.equal(add.type, "set_test_bots", "host test-bot command must use a separate command type");
-  assert.equal(add.botCount, 30, "host can request a 30-runner rehearsal pack");
+  assert.equal(add.botCount, 50, "host can request a 50-runner rehearsal pack");
   assert(control.shouldAcceptSingularityRaceTestBotsCommand(add, { roomId }), "matching room test-bot command should be accepted");
   assert.equal(control.shouldAcceptSingularityRaceTestBotsCommand(add, { roomId: "room:other" }), false, "wrong room test-bot command should be ignored");
 
   control.writeSingularityRaceTestBotsCommand(storage, add);
-  assert.equal(control.readSingularityRaceTestBotsCommand(storage, roomId).botCount, 30, "stored test-bot command should replay");
+  assert.equal(control.readSingularityRaceTestBotsCommand(storage, roomId).botCount, 50, "stored test-bot command should replay");
   control.writeSingularityRaceTestBotsCommand(storage, clear);
   assert.equal(control.readSingularityRaceTestBotsCommand(storage, roomId).botCount, 0, "clear command should persist zero bots");
 
-  assert(html.includes("runners: createRunners(1, initialSkin, false)"), "player page must not auto-seed 30 runners on load");
+  assert(html.includes("runners: createRunners(1, initialSkin, false)"), "player page must not auto-seed a full runner pack on load");
   assert(!html.includes("adminLaunchEnabled ? MAX_RUNNERS : 1"), "adminLaunch must not auto-fill the player page");
-  assert(!html.includes("state.runners = createRunners(MAX_RUNNERS, state.selectedSkin, state.ready)"), "player debug button must not create a local 30-runner pack");
+  assert(!html.includes("state.runners = createRunners(MAX_RUNNERS, state.selectedSkin, state.ready)"), "player debug button must not create a local full-runner pack");
   assert(html.includes("botCount: state.testBotTargetCount"), "player page should pass host bot count into the dev runtime");
   assert(html.includes("const participantType = isLocalPlayer ? \"player\" : \"bot\""), "dev runtime should join test bots as bot participants");
   assert(html.includes("role: participantType"), "dev runtime should connect test bots with a bot role");

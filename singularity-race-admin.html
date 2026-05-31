@@ -270,6 +270,12 @@
       background: rgba(126, 224, 143, 0.12);
     }
 
+    .room-card.is-closed {
+      border-color: rgba(255, 105, 105, 0.42);
+      background: rgba(255, 105, 105, 0.08);
+      opacity: 0.82;
+    }
+
     .room-card strong,
     .runner-row strong {
       display: block;
@@ -585,7 +591,7 @@
       </div>
       <nav class="top-actions" aria-label="빠른 이동">
         <button class="button is-primary" id="admin-create-room-button" type="button">방 만들기</button>
-        <a class="is-primary" id="admin-direct-game-link" href="./singularity-race.html?devOnline=1&amp;adminLaunch=1">게임 보기</a>
+        <a class="is-primary" id="admin-direct-game-link" href="./singularity-race.html?devOnline=1&amp;adminLaunch=1">관리자 직접 보기</a>
         <a id="admin-lobby-link" href="./singularity-race.html?devOnline=1">로비</a>
       </nav>
     </header>
@@ -615,8 +621,10 @@
             <button class="button" id="admin-add-bots-button" type="button">봇 넣기</button>
             <button class="button" id="admin-clear-bots-button" type="button">봇 비우기</button>
             <button class="button" id="admin-room-settings-button" type="button">방 설정</button>
-            <button class="button is-warn" id="admin-delete-room-button" type="button">방 삭제</button>
+            <button class="button is-warn" id="admin-delete-room-button" type="button">방 종료</button>
+            <button class="button is-warn" id="admin-remove-room-button" type="button">방 삭제</button>
             <button class="button is-warn" id="camera-all-button" type="button">전체 보기</button>
+            <button class="button" id="admin-observer-button" type="button">옵저버 참석</button>
           </div>
           <p class="muted" id="admin-start-status">대기 중</p>
         </div>
@@ -702,7 +710,7 @@
         </label>
         <label>
           테스트 봇 수
-          <input id="room-bot-input" type="number" min="0" max="30" step="1" value="0" />
+          <input id="room-bot-input" type="number" min="0" max="50" step="1" value="0" />
         </label>
         <div class="dialog-actions">
           <button class="button" id="room-cancel-button" type="button">취소</button>
@@ -713,11 +721,22 @@
 
     <dialog class="admin-dialog" id="room-delete-dialog">
       <form class="dialog-form" id="room-delete-form" method="dialog">
-        <h2>방 삭제</h2>
-        <p class="muted" id="room-delete-copy">선택한 방을 삭제합니다.</p>
+        <h2>방 종료</h2>
+        <p class="muted" id="room-delete-copy">선택한 방을 종료하고 재입장을 막습니다.</p>
         <div class="dialog-actions">
           <button class="button" id="room-delete-cancel-button" type="button">취소</button>
-          <button class="button is-warn" id="room-delete-confirm-button" type="submit">삭제</button>
+          <button class="button is-warn" id="room-delete-confirm-button" type="submit">종료</button>
+        </div>
+      </form>
+    </dialog>
+
+    <dialog class="admin-dialog" id="room-remove-dialog">
+      <form class="dialog-form" id="room-remove-form" method="dialog">
+        <h2>방 삭제</h2>
+        <p class="muted" id="room-remove-copy">선택한 방을 목록과 로컬 기록에서 삭제합니다.</p>
+        <div class="dialog-actions">
+          <button class="button" id="room-remove-cancel-button" type="button">취소</button>
+          <button class="button is-warn" id="room-remove-confirm-button" type="submit">삭제</button>
         </div>
       </form>
     </dialog>
@@ -736,6 +755,7 @@
       writeRestoredMarathonRoomPolicy
     } from "./src/restored/online/marathon-room-policy.js";
     import {
+      closeRestoredMarathonDevRoom,
       createRestoredMarathonDevRoomId,
       createRestoredMarathonDevRoomRecord,
       deleteRestoredMarathonDevRoom,
@@ -758,16 +778,22 @@
       createRestoredMarathonDevRoomTransport
     } from "./src/restored/online/marathon-dev-room-transport.js";
     import {
+      RESTORED_MARATHON_WORLD_HEIGHT,
+      RESTORED_MARATHON_WORLD_WIDTH,
       createRestoredMarathonTrailSvgPath,
       listRestoredMarathonTrailSavePoints,
       progressToRestoredMarathonTrailPoint,
       progressToRestoredMarathonMapPoint
     } from "./src/restored/games/marathon-trail-geometry.js";
     import {
+      RESTORED_MARATHON_MAX_RUNNERS
+    } from "./src/restored/games/marathon-contract.js";
+    import {
       getPlayableSkinPresets,
       getPresetSkinDataUrl
     } from "./src/skins/drawing-world-adapter.js";
     import {
+      createSingularityRaceRoomClosedCommand,
       createSingularityRaceStartCountdownCommand,
       createSingularityRaceTestBotsCommand,
       createSingularityRaceControlStorageKey,
@@ -779,10 +805,10 @@
       writeSingularityRaceTestBotsCommand
     } from "./src/restored/games/singularity-race-control.js";
 
-    const MAX_RUNNERS = 30;
+    const MAX_RUNNERS = RESTORED_MARATHON_MAX_RUNNERS;
     const COURSE_METERS = 42195;
-    const TRACK_WORLD_WIDTH = 9200;
-    const TRACK_WORLD_HEIGHT = 3600;
+    const TRACK_WORLD_WIDTH = RESTORED_MARATHON_WORLD_WIDTH;
+    const TRACK_WORLD_HEIGHT = RESTORED_MARATHON_WORLD_HEIGHT;
     const ROAD_LANE_HALF_WIDTH_PX = 232;
     const DEFAULT_DEV_ROOM_ID = "room:singularity-race:dev-001";
     const ADMIN_SELECTED_ROOM_STORAGE_KEY = "singularity-race:admin-selected-room:v1";
@@ -803,8 +829,9 @@
       devRooms: orderedDevRooms
     });
     const adapterValidation = validateRestoredMarathonRoomAdapter(adapter);
-    const connected = adapterValidation.ok && canOpenConnectedMarathonLobby(adapter);
     const rooms = getConnectedMarathonRoomSummaries(adapter);
+    const activeRoomClosed = activeDevRoom?.phase === "closed" || rooms[0]?.phase === "abandoned";
+    const connected = adapterValidation.ok && canOpenConnectedMarathonLobby(adapter) && !activeRoomClosed;
     const roomPolicy = readRestoredMarathonRoomPolicy(window.localStorage, activeRoomId, initialRoomPolicy);
     const channels = adapter.channels?.length ? adapter.channels : createRestoredMarathonChannelSet({ roomId: activeRoomId });
     const visibleChannels = filterVisibleRestoredMarathonChannels(channels, connected ? "admin" : "spectator")
@@ -839,11 +866,14 @@
       spectatorPolicyNote: document.querySelector("#spectator-policy-note"),
       createRoomButton: document.querySelector("#admin-create-room-button"),
       directGameLink: document.querySelector("#admin-direct-game-link"),
+      lobbyLink: document.querySelector("#admin-lobby-link"),
       startButton: document.querySelector("#admin-start-button"),
       addBotsButton: document.querySelector("#admin-add-bots-button"),
       clearBotsButton: document.querySelector("#admin-clear-bots-button"),
       roomSettingsButton: document.querySelector("#admin-room-settings-button"),
       deleteRoomButton: document.querySelector("#admin-delete-room-button"),
+      removeRoomButton: document.querySelector("#admin-remove-room-button"),
+      observerButton: document.querySelector("#admin-observer-button"),
       startStatus: document.querySelector("#admin-start-status"),
       cameraAll: document.querySelector("#camera-all-button"),
       cameraTitle: document.querySelector("#camera-title"),
@@ -873,7 +903,11 @@
       roomDeleteDialog: document.querySelector("#room-delete-dialog"),
       roomDeleteForm: document.querySelector("#room-delete-form"),
       roomDeleteCopy: document.querySelector("#room-delete-copy"),
-      roomDeleteCancelButton: document.querySelector("#room-delete-cancel-button")
+      roomDeleteCancelButton: document.querySelector("#room-delete-cancel-button"),
+      roomRemoveDialog: document.querySelector("#room-remove-dialog"),
+      roomRemoveForm: document.querySelector("#room-remove-form"),
+      roomRemoveCopy: document.querySelector("#room-remove-copy"),
+      roomRemoveCancelButton: document.querySelector("#room-remove-cancel-button")
     };
     const state = {
       selectedRunnerId: "",
@@ -903,8 +937,14 @@
 
     elements.deleteRoomButton.addEventListener("click", () => {
       if (!activeDevRoom) return;
-      elements.roomDeleteCopy.textContent = `${activeDevRoom.displayName} 방을 삭제합니다.`;
+      elements.roomDeleteCopy.textContent = `${activeDevRoom.displayName} 방을 종료하고 입장을 막습니다.`;
       openDialog(elements.roomDeleteDialog);
+    });
+
+    elements.removeRoomButton.addEventListener("click", () => {
+      if (!activeDevRoom) return;
+      elements.roomRemoveCopy.textContent = `${activeDevRoom.displayName} 방을 완전히 삭제합니다. 진행 중인 유저는 방에서 나가집니다.`;
+      openDialog(elements.roomRemoveDialog);
     });
 
     elements.roomCancelButton.addEventListener("click", () => {
@@ -915,6 +955,10 @@
       elements.roomDeleteDialog.close();
     });
 
+    elements.roomRemoveCancelButton.addEventListener("click", () => {
+      elements.roomRemoveDialog.close();
+    });
+
     elements.roomForm.addEventListener("submit", (event) => {
       event.preventDefault();
       saveRoomFromDialog();
@@ -922,7 +966,12 @@
 
     elements.roomDeleteForm.addEventListener("submit", (event) => {
       event.preventDefault();
-      deleteActiveRoom();
+      closeActiveRoom();
+    });
+
+    elements.roomRemoveForm.addEventListener("submit", (event) => {
+      event.preventDefault();
+      removeActiveRoom();
     });
 
     elements.startButton.addEventListener("click", () => {
@@ -943,6 +992,11 @@
     elements.cameraAll.addEventListener("click", () => {
       state.selectedRunnerId = "";
       render();
+    });
+
+    elements.observerButton.addEventListener("click", () => {
+      if (!connected || activeRoomClosed) return;
+      window.location.href = createAdminObserverHref(activeRoomId);
     });
 
     elements.spectatorCapacityOptions.addEventListener("click", (event) => {
@@ -1054,6 +1108,7 @@
         ...(creating ? {} : activeDevRoom),
         roomId,
         displayName: elements.roomNameInput.value,
+        maxRunners: MAX_RUNNERS,
         maxSpectators: Number(elements.roomSpectatorInput.value),
         createdAtMs: creating ? now : activeDevRoom.createdAtMs,
         updatedAtMs: now
@@ -1085,23 +1140,52 @@
       window.location.reload();
     }
 
-    function deleteActiveRoom() {
+    function closeActiveRoom() {
       if (!activeDevRoom) return;
-      deleteRestoredMarathonDevRoom(window.localStorage, activeDevRoom.roomId);
-      window.localStorage.removeItem(ADMIN_SELECTED_ROOM_STORAGE_KEY);
+      const now = Date.now();
+      closeRestoredMarathonDevRoom(window.localStorage, activeDevRoom.roomId, { closedAtMs: now });
+      window.localStorage.setItem(ADMIN_SELECTED_ROOM_STORAGE_KEY, activeDevRoom.roomId);
       clearStoredRoomPackets(activeDevRoom.roomId);
-      if (roomPacketTransport) roomPacketTransport.savePackets([], { reason: "delete_room" });
-      const command = createSingularityRaceTestBotsCommand({
-        nowMs: Date.now(),
+      if (roomPacketTransport) roomPacketTransport.savePackets([], { reason: "room_closed" });
+      const closeCommand = createSingularityRaceRoomClosedCommand({
+        nowMs: now,
+        roomId: activeDevRoom.roomId,
+        sourceClientId: "client:singularity-race-host"
+      });
+      writeSingularityRaceControlCommand(window.localStorage, closeCommand);
+      publishSingularityRaceControlCommand(raceControlBroadcast, closeCommand);
+      const botCommand = createSingularityRaceTestBotsCommand({
+        nowMs: now,
         roomId: activeDevRoom.roomId,
         sourceClientId: "client:singularity-race-host",
         botCount: 0
       });
-      writeSingularityRaceTestBotsCommand(window.localStorage, command);
-      publishSingularityRaceControlCommand(raceControlBroadcast, command);
+      writeSingularityRaceTestBotsCommand(window.localStorage, botCommand);
+      publishSingularityRaceControlCommand(raceControlBroadcast, botCommand);
+      elements.roomDeleteDialog.close();
+      window.location.reload();
+    }
+
+    function removeActiveRoom() {
+      if (!activeDevRoom) return;
+      const now = Date.now();
+      const closeCommand = createSingularityRaceRoomClosedCommand({
+        nowMs: now,
+        roomId: activeDevRoom.roomId,
+        sourceClientId: "client:singularity-race-host",
+        reason: "host_deleted_room"
+      });
+      writeSingularityRaceControlCommand(window.localStorage, closeCommand);
+      publishSingularityRaceControlCommand(raceControlBroadcast, closeCommand);
+      const remainingRooms = deleteRestoredMarathonDevRoom(window.localStorage, activeDevRoom.roomId);
+      clearStoredRoomPackets(activeDevRoom.roomId);
       clearStoredRoomChat(activeDevRoom.roomId);
       clearStoredRoomControls(activeDevRoom.roomId);
-      elements.roomDeleteDialog.close();
+      if (roomPacketTransport) roomPacketTransport.savePackets([], { reason: "room_deleted" });
+      const nextRoom = remainingRooms.find((room) => room.phase !== "closed") || remainingRooms[0] || null;
+      if (nextRoom) window.localStorage.setItem(ADMIN_SELECTED_ROOM_STORAGE_KEY, nextRoom.roomId);
+      else window.localStorage.removeItem(ADMIN_SELECTED_ROOM_STORAGE_KEY);
+      elements.roomRemoveDialog.close();
       window.location.reload();
     }
 
@@ -1144,16 +1228,21 @@
       elements.gate.textContent = connected
         ? "방 열림"
         : (devOnlineEnabled ? "생성된 방 없음" : "개발 모드 꺼짐");
-      elements.gate.classList.toggle("is-open", connected);
+      if (activeRoomClosed) elements.gate.textContent = "방 종료됨";
+      elements.gate.classList.toggle("is-open", connected && !activeRoomClosed);
       elements.createRoomButton.disabled = !devOnlineEnabled;
-      elements.directGameLink.setAttribute("aria-disabled", String(!connected));
-      elements.directGameLink.href = connected ? createPlayerRoomHref(activeRoomId) : "#";
+      elements.directGameLink.setAttribute("aria-disabled", String(!connected || activeRoomClosed));
+      elements.directGameLink.href = connected && !activeRoomClosed ? createAdminDirectRoomHref(activeRoomId) : "#";
+      elements.lobbyLink.setAttribute("aria-disabled", String(!connected || activeRoomClosed));
+      elements.lobbyLink.href = connected && !activeRoomClosed ? createPlayerRoomHref(activeRoomId) : "./singularity-race.html?devOnline=1";
       elements.startButton.disabled = !connected;
       elements.addBotsButton.disabled = !connected;
       elements.clearBotsButton.disabled = !connected;
       elements.roomSettingsButton.disabled = !connected;
-      elements.deleteRoomButton.disabled = !activeDevRoom;
+      elements.deleteRoomButton.disabled = !activeDevRoom || activeRoomClosed;
+      elements.removeRoomButton.disabled = !activeDevRoom;
       elements.cameraAll.disabled = !connected;
+      elements.observerButton.disabled = !connected || activeRoomClosed;
       elements.spectatorCapacityOptions.style.pointerEvents = connected ? "" : "none";
       elements.input.disabled = !connected;
       elements.submit.disabled = !connected;
@@ -1169,7 +1258,8 @@
       }
       const roomCards = rooms.map((room) => {
         const row = document.createElement("div");
-        row.className = `room-card${room.roomId === activeRoomId ? " is-active" : ""}`;
+        const roomClosed = room.phase === "abandoned";
+        row.className = `room-card${room.roomId === activeRoomId ? " is-active" : ""}${roomClosed ? " is-closed" : ""}`;
         row.dataset.roomId = room.roomId;
         row.addEventListener("click", (event) => {
           if (event.target.closest("a")) return;
@@ -1183,10 +1273,13 @@
         const maxSpectators = state.roomPolicy.maxSpectators;
         const visibleRunners = state.runners.length;
         meta.innerHTML = `<span>선수 ${visibleRunners}/${room.maxPlayers || MAX_RUNNERS}</span><span>관전자 ${room.spectators || 0}/${maxSpectators}</span>`;
+        if (roomClosed) meta.innerHTML = `<span>종료됨</span><span>재입장 불가</span>`;
         const action = document.createElement("a");
         action.className = "room-action is-primary";
-        action.href = createPlayerRoomHref(room.roomId);
-        action.textContent = "보기";
+        action.href = roomClosed ? "#" : createPlayerRoomHref(room.roomId);
+        action.setAttribute("aria-disabled", String(roomClosed));
+        action.textContent = "로비";
+        if (roomClosed) action.textContent = "종료됨";
         row.append(title, meta, action);
         return row;
       });
@@ -1201,7 +1294,25 @@
     function createPlayerRoomHref(roomId) {
       const params = new URLSearchParams({
         devOnline: "1",
+        roomId
+      });
+      return `./singularity-race.html?${params.toString()}`;
+    }
+
+    function createAdminDirectRoomHref(roomId) {
+      const params = new URLSearchParams({
+        devOnline: "1",
         adminLaunch: "1",
+        roomId
+      });
+      return `./singularity-race.html?${params.toString()}`;
+    }
+
+    function createAdminObserverHref(roomId) {
+      const params = new URLSearchParams({
+        devOnline: "1",
+        adminLaunch: "1",
+        adminObserver: "1",
         roomId
       });
       return `./singularity-race.html?${params.toString()}`;
@@ -1426,7 +1537,7 @@
       if (botCount <= 0) roomPacketTransport?.savePackets([], { reason: "clear_test_bots" });
       refreshRunners();
       elements.startStatus.textContent = botCount > 0
-        ? "봇 30명"
+        ? `봇 ${botCount}명`
         : "봇 없음";
       render();
     }

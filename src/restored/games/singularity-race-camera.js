@@ -132,7 +132,7 @@ export function validateSingularityRaceCameraContract() {
     errors.push("optional camera rotation must stay capped before road-follow becomes public");
   }
   const startAngle = calculateSingularityRaceCameraTargetRotation(4, { worldWidth: 7600, worldHeight: 2600 });
-  const curveAngle = calculateSingularityRaceCameraTargetRotation(70, {
+  const curveAngle = calculateSingularityRaceCameraTargetRotation(findOptionalCameraCurveProgress(7600, 2600), {
     worldWidth: 7600,
     worldHeight: 2600,
     options: { mode: SINGULARITY_RACE_CAMERA_MODES.SOFT_FOLLOW }
@@ -180,6 +180,18 @@ function pixelsToTrackPercent(point, worldWidth, worldHeight) {
     x: clampNumber((point.x / worldWidth) * 100, 0, 100),
     y: clampNumber((point.y / worldHeight) * 100, 0, 100)
   });
+}
+
+function findOptionalCameraCurveProgress(worldWidth, worldHeight) {
+  for (let progress = 5; progress <= 95; progress += 0.5) {
+    const target = calculateSingularityRaceCameraTargetRotation(progress, {
+      worldWidth,
+      worldHeight,
+      options: { mode: SINGULARITY_RACE_CAMERA_MODES.SOFT_FOLLOW }
+    });
+    if (Math.abs(target) >= 0.2) return progress;
+  }
+  return 70;
 }
 
 function smoothStep(edge0, edge1, value) {

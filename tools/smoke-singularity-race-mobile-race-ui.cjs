@@ -81,10 +81,49 @@ assert.ok(
 );
 assert.ok(mobileBlock.includes(".race-sprint-button"), "mobile media query should size sprint button");
 assert.ok(mobileBlock.includes(".shell[data-screen=\"race\"] .chat-panel"), "mobile media query should protect chat position");
+assert.ok(
+  mobileBlock.includes("top: 10px")
+    && mobileBlock.includes("width: min(258px, calc(100vw - 138px))"),
+  "mobile chat log should move to the upper-left without covering the right controls"
+);
+assert.ok(
+  mobileBlock.includes(".shell[data-screen=\"race\"] .race-minimap")
+    && mobileBlock.includes(".shell[data-screen=\"race\"] .race-standings")
+    && mobileBlock.includes("display: none"),
+  "mobile race should hide minimap and panel standings for readability"
+);
+assert.ok(
+  mobileBlock.includes(".shell[data-screen=\"race\"] .runner-rank-badge:not([hidden])")
+    && mobileBlock.includes("display: grid"),
+  "mobile race should show rank badges over runners"
+);
+assert.ok(
+  mobileBlock.includes("#race-chat-action-button")
+    && mobileBlock.includes("top: 12px")
+    && mobileBlock.includes("right: 12px"),
+  "mobile chat input button should sit at the top-right"
+);
+assert.ok(
+  mobileBlock.includes("#race-attack-button")
+    && mobileBlock.includes("width: 86px")
+    && mobileBlock.includes("height: 86px")
+    && mobileBlock.includes("bottom: 24px"),
+  "mobile attack button should be larger and lower"
+);
+assert.ok(
+  mobileBlock.includes(".race-sprint-button")
+    && mobileBlock.includes("width: 78px")
+    && mobileBlock.includes("height: 78px")
+    && mobileBlock.includes("border-radius: 50%"),
+  "mobile sprint should be a larger circular button"
+);
 
 const chatBlock = cssBlock(".shell[data-screen=\"race\"] .chat-panel");
 assert.ok(chatBlock.includes("position: fixed"), "race chat should be a fixed overlay");
-assert.ok(chatBlock.includes("top: 14px"), "desktop race chat should stay near the upper-left");
+assert.ok(chatBlock.includes("bottom: 16px"), "desktop race chat should stay near the lower-left");
+assertIncludes("race-chat-composing", "race chat composer should only open on demand");
+assertIncludes(":not(.race-chat-composing) .chat-panel .chat-form", "race chat form should stay hidden until T/chat click");
+assertIncludes("runner-rank-badge", "runner avatars should expose mobile rank badges");
 
 const minimapBlock = cssBlock(".race-minimap");
 assert.ok(minimapBlock.includes("clamp(176px"), "race minimap should stay larger on desktop");

@@ -1,11 +1,12 @@
 import { createRestoredMarathonDevRoomTransport } from "../online/marathon-dev-room-transport.js";
 import { createRestoredMarathonTransportEnvelope } from "../online/marathon-server-transport-contract.js";
+import { RESTORED_MARATHON_MAX_RUNNERS } from "./marathon-contract.js";
 const DEFAULT_CLIENT_ID = "client:singularity-race-lobby";
 const DEFAULT_SERVER_ID = "server:dev-adapter";
 const DEFAULT_COURSE_METERS = 42195;
 const DEFAULT_START_PROGRESS = 4;
 const DEFAULT_LANE_HALF_WIDTH_PX = 232;
-const DEFAULT_MAX_RUNNERS = 30;
+const DEFAULT_MAX_RUNNERS = RESTORED_MARATHON_MAX_RUNNERS;
 export function createSingularityConnectedRelayEnvelope(packet = {}, context = {}) {
   const payload = packet.payload || {};
   const connectedSession = context.connectedSession || {};

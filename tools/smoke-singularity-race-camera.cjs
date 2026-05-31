@@ -54,6 +54,10 @@ function assertRaceHtmlDoesNotEnableRotation() {
     !raceHtml.includes("mode: \"soft-follow\"") && !raceHtml.includes("mode: \"road-follow\""),
     "normal race camera setup should not opt into rotating camera modes."
   );
+  assert.ok(raceHtml.includes("touchstart\", handleTrackPinchStart"), "race track should listen for two-finger pinch start.");
+  assert.ok(raceHtml.includes("touchmove\", handleTrackPinchMove"), "race track should listen for two-finger pinch move.");
+  assert.ok(raceHtml.includes("TRACK_CAMERA_MIN_ZOOM = 0.58"), "mobile pinch zoom should allow a wider zoom-out view.");
+  assert.ok(raceHtml.includes("TRACK_CAMERA_MAX_ZOOM = 1.9"), "mobile pinch zoom should allow a stronger zoom-in view.");
 }
 
 function assertAnchoredCamera(camera) {
@@ -80,7 +84,8 @@ function assertOptionalRotationGuards(camera) {
     assert.equal(defaultTarget, 0, `default camera should stay unrotated at progress ${progress}.`);
   }
 
-  const softFollowTarget = camera.calculateSingularityRaceCameraTargetRotation(86, {
+  const optionalProgress = findOptionalRotationProgress(camera);
+  const softFollowTarget = camera.calculateSingularityRaceCameraTargetRotation(optionalProgress, {
     worldWidth: testWorld.width,
     worldHeight: testWorld.height,
     options: { mode: camera.SINGULARITY_RACE_CAMERA_MODES.SOFT_FOLLOW }
@@ -91,7 +96,7 @@ function assertOptionalRotationGuards(camera) {
   );
 
   const roadFollow = camera.createSingularityRaceAnchoredCamera({
-    progress: 70,
+    progress: optionalProgress,
     playerPixel: testPlayer,
     viewportWidth: testViewport.width,
     viewportHeight: testViewport.height,
@@ -100,6 +105,18 @@ function assertOptionalRotationGuards(camera) {
     options: { mode: camera.SINGULARITY_RACE_CAMERA_MODES.ROAD_FOLLOW }
   });
   assert.ok(roadFollow.counterRotationRad !== 0, "road-follow mode should remain available as an optional camera mode.");
+}
+
+function findOptionalRotationProgress(camera) {
+  for (let progress = 5; progress <= 95; progress += 1) {
+    const target = camera.calculateSingularityRaceCameraTargetRotation(progress, {
+      worldWidth: testWorld.width,
+      worldHeight: testWorld.height,
+      options: { mode: camera.SINGULARITY_RACE_CAMERA_MODES.ROAD_FOLLOW }
+    });
+    if (Math.abs(target) > 0.2) return progress;
+  }
+  return 70;
 }
 
 function assertScreenMapping(camera, anchored) {

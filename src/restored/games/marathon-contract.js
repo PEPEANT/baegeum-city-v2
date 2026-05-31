@@ -2,7 +2,7 @@ import { createRestoredMarathonTrailSaveCheckpointMeters } from "./marathon-trai
 
 export const RESTORED_MARATHON_CONTRACT_VERSION = "restored-marathon-001";
 
-export const RESTORED_MARATHON_MAX_RUNNERS = 30;
+export const RESTORED_MARATHON_MAX_RUNNERS = 50;
 export const RESTORED_MARATHON_DEFAULT_MAX_SPECTATORS = 32;
 export const RESTORED_MARATHON_MAX_SPECTATORS = 100;
 
@@ -96,7 +96,7 @@ export function createRestoredMarathonRoom(options = {}) {
   const participants = Object.freeze((options.participants || []).map(createRestoredMarathonParticipant));
   return Object.freeze({
     roomId: options.roomId || "room:marathon:local-preview",
-    displayName: options.displayName || "Baegeum 30 Runner Marathon",
+    displayName: options.displayName || "Baegeum 50 Runner Marathon",
     phase: RESTORED_MARATHON_PHASES.includes(options.phase) ? options.phase : "lobby",
     maxRunners: clamp(options.maxRunners ?? RESTORED_MARATHON_MAX_RUNNERS, 1, RESTORED_MARATHON_MAX_RUNNERS),
     maxSpectators: clamp(options.maxSpectators ?? RESTORED_MARATHON_DEFAULT_MAX_SPECTATORS, 0, RESTORED_MARATHON_MAX_SPECTATORS),
@@ -233,7 +233,7 @@ export function validateRestoredMarathonContract() {
   const errors = [];
   const course = createRestoredMarathonCourse();
   const room = createRestoredMarathonRoom();
-  if (RESTORED_MARATHON_MAX_RUNNERS !== 30) errors.push("marathon max runners must stay 30");
+  if (RESTORED_MARATHON_MAX_RUNNERS !== 50) errors.push("marathon max runners must stay 50");
   if (RESTORED_MARATHON_DEFAULT_MAX_SPECTATORS !== 32) errors.push("default spectators should match the online lobby contract");
   if (room.maxRunners > RESTORED_MARATHON_MAX_RUNNERS) errors.push("room max runners exceeds contract limit");
   if (room.maxSpectators > RESTORED_MARATHON_MAX_SPECTATORS) errors.push("room max spectators exceeds contract limit");

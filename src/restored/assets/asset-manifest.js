@@ -71,6 +71,30 @@ export const RESTORED_ASSET_MANIFEST = Object.freeze([
     status: "legacy-available"
   },
   {
+    id: "audio:bgm:singularity-race:squid-wake",
+    type: "audio",
+    role: "bgm",
+    path: "assets/restored/audio/singularity-race/bgm/squid-wake.mp3",
+    source: "user-provided local mp3 for Singularity Race private prototype", status: "active",
+    collection: "singularity-race"
+  },
+  {
+    id: "audio:bgm:singularity-race:dont-stop-me",
+    type: "audio",
+    role: "bgm",
+    path: "assets/restored/audio/singularity-race/bgm/dont-stop-me.mp3",
+    source: "user-provided local mp3 for Singularity Race private prototype", status: "active",
+    collection: "singularity-race"
+  },
+  {
+    id: "audio:bgm:singularity-race:tjie-she-pen",
+    type: "audio",
+    role: "bgm",
+    path: "assets/restored/audio/singularity-race/bgm/tjie-she-pen.mp3",
+    source: "user-provided local mp3 for Singularity Race private prototype", status: "active",
+    collection: "singularity-race"
+  },
+  {
     id: "image:reference:tank:abrams-style-2d",
     type: "image",
     role: "reference",
@@ -101,6 +125,38 @@ export const RESTORED_ASSET_MANIFEST = Object.freeze([
     path: "assets/abrams_style_tank_topview_preview.png",
     source: "local generated preview",
     status: "legacy-reference"
+  },
+  {
+    id: "image:race:singularity-race:narration-intro-1",
+    type: "image",
+    role: "race",
+    path: "assets/singularity-race/narration/intro-1.png",
+    source: "user-provided chroma-key frame, locally processed", status: "active",
+    collection: "singularity-race"
+  },
+  {
+    id: "image:race:singularity-race:narration-intro-2",
+    type: "image",
+    role: "race",
+    path: "assets/singularity-race/narration/intro-2.png",
+    source: "user-provided chroma-key frame, locally processed", status: "active",
+    collection: "singularity-race"
+  },
+  {
+    id: "image:race:singularity-race:narration-intro-3",
+    type: "image",
+    role: "race",
+    path: "assets/singularity-race/narration/intro-3.png",
+    source: "user-provided chroma-key frame, locally processed", status: "active",
+    collection: "singularity-race"
+  },
+  {
+    id: "image:race:singularity-race:narration-intro-4",
+    type: "image",
+    role: "race",
+    path: "assets/singularity-race/narration/intro-4.png",
+    source: "user-provided chroma-key frame, locally processed", status: "active",
+    collection: "singularity-race"
   }
 ]);
 

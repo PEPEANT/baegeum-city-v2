@@ -35,10 +35,11 @@ export function advanceSingularityLocalBotPack(runners, options = {}) {
     const baseSpeed = 0.085 + ((index * 17) % 11) * 0.006;
     const packBoost = runner.progress < playerProgress - 12 ? 0.035 : 0;
     const hpFactor = (runner.hp ?? 100) < 60 ? 0.72 : 1;
+    const slowFactor = Number(runner.slowUntilMs || 0) > nowMs ? 0.42 : 1;
     const laneDrift = Math.sin((nowMs / 900) + index) * 10 * elapsedSeconds;
     const trailPoint = progressToRestoredMarathonTrailPoint(runner.progress);
     const speedScale = calculateRestoredMarathonSpeedScale(trailPoint.tangent);
-    const nextProgress = Math.min(context.railMaxProgress, runner.progress + ((baseSpeed + packBoost) * hpFactor * speedScale * elapsedSeconds));
+    const nextProgress = Math.min(context.railMaxProgress, runner.progress + ((baseSpeed + packBoost) * hpFactor * slowFactor * speedScale * elapsedSeconds));
     const nextLaneOffsetPx = clampNumber((runner.laneOffsetPx || 0) + laneDrift, -context.roadLaneHalfWidthPx, context.roadLaneHalfWidthPx);
     moved = moved || didMove(runner, nextProgress, nextLaneOffsetPx);
     return { ...runner, progress: nextProgress, laneOffsetPx: nextLaneOffsetPx };
@@ -77,6 +78,8 @@ export function validateSingularityRaceLocalSimContract() {
   if (!advanced.moved || advanced.runners[1].progress <= runners[1].progress) errors.push("local bots must move without depending on player input");
   const stunned = advanceSingularityLocalBotPack([{ progress: 4, laneOffsetPx: 0 }, { progress: 4, laneOffsetPx: 0, hp: 100, stunnedUntilMs: 2000 }], { elapsedSeconds: 1, nowMs: 1000 });
   if (stunned.runners[1].progress !== 4) errors.push("stunned local bots should pause briefly");
+  const slowed = advanceSingularityLocalBotPack([{ progress: 4, laneOffsetPx: 0 }, { progress: 4, laneOffsetPx: 0, hp: 100, slowUntilMs: 2000 }], { elapsedSeconds: 1, nowMs: 1000 });
+  if (slowed.runners[1].progress <= 4 || slowed.runners[1].progress >= advanced.runners[1].progress) errors.push("slowed local bots should keep moving but lose pace");
   const nearFinish = advanceSingularityLocalBotPack([{ progress: 100, laneOffsetPx: 0 }, { progress: 99.9, laneOffsetPx: 0, hp: 100 }], { elapsedSeconds: 2, nowMs: 1200 });
   if (nearFinish.runners[1].progress > DEFAULTS.railMaxProgress) errors.push("local bot progress must clamp at the finish line");
   return Object.freeze({ ok: errors.length === 0, errors: Object.freeze(errors) });

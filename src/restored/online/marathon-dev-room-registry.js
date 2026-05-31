@@ -24,7 +24,7 @@ export function createRestoredMarathonDevRoomRecord(options = {}) {
     version: RESTORED_MARATHON_DEV_ROOM_REGISTRY_VERSION,
     roomId,
     displayName: cleanRoomName(options.displayName || "특이점 스타디움 001"),
-    maxRunners: clampInteger(options.maxRunners ?? RESTORED_MARATHON_MAX_RUNNERS, 1, RESTORED_MARATHON_MAX_RUNNERS),
+    maxRunners: RESTORED_MARATHON_MAX_RUNNERS,
     maxSpectators: clampInteger(options.maxSpectators ?? RESTORED_MARATHON_DEFAULT_MAX_SPECTATORS, 0, RESTORED_MARATHON_MAX_SPECTATORS),
     phase: ALLOWED_PHASES.includes(options.phase) ? options.phase : "lobby",
     createdAtMs,
@@ -70,6 +70,21 @@ export function deleteRestoredMarathonDevRoom(storage, roomId) {
   return writeRestoredMarathonDevRooms(storage, next);
 }
 
+export function closeRestoredMarathonDevRoom(storage, roomId, options = {}) {
+  const safeId = safeRoomId(roomId);
+  const nowMs = clampTime(options.closedAtMs ?? options.updatedAtMs ?? Date.now());
+  const existing = readRestoredMarathonDevRooms(storage);
+  const target = existing.find((room) => room.roomId === safeId);
+  if (!target) return Object.freeze({ room: null, rooms: existing });
+  const room = createRestoredMarathonDevRoomRecord({
+    ...target,
+    phase: "closed",
+    updatedAtMs: nowMs
+  });
+  const rooms = writeRestoredMarathonDevRooms(storage, existing.map((item) => item.roomId === safeId ? room : item));
+  return Object.freeze({ room, rooms });
+}
+
 export function getFirstRestoredMarathonDevRoom(rooms = []) {
   return normalizeRoomList(rooms)[0] || null;
 }
@@ -98,12 +113,16 @@ export function validateRestoredMarathonDevRoomRegistryContract() {
     createdAtMs: 100
   });
   const readBack = readRestoredMarathonDevRooms(storage);
+  const closed = closeRestoredMarathonDevRoom(storage, created.room.roomId, { closedAtMs: 300 });
+  const closedAdapterRooms = createRestoredMarathonRoomsFromDevRegistry(closed.rooms, { serverTimeMs: 400 });
   const deleted = deleteRestoredMarathonDevRoom(storage, created.room.roomId);
   const adapterRooms = createRestoredMarathonRoomsFromDevRegistry(readBack, { serverTimeMs: 200 });
   const errors = [];
   if (created.room.displayName !== "테스트 방") errors.push("room name should be trimmed");
   if (created.room.maxSpectators !== RESTORED_MARATHON_MAX_SPECTATORS) errors.push("spectator cap should clamp");
   if (readBack.length !== 1) errors.push("room registry should persist one room");
+  if (closed.room?.phase !== "closed") errors.push("closed room should stay in the registry");
+  if (closedAdapterRooms[0]?.phase !== "abandoned") errors.push("closed dev rooms should map to abandoned adapter rooms");
   if (deleted.length !== 0) errors.push("room delete should empty the registry");
   if (readRestoredMarathonDevRooms(storage).length !== 0) errors.push("deleted room should not reappear");
   if (adapterRooms[0]?.authority !== RESTORED_MARATHON_AUTHORITY.SERVER_REQUIRED) errors.push("dev registry rooms should become server-required rooms");

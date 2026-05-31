@@ -43,7 +43,8 @@ const requiredChecks = Object.freeze({
   "marathon-character-skill-contract.js": "tools/check-restored-marathon-contract.cjs",
   "marathon-combat-contract.js": "tools/check-restored-marathon-contract.cjs",
   "marathon-contract.js": "tools/check-restored-marathon-contract.cjs",
-  "marathon-input-contract.js": "tools/check-restored-marathon-contract.cjs"
+  "marathon-input-contract.js": "tools/check-restored-marathon-contract.cjs",
+  "singularity-race-item-contract.js": "tools/smoke-singularity-race-items.cjs"
 });
 
 function read(file) {

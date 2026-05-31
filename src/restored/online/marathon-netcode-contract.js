@@ -12,9 +12,19 @@ const DEFAULT_PROFILE = Object.freeze({
   criticalPingMs: 320, visualMaxStepPxPerSecond: 880, visualSnapDistancePx: 520, staleSnapshotMs: 700
 });
 
+const LARGE_ROOM_PROFILE = Object.freeze({
+  ...DEFAULT_PROFILE,
+  maxRunners: 50,
+  inputHz: 16,
+  snapshotHz: 5,
+  runnerDeltaBytes: 18,
+  interpolationBaseMs: 130,
+  jitterBufferMs: 90
+});
+
 export function createRestoredMarathonNetcodeProfile(options = {}) {
   return Object.freeze({
-    maxRunners: clampInteger(options.maxRunners ?? DEFAULT_PROFILE.maxRunners, 2, 30), serverTickHz: clampInteger(options.serverTickHz ?? DEFAULT_PROFILE.serverTickHz, 10, 30),
+    maxRunners: clampInteger(options.maxRunners ?? DEFAULT_PROFILE.maxRunners, 2, 50), serverTickHz: clampInteger(options.serverTickHz ?? DEFAULT_PROFILE.serverTickHz, 10, 30),
     inputHz: clampInteger(options.inputHz ?? DEFAULT_PROFILE.inputHz, 8, 30), snapshotHz: clampInteger(options.snapshotHz ?? DEFAULT_PROFILE.snapshotHz, 4, 20),
     fullSnapshotHz: clampInteger(options.fullSnapshotHz ?? DEFAULT_PROFILE.fullSnapshotHz, 1, 2), inputPacketBytes: clampInteger(options.inputPacketBytes ?? DEFAULT_PROFILE.inputPacketBytes, 24, 96),
     runnerDeltaBytes: clampInteger(options.runnerDeltaBytes ?? DEFAULT_PROFILE.runnerDeltaBytes, 12, 48), snapshotOverheadBytes: clampInteger(options.snapshotOverheadBytes ?? DEFAULT_PROFILE.snapshotOverheadBytes, 24, 160),
@@ -26,6 +36,10 @@ export function createRestoredMarathonNetcodeProfile(options = {}) {
     visualMaxStepPxPerSecond: clampNumber(options.visualMaxStepPxPerSecond ?? DEFAULT_PROFILE.visualMaxStepPxPerSecond, 240, 2000), visualSnapDistancePx: clampNumber(options.visualSnapDistancePx ?? DEFAULT_PROFILE.visualSnapDistancePx, 120, 1400),
     staleSnapshotMs: clampInteger(options.staleSnapshotMs ?? DEFAULT_PROFILE.staleSnapshotMs, 250, 2000)
   });
+}
+
+export function createRestoredMarathonLargeRoomNetcodeProfile(options = {}) {
+  return createRestoredMarathonNetcodeProfile({ ...LARGE_ROOM_PROFILE, ...options });
 }
 
 export function estimateRestoredMarathonNetcodeBudget(options = {}) {
@@ -182,6 +196,12 @@ export function validateRestoredMarathonNetcodeContract() {
   if (!budget.withinPlayerBudget) errors.push("30-runner player bandwidth budget should fit");
   if (!budget.withinServerBudget) errors.push("30-runner server egress budget should fit");
   if (budget.snapshotBytes > 900) errors.push("30-runner delta snapshot should stay compact");
+  const largeProfile = createRestoredMarathonLargeRoomNetcodeProfile();
+  const largeBudget = estimateRestoredMarathonNetcodeBudget({ runnerCount: 50, profile: largeProfile });
+  if (largeProfile.maxRunners !== 50) errors.push("large-room profile should allow 50 runners");
+  if (largeProfile.snapshotHz > 6) errors.push("large-room profile should lower snapshot cadence for 50 runners");
+  if (!largeBudget.withinPlayerBudget || !largeBudget.withinServerBudget) errors.push("50-runner large-room bandwidth budget should fit");
+  if (largeBudget.serverEgressKbps > 2200) errors.push("50-runner large-room server egress needs headroom");
   const badLane = chooseRestoredMarathonNetworkLane({ pingMs: 240, jitterMs: 80, packetLossPct: 3 });
   if (badLane.lane !== "degraded" || badLane.snapshotHz >= 10) errors.push("bad ping should reduce snapshot cadence");
   const smoothed = resolveRestoredMarathonVisualStep({ initialized: true, x: 0, y: 0 }, { x: 240, y: 0 }, { elapsedMs: 50 });
@@ -222,7 +242,7 @@ function packetClientId(packet = {}) { return packet.sourceClientId || packet.cl
 function packetReceivedAtMs(packet = {}) { return Number(packet.receivedAtMs ?? packet.serverTimeMs ?? packet.payload?.raceTimeMs ?? packet.payload?.serverTimeMs ?? 0); }
 function isInPressureWindow(packet, nowMs, windowMs) { const receivedAtMs = packetReceivedAtMs(packet); return Number.isFinite(receivedAtMs) && receivedAtMs <= nowMs && receivedAtMs > nowMs - windowMs; }
 function resolvePressureNowMs(value, packets = []) { const direct = Number(value); return Number.isFinite(direct) ? Math.max(0, direct) : Math.max(0, ...packets.map(packetReceivedAtMs).filter(Number.isFinite)); }
-function reasonForLane(lane) { return ({ critical: "protect race authority, reduce snapshots, prefer interpolation", degraded: "high ping or jitter, reduce send rate and visual effects", buffered: "moderate jitter, add interpolation buffer" })[lane] || "normal 30-runner budget"; }
+function reasonForLane(lane) { return ({ critical: "protect race authority, reduce snapshots, prefer interpolation", degraded: "high ping or jitter, reduce send rate and visual effects", buffered: "moderate jitter, add interpolation buffer" })[lane] || "normal or large-room race budget"; }
 function bytesToKbps(bytesPerSecond) { return bytesPerSecond * 8 / 1000; }
 function clampInteger(value, min, max) { return Math.round(clampNumber(value, min, max)); }
 function clampNumber(value, min, max) { const number = Number(value); return Math.max(min, Math.min(max, Number.isFinite(number) ? number : min)); }

@@ -38,15 +38,19 @@ export function createSingularityRunnerAvatarNode(runner) {
   chatBubble.hidden = true;
   const attackSwipe = document.createElement("span");
   attackSwipe.className = "runner-attack-swipe";
+  const rankBadge = document.createElement("span");
+  rankBadge.className = "runner-rank-badge";
+  rankBadge.hidden = true;
   const nameplate = document.createElement("span");
   nameplate.className = "runner-nameplate";
-  avatar.append(chatBubble, image, attackSwipe, nameplate);
+  avatar.append(chatBubble, rankBadge, image, attackSwipe, nameplate);
   return avatar;
 }
 
 export function updateSingularityRunnerAvatarNode(avatar, runner, skinSrc, options = {}) {
   const image = avatar.querySelector("img");
   const chatBubble = avatar.querySelector(".runner-chat-bubble");
+  const rankBadge = avatar.querySelector(".runner-rank-badge");
   const nameplate = avatar.querySelector(".runner-nameplate");
   avatar.dataset.skinId = String(runner.skin || "");
   avatar.dataset.runStyle = String(options.runStyle || resolveSingularityRunnerRunStyle(runner.skin));
@@ -60,6 +64,12 @@ export function updateSingularityRunnerAvatarNode(avatar, runner, skinSrc, optio
     chatBubble.title = bubbleText;
     chatBubble.hidden = !bubbleText;
     chatBubble.classList.toggle("has-text", Boolean(bubbleText));
+  }
+  if (rankBadge) {
+    const rankLabel = String(options.rankLabel || "").trim();
+    rankBadge.textContent = rankLabel;
+    rankBadge.title = rankLabel;
+    rankBadge.hidden = !rankLabel;
   }
   if (nameplate) {
     nameplate.textContent = runner.name;
@@ -93,14 +103,12 @@ export function rankSingularityRunnerEntries(runners) {
 
 export function createSingularityStandingRowNode(entry, playerRank) {
   const row = document.createElement("div");
-  row.className = `standing-row${entry.runner.id === "you" ? " is-player" : ""}`;
+  row.className = `standing-row${entry.runner.id === "you" ? " is-player" : ""}${entry.rank <= 3 ? " is-top-rank" : ""}`;
+  row.dataset.rank = `${entry.rank}위`;
   const title = document.createElement("b");
-  title.textContent = `#${entry.rank} ${entry.runner.name}`;
-  const detail = document.createElement("span");
-  detail.textContent = entry.runner.id === "you"
-    ? `내 순위 #${playerRank} / ${Math.round(entry.runner.progress)}%`
-    : `${Math.round(entry.runner.progress)}% / 체력 ${entry.runner.hp ?? 100}`;
-  row.append(title, detail);
+  title.textContent = entry.runner.id === "you" ? `${entry.runner.name} · 나` : entry.runner.name;
+  title.title = entry.runner.id === "you" ? `내 순위 ${playerRank}위` : `${entry.rank}위`;
+  row.append(title);
   return row;
 }
 
