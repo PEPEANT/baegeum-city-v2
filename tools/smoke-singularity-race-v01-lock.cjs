@@ -32,7 +32,7 @@ const packageJson = JSON.parse(readProjectFile("package.json"));
 
 [
   'data-primary-mode="singularity-race"',
-  'href="./singularity-race.html"',
+  'href="./singularity-race.html?online=cloudflare&amp;serverUrl=wss%3A%2F%2Fsingularity-race-online.rneetn.workers.dev%2Fws"',
   'href="./baegeum-city-v2.html"',
   'href="./baegeum-city-v2-dice.html?map=dice-city&spawn=dice-blackjack-casino-01"',
   'href="https://drawing-world.onrender.com/"',
@@ -80,8 +80,9 @@ assert.ok(!/location\.(href|assign|replace)\s*=/.test(indexSource), "launcher sh
   "finalizeRaceResult",
   "continueWatchingAfterFinish",
   "restartRaceAfterResult",
-  "joinOnlineConnectedRoom(\"result_restart\")",
-  "if (source === \"result_restart\") return",
+  "로비로 복귀",
+  "setScreen(SINGULARITY_RACE_SCREENS.LOBBY)",
+  "결과를 정리하고 로비로 돌아왔습니다.",
   "state.connectedSession = null",
   "roomPacketTransport.savePackets([], { reason: \"result_restart\" })",
   "state.action = createActionRaceState()",
@@ -90,6 +91,7 @@ assert.ok(!/location\.(href|assign|replace)\s*=/.test(indexSource), "launcher sh
   "race-result-panel",
   "track-start-crowd",
   "start-crowd-fence",
+  "start-crowd-sign-wave",
   "pixel-citizen",
   "crowd-sign",
   "특이점은온다",
@@ -146,6 +148,10 @@ assert.ok(!/location\.(href|assign|replace)\s*=/.test(indexSource), "launcher sh
 assertIncludes(raceSource, 'href="https://gall.dcinside.com/mgallery/board/lists?id=thesingularity"', "race page should link the community gallery");
 assertExcludes(raceSource, "닉네임과 스킨을 먼저 고른 뒤 로비에 입장합니다.", "profile intro copy should be replaced by direct nickname/start controls");
 assertIncludes(raceSource, "overflow-y: auto;", "profile skin picker should keep its own scroll area");
+assertIncludes(raceSource, "grid-auto-rows: 64px;", "profile skin picker should reserve compact stable full-row card height");
+assertExcludes(raceSource, "caption.textContent = preset.id", "queue skin cards should not show the English/id caption below the Korean name");
+assertIncludes(raceSource, "--selected-green: #34e87a", "selected skin should use a green highlight token");
+assertIncludes(raceSource, 'content: "선택";', "selected skin should show an explicit selected badge");
 assert.ok(
   raceSource.indexOf('id="nickname-input"') < raceSource.indexOf('id="profile-skin-grid"'),
   "nickname/start controls should appear before the profile skin grid"
@@ -173,6 +179,7 @@ assertIncludes(skinSource, 'accessory: "ribbon" }\n]);', "skin presets should ke
   "runner-watch-list",
   "admin-enter-button",
   "admin-start-button",
+  "admin-refresh-button",
   "admin-add-bots-button",
   "room-runner-input",
   "entry-delay-options",
@@ -185,6 +192,9 @@ assertIncludes(skinSource, 'accessory: "ribbon" }\n]);', "skin presets should ke
   "--accent-strong: #168dff",
   "@keyframes ui-press-pop"
 ].forEach((token) => assertIncludes(adminSource, token, `admin page should keep ${token}`));
+
+assertIncludes(raceSource, "room-refresh-button", "player page should keep the visible room refresh control");
+assertIncludes(raceSource, "getDevRoomPresenceSummary", "player page should derive dev-room counts from stored snapshots");
 
 [
   "RESTORED_MARATHON_MAP_VOTE_DURATION_MS",

@@ -1,7 +1,8 @@
 import { calculateRestoredMarathonSpeedScale, progressToRestoredMarathonTrailPoint } from "./marathon-trail-geometry.js";
-import { resolveSingularityRaceLaneBoundary, resolveSingularityRaceTrackMovement } from "./singularity-race-movement-vector.js";
+import { resolveSingularityRaceInputMovement, resolveSingularityRaceLaneBoundary } from "./singularity-race-movement-vector.js";
+import { resolveSingularityRaceObstacleCollision } from "./singularity-race-obstacle-contract.js";
 
-export const SINGULARITY_RACE_PREDICTION_VERSION = "singularity-race-prediction-001";
+export const SINGULARITY_RACE_PREDICTION_VERSION = "singularity-race-prediction-002";
 
 const DEFAULT_RUN_PROGRESS_PER_SECOND = 0.58;
 const DEFAULT_SPRINT_PROGRESS_PER_SECOND = 0.76;
@@ -19,7 +20,6 @@ export function advanceSingularityRaceLocalPrediction(runnerInput = {}, frameInp
   const runner = { ...runnerInput };
   const frame = frameInput || {};
   const elapsedSeconds = clampNumber(elapsedSecondsInput, 0, 0.25);
-  const direction = normalizeDirection(frame.direction);
   const sprinting = frame.mode === "sprint";
   const progressSpeed = sprinting
     ? positiveNumber(options.sprintProgressPerSecond, DEFAULT_SPRINT_PROGRESS_PER_SECOND)
@@ -31,11 +31,11 @@ export function advanceSingularityRaceLocalPrediction(runnerInput = {}, frameInp
   const maxProgress = finiteNumber(options.maxProgress, DEFAULT_MAX_PROGRESS);
   const laneHalfWidthPx = positiveNumber(options.laneHalfWidthPx, DEFAULT_LANE_HALF_WIDTH_PX);
   const trailPoint = progressToRestoredMarathonTrailPoint(finiteNumber(runner.progress, minProgress), options.mapId);
-  const movement = resolveSingularityRaceTrackMovement(direction, trailPoint);
+  const movement = resolveSingularityRaceInputMovement(frame, trailPoint);
   const speedScale = calculateRestoredMarathonSpeedScale(trailPoint.tangent);
   const progress = clampNumber(finiteNumber(runner.progress, minProgress) + movement.forward * progressSpeed * speedScale * elapsedSeconds, minProgress, maxProgress);
   const laneBoundary = resolveSingularityRaceLaneBoundary(runner.laneOffsetPx, movement.lateral * laneSpeed * elapsedSeconds, laneHalfWidthPx);
-  return reconcileSingularityRaceLocalPrediction({
+  const predicted = {
     ...runner,
     progress,
     laneOffsetPx: laneBoundary.laneOffsetPx,
@@ -43,6 +43,19 @@ export function advanceSingularityRaceLocalPrediction(runnerInput = {}, frameInp
     laneBoundaryTouched: laneBoundary.touchedBoundary,
     clientPredicted: true,
     clientPredictionVersion: SINGULARITY_RACE_PREDICTION_VERSION
+  };
+  const obstacle = resolveSingularityRaceObstacleCollision(predicted, {
+    mapId: options.mapId,
+    laneHalfWidthPx,
+    minProgress,
+    maxProgress,
+    nowMs: options.nowMs,
+    raceStarted: options.raceStarted !== false
+  });
+  return reconcileSingularityRaceLocalPrediction({
+    ...obstacle.runner,
+    obstacleHit: obstacle.collided,
+    obstacleHitId: obstacle.obstacle?.id || ""
   }, { ...options, elapsedSeconds });
 }
 
@@ -112,6 +125,29 @@ export function validateSingularityRacePredictionContract() {
     direction: { x: 0, y: -1 }
   }, 1, { sprintProgressPerSecond: 1, correctionFactor: 0 });
   if (uphill.progress <= uphillProgress) errors.push("W should advance progress on upward trail segments");
+  const intent = advanceSingularityRaceLocalPrediction({
+    id: "you",
+    progress: 75,
+    laneOffsetPx: 0
+  }, {
+    mode: "sprint",
+    intent: { forward: 1, lateral: 0.5 }
+  }, 1, { sprintProgressPerSecond: 1, correctionFactor: 0 });
+  if (intent.progress <= 75 || intent.laneOffsetPx <= 0) errors.push("mobile intent should advance without track-vector reversal");
+  const obstacleHit = advanceSingularityRaceLocalPrediction({
+    id: "you",
+    progress: 12.9,
+    laneOffsetPx: -88
+  }, {
+    mode: "run",
+    direction: { x: 1, y: 0 }
+  }, 0.4, {
+    mapId: "baegeum-city",
+    runProgressPerSecond: 1,
+    correctionFactor: 0,
+    nowMs: 1000
+  });
+  if (!obstacleHit.obstacleHit || obstacleHit.collisionAtMs !== 1000) errors.push("prediction should apply the shared map obstacle collision");
   const smoothed = reconcileSingularityRaceLocalPrediction({
     progress: 10.5,
     laneOffsetPx: 20,
@@ -142,13 +178,6 @@ function reconcileValue(localValue, serverValue, options) {
 function correctionFactor(options) {
   if (Number.isFinite(Number(options.correctionFactor))) return clampNumber(options.correctionFactor, 0, 1);
   return clampNumber(finiteNumber(options.elapsedSeconds, 0.06) * 1.2, 0, 0.12);
-}
-
-function normalizeDirection(direction = {}) {
-  return Object.freeze({
-    x: clampNumber(direction.x ?? 0, -1, 1),
-    y: clampNumber(direction.y ?? 0, -1, 1)
-  });
 }
 
 function findUphillProgress() {

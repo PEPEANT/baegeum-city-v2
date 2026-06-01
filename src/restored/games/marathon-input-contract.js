@@ -7,16 +7,18 @@ export const RESTORED_MARATHON_RUN_MODES = Object.freeze(["idle", "walk", "run",
 
 export function createRestoredMarathonInputFrame(options = {}) {
   const keys = normalizeKeys(options.keys);
+  const intent = normalizeRaceIntent(options.intent || options.raceIntent);
   const direction = normalizeDirection(options.direction || directionFromKeys(keys));
   const pointer = normalizePointer(options.pointer);
   const skillPressed = Boolean(options.skillPressed || keys.KeyE);
   const attacking = pointer.action === "attack";
-  const mode = chooseRunMode({ direction, keys, skillPressed, attacking });
+  const mode = chooseRunMode({ direction, intent, keys, skillPressed, attacking });
   return Object.freeze({
     version: RESTORED_MARATHON_INPUT_VERSION,
     participantId: options.participantId || "",
     sequence: Math.max(1, Number(options.sequence || 1)),
     keys,
+    intent,
     direction,
     pointer,
     skillPressed,
@@ -36,6 +38,7 @@ export function createRestoredMarathonInputPacket(inputFrame, options = {}) {
     participantId: frame.participantId,
     sequence: frame.sequence,
     payload: Object.freeze({
+      intent: frame.intent,
       direction: frame.direction,
       pointer: frame.pointer,
       skillPressed: frame.skillPressed,
@@ -63,8 +66,19 @@ export function validateRestoredMarathonInputContract() {
   if (!attack.movementLocked || attack.mode !== "attack") errors.push("mouse attack should lock movement");
   const skill = createRestoredMarathonInputFrame({ participantId: "runner:test", keys: ["KeyE"], sequence: 4 });
   if (!skill.skillPressed || skill.mode !== "skill") errors.push("E should request a skill frame");
+  const mobile = createRestoredMarathonInputFrame({
+    participantId: "runner:mobile",
+    keys: ["ShiftLeft"],
+    intent: { forward: 1, lateral: -0.5 },
+    sequence: 5
+  });
+  if (mobile.mode !== "sprint" || mobile.intent.forward !== 1 || mobile.intent.lateral !== -0.5) {
+    errors.push("mobile race intent should drive sprint/run mode without WASD");
+  }
   const packet = createRestoredMarathonInputPacket(sprint, { roomId: "room:test" });
   if (packet.payload.pace !== "sprint" || packet.type !== "input_update") errors.push("input packet should preserve pace");
+  const mobilePacket = createRestoredMarathonInputPacket(mobile, { roomId: "room:test" });
+  if (mobilePacket.payload.intent?.forward !== 1 || mobilePacket.payload.intent?.lateral !== -0.5) errors.push("input packet should preserve race intent");
   return Object.freeze({ ok: errors.length === 0, errors: Object.freeze(errors) });
 }
 
@@ -89,6 +103,17 @@ function normalizeDirection(direction) {
   return Object.freeze({ x: round3(x / length), y: round3(y / length) });
 }
 
+function normalizeRaceIntent(intentInput = null) {
+  if (!intentInput || typeof intentInput !== "object") return null;
+  const forward = round3(clamp(Number(intentInput.forward || 0), 0, 1));
+  const lateral = round3(clamp(Number(intentInput.lateral || 0), -1, 1));
+  if (Math.abs(forward) < 0.08 && Math.abs(lateral) < 0.08) return null;
+  return Object.freeze({
+    forward: Math.abs(forward) < 0.08 ? 0 : forward,
+    lateral: Math.abs(lateral) < 0.08 ? 0 : lateral
+  });
+}
+
 function normalizePointer(pointer = {}) {
   const action = RESTORED_MARATHON_POINTER_ACTIONS.includes(pointer.action) ? pointer.action : "none";
   return Object.freeze({
@@ -98,10 +123,11 @@ function normalizePointer(pointer = {}) {
   });
 }
 
-function chooseRunMode({ direction, keys, skillPressed, attacking }) {
+function chooseRunMode({ direction, intent, keys, skillPressed, attacking }) {
   if (attacking) return "attack";
   if (skillPressed) return "skill";
-  if (!direction.x && !direction.y) return "idle";
+  const moving = Boolean((intent && (intent.forward || intent.lateral)) || direction.x || direction.y);
+  if (!moving) return "idle";
   if (keys.ShiftLeft || keys.ShiftRight) return "sprint";
   return "run";
 }

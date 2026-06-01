@@ -62,6 +62,9 @@ assertIncludes("https://gall.dcinside.com/mgallery/board/lists?id=thesingularity
 assertIncludes("startVirtualJoystick", "joystick pointer path should exist");
 assertIncludes("moveVirtualJoystick", "joystick move path should exist");
 assertIncludes("stopVirtualJoystick", "joystick release path should exist");
+assertIncludes("createMobileRaceIntent", "mobile joystick should produce race intent");
+assertIncludes("state.action.mobileIntent", "mobile race intent should be stored outside WASD key emulation");
+assertIncludes("publishConnectedInputRequest(false, frame)", "connected mobile input should heartbeat during held movement");
 assertIncludes("setVirtualSprint", "mobile sprint path should exist");
 assertIncludes("focusChatInput", "chat button should focus chat input");
 
@@ -92,10 +95,16 @@ assert.ok(
   "mobile chat log should move to the upper-left without covering the right controls"
 );
 assert.ok(
-  mobileBlock.includes(".shell[data-screen=\"race\"] .race-minimap")
-    && mobileBlock.includes(".shell[data-screen=\"race\"] .race-standings")
+  mobileBlock.includes(".shell[data-screen=\"race\"] .race-standings")
     && mobileBlock.includes("display: none"),
-  "mobile race should hide minimap and panel standings for readability"
+  "mobile race should hide panel standings for readability"
+);
+assert.ok(
+  mobileBlock.includes(".shell[data-screen=\"race\"] .race-minimap")
+    && mobileBlock.includes("display: block")
+    && mobileBlock.includes("width: clamp(96px, 27vw, 108px)")
+    && mobileBlock.includes("top: 68px"),
+  "mobile race should keep a compact minimap visible without covering controls"
 );
 assert.ok(
   mobileBlock.includes(".shell[data-screen=\"race\"] .runner-rank-badge:not([hidden])")
@@ -136,5 +145,6 @@ assertIncludes("canMoveInCeremonyRoom", "mobile joystick should share the ceremo
 
 const minimapBlock = cssBlock(".race-minimap {");
 assert.ok(minimapBlock.includes("clamp(176px"), "race minimap should stay larger on desktop");
+assertIncludes("minimap-obstacle", "race minimap should show obstacle markers");
 
 console.log("Singularity Race mobile race UI smoke passed.");

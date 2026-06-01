@@ -119,6 +119,7 @@ export function createRestoredMarathonInputEnvelope(input = {}, options = {}) {
     participantId: input.participantId || "",
     pace: input.pace || "steady",
     mode: input.mode || "",
+    intent: normalizeRaceIntent(input.intent),
     direction: normalizeDirection(input.direction),
     raceTimeMs: Math.max(0, Number(input.raceTimeMs || 0))
   }, options);
@@ -232,3 +233,14 @@ function normalizeDirection(direction = {}) {
 }
 
 function clampDirection(value) { const number = Number(value || 0); return Math.max(-1, Math.min(1, Number.isFinite(number) ? number : 0)); }
+
+function normalizeRaceIntent(intent = null) {
+  if (!intent || typeof intent !== "object") return null;
+  const forward = Math.max(0, Math.min(1, Number.isFinite(Number(intent.forward)) ? Number(intent.forward) : 0));
+  const lateral = Math.max(-1, Math.min(1, Number.isFinite(Number(intent.lateral)) ? Number(intent.lateral) : 0));
+  if (Math.abs(forward) < 0.08 && Math.abs(lateral) < 0.08) return null;
+  return Object.freeze({
+    forward: Math.round((Math.abs(forward) < 0.08 ? 0 : forward) * 1000) / 1000,
+    lateral: Math.round((Math.abs(lateral) < 0.08 ? 0 : lateral) * 1000) / 1000
+  });
+}

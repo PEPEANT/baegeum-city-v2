@@ -136,8 +136,9 @@ function assertRacePageContracts() {
   assert(/\.shell\[data-screen="race"\]\.race-finished \.race-result-panel\s*\{[^}]*pointer-events:\s*auto/s.test(pageSource), "finish result panel must receive pointer events so restart/watch buttons can be clicked");
   assert(pageSource.includes("finalizeRaceResult"), "local and server finishes should share one result finalizer");
   assert(pageSource.includes("restartRaceAfterResult"), "finish restart should clear race state before re-entry");
-  assert(pageSource.includes("joinOnlineConnectedRoom(\"result_restart\")"), "finish restart should gather connected players back into the waiting room");
-  assert(pageSource.includes("if (source === \"result_restart\") return"), "finish restart must not replay a stale host start command");
+  assert(pageSource.includes("로비로 복귀"), "finish restart button should clearly return to the lobby");
+  assert(pageSource.includes("setScreen(SINGULARITY_RACE_SCREENS.LOBBY)"), "finish restart should return players to the lobby instead of auto-rejoining queue");
+  assert(pageSource.includes("결과를 정리하고 로비로 돌아왔습니다."), "finish restart should announce the lobby return");
   assert(pageSource.includes("state.connectedSession = null"), "finish restart should leave any connected preview session");
   assert(pageSource.includes("roomPacketTransport.savePackets([], { reason: \"result_restart\" })"), "finish restart should clear the connected room packet relay log");
   assert(pageSource.includes("state.action = createActionRaceState()"), "finish restart should reset action/race state");
@@ -278,7 +279,7 @@ function assertConnectedStartGuards() {
   assert(serverStateSource.includes("resolveSingularityRaceTrackMovement") && serverStateSource.includes("movement.lateral * laneSpeedPxPerSecond"), "server input must project screen-space WASD onto the active track segment");
   assert(wsDevServerSource.includes("applyRestoredMarathonServerStartPositions"), "dev server start must accept seeded race positions");
   assert(startPositionSource.includes("progressPercent") && startPositionSource.includes("laneOffsetPx"), "server start seeding must preserve paddock progress and lane");
-  assert(predictionSource.includes("resolveSingularityRaceTrackMovement") && predictionSource.includes("reconcileSingularityRaceLocalPrediction"), "prediction module must expose track-relative reconciliation");
+  assert(predictionSource.includes("resolveSingularityRaceInputMovement") && predictionSource.includes("reconcileSingularityRaceLocalPrediction"), "prediction module must expose shared race-intent reconciliation");
   assert(devOnlineSource.includes("serverProgress") && devOnlineSource.includes("serverLaneOffsetPx"), "snapshot merge must keep server reconciliation targets");
 }
 

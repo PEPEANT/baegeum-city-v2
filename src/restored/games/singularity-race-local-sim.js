@@ -1,4 +1,5 @@
 import { calculateRestoredMarathonSpeedScale, progressToRestoredMarathonTrailPoint } from "./marathon-trail-geometry.js";
+import { resolveSingularityRaceObstacleCollision } from "./singularity-race-obstacle-contract.js";
 
 const DEFAULTS = Object.freeze({
   startLineProgress: 4,
@@ -41,8 +42,19 @@ export function advanceSingularityLocalBotPack(runners, options = {}) {
     const speedScale = calculateRestoredMarathonSpeedScale(trailPoint.tangent);
     const nextProgress = Math.min(context.railMaxProgress, runner.progress + ((baseSpeed + packBoost) * hpFactor * slowFactor * speedScale * elapsedSeconds));
     const nextLaneOffsetPx = clampNumber((runner.laneOffsetPx || 0) + laneDrift, -context.roadLaneHalfWidthPx, context.roadLaneHalfWidthPx);
-    moved = moved || didMove(runner, nextProgress, nextLaneOffsetPx);
-    return { ...runner, progress: nextProgress, laneOffsetPx: nextLaneOffsetPx };
+    const obstacle = resolveSingularityRaceObstacleCollision({
+      ...runner,
+      progress: nextProgress,
+      laneOffsetPx: nextLaneOffsetPx
+    }, {
+      mapId: context.mapId,
+      laneHalfWidthPx: context.roadLaneHalfWidthPx,
+      maxProgress: context.railMaxProgress,
+      nowMs,
+      raceStarted: true
+    });
+    moved = moved || didMove(runner, obstacle.runner.progress, obstacle.runner.laneOffsetPx);
+    return obstacle.runner;
   });
   return { runners: nextRunners, moved };
 }
@@ -80,6 +92,8 @@ export function validateSingularityRaceLocalSimContract() {
   if (stunned.runners[1].progress !== 4) errors.push("stunned local bots should pause briefly");
   const slowed = advanceSingularityLocalBotPack([{ progress: 4, laneOffsetPx: 0 }, { progress: 4, laneOffsetPx: 0, hp: 100, slowUntilMs: 2000 }], { elapsedSeconds: 1, nowMs: 1000 });
   if (slowed.runners[1].progress <= 4 || slowed.runners[1].progress >= advanced.runners[1].progress) errors.push("slowed local bots should keep moving but lose pace");
+  const obstacle = advanceSingularityLocalBotPack([{ progress: 4, laneOffsetPx: 0 }, { progress: 13.15, laneOffsetPx: -88, hp: 100 }], { elapsedSeconds: 1, nowMs: 1000, mapId: "baegeum-city" });
+  if (!obstacle.runners[1].obstacleCollisionId || !obstacle.runners[1].collisionAtMs) errors.push("local bots should use the shared obstacle collision contract");
   const nearFinish = advanceSingularityLocalBotPack([{ progress: 100, laneOffsetPx: 0 }, { progress: 99.9, laneOffsetPx: 0, hp: 100 }], { elapsedSeconds: 2, nowMs: 1200 });
   if (nearFinish.runners[1].progress > DEFAULTS.railMaxProgress) errors.push("local bot progress must clamp at the finish line");
   return Object.freeze({ ok: errors.length === 0, errors: Object.freeze(errors) });

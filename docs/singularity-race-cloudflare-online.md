@@ -34,6 +34,13 @@ https://singularity-race-online.rneetn.workers.dev
 wss://singularity-race-online.rneetn.workers.dev/ws
 ```
 
+Current public player/dev-admin URLs:
+
+```text
+https://singularity-race-client.pages.dev/singularity-race?online=cloudflare&serverUrl=wss%3A%2F%2Fsingularity-race-online.rneetn.workers.dev%2Fws
+https://singularity-race-client.pages.dev/singularity-race-admin?online=cloudflare&serverUrl=wss%3A%2F%2Fsingularity-race-online.rneetn.workers.dev%2Fws
+```
+
 On localhost, the client defaults to:
 
 ```text
@@ -42,12 +49,17 @@ ws://127.0.0.1:8787/ws
 
 ## Server Rules
 
-- The first player in the room becomes the temporary host.
-- Host start sends a server-owned 10-second countdown.
+- The Worker tags the first player as the temporary public-room host for this v2 loop.
+- Public admin is disabled for the v2 public loop. `singularity-race-admin` remains a dev/test page only; public `/admin/*` Worker routes return `public_admin_disabled` and the public admin UI does not call open/reset/start endpoints.
+- The first player who joins the public room becomes the temporary room host. The host's normal user page may send `start_request`; the Worker validates host ownership, lobby phase, and room population before starting countdown. Other players see the waiting state and cannot start the race.
+- The host start request sends a server-owned 10-second countdown. The client only requests start; it does not decide the start time.
+- During countdown/racing, new player and spectator joins are blocked with `room_join_closed`. Mid-race spectator entry is intentionally deferred until the simpler public loop is stable.
 - Durable Object storage persists countdown phase across alarm wakeups, then resets the fixed public room to lobby when the last socket leaves.
 - Map vote, rematch, final ranking authority, checkpoint reward authority, and moderation tools remain future work.
 - Clients may send input, chat, attack, and skill packets.
 - Clients must not decide final ranking, rewards, room capacity, or server snapshots.
+- Worker movement must use the same input movement helper as client prediction before advancing progress/lane. Legacy PC `direction` frames still project onto the current race trail tangent/normal, while mobile frames may carry `intent.forward` and `intent.lateral` so phone joystick input cannot become reverse progress on curved or vertical route sections. Run/sprint progress speeds must stay aligned with the client prediction constants (`0.58` run, `0.76` sprint), held mobile input must stay at or below the 10 Hz input budget, and map obstacle collision must flow through `src/restored/games/singularity-race-obstacle-contract.js` on both client prediction and Worker movement. The Worker must not treat every nonzero direction as forward progress, use raw `direction.y` as lane movement, run faster than the client prediction, or leave obstacle hitboxes client-only, because those mismatches cause rubber-banding on curves, vertical track segments, and collisions.
+- Client snapshots still render the local participant as `you`; the snapshot merge must preserve local prediction for that normalized runner id so 5 Hz snapshots ease toward server authority instead of snapping the player back every packet.
 
 ## Verification
 

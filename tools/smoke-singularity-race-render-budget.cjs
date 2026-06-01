@@ -61,6 +61,8 @@ assert(pageSource.includes("runnerMotion"), "runner motion cache should exist fo
 assert(pageSource.includes("runner-run-cycle"), "runner sprites should animate like running instead of sliding");
 assert(pageSource.includes("track-start-crowd"), "start-line crowd should exist as a static stadium decoration");
 assert(pageSource.includes("start-crowd-hop"), "start-line ordinary citizens should use CSS motion instead of hot-loop JS");
+assert(pageSource.includes("start-crowd-sign-wave"), "start-line crowd signs should wave with CSS motion");
+assert(pageSource.includes("top: 79.2%") && pageSource.includes("height: 3.8%"), "start-line crowd should be a compact back-left spectator block, not split across both road sides");
 assert(!trackBody.includes("track-start-crowd"), "start-line crowd should not be rebuilt by the hot track render loop");
 assert(pageSource.includes("pixel-citizen") && !pageSource.includes("track-start-crowd\"><img"), "start-line crowd should be CSS citizens, not race skin avatars");
 assert(!/\.runner-avatar img\s*\{[^}]*runner-idle-breath/s.test(pageSource), "idle runner sprites should not keep breathing in place");
@@ -72,8 +74,10 @@ assert(staleReleaseBody.includes("!document.hidden && document.hasFocus()"), "st
 assert(pageSource.includes("event.repeat && !state.action.keys[event.code]"), "orphan key-repeat events should not restart movement");
 assert(pageSource.includes("hasFreshPlayerMovementInput(timing.now)"), "local run animation should require fresh player input");
 assert(pageSource.includes("if (!wasPressed) recordMovementInput(event.code);"), "key-repeat events should not keep reviving movement freshness");
-assert(pageSource.includes("cancelPlayerMovementForAction(now, attackFacingDirection)"), "basic attack should cancel held movement before the visual resolves");
-assert(pageSource.includes("state.action.lastMovementInputAtMs = 0"), "action cancels should clear stale movement freshness");
+assert(basicAttackBody.includes("preservePlayerMovementForAttack(now, attackFacingDirection)"), "basic attack should preserve held movement while the visual resolves");
+assert(!basicAttackBody.includes("cancelPlayerMovementForAction"), "basic attack should not release held movement controls");
+assert(!basicAttackBody.includes("state.action.stallUntilMs = Math.max(state.action.stallUntilMs, now + action.selfStallMs)"), "basic attack should not hard-stop local movement with a stall gate");
+assert(pageSource.includes("state.action.lastMovementInputAtMs = 0"), "movement stop path should clear stale movement freshness");
 assert(pageSource.includes("function stopPlayerRunAnimation"), "player run animation should have an explicit stop path");
 assert(keyUpBody.includes("stopPlayerRunAnimation(Date.now())"), "movement keyup should stop local run animation immediately");
 assert(keyUpBody.includes("releasedSprintKey"), "sprint keyup should be treated as a motion release");
@@ -83,6 +87,11 @@ assert(!pageSource.includes("createSingularityPlayerFocusRingNode(playerPoint"),
 assert(pageSource.includes("BASIC_ATTACK_COOLDOWN_MS"), "basic attack should have a cooldown");
 assert(pageSource.includes("attackVisualId"), "basic attack visual should have a one-shot sequence id");
 assert(pageSource.includes("scheduleAttackVisualCleanup"), "basic attack visual should schedule a one-shot cleanup render");
+assert(pageSource.includes("attackImpactUntilMs"), "basic attack hits should have a timed impact visual state");
+assert(pageSource.includes("setAttackImpactVisual(updatedTarget, now)"), "basic attack should trigger the hit impact visual when a target is hit");
+assert(pageSource.includes("runner-hit-recoil"), "hit targets should recoil instead of only flashing collision");
+assert(pageSource.includes("runner-hit-burst"), "hit targets should show an impact burst");
+assert(runnerViewSource.includes("runner-hit-burst"), "runner avatar DOM should reserve a hit-burst effect layer");
 assert(pageSource.includes("triggerVirtualAttackButton"), "mobile attack button should use the same attack path");
 assert(pageSource.includes("--runner-facing-scale"), "runner side sprites should flip by facing direction");
 assert(pageSource.includes("scheduleActionPreviewLoop()"), "movement loop should start through a scheduler");

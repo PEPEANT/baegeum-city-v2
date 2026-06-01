@@ -44,6 +44,7 @@ const requiredChecks = Object.freeze({
   "marathon-combat-contract.js": "tools/check-restored-marathon-contract.cjs",
   "marathon-contract.js": "tools/check-restored-marathon-contract.cjs",
   "marathon-input-contract.js": "tools/check-restored-marathon-contract.cjs",
+  "singularity-race-obstacle-contract.js": "tools/smoke-singularity-race-obstacles.cjs",
   "singularity-race-item-contract.js": "tools/smoke-singularity-race-items.cjs"
 });
 

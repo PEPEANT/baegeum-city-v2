@@ -18,11 +18,9 @@ export function createSingularityConnectedRelayEnvelope(packet = {}, context = {
     serverTimeMs: packet.serverTimeMs || payload.serverTimeMs || 0
   });
 }
-
 export function createSingularityRoomPressureReport(transport, packets, nowMs = Date.now()) {
   return transport?.createPressureReport?.(packets, { nowMs }) || null;
 }
-
 export function createSingularityDevRoomPacketTransport(options = {}) {
   return createRestoredMarathonDevRoomTransport({
     clientId: DEFAULT_CLIENT_ID,
@@ -42,7 +40,7 @@ export function mergeSingularityServerSnapshotRunners(existingRunners = [], snap
   const presets = Array.isArray(options.presets) ? options.presets : [];
   const phase = snapshotPayload.phase || "";
   const runners = participants.map((participant, index) => {
-    const id = normalizeRunnerId(participant.participantId, index);
+    const id = normalizeRunnerId(participant.participantId, index, options.localRunnerId);
     const existing = existingById.get(id) || existingById.get(participant.participantId) || null;
     const serverProgress = resolveSnapshotProgress(participant, {
       courseDistanceMeters,
@@ -77,7 +75,8 @@ export function mergeSingularityServerSnapshotRunners(existingRunners = [], snap
       lastSafeCheckpointIndex: Math.max(finiteNumber(participant.lastSafeCheckpointIndex, 0), finiteNumber(existing?.lastSafeCheckpointIndex, 0)),
       lastRewardedCheckpointIndex: Math.max(finiteNumber(participant.lastRewardedCheckpointIndex, 0), finiteNumber(existing?.lastRewardedCheckpointIndex, 0)),
       characterId: participant.characterId || existing?.characterId || "", skillId: participant.skillId || existing?.skillId || "", rewardGrade: participant.rewardGrade || existing?.rewardGrade || "", skillChargesRemaining: finiteNumber(participant.skillChargesRemaining, existing?.skillChargesRemaining ?? 0), skillCooldownUntilMs: finiteNumber(participant.skillCooldownUntilMs, existing?.skillCooldownUntilMs ?? 0),
-      collisionAtMs: existing?.collisionAtMs ?? 0,
+      collisionAtMs: Math.max(finiteNumber(participant.collisionAtMs, 0), finiteNumber(existing?.collisionAtMs, 0)),
+      obstacleCollisionId: participant.obstacleCollisionId || existing?.obstacleCollisionId || "",
       serverOwned: true,
       serverProgress,
       serverLaneOffsetPx,
@@ -122,6 +121,11 @@ export function validateSingularityRaceDevOnlineContract() {
   if (!merged.applied || merged.runners[0].id !== "you") errors.push("server snapshots must map runner:you onto the local player");
   if (merged.runners[0].progress < 9 || merged.runners[0].progress > 11) errors.push("server snapshot meters must become display progress percent");
   if (merged.runners[0].skin !== "gpichan") errors.push("server snapshot merge must preserve the local player skin");
+  const uniquePredicted = mergeSingularityServerSnapshotRunners(
+    [{ id: "you", name: "YOU", skin: "gpichan", progress: 12, laneOffsetPx: 80, hp: 100, maxHp: 100, clientPredicted: true }],
+    { sequence: 13, phase: "racing", participants: [{ participantId: "runner:tab-123", displayName: "Tester", laneOffsetPx: 0, progressMeters: 4219.5, lastSequence: 6 }] },
+    { selectedSkin: "gpichan", courseDistanceMeters: 42195, roadLaneHalfWidthPx: 232, preserveLocalPrediction: true, localRunnerId: "runner:tab-123" });
+  if (uniquePredicted.runners[0]?.id !== "you" || uniquePredicted.runners[0].progress <= 10 || uniquePredicted.runners[0].progress >= 12) errors.push("unique local runner prediction should map to you and smooth toward server snapshots");
   const remoteSkin = mergeSingularityServerSnapshotRunners([], { sequence: 11, phase: "lobby",
     participants: [{ participantId: "runner:remote", displayName: "Remote", skinPreset: "robot" }] }, { defaultSkin: "singularity-fan" });
   if (remoteSkin.runners[0]?.skin !== "robot") errors.push("remote server snapshot should preserve participant skin presets");
@@ -149,9 +153,9 @@ export function validateSingularityRaceDevOnlineContract() {
   return Object.freeze({ ok: errors.length === 0, errors: Object.freeze(errors) });
 }
 
-function normalizeRunnerId(participantId, index) {
+function normalizeRunnerId(participantId, index, localRunnerId = "runner:you") {
   const id = String(participantId || "");
-  if (id === "runner:you") return "you";
+  if (id === "runner:you" || id === localRunnerId) return "you";
   if (id.startsWith("runner:bot-")) return id.slice("runner:".length);
   return id || `runner:${index + 1}`;
 }
@@ -185,9 +189,10 @@ function resolveSnapshotLaneOffset(participant, existing, options) {
 
 function resolveSnapshotDisplay(input) {
   const localRunnerId = input.options.localRunnerId || "you";
+  const localDisplayRunner = input.id === "you" || input.id === localRunnerId;
   const preserve = Boolean(
     input.options.preserveLocalPrediction
-      && input.id === localRunnerId
+      && localDisplayRunner
       && input.phase === "racing"
       && input.existing
   );

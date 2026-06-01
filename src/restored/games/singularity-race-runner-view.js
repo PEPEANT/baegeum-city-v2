@@ -45,12 +45,15 @@ export function createSingularityRunnerAvatarNode(runner) {
   chatBubble.hidden = true;
   const attackSwipe = document.createElement("span");
   attackSwipe.className = "runner-attack-swipe";
+  const hitBurst = document.createElement("span");
+  hitBurst.className = "runner-hit-burst";
+  hitBurst.setAttribute("aria-hidden", "true");
   const rankBadge = document.createElement("span");
   rankBadge.className = "runner-rank-badge";
   rankBadge.hidden = true;
   const nameplate = document.createElement("span");
   nameplate.className = "runner-nameplate";
-  avatar.append(chatBubble, rankBadge, image, attackSwipe, nameplate);
+  avatar.append(chatBubble, rankBadge, image, attackSwipe, hitBurst, nameplate);
   return avatar;
 }
 

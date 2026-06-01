@@ -16,6 +16,8 @@
       --muted: rgba(218, 238, 255, 0.68);
       --text: #eef8ff;
       --green: #56c8ff;
+      --selected-green: #34e87a;
+      --selected-green-soft: rgba(52, 232, 122, 0.22);
       --cyan: #7de3ff;
       --pink: #ff66d8;
       --yellow: #ffc66d;
@@ -163,8 +165,8 @@
     }
 
     .shell[data-screen="queue"] .skin-grid {
-      grid-template-columns: repeat(4, minmax(0, 1fr));
-      max-height: 306px;
+      grid-template-columns: repeat(6, minmax(0, 1fr));
+      max-height: 326px;
       overflow: auto;
     }
 
@@ -951,7 +953,9 @@
     }
 
     .profile-hero {
-      padding: 22px;
+      max-height: calc(100dvh - 36px);
+      overflow: hidden;
+      padding: 18px 22px;
       border: 1px solid var(--line);
       border-radius: 8px;
       background:
@@ -959,7 +963,7 @@
         var(--panel);
       box-shadow: var(--shadow);
       display: grid;
-      gap: 18px;
+      gap: 14px;
       backdrop-filter: blur(14px);
     }
 
@@ -973,7 +977,9 @@
 
     .profile-form {
       display: grid;
-      gap: 14px;
+      min-height: 0;
+      gap: 12px;
+      grid-template-rows: auto auto minmax(0, 1fr);
     }
 
     .profile-heading {
@@ -1010,7 +1016,8 @@
       display: flex;
       gap: 12px;
       align-items: center;
-      padding: 12px;
+      min-height: 68px;
+      padding: 9px 12px;
       border: 1px solid var(--line);
       border-radius: 8px;
       background: rgba(255, 255, 252, 0.94);
@@ -1018,8 +1025,8 @@
     }
 
     .profile-preview img {
-      width: 54px;
-      height: 54px;
+      width: 46px;
+      height: 46px;
       object-fit: contain;
     }
 
@@ -1037,12 +1044,25 @@
     .profile-skin-grid {
       display: grid;
       grid-template-columns: repeat(4, minmax(0, 1fr));
-      gap: 8px;
-      max-height: clamp(260px, calc(100vh - 308px), 468px);
+      grid-auto-rows: 64px;
+      gap: 6px;
+      max-height: min(430px, calc(100dvh - 220px));
+      min-height: 0;
       overflow-y: auto;
       overscroll-behavior: contain;
       padding-right: 4px;
       scrollbar-gutter: stable;
+    }
+
+    .profile-skin-grid .skin-card {
+      min-height: 64px;
+      padding: 6px 8px;
+    }
+
+    .profile-skin-grid .skin-card img {
+      width: 34px;
+      height: 34px;
+      margin-bottom: 3px;
     }
 
     .topbar {
@@ -1180,9 +1200,22 @@
     .signal {
       width: 13px;
       height: 13px;
+      flex: 0 0 auto;
       border-radius: 50%;
       background: var(--yellow);
       box-shadow: 0 0 18px rgba(255, 224, 138, 0.7);
+    }
+
+    .room-refresh {
+      min-height: 30px;
+      padding: 0 10px;
+      border: 1px solid rgba(112, 216, 239, 0.36);
+      border-radius: 8px;
+      background: rgba(86, 200, 255, 0.12);
+      color: var(--cyan);
+      font-size: 12px;
+      font-weight: 900;
+      white-space: nowrap;
     }
 
     .signal.is-connected {
@@ -1284,6 +1317,7 @@
     .primary:active:not(:disabled),
     .secondary:active:not(:disabled),
     .ghost:active:not(:disabled),
+    .room-refresh:active:not(:disabled),
     .skin-card:active:not(:disabled),
     .channel-tab:active:not(:disabled),
     .connected-gate button:active:not(:disabled),
@@ -1598,20 +1632,22 @@
 
     .track-start-crowd {
       position: absolute;
-      left: 3.8%;
-      top: 76.4%;
+      left: 8.4%;
+      top: 79.2%;
       z-index: 34;
-      width: 31%;
-      height: 17%;
+      width: 19%;
+      height: 3.8%;
       pointer-events: none;
+      transform: rotate(-1deg);
+      transform-origin: 10% 100%;
     }
 
     .start-crowd-fence {
       position: absolute;
-      left: 0;
-      right: 0;
+      left: 7%;
+      right: 7%;
       bottom: 4%;
-      height: 24%;
+      height: 22%;
       border: 3px solid rgba(229, 247, 255, 0.42);
       border-radius: 8px;
       background:
@@ -1625,7 +1661,8 @@
     .start-crowd-row {
       position: absolute;
       left: 0;
-      right: 0;
+      right: auto;
+      width: 100%;
       display: flex;
       align-items: flex-end;
       justify-content: center;
@@ -1633,14 +1670,16 @@
     }
 
     .start-crowd-row.is-back {
-      top: 0;
+      top: 28%;
       opacity: 0.82;
-      transform: scale(0.82);
+      transform: translateX(18px) scale(0.62);
       transform-origin: 50% 100%;
     }
 
     .start-crowd-row.is-front {
-      bottom: 15%;
+      bottom: 8%;
+      transform: translateX(-4px) scale(0.78);
+      transform-origin: 50% 100%;
     }
 
     .pixel-citizen {
@@ -1725,6 +1764,9 @@
       line-height: 1.12;
       text-align: center;
       transform: translateX(-50%) rotate(var(--sign-tilt, -3deg));
+      animation: start-crowd-sign-wave 920ms ease-in-out infinite;
+      animation-delay: var(--hop-delay, 0ms);
+      transform-origin: 50% 100%;
       box-shadow: 0 5px 0 rgba(0, 0, 0, 0.12);
     }
 
@@ -1746,6 +1788,16 @@
 
       50% {
         transform: translateY(-7px);
+      }
+    }
+
+    @keyframes start-crowd-sign-wave {
+      0%, 100% {
+        transform: translateX(-50%) rotate(calc(var(--sign-tilt, -3deg) - 3deg));
+      }
+
+      50% {
+        transform: translateX(-50%) rotate(calc(var(--sign-tilt, -3deg) + 4deg));
       }
     }
 
@@ -2722,6 +2774,14 @@
       vector-effect: non-scaling-stroke;
     }
 
+    .minimap-obstacle {
+      fill: #ff6b4a;
+      stroke: rgba(255, 255, 252, 0.94);
+      stroke-width: 0.9;
+      filter: drop-shadow(0 1px 3px rgba(16, 19, 27, 0.28));
+      vector-effect: non-scaling-stroke;
+    }
+
     .minimap-player {
       fill: #42c879;
       stroke: #ffffff;
@@ -2851,13 +2911,76 @@
     .race-item-box,
     .race-item-trap,
     .race-item-projectile,
-    .race-item-ink {
+    .race-item-ink,
+    .race-obstacle {
       position: absolute;
       display: grid;
       place-items: center;
       border-radius: 8px;
       transform: translate(-50%, -50%);
       pointer-events: none;
+    }
+
+    .race-obstacle {
+      width: 58px;
+      height: 42px;
+      z-index: 2;
+      border: 2px solid rgba(206, 235, 255, 0.72);
+      background:
+        linear-gradient(135deg, rgba(255, 222, 93, 0.94) 0 16%, rgba(21, 41, 62, 0.92) 16% 32%, rgba(255, 222, 93, 0.94) 32% 48%, rgba(21, 41, 62, 0.92) 48% 64%, rgba(255, 222, 93, 0.94) 64% 80%, rgba(21, 41, 62, 0.92) 80% 100%);
+      box-shadow:
+        0 5px 0 rgba(4, 18, 38, 0.46),
+        0 14px 22px rgba(4, 18, 38, 0.3),
+        0 0 14px rgba(86, 200, 255, 0.18);
+    }
+
+    .race-obstacle::before,
+    .race-obstacle::after {
+      content: "";
+      position: absolute;
+      pointer-events: none;
+    }
+
+    .race-obstacle::before {
+      left: 8px;
+      right: 8px;
+      top: -6px;
+      height: 8px;
+      border-radius: 4px 4px 1px 1px;
+      background: rgba(201, 230, 255, 0.74);
+      box-shadow: inset 0 -3px 0 rgba(16, 49, 78, 0.25);
+    }
+
+    .race-obstacle::after {
+      left: 9px;
+      right: 9px;
+      bottom: -8px;
+      height: 8px;
+      border-radius: 50%;
+      background: rgba(4, 18, 38, 0.26);
+      filter: blur(2px);
+    }
+
+    .race-obstacle.is-cone {
+      width: 42px;
+      height: 46px;
+      border: 0;
+      border-radius: 6px 6px 10px 10px;
+      background:
+        linear-gradient(180deg, transparent 0 8%, #ffd76a 8% 19%, transparent 19% 31%, #fff2b3 31% 41%, transparent 41% 100%),
+        linear-gradient(160deg, transparent 0 13%, #ff7a2d 14% 100%);
+      clip-path: polygon(50% 0, 92% 82%, 100% 100%, 0 100%, 8% 82%);
+      box-shadow: 0 7px 0 rgba(65, 33, 13, 0.34), 0 15px 22px rgba(4, 18, 38, 0.24);
+    }
+
+    .race-obstacle.is-crate {
+      width: 50px;
+      height: 50px;
+      border-color: rgba(95, 156, 206, 0.74);
+      background:
+        linear-gradient(45deg, transparent 43%, rgba(229, 244, 255, 0.52) 44% 56%, transparent 57%),
+        linear-gradient(-45deg, transparent 43%, rgba(229, 244, 255, 0.42) 44% 56%, transparent 57%),
+        linear-gradient(180deg, #355d7f, #142b47);
     }
 
     .race-item-box {
@@ -2904,6 +3027,58 @@
         #07111f;
       box-shadow: 0 0 18px rgba(3, 10, 20, 0.72), 0 12px 26px rgba(3, 10, 20, 0.34);
       opacity: 0.92;
+    }
+
+    .race-item-aim {
+      position: absolute;
+      display: grid;
+      place-items: center;
+      width: 68px;
+      height: 68px;
+      border: 2px solid rgba(86, 255, 155, 0.9);
+      border-radius: 50%;
+      color: #eafff2;
+      background:
+        linear-gradient(90deg, transparent 46%, rgba(86, 255, 155, 0.68) 46% 54%, transparent 54%),
+        linear-gradient(180deg, transparent 46%, rgba(86, 255, 155, 0.68) 46% 54%, transparent 54%),
+        rgba(10, 38, 43, 0.24);
+      box-shadow:
+        0 0 0 8px rgba(86, 255, 155, 0.08),
+        0 0 22px rgba(86, 255, 155, 0.54),
+        inset 0 0 18px rgba(86, 255, 155, 0.22);
+      pointer-events: none;
+      transform: translate(-50%, -50%);
+      animation: race-item-aim-lock 0.48s ease-in-out infinite alternate;
+    }
+
+    .race-item-aim::before,
+    .race-item-aim::after {
+      content: "";
+      position: absolute;
+      inset: 8px;
+      border: 1px solid rgba(234, 255, 242, 0.78);
+      border-radius: 50%;
+    }
+
+    .race-item-aim::after {
+      inset: 19px;
+      border-color: rgba(86, 255, 155, 0.86);
+    }
+
+    .race-item-aim-label {
+      position: absolute;
+      left: 50%;
+      bottom: -18px;
+      translate: -50% 0;
+      padding: 2px 6px;
+      border: 1px solid rgba(86, 255, 155, 0.62);
+      border-radius: 6px;
+      background: rgba(3, 18, 25, 0.82);
+      color: #b9ffd3;
+      font-size: 9px;
+      font-weight: 1000;
+      letter-spacing: 0;
+      white-space: nowrap;
     }
 
     .race-item-icon {
@@ -3504,18 +3679,19 @@
     }
 
     .runner-avatar.is-attacking img {
-      animation: runner-attack-lunge 0.28s cubic-bezier(0.2, 0.8, 0.18, 1) both;
+      animation: runner-attack-lunge 0.42s cubic-bezier(0.16, 0.9, 0.14, 1) both;
     }
 
     .runner-attack-swipe {
       position: absolute;
-      left: 53%;
-      top: 5px;
-      width: 27px;
-      height: 18px;
-      border-top: 3px solid rgba(255, 216, 108, 0.92);
-      border-right: 3px solid rgba(255, 216, 108, 0.92);
+      left: 50%;
+      top: -1px;
+      width: 42px;
+      height: 30px;
+      border-top: 4px solid rgba(255, 236, 142, 0.98);
+      border-right: 4px solid rgba(255, 236, 142, 0.98);
       border-radius: 50%;
+      box-shadow: 10px -4px 0 -8px rgba(86, 200, 255, 0.85), 0 0 14px rgba(255, 220, 110, 0.7);
       opacity: 0;
       pointer-events: none;
       transform: translateX(0) scaleX(var(--runner-facing-scale, 1)) rotate(10deg);
@@ -3524,7 +3700,49 @@
     }
 
     .runner-avatar.is-attacking .runner-attack-swipe {
-      animation: runner-attack-swipe 0.28s cubic-bezier(0.2, 0.8, 0.18, 1) both;
+      animation: runner-attack-swipe 0.42s cubic-bezier(0.16, 0.9, 0.14, 1) both;
+    }
+
+    .runner-hit-burst {
+      position: absolute;
+      left: 50%;
+      top: 42%;
+      width: 48px;
+      height: 48px;
+      margin-left: -24px;
+      margin-top: -24px;
+      border-radius: 999px;
+      opacity: 0;
+      pointer-events: none;
+      z-index: 4;
+    }
+
+    .runner-hit-burst::before,
+    .runner-hit-burst::after {
+      content: "";
+      position: absolute;
+      inset: 8px;
+      border-radius: inherit;
+      border: 3px solid rgba(255, 245, 168, 0.95);
+      box-shadow: 0 0 0 3px rgba(86, 200, 255, 0.24), 0 0 18px rgba(255, 228, 104, 0.66);
+    }
+
+    .runner-hit-burst::after {
+      inset: 17px -2px 17px -2px;
+      border: 0;
+      border-radius: 2px;
+      background:
+        linear-gradient(90deg, transparent 0 10%, rgba(255, 255, 255, 0.95) 10% 20%, transparent 20% 34%, rgba(86, 200, 255, 0.9) 34% 45%, transparent 45% 62%, rgba(255, 220, 93, 0.95) 62% 72%, transparent 72% 100%);
+      transform: rotate(-18deg);
+    }
+
+    .runner-avatar.is-impact-hit img {
+      animation: runner-hit-recoil 0.38s cubic-bezier(0.16, 0.9, 0.14, 1) both;
+      filter: drop-shadow(0 0 7px rgba(255, 235, 141, 0.95));
+    }
+
+    .runner-avatar.is-impact-hit .runner-hit-burst {
+      animation: runner-hit-burst 0.38s cubic-bezier(0.16, 0.9, 0.14, 1) both;
     }
 
     .runner-avatar.is-reward-skin {
@@ -3697,6 +3915,11 @@
       100% { filter: brightness(1.18); transform: translate(-50%, -50%) scale(1.04); }
     }
 
+    @keyframes race-item-aim-lock {
+      0% { opacity: 0.76; transform: translate(-50%, -50%) scale(0.96); }
+      100% { opacity: 1; transform: translate(-50%, -50%) scale(1.05); }
+    }
+
     @keyframes ceremony-runner-rise {
       0% { opacity: 0; transform: translateX(-50%) translateY(42px) scale(0.92); }
       100% { opacity: 1; transform: translateX(-50%) translateY(0) scale(1); }
@@ -3792,24 +4015,43 @@
 
     @keyframes runner-attack-lunge {
       0% { transform: translateX(0) scaleX(var(--runner-facing-scale, 1)) translateY(0) rotate(0deg) scale(1); }
-      36% { transform: translateX(calc(7px * var(--runner-facing-scale, 1))) scaleX(var(--runner-facing-scale, 1)) translateY(0) rotate(-5deg) scaleX(1.08) scaleY(0.96); }
-      64% { transform: translateX(calc(3px * var(--runner-facing-scale, 1))) scaleX(var(--runner-facing-scale, 1)) translateY(0) rotate(3deg) scaleX(0.98) scaleY(1.02); }
+      22% { transform: translateX(calc(-2px * var(--runner-facing-scale, 1))) scaleX(var(--runner-facing-scale, 1)) translateY(1px) rotate(2deg) scaleX(0.98) scaleY(1.03); }
+      52% { transform: translateX(calc(11px * var(--runner-facing-scale, 1))) scaleX(var(--runner-facing-scale, 1)) translateY(-2px) rotate(-8deg) scaleX(1.13) scaleY(0.92); }
+      76% { transform: translateX(calc(5px * var(--runner-facing-scale, 1))) scaleX(var(--runner-facing-scale, 1)) translateY(0) rotate(4deg) scaleX(0.98) scaleY(1.04); }
       100% { transform: translateX(0) scaleX(var(--runner-facing-scale, 1)) translateY(0) rotate(0deg) scale(1); }
     }
 
     @keyframes runner-attack-swipe {
       0% {
         opacity: 0;
-        transform: translateX(0) scaleX(var(--runner-facing-scale, 1)) scale(0.62) rotate(-28deg);
+        transform: translateX(calc(-2px * var(--runner-facing-scale, 1))) scaleX(var(--runner-facing-scale, 1)) scale(0.54) rotate(-36deg);
       }
-      35% {
+      42% {
         opacity: 1;
-        transform: translateX(calc(15px * var(--runner-facing-scale, 1))) scaleX(var(--runner-facing-scale, 1)) scale(1.08) rotate(10deg);
+        transform: translateX(calc(20px * var(--runner-facing-scale, 1))) scaleX(var(--runner-facing-scale, 1)) scale(1.16) rotate(7deg);
+      }
+      68% {
+        opacity: 0.7;
+        transform: translateX(calc(30px * var(--runner-facing-scale, 1))) scaleX(var(--runner-facing-scale, 1)) scale(1.02) rotate(23deg);
       }
       100% {
         opacity: 0;
-        transform: translateX(calc(26px * var(--runner-facing-scale, 1))) scaleX(var(--runner-facing-scale, 1)) scale(0.88) rotate(34deg);
+        transform: translateX(calc(38px * var(--runner-facing-scale, 1))) scaleX(var(--runner-facing-scale, 1)) scale(0.78) rotate(42deg);
       }
+    }
+
+    @keyframes runner-hit-recoil {
+      0% { transform: scaleX(var(--runner-facing-scale, 1)) translateX(0) translateY(0) rotate(0deg) scale(1); }
+      28% { transform: scaleX(var(--runner-facing-scale, 1)) translateX(calc(-5px * var(--runner-facing-scale, 1))) translateY(-3px) rotate(7deg) scale(1.09); }
+      58% { transform: scaleX(var(--runner-facing-scale, 1)) translateX(calc(2px * var(--runner-facing-scale, 1))) translateY(1px) rotate(-4deg) scale(0.97); }
+      100% { transform: scaleX(var(--runner-facing-scale, 1)) translateX(0) translateY(0) rotate(0deg) scale(1); }
+    }
+
+    @keyframes runner-hit-burst {
+      0% { opacity: 0; transform: scale(0.28) rotate(-20deg); }
+      22% { opacity: 1; transform: scale(0.74) rotate(3deg); }
+      64% { opacity: 0.92; transform: scale(1.14) rotate(16deg); }
+      100% { opacity: 0; transform: scale(1.38) rotate(28deg); }
     }
 
     @keyframes runner-reward-pulse {
@@ -3834,8 +4076,8 @@
     }
 
     @keyframes ui-selected-pulse {
-      0% { box-shadow: 0 0 0 0 rgba(86, 200, 255, 0.22); }
-      100% { box-shadow: 0 0 0 5px rgba(86, 200, 255, 0); }
+      0% { box-shadow: 0 0 0 0 rgba(52, 232, 122, 0.3); }
+      100% { box-shadow: 0 0 0 5px rgba(52, 232, 122, 0); }
     }
 
     @media (prefers-reduced-motion: reduce) {
@@ -3845,6 +4087,10 @@
       .runner-chat-bubble.has-text,
       .runner-avatar.is-attacking img,
       .runner-avatar.is-attacking .runner-attack-swipe,
+      .runner-avatar.is-impact-hit img,
+      .runner-avatar.is-impact-hit .runner-hit-burst,
+      .runner-avatar.is-impact-hit .runner-hit-burst::before,
+      .runner-avatar.is-impact-hit .runner-hit-burst::after,
       .runner-avatar img,
       .runner-avatar::before,
       .runner-avatar.is-reward-skin,
@@ -3906,14 +4152,16 @@
 
     .skin-grid {
       display: grid;
-      grid-template-columns: repeat(6, minmax(0, 1fr));
-      gap: 8px;
+      grid-template-columns: repeat(8, minmax(0, 1fr));
+      gap: 6px;
     }
 
     .skin-card {
+      position: relative;
       min-width: 0;
-      min-height: 94px;
-      padding: 9px 8px;
+      min-height: 70px;
+      overflow: hidden;
+      padding: 7px 7px;
       border: 1px solid var(--line);
       border-radius: 8px;
       background: rgba(255, 255, 252, 0.94);
@@ -3923,15 +4171,34 @@
     }
 
     .skin-card[aria-pressed="true"] {
-      border-color: var(--green);
-      background: linear-gradient(180deg, rgba(255, 255, 252, 0.98), rgba(223, 244, 255, 0.96));
+      border-color: var(--selected-green);
+      background: linear-gradient(180deg, rgba(245, 255, 247, 0.99), rgba(210, 255, 224, 0.97));
+      box-shadow:
+        inset 0 0 0 2px rgba(52, 232, 122, 0.36),
+        0 0 0 2px rgba(52, 232, 122, 0.18),
+        0 12px 28px rgba(14, 112, 55, 0.22);
       animation: ui-selected-pulse 520ms ease;
     }
 
+    .skin-card[aria-pressed="true"]::after {
+      content: "선택";
+      position: absolute;
+      top: 6px;
+      right: 6px;
+      padding: 3px 6px;
+      border-radius: 999px;
+      background: #17c964;
+      color: #052510;
+      font-size: 10px;
+      font-weight: 900;
+      line-height: 1;
+      box-shadow: 0 4px 12px rgba(23, 201, 100, 0.28);
+    }
+
     .skin-card img {
-      width: 46px;
-      height: 46px;
-      margin-bottom: 7px;
+      width: 38px;
+      height: 38px;
+      margin-bottom: 5px;
     }
 
     .skin-card b {
@@ -3944,11 +4211,7 @@
     }
 
     .skin-card span {
-      display: block;
-      margin-top: 3px;
-      color: #52656f;
-      font-size: 11px;
-      line-height: 1.2;
+      display: none;
     }
 
     .chat-panel {
@@ -4132,8 +4395,8 @@
       }
 
       .shell[data-screen="queue"] .skin-grid {
-        grid-template-columns: repeat(3, minmax(0, 1fr));
-        max-height: 268px;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        max-height: 300px;
       }
 
       .shell[data-screen="queue"] .track-panel {
@@ -4152,7 +4415,7 @@
       }
 
       .shell[data-screen="queue"] .skin-grid {
-        grid-template-columns: repeat(3, minmax(0, 1fr));
+        grid-template-columns: repeat(4, minmax(0, 1fr));
       }
 
       .profile-name-row {
@@ -4161,12 +4424,13 @@
 
       .profile-skin-grid {
         grid-template-columns: repeat(4, minmax(0, 1fr));
-        max-height: min(42vh, 360px);
+        grid-auto-rows: 64px;
+        max-height: min(430px, calc(100dvh - 248px));
       }
 
       .profile-skin-grid .skin-card {
-        min-height: 86px;
-        padding: 8px 6px;
+        min-height: 64px;
+        padding: 6px 5px;
       }
 
       .track-scene {
@@ -4193,9 +4457,20 @@
         font-size: 12px;
       }
 
-      .shell[data-screen="race"] .race-minimap,
       .shell[data-screen="race"] .race-standings {
         display: none;
+      }
+
+      .shell[data-screen="race"] .race-minimap {
+        display: block;
+        top: 68px;
+        right: 10px;
+        width: clamp(96px, 27vw, 108px);
+        height: clamp(68px, 19vw, 82px);
+        padding: 5px;
+        border-color: rgba(86, 200, 255, 0.32);
+        background: rgba(4, 17, 35, 0.78);
+        box-shadow: 0 10px 24px rgba(0, 9, 22, 0.28);
       }
 
       .shell[data-screen="race"] .runner-rank-badge:not([hidden]) {
@@ -4330,13 +4605,26 @@
 
       .profile-skin-grid {
         gap: 6px;
-        max-height: min(40vh, 330px);
+        grid-auto-rows: 62px;
+        max-height: 340px;
       }
 
       .profile-skin-grid .skin-card img {
-        width: 40px;
-        height: 40px;
-        margin-bottom: 6px;
+        width: 32px;
+        height: 32px;
+        margin-bottom: 3px;
+      }
+
+      .profile-skin-grid .skin-card {
+        min-height: 62px;
+        padding: 6px 4px;
+      }
+
+      .skin-card[aria-pressed="true"]::after {
+        top: 5px;
+        right: 5px;
+        padding: 3px 5px;
+        font-size: 9px;
       }
     }
   </style>
@@ -4387,6 +4675,7 @@
               <strong id="room-display-name">특이점 스타디움 001</strong>
               <small id="room-code">최대 50명</small>
             </div>
+            <button class="room-refresh" id="room-refresh-button" type="button" hidden>새로고침</button>
             <span class="signal" aria-label="local preview signal"></span>
           </div>
 
@@ -4504,7 +4793,7 @@
             <ol class="race-result-list" id="race-result-list"></ol>
             <div class="race-result-actions">
               <button id="race-result-watch" type="button">관전 계속</button>
-              <button id="race-result-restart" type="button">다시 대기</button>
+              <button id="race-result-restart" type="button">로비로 복귀</button>
             </div>
           </div>
         </div>
@@ -4782,9 +5071,14 @@
       hasPotentialSingularityPlayerMovement
     } from "./src/restored/games/singularity-race-runner-motion.js";
     import {
+      resolveSingularityRaceInputMovement,
       resolveSingularityRaceLaneBoundary,
       resolveSingularityRaceTrackMovement
     } from "./src/restored/games/singularity-race-movement-vector.js";
+    import {
+      listSingularityRaceMapObstacles,
+      resolveSingularityRaceObstacleCollision
+    } from "./src/restored/games/singularity-race-obstacle-contract.js";
     import {
       SINGULARITY_RACE_BANANA_DURATION_MS,
       SINGULARITY_RACE_BANANA_SLOW_MS,
@@ -4899,7 +5193,7 @@
     const CEREMONY_TOP_COUNT = 5;
     const PLAYER_COLLISION_STALL_MS = 360;
     const BASIC_ATTACK_COOLDOWN_MS = 1150;
-    const BASIC_ATTACK_STALL_MS = 520;
+    const BASIC_ATTACK_STALL_MS = 180;
     const BASIC_ATTACK_STUN_MS = 680;
     const BASIC_ATTACK_DAMAGE = 24;
     const BASIC_ATTACK_RANGE_PROGRESS = 4.2;
@@ -4908,6 +5202,7 @@
     const ITEM_ROULETTE_DURATION_MS = 1050;
     const ITEM_ROULETTE_RESULT_VISIBLE_MS = 1150;
     const ITEM_ROULETTE_TICK_MS = 90;
+    const ITEM_AIM_LOCK_MS = 4200;
     const RACE_NARRATION_TOTAL_MS = 10400;
     const RACE_NARRATION_TYPE_MS = 42;
     const RACE_NARRATION_ASSETS = Object.freeze({
@@ -4971,9 +5266,9 @@
         assetId: "audio:sfx:singularity-race:countdown-bell",
         role: "sfx-countdown",
         src: resolveRestoredAssetPath("audio:sfx:singularity-race:countdown-bell"),
-        volume: 0.58,
+        volume: 0.88,
         loop: false,
-        wetGain: 0.08
+        wetGain: 0.24
       },
       {
         key: "sfx-attack-swipe",
@@ -5120,6 +5415,7 @@
     const adminLaunchEnabled = queryParams.get("adminLaunch") === "1";
     const adminObserverEnabled = queryParams.get("adminObserver") === "1";
     const debugUiEnabled = queryParams.get("debug") === "1";
+    const DEV_ROOM_REGISTRY_STORAGE_KEY = "singularity-race:dev-rooms:v1";
     const devRooms = readRestoredMarathonDevRooms(window.localStorage);
     const requestedDevRoomId = queryParams.get("roomId") || "";
     const activeDevRoom = devRooms.find((room) => room.roomId === requestedDevRoomId)
@@ -5232,6 +5528,7 @@
       roomCopy: document.querySelector("#room-panel-copy"),
       roomBadge: document.querySelector("#room-panel-badge"),
       roomDisplayName: document.querySelector("#room-display-name"),
+      roomRefreshButton: document.querySelector("#room-refresh-button"),
       phaseBadge: document.querySelector("#phase-badge"),
       trackTitle: document.querySelector("#track-panel-title"),
       trackCopy: document.querySelector("#track-panel-copy"),
@@ -5465,10 +5762,15 @@
       unlockRaceAudio();
       if (state.screen === SINGULARITY_RACE_SCREENS.LOBBY) {
         enterQueue("manual");
-        return;
+      return;
       }
-      if (state.screen === SINGULARITY_RACE_SCREENS.QUEUE && state.cloudflareHost) {
-        startCloudflareHostCountdown();
+      if (state.screen === SINGULARITY_RACE_SCREENS.QUEUE && state.connectedSession?.provider === "cloudflare") {
+        if (state.cloudflareHost) {
+          requestCloudflareRaceStart();
+          return;
+        }
+        pushSystem("방장이 시작할 때까지 대기 중입니다.");
+        renderAll();
         return;
       }
       if (state.screen === SINGULARITY_RACE_SCREENS.MAP_PREVIEW) enterQueue("map_return");
@@ -5486,10 +5788,6 @@
         return;
       }
       if (state.screen === SINGULARITY_RACE_SCREENS.QUEUE) {
-        if (cloudflareOnlineEnabled && state.cloudflareHost && state.connectedSession && !state.action.raceStarted) {
-          startCloudflareHostCountdown();
-          return;
-        }
         enterMapPreview();
         return;
       }
@@ -5651,6 +5949,10 @@
       joinOnlineConnectedRoom("button");
     });
 
+    elements.roomRefreshButton.addEventListener("click", () => {
+      window.location.reload();
+    });
+
     if (canAdminDirectLaunch) {
       requestAnimationFrame(() => {
         joinDevConnectedRoom("admin_direct");
@@ -5733,8 +6035,10 @@
       const spectator = participantType === "spectator";
       const adminObserver = spectator && Boolean(options.adminObserver);
       syncRaceMapFromRoomPolicy();
-      const result = joinConnectedMarathonRoom(roomAdapter, {
-        participantId: spectator ? "spectator:you" : "runner:you",
+      const participantId = createDevParticipantId(participantType);
+      const joinAdapter = createDevRoomAdapterWithStoredParticipants(participantId);
+      const result = joinConnectedMarathonRoom(joinAdapter, {
+        participantId,
         participantType,
         nickname: state.nickname,
         skinPreset: state.selectedSkin,
@@ -5839,7 +6143,16 @@
     function applyCloudflareJoinPacket(packet, source, spectator) {
       const payload = packet?.payload || {};
       if (!payload.ok) {
-        pushSystem(`Cloudflare 공개방 입장 실패: ${payload.reason || "join_failed"}`);
+        if (cloudflareRoomClient) {
+          cloudflareRoomClient.close();
+          cloudflareRoomClient = null;
+        }
+        state.connectedSession = null;
+        state.cloudflareHost = false;
+        state.participantType = "player";
+        state.runners = createRunners(1, state.selectedSkin, false);
+        setScreen(savedProfile ? SINGULARITY_RACE_SCREENS.LOBBY : SINGULARITY_RACE_SCREENS.PROFILE);
+        pushSystem(`Cloudflare 공개방 입장 실패: ${formatCloudflareJoinFailureReason(payload.reason || "join_failed", payload.phase)}`);
         renderAll();
         return;
       }
@@ -5861,6 +6174,15 @@
         ? "Cloudflare 공개방 입장 완료. 현재 이 방의 시작 권한을 가진 호스트입니다."
         : "Cloudflare 공개방 입장 완료. 다른 접속자와 같은 방에 있습니다.");
       renderAll();
+    }
+
+    function formatCloudflareJoinFailureReason(reason, phase) {
+      if (reason === "room_join_closed") {
+        return phase === "countdown" ? "카운트다운 중에는 새 입장이 막혀 있습니다." : "경기 중에는 새 입장이 막혀 있습니다.";
+      }
+      if (reason === "room_full") return "선수 정원이 가득 찼습니다.";
+      if (reason === "spectator_full") return "관전자 정원이 가득 찼습니다.";
+      return reason || "join_failed";
     }
 
     function handleCloudflareRoomPacket(packet) {
@@ -5962,6 +6284,63 @@
       return clientId;
     }
 
+    function createDevParticipantId(participantType = "player") {
+      const key = "singularity-race:dev-session-token:v1";
+      let token = "";
+      try {
+        token = window.sessionStorage.getItem(key) || "";
+        if (!token) {
+          token = (window.crypto?.randomUUID?.() || `${Date.now()}-${Math.random().toString(16).slice(2)}`)
+            .replace(/[^a-z0-9_-]/gi, "")
+            .slice(0, 28);
+          window.sessionStorage.setItem(key, token);
+        }
+      } catch {
+        token = `${Date.now()}${Math.random().toString(16).slice(2)}`.replace(/[^a-z0-9_-]/gi, "").slice(0, 28);
+      }
+      return `${participantType === "spectator" ? "spectator" : "runner"}:${token || "local"}`;
+    }
+
+    function readLatestDevRoomSnapshot(roomId = DEV_ROOM_ID) {
+      if (!devOnlineEnabled && !adminLaunchEnabled) return null;
+      const packets = roomPacketTransport && state.connectedSession?.roomId === roomId
+        ? state.connectedPackets
+        : createSingularityDevRoomPacketTransport({
+          roomId,
+          storage: window.localStorage,
+          packetLimit: MAX_RUNNERS * 24
+        }).loadPackets([]);
+      return [...packets].reverse().find((packet) => packet?.type === "state_snapshot" && packet?.payload?.roomId === roomId) || null;
+    }
+
+    function createDevRoomAdapterWithStoredParticipants(selfParticipantId = "") {
+      const snapshot = readLatestDevRoomSnapshot(DEV_ROOM_ID);
+      const participants = (Array.isArray(snapshot?.payload?.participants) ? snapshot.payload.participants : [])
+        .filter((participant) => participant?.participantId !== selfParticipantId);
+      if (!participants.length) return roomAdapter;
+      return Object.freeze({
+        ...roomAdapter,
+        rooms: Object.freeze((roomAdapter.rooms || []).map((room) => (
+          room.roomId === DEV_ROOM_ID ? Object.freeze({ ...room, participants }) : room
+        )))
+      });
+    }
+
+    function getDevRoomPresenceSummary() {
+      const snapshot = readLatestDevRoomSnapshot(DEV_ROOM_ID);
+      const participants = Array.isArray(snapshot?.payload?.participants) ? snapshot.payload.participants : [];
+      if (!participants.length) return null;
+      return Object.freeze({
+        players: participants.filter(isSnapshotRunnerParticipant).length,
+        spectators: participants.filter((participant) => participant?.type === "spectator" || String(participant?.participantId || "").startsWith("spectator:")).length
+      });
+    }
+
+    function isSnapshotRunnerParticipant(participant = {}) {
+      const type = participant.type || (String(participant.participantId || "").startsWith("runner:") ? "player" : "");
+      return type === "player" || type === "bot";
+    }
+
     function findChannelIdByType(type) {
       return channelSet.find((channel) => channel.type === type)?.channelId || state.activeChannel;
     }
@@ -5991,10 +6370,7 @@
 
     function syncEntryGateMusicCue(nowMs = Date.now()) {
       const gate = getQueueEntryGateStatus(nowMs);
-      const wasOpen = Boolean(state.raceAudio.lastEntryGateOpen);
       state.raceAudio.lastEntryGateOpen = gate.open;
-      if (!gate.open || wasOpen || state.screen === SINGULARITY_RACE_SCREENS.PROFILE) return;
-      requestEntryGateMusic("entry_gate_open");
     }
 
     function getCurrentMapVoteStatus(nowMs = Date.now()) {
@@ -6501,18 +6877,17 @@
       renderAll();
     }
 
-    function startCloudflareHostCountdown() {
+    function requestCloudflareRaceStart() {
       if (!cloudflareRoomClient || !state.cloudflareHost) {
         pushSystem("Cloudflare 공개방 시작 권한이 없습니다.");
         renderAll();
         return;
       }
-      const sent = cloudflareRoomClient.sendHostStart();
+      const sent = cloudflareRoomClient.sendStartRequest();
       if (sent) {
-        setScreen(SINGULARITY_RACE_SCREENS.RACE);
-        pushSystem("Cloudflare 공개방에 10초 시작 신호를 보냈습니다.");
+        pushSystem("경기 시스템에 시작을 요청했습니다.");
       } else {
-        pushSystem("Cloudflare 공개방 시작 신호를 보낼 수 없습니다.");
+        pushSystem("경기 시작 요청을 보낼 수 없습니다.");
       }
       renderAll();
     }
@@ -6559,12 +6934,9 @@
       state.raceQueueOpen = false;
       state.raceOptionsOpen = false;
       state.runners = createRunners(1, state.selectedSkin, false);
-      setScreen(SINGULARITY_RACE_SCREENS.QUEUE);
-      if (connectedLobbyOpen && !state.roomClosed) {
-        joinOnlineConnectedRoom("result_restart");
-        return;
-      }
-      pushSystem("결과를 정리하고 대기열방으로 돌아왔습니다.");
+      state.ready = false;
+      setScreen(SINGULARITY_RACE_SCREENS.LOBBY);
+      pushSystem("결과를 정리하고 로비로 돌아왔습니다.");
       renderAll();
     }
 
@@ -6635,6 +7007,14 @@
     function setupRaceControlListener() {
       window.addEventListener("storage", (event) => {
         if (!event.newValue) return;
+        if ((devOnlineEnabled || adminLaunchEnabled) && event.key === DEV_ROOM_REGISTRY_STORAGE_KEY) {
+          window.location.reload();
+          return;
+        }
+        if ((devOnlineEnabled || adminLaunchEnabled) && String(event.key || "").startsWith("singularity-race:room-packets:v1:")) {
+          renderConnectedGate();
+          if (state.screen === SINGULARITY_RACE_SCREENS.LOBBY || state.screen === SINGULARITY_RACE_SCREENS.QUEUE) renderSlots();
+        }
         if (event.key === RESTORED_MARATHON_ROOM_POLICY_STORAGE_KEY) {
           syncRaceMapFromRoomPolicy();
           renderAll();
@@ -7011,12 +7391,17 @@
         lastMovementInputAtMs: 0,
         lastConnectedInputSentAtMs: 0,
         lastConnectedInputSignature: "",
+        lastConnectedInputActive: false,
+        mobileIntent: null,
         lastFacingDirection: "right",
         stallUntilMs: 0,
         attackCooldownUntilMs: 0,
         attackVisualUntilMs: 0,
         attackVisualId: 0,
         attackFacingDirection: "right",
+        attackImpactUntilMs: 0,
+        attackImpactId: 0,
+        attackImpactTargetId: "",
         checkpointIndex: 0,
         hp: 100,
         maxHp: 100,
@@ -7030,6 +7415,7 @@
         skillMaxCharges: 0,
         skillChargesRemaining: 0,
         currentItemId: "",
+        itemAim: null,
         itemBoxes: createSingularityRaceItemBoxState(),
         itemHazards: [],
         itemProjectiles: [],
@@ -7202,6 +7588,7 @@
       }
       if (state.participantType === "spectator") return;
       if (state.action.finalResult) return;
+      if (retargetRaceItemAimFromPointer(event)) return;
       performBasicAttack(event);
     }
 
@@ -7237,10 +7624,9 @@
         stunMs: BASIC_ATTACK_STUN_MS,
         damage: damageEnabled ? BASIC_ATTACK_DAMAGE : 0
       });
-      cancelPlayerMovementForAction(now, attackFacingDirection);
+      preservePlayerMovementForAttack(now, attackFacingDirection);
       state.action.attackCooldownUntilMs = now + action.cooldownMs;
-      state.action.stallUntilMs = Math.max(state.action.stallUntilMs, now + action.selfStallMs);
-      state.action.attackVisualUntilMs = now + 300;
+      state.action.attackVisualUntilMs = now + 420;
       state.action.attackVisualId += 1;
       scheduleAttackVisualCleanup(state.action.attackVisualId);
       state.action.attackFacingDirection = attackFacingDirection;
@@ -7313,6 +7699,7 @@
           ? `${target.name} 명중. 잠깐 멈추게 만들었습니다.`
           : `${target.name} 스턴. 시작 전이라 체력은 줄지 않습니다.`);
       }
+      setAttackImpactVisual(updatedTarget, now);
       if (targetIndex >= 0) state.runners[targetIndex] = updatedTarget;
       resolveSingleRailCollisions("attack");
       renderAll();
@@ -7324,7 +7711,24 @@
         if (state.action.attackVisualId !== visualId) return;
         if (Date.now() < Number(state.action.attackVisualUntilMs || 0)) return;
         renderActionPreviewFrame(Date.now());
-      }, 340);
+      }, 470);
+    }
+
+    function setAttackImpactVisual(target, now = Date.now()) {
+      if (!target?.id) return;
+      state.action.attackImpactTargetId = target.id;
+      state.action.attackImpactUntilMs = now + 420;
+      state.action.attackImpactId += 1;
+      scheduleAttackImpactVisualCleanup(state.action.attackImpactId);
+    }
+
+    function scheduleAttackImpactVisualCleanup(visualId) {
+      window.setTimeout(() => {
+        if (state.action.attackImpactId !== visualId) return;
+        if (Date.now() < Number(state.action.attackImpactUntilMs || 0)) return;
+        state.action.attackImpactTargetId = "";
+        renderActionPreviewFrame(Date.now());
+      }, 470);
     }
 
     function resolveBasicAttackAim(event, player) {
@@ -7417,9 +7821,7 @@
         return;
       }
       if (isCeremonyRoomActive()) {
-        const moved = advanceCeremonyPlayerMovement(createRestoredMarathonInputFrame({
-          participantId: "runner:you",
-          keys: state.action.keys,
+        const moved = advanceCeremonyPlayerMovement(createCurrentPlayerInputFrame({
           sequence: Math.floor(now / 180)
         }), elapsedSeconds);
         if (moved || ceremonyChanged || now - Number(state.action.lastCeremonyRefreshMs || 0) < 80) {
@@ -7438,9 +7840,7 @@
       if (isCountdownActive(now)) {
         if (!state.connectedSession) advanceWaitingBotPack(elapsedSeconds, now);
         if (state.action.connectedServerRaceStarted) advanceConnectedDevSnapshotFeed(now);
-        advanceLocalPlayerMovement(createRestoredMarathonInputFrame({
-          participantId: "runner:you",
-          keys: state.action.keys,
+        advanceLocalPlayerMovement(createCurrentPlayerInputFrame({
           sequence: Math.floor(now / 180)
         }), elapsedSeconds, "staging");
         renderActionPreviewFrame(now);
@@ -7462,20 +7862,17 @@
         return;
       }
       if (state.connectedSession && state.action.raceStarted) {
-        const frame = createRestoredMarathonInputFrame({
-          participantId: "runner:you",
-          keys: state.action.keys,
+        const frame = createCurrentPlayerInputFrame({
           sequence: Math.floor(now / 180)
         });
         advanceConnectedDevSnapshotFeed(now);
         advanceConnectedLocalPrediction(frame, elapsedSeconds);
+        publishConnectedInputRequest(false, frame);
         updateRaceItems(now, elapsedSeconds);
         renderActionPreviewFrame(now);
         return;
       }
-      const frame = createRestoredMarathonInputFrame({
-        participantId: "runner:you",
-        keys: state.action.keys,
+      const frame = createCurrentPlayerInputFrame({
         sequence: Math.floor(now / 180)
       });
       let botsMoved = false;
@@ -7557,6 +7954,13 @@
       state.action.itemHazards = state.action.itemHazards.filter((item) => Number(item.expiresAtMs || 0) > now);
       state.action.itemProjectiles = state.action.itemProjectiles.filter((item) => Number(item.expiresAtMs || 0) > now);
       changed = changed || beforeHazards !== state.action.itemHazards.length || beforeProjectiles !== state.action.itemProjectiles.length;
+      if (state.action.itemAim && (
+        Number(state.action.itemAim.expiresAtMs || 0) <= now
+        || state.action.itemAim.itemId !== state.action.currentItemId
+      )) {
+        state.action.itemAim = null;
+        changed = true;
+      }
       if (state.action.raceStarted) changed = applyRaceItemHazards(now) || changed;
       if (state.action.raceStarted) changed = collectRaceItemBox(now) || changed;
       return changed;
@@ -7633,7 +8037,10 @@
         return false;
       }
       const now = Date.now();
-      if (!state.action.currentItemId) state.action.currentItemId = item.itemId;
+      if (!state.action.currentItemId) {
+        state.action.currentItemId = item.itemId;
+        state.action.itemAim = null;
+      }
       state.action.itemRoulette = Object.freeze({
         ...roulette,
         finalized: true,
@@ -7671,15 +8078,19 @@
       }
       const item = getSingularityRaceItemDefinition(state.action.currentItemId);
       if (!item) {
+        state.action.itemAim = null;
         pushSystem("보유한 아이템이 없습니다.");
         return false;
       }
+      if (isProjectileRaceItem(item.itemId)) {
+        if (isRaceItemAimReady(item.itemId)) return fireAimedRaceItem(item);
+        return startRaceItemAim(item, "auto");
+      }
+      state.action.itemAim = null;
       state.action.currentItemId = "";
       void playRaceSfx("sfx-item-use");
       if (item.itemId === SINGULARITY_RACE_ITEM_IDS.BOOSTER) useBoosterItem(item);
       else if (item.itemId === SINGULARITY_RACE_ITEM_IDS.BANANA) useBananaItem(item);
-      else if (item.itemId === SINGULARITY_RACE_ITEM_IDS.STUN_SHOT) useStunShotItem(item);
-      else if (item.itemId === SINGULARITY_RACE_ITEM_IDS.INK_CLOUD) useInkCloudItem(item);
       pushLocalItemPacket(item);
       renderAll();
       return true;
@@ -7708,17 +8119,100 @@
       pushSystem("바나나 설치: 뒤쪽 러너를 짧게 미끄러뜨립니다.");
     }
 
-    function useStunShotItem(item) {
+    function isProjectileRaceItem(itemId) {
+      return itemId === SINGULARITY_RACE_ITEM_IDS.STUN_SHOT
+        || itemId === SINGULARITY_RACE_ITEM_IDS.INK_CLOUD;
+    }
+
+    function isRaceItemAimReady(itemId, now = Date.now()) {
+      const aim = state.action.itemAim;
+      return Boolean(aim)
+        && aim.itemId === itemId
+        && state.action.currentItemId === itemId
+        && Number(aim.expiresAtMs || 0) > now;
+    }
+
+    function clearRaceItemAim() {
+      state.action.itemAim = null;
+    }
+
+    function startRaceItemAim(item, source = "auto", now = Date.now()) {
       const player = state.runners[0];
-      const targetEntry = findStunShotTarget(player);
+      if (!player) return false;
+      const targetEntry = findAutoRaceItemTarget(item.itemId, player);
+      const aim = createRaceItemAim(item, player, targetEntry, null, now);
+      state.action.itemAim = aim;
+      void playRaceSfx("sfx-ui-tap");
+      setRaceCue("item", "조준", aim.progress, aim.targetRunnerId || "you", { durationMs: 1400 });
+      pushSystem(aim.targetRunnerId
+        ? `${aim.targetName || "러너"} 조준 완료. 클릭/터치로 바꾸고 E/스킬을 한 번 더 누르면 발사합니다.`
+        : `${item.label} 조준 완료. 클릭/터치로 바꾸고 E/스킬을 한 번 더 누르면 전방으로 발사합니다.`);
+      renderAll();
+      return true;
+    }
+
+    function fireAimedRaceItem(item) {
+      const aim = state.action.itemAim;
+      if (!isRaceItemAimReady(item.itemId)) return startRaceItemAim(item, "auto");
+      state.action.currentItemId = "";
+      state.action.itemAim = null;
+      void playRaceSfx("sfx-item-use");
+      if (item.itemId === SINGULARITY_RACE_ITEM_IDS.STUN_SHOT) useStunShotItem(item, aim);
+      else if (item.itemId === SINGULARITY_RACE_ITEM_IDS.INK_CLOUD) useInkCloudItem(item, aim);
+      pushLocalItemPacket(item);
+      renderAll();
+      return true;
+    }
+
+    function createRaceItemAim(item, player, targetEntry = null, point = null, now = Date.now()) {
+      const fallbackDistance = item.itemId === SINGULARITY_RACE_ITEM_IDS.INK_CLOUD ? 2.8 : 4.2;
+      const rawProgress = targetEntry
+        ? targetEntry.runner.progress
+        : (point ? point.progress : (Number(player.progress) || START_LINE_PROGRESS) + fallbackDistance);
+      const rawLane = targetEntry
+        ? targetEntry.runner.laneOffsetPx
+        : (point ? point.laneOffsetPx : player.laneOffsetPx);
+      return Object.freeze({
+        itemId: item.itemId,
+        targetRunnerId: targetEntry?.runner?.id || "",
+        targetName: targetEntry?.runner?.name || "",
+        progress: clampNumber(rawProgress, RAIL_MIN_PROGRESS, RAIL_MAX_PROGRESS),
+        laneOffsetPx: clampNumber(rawLane, -ROAD_LANE_HALF_WIDTH_PX, ROAD_LANE_HALF_WIDTH_PX),
+        lockedAtMs: now,
+        expiresAtMs: now + ITEM_AIM_LOCK_MS
+      });
+    }
+
+    function findAutoRaceItemTarget(itemId, player) {
+      if (itemId === SINGULARITY_RACE_ITEM_IDS.STUN_SHOT) return findStunShotTarget(player);
+      if (itemId === SINGULARITY_RACE_ITEM_IDS.INK_CLOUD) return findInkCloudTarget(player);
+      return null;
+    }
+
+    function findAimedRunnerEntry(aim) {
+      if (!aim?.targetRunnerId) return null;
+      const index = state.runners.findIndex((runner) => runner.id === aim.targetRunnerId);
+      if (index <= 0) return null;
+      const runner = state.runners[index];
+      if (!runner || runner.finishedAtMs || runner.hp === 0) return null;
+      if (aim.itemId === SINGULARITY_RACE_ITEM_IDS.STUN_SHOT && isRunnerStunned(runner)) return null;
+      return { runner, index };
+    }
+
+    function useStunShotItem(item, aim = null) {
+      const player = state.runners[0];
+      const targetEntry = findAimedRunnerEntry(aim) || (aim ? null : findStunShotTarget(player));
       const endProgress = targetEntry
         ? targetEntry.runner.progress
-        : clampNumber((Number(player.progress) || START_LINE_PROGRESS) + 4.2, RAIL_MIN_PROGRESS, RAIL_MAX_PROGRESS);
+        : clampNumber(Number(aim?.progress || player.progress + 4.2), RAIL_MIN_PROGRESS, RAIL_MAX_PROGRESS);
+      const laneOffsetPx = targetEntry
+        ? targetEntry.runner.laneOffsetPx
+        : clampNumber(Number(aim?.laneOffsetPx ?? player.laneOffsetPx), -ROAD_LANE_HALF_WIDTH_PX, ROAD_LANE_HALF_WIDTH_PX);
       state.action.itemProjectiles.push(Object.freeze({
         id: `stun-shot:${++state.action.itemSequence}`,
         itemId: item.itemId,
         progress: endProgress,
-        laneOffsetPx: player.laneOffsetPx || 0,
+        laneOffsetPx,
         expiresAtMs: Date.now() + 420
       }));
       if (targetEntry) {
@@ -7737,16 +8231,16 @@
       }
     }
 
-    function useInkCloudItem(item) {
+    function useInkCloudItem(item, aim = null) {
       const player = state.runners[0];
       if (!player) return;
-      const targetEntry = findInkCloudTarget(player);
+      const targetEntry = findAimedRunnerEntry(aim) || (aim ? null : findInkCloudTarget(player));
       const now = Date.now();
       const progress = targetEntry
         ? targetEntry.runner.progress
-        : clampNumber((Number(player.progress) || START_LINE_PROGRESS) + 2.8, RAIL_MIN_PROGRESS, RAIL_MAX_PROGRESS);
+        : clampNumber(Number(aim?.progress || player.progress + 2.8), RAIL_MIN_PROGRESS, RAIL_MAX_PROGRESS);
       const laneOffsetPx = clampNumber(
-        targetEntry ? targetEntry.runner.laneOffsetPx : player.laneOffsetPx,
+        targetEntry ? targetEntry.runner.laneOffsetPx : Number(aim?.laneOffsetPx ?? player.laneOffsetPx),
         -ROAD_LANE_HALF_WIDTH_PX,
         ROAD_LANE_HALF_WIDTH_PX
       );
@@ -7792,6 +8286,67 @@
         }))
         .filter((entry) => entry.progressGap >= 0.2 && entry.progressGap <= 6.8 && entry.laneGap <= 176)
         .sort((left, right) => left.progressGap - right.progressGap || left.laneGap - right.laneGap)[0] || null;
+    }
+
+    function retargetRaceItemAimFromPointer(event) {
+      const aim = state.action.itemAim;
+      if (!aim || !isRaceItemAimReady(aim.itemId)) return false;
+      const item = getSingularityRaceItemDefinition(aim.itemId);
+      const player = state.runners[0];
+      if (!item || !player) return false;
+      const worldPoint = eventToTrackWorldPercent(event);
+      const progress = estimateRestoredMarathonTrailProgressFromPoint(worldPoint.x, worldPoint.y, selectedRaceMapId());
+      const laneOffsetPx = estimateLaneOffsetFromTrackPoint(progress, worldPoint);
+      const targetEntry = findManualRaceItemTarget(aim.itemId, player, progress, laneOffsetPx);
+      const point = {
+        progress: clampNumber(progress, Math.min(RAIL_MAX_PROGRESS, (Number(player.progress) || START_LINE_PROGRESS) + 0.35), RAIL_MAX_PROGRESS),
+        laneOffsetPx
+      };
+      state.action.itemAim = createRaceItemAim(item, player, targetEntry, point, Date.now());
+      setRaceCue("item", targetEntry ? `조준 ${targetEntry.runner.name || "러너"}` : "조준 위치", state.action.itemAim.progress, targetEntry?.runner?.id || "you", { durationMs: 1200 });
+      void playRaceSfx("sfx-ui-toggle");
+      pushSystem(targetEntry
+        ? `${targetEntry.runner.name || "러너"}로 조준 변경. E/스킬을 한 번 더 누르면 발사합니다.`
+        : "조준 위치 변경. E/스킬을 한 번 더 누르면 그 지점으로 발사합니다.");
+      renderAll();
+      return true;
+    }
+
+    function estimateLaneOffsetFromTrackPoint(progress, worldPoint) {
+      const center = runnerTrailPoint(progress);
+      const dxPx = ((Number(worldPoint.x) || 0) - center.x) / 100 * TRACK_WORLD_WIDTH;
+      const dyPx = ((Number(worldPoint.y) || 0) - center.y) / 100 * TRACK_WORLD_HEIGHT;
+      const normalX = Number(center.normal?.x || 0);
+      const normalY = Number(center.normal?.y || 1);
+      return clampNumber((dxPx * normalX) + (dyPx * normalY), -ROAD_LANE_HALF_WIDTH_PX, ROAD_LANE_HALF_WIDTH_PX);
+    }
+
+    function findManualRaceItemTarget(itemId, player, progress, laneOffsetPx) {
+      const limits = getRaceItemManualTargetLimits(itemId);
+      const playerProgress = Number(player?.progress || 0);
+      return state.runners
+        .map((runner, index) => ({ runner, index }))
+        .filter((entry) => entry.index > 0 && !entry.runner.finishedAtMs && entry.runner.hp !== 0)
+        .filter((entry) => itemId !== SINGULARITY_RACE_ITEM_IDS.STUN_SHOT || !isRunnerStunned(entry.runner))
+        .map((entry) => {
+          const runnerProgress = Number(entry.runner.progress) || 0;
+          const runnerLane = Number(entry.runner.laneOffsetPx) || 0;
+          return {
+            ...entry,
+            playerGap: runnerProgress - playerProgress,
+            progressGap: Math.abs(runnerProgress - progress),
+            laneGap: Math.abs(runnerLane - laneOffsetPx)
+          };
+        })
+        .filter((entry) => entry.playerGap >= 0.1 && entry.playerGap <= limits.rangeProgress)
+        .filter((entry) => entry.progressGap <= limits.clickProgressRadius && entry.laneGap <= limits.clickLaneRadiusPx)
+        .sort((left, right) => (left.progressGap + left.laneGap / 90) - (right.progressGap + right.laneGap / 90))[0] || null;
+    }
+
+    function getRaceItemManualTargetLimits(itemId) {
+      return itemId === SINGULARITY_RACE_ITEM_IDS.INK_CLOUD
+        ? { rangeProgress: 6.8, clickProgressRadius: 1.8, clickLaneRadiusPx: 156 }
+        : { rangeProgress: 5.2, clickProgressRadius: 1.45, clickLaneRadiusPx: 128 };
     }
 
     function applyRaceItemHazards(now = Date.now()) {
@@ -8199,6 +8754,39 @@
       };
     }
 
+    function createCurrentPlayerInputFrame(options = {}) {
+      return createRestoredMarathonInputFrame({
+        participantId: "runner:you",
+        keys: state.action.keys,
+        intent: state.action.mobileIntent,
+        skillPressed: Boolean(options.skillPressed),
+        sequence: options.sequence || Math.floor(Date.now() / 180)
+      });
+    }
+
+    function isRaceInputFrameActive(frame = {}, skillPressed = false) {
+      return Boolean(
+        skillPressed
+          || frame.skillPressed
+          || frame.attacking
+          || frame.intent?.forward
+          || frame.intent?.lateral
+          || frame.direction?.x
+          || frame.direction?.y
+      );
+    }
+
+    function raceInputSignature(frame = {}) {
+      return [
+        frame.pace,
+        frame.mode,
+        Math.round((frame.intent?.forward || 0) * 10) / 10,
+        Math.round((frame.intent?.lateral || 0) * 10) / 10,
+        Math.round((frame.direction?.x || 0) * 10) / 10,
+        Math.round((frame.direction?.y || 0) * 10) / 10
+      ].join(":");
+    }
+
     function pushActionPacket(envelope, detail) {
       state.action.packetLog.push({
         type: envelope.type,
@@ -8209,25 +8797,27 @@
       if (published) forwardActionPacketToConnectedDevServer(envelope);
     }
 
-    function publishConnectedInputRequest(skillPressed) {
+    function publishConnectedInputRequest(skillPressed, frameOverride = null) {
       if (state.roomClosed) return;
       if (state.participantType === "spectator" || !state.action.raceStarted) return;
-      const frame = createRestoredMarathonInputFrame({
-        participantId: "runner:you",
-        keys: state.action.keys,
+      const frame = frameOverride || createCurrentPlayerInputFrame({
         skillPressed,
         sequence: state.connectedInputSequence + 1
       });
       const now = Date.now();
-      const signature = `${frame.pace}:${frame.mode}:${Math.round((frame.direction?.x || 0) * 10) / 10}:${Math.round((frame.direction?.y || 0) * 10) / 10}`;
+      const signature = raceInputSignature(frame);
+      const active = isRaceInputFrameActive(frame, skillPressed);
+      if (!active && !state.action.lastConnectedInputActive && signature === state.action.lastConnectedInputSignature) return;
       if (!skillPressed && signature === state.action.lastConnectedInputSignature && now - state.action.lastConnectedInputSentAtMs < 100) return;
       state.action.lastConnectedInputSignature = signature;
       state.action.lastConnectedInputSentAtMs = now;
+      state.action.lastConnectedInputActive = active;
       pushActionPacket(
         createRestoredMarathonInputEnvelope({
           participantId: frame.participantId,
           pace: frame.pace,
           mode: frame.mode,
+          intent: frame.intent,
           direction: frame.direction,
           raceTimeMs: now
         }, createActionPacketOptions()),
@@ -8238,9 +8828,7 @@
     function createConnectedDevInput(client, now, frameMode = "bot") {
       client.sequence += 1;
       const frame = client.participantId === "runner:you"
-        ? createRestoredMarathonInputFrame({
-          participantId: client.participantId,
-          keys: state.action.keys,
+        ? createCurrentPlayerInputFrame({
           sequence: client.sequence
         })
         : {
@@ -8256,6 +8844,7 @@
         participantId: client.participantId,
         pace: frame.pace,
         mode: frame.mode || frameMode,
+        intent: frame.intent,
         direction: frame.direction,
         raceTimeMs: now
       }, {
@@ -8419,7 +9008,7 @@
         roadLaneHalfWidthPx: ROAD_LANE_HALF_WIDTH_PX,
         maxRunners: MAX_RUNNERS,
         preserveLocalPrediction: Boolean(state.connectedSession && state.action.raceStarted),
-        localRunnerId: "you",
+        localRunnerId: state.connectedSession?.playerId || "runner:you",
         localPredictionSnapshotCorrection: hasRecentMovementInput() ? 0.04 : 0.12
       });
       if (!merged.applied) return false;
@@ -8483,10 +9072,13 @@
         laneSprintSpeedPxPerSecond: LOCAL_LANE_SPRINT_SPEED_PX_PER_SECOND,
         minProgress: RAIL_MIN_PROGRESS,
         maxProgress: RAIL_MAX_PROGRESS,
-        laneHalfWidthPx: ROAD_LANE_HALF_WIDTH_PX
+        laneHalfWidthPx: ROAD_LANE_HALF_WIDTH_PX,
+        nowMs: now,
+        raceStarted: state.action.raceStarted
       });
       rememberItemPickupTrace(player.progress, player.laneOffsetPx, nextPlayer.progress, nextPlayer.laneOffsetPx, now);
       state.runners[0] = nextPlayer;
+      if (nextPlayer.obstacleHit) markPlayerObstacleCollision(findRaceObstacleById(nextPlayer.obstacleHitId));
       return Math.abs((nextPlayer.progress || 0) - (player.progress || 0)) > 0.0001
         || Math.abs((nextPlayer.laneOffsetPx || 0) - (player.laneOffsetPx || 0)) > 0.05;
     }
@@ -8535,8 +9127,7 @@
       if (state.connectedSession && state.action.raceStarted) return false;
       const player = state.runners[0];
       if (isRunnerStunned(player, Date.now())) return false;
-      const direction = frame.direction || { x: 0, y: 0 };
-      if (!direction.x && !direction.y) return false;
+      if (!isRaceInputFrameActive(frame)) return false;
       const sprinting = frame.mode === "sprint";
       const staging = !state.action.raceStarted;
       const forwardSpeed = sprinting
@@ -8544,7 +9135,7 @@
         : (staging ? LOCAL_STAGING_RUN_PROGRESS_PER_SECOND : LOCAL_RUN_PROGRESS_PER_SECOND);
       const lateralSpeed = sprinting ? LOCAL_LANE_SPRINT_SPEED_PX_PER_SECOND : LOCAL_LANE_SPEED_PX_PER_SECOND;
       const trailPoint = progressToRestoredMarathonTrailPoint(Number(player.progress) || START_LINE_PROGRESS, selectedRaceMapId());
-      const movement = resolveSingularityRaceTrackMovement(direction, trailPoint);
+      const movement = resolveSingularityRaceInputMovement(frame, trailPoint);
       const speedScale = calculateRestoredMarathonSpeedScale(trailPoint.tangent);
       const boostMultiplier = state.action.raceStarted && Date.now() < Number(state.action.itemBoostUntilMs || 0)
         ? SINGULARITY_RACE_BOOSTER_SPEED_MULTIPLIER
@@ -8561,17 +9152,28 @@
       );
       const laneBoundary = resolveSingularityRaceLaneBoundary(player.laneOffsetPx, lateralAmount, ROAD_LANE_HALF_WIDTH_PX);
       const nextLane = laneBoundary.laneOffsetPx;
-      const touching = (pressure.intensity > 0.08 || laneBoundary.touchedBoundary) && state.action.raceStarted;
-      rememberItemPickupTrace(player.progress, player.laneOffsetPx, nextProgress, nextLane);
-      state.runners[0] = {
+      const obstacle = resolveSingularityRaceObstacleCollision({
         ...player,
         progress: nextProgress,
-        laneOffsetPx: nextLane,
+        laneOffsetPx: nextLane
+      }, {
+        mapId: selectedRaceMapId(),
+        laneHalfWidthPx: ROAD_LANE_HALF_WIDTH_PX,
+        minProgress,
+        maxProgress,
+        nowMs: Date.now(),
+        raceStarted: state.action.raceStarted
+      });
+      const touching = (pressure.intensity > 0.08 || laneBoundary.touchedBoundary || obstacle.collided) && state.action.raceStarted;
+      rememberItemPickupTrace(player.progress, player.laneOffsetPx, obstacle.runner.progress, obstacle.runner.laneOffsetPx);
+      state.runners[0] = {
+        ...obstacle.runner,
         laneBoundarySide: laneBoundary.boundarySide,
         laneBoundaryTouched: laneBoundary.touchedBoundary,
         collisionAtMs: touching ? Date.now() : player.collisionAtMs
       };
-      if (touching) markPlayerRailCollision(laneBoundary.touchedBoundary ? "boundary" : reason);
+      if (obstacle.collided) markPlayerObstacleCollision(obstacle.obstacle);
+      else if (touching) markPlayerRailCollision(laneBoundary.touchedBoundary ? "boundary" : reason);
       return Math.abs(forwardAmount) > 0.0001 || Math.abs(lateralAmount) > 0.05;
     }
 
@@ -8684,6 +9286,16 @@
       setRaceCue("collision", boundary ? "경계" : "밀림", state.runners[0].progress, "you");
       if (boundary) pushSystem("도로 경계입니다. 안쪽으로 방향을 틀면 바로 복귀합니다.");
       else pushSystem(reason === "skill" ? "몸싸움 때문에 스킬 이동이 느려졌습니다." : "몸싸움으로 살짝 밀리며 지나갑니다.");
+    }
+
+    function markPlayerObstacleCollision(obstacle) {
+      const now = Date.now();
+      if (now - (state.action.lastCollisionCueMs || 0) <= 520) return;
+      state.action.lastCollisionCueMs = now;
+      const label = obstacle?.label || "장애물";
+      setRaceCue("collision", label, state.runners[0].progress, "you", { durationMs: 950 });
+      void playRaceSfx("sfx-item-hit");
+      pushSystem(`장애물 충돌: ${label}에 부딪혔습니다.`);
     }
 
     function slowNearbyRunners() {
@@ -8813,6 +9425,7 @@
     function stopVirtualJoystick(event) {
       if (event?.pointerId !== undefined && activeJoystickPointerId !== event.pointerId) return;
       activeJoystickPointerId = null;
+      state.action.mobileIntent = null;
       setVirtualJoystickKeys(new Set());
       updateJoystickThumb(0, 0);
     }
@@ -8828,11 +9441,26 @@
       const ratio = distance > 0 ? limited / distance : 0;
       const x = rawX * ratio;
       const y = rawY * ratio;
+      const intent = createMobileRaceIntent(x, y);
       const nextKeys = new Set();
-      if (Math.abs(rawX) >= JOYSTICK_DEADZONE_PX) nextKeys.add(rawX > 0 ? "KeyD" : "KeyA");
-      if (Math.abs(rawY) >= JOYSTICK_DEADZONE_PX) nextKeys.add(rawY > 0 ? "KeyS" : "KeyW");
+      if (intent?.forward) nextKeys.add("KeyW");
+      if (intent?.lateral) nextKeys.add(intent.lateral > 0 ? "KeyD" : "KeyA");
+      state.action.mobileIntent = intent;
       updateJoystickThumb(x, y);
       setVirtualJoystickKeys(nextKeys);
+    }
+
+    function createMobileRaceIntent(x, y) {
+      const forwardRaw = Math.max(0, -y) / JOYSTICK_MAX_RADIUS_PX;
+      const lateralRaw = x / JOYSTICK_MAX_RADIUS_PX;
+      const forward = Math.abs(y) >= JOYSTICK_DEADZONE_PX
+        ? Math.round(Math.min(1, forwardRaw) * 1000) / 1000
+        : 0;
+      const lateral = Math.abs(x) >= JOYSTICK_DEADZONE_PX
+        ? Math.round(Math.max(-1, Math.min(1, lateralRaw)) * 1000) / 1000
+        : 0;
+      if (!forward && !lateral) return null;
+      return Object.freeze({ forward, lateral });
     }
 
     function updateJoystickThumb(x, y) {
@@ -8881,6 +9509,8 @@
 
     function releaseVirtualMoveKeys(shouldRender = true) {
       let changed = false;
+      const hadMobileIntent = Boolean(state.action.mobileIntent);
+      state.action.mobileIntent = null;
       for (const code of VIRTUAL_RELEASE_KEYS) {
         if (!state.action.keys[code]) continue;
         state.action.keys[code] = false;
@@ -8890,9 +9520,9 @@
       elements.raceSprintButton.classList.remove("is-held");
       updateJoystickThumb(0, 0);
       activeJoystickPointerId = null;
-      if (changed) stopPlayerRunAnimation(Date.now());
-      if (changed && state.connectedSession && state.action.raceStarted) publishConnectedInputRequest(false);
-      if (changed && shouldRender) renderAll();
+      if (changed || hadMobileIntent) stopPlayerRunAnimation(Date.now());
+      if ((changed || hadMobileIntent) && state.connectedSession && state.action.raceStarted) publishConnectedInputRequest(false);
+      if ((changed || hadMobileIntent) && shouldRender) renderAll();
     }
 
     function releaseStaleMovementKeys(now = Date.now()) {
@@ -8903,9 +9533,16 @@
       return true;
     }
 
-    function cancelPlayerMovementForAction(now = Date.now(), facing = state.action.lastFacingDirection || "right") {
-      releaseVirtualMoveKeys(false);
-      stopPlayerRunAnimation(now, facing);
+    function preservePlayerMovementForAttack(now = Date.now(), facing = state.action.lastFacingDirection || "right") {
+      state.action.lastFacingDirection = facing;
+      if (hasMovementKeyHeld() || state.action.mobileIntent) state.action.lastMovementInputAtMs = now;
+      const previous = state.runnerMotion.get("you");
+      if (!previous) return;
+      state.runnerMotion.set("you", Object.freeze({
+        ...previous,
+        facing,
+        lastMovedAtMs: Math.max(Number(previous.lastMovedAtMs || 0), now)
+      }));
     }
 
     function stopPlayerRunAnimation(now = Date.now(), facing = state.action.lastFacingDirection || "right") {
@@ -9064,11 +9701,14 @@
       elements.notice.textContent = getSingularityRaceNotice(state.screen);
       const summary = getConnectedMarathonRoomSummaries(roomAdapter)[0];
       elements.roomDisplayName.textContent = summary?.displayName || activeDevRoom?.displayName || "생성된 방 없음";
-      const cloudflareHostCanStart = cloudflareOnlineEnabled && state.cloudflareHost && state.connectedSession
-        && state.screen === SINGULARITY_RACE_SCREENS.QUEUE && !state.action.raceStarted;
-      if (cloudflareHostCanStart) elements.readyButton.textContent = "10초 카운트다운 시작";
-      if (cloudflareHostCanStart) elements.previewButton.textContent = "10초 카운트다운 시작";
-      elements.readyButton.disabled = state.roomClosed || !entryGate.open || (Boolean(state.connectedSession) && !cloudflareHostCanStart) || (devOnlineEnabled && !connectedLobbyOpen);
+      const waitingForOperatorStart = Boolean(state.connectedSession)
+        && state.screen === SINGULARITY_RACE_SCREENS.QUEUE
+        && !state.action.raceStarted;
+      const canCloudflareHostStart = waitingForOperatorStart
+        && state.cloudflareHost
+        && state.connectedSession?.provider === "cloudflare";
+      if (waitingForOperatorStart) elements.readyButton.textContent = canCloudflareHostStart ? "경기 시작" : "방장 시작 대기중";
+      elements.readyButton.disabled = state.roomClosed || !entryGate.open || (Boolean(state.connectedSession) && !canCloudflareHostStart) || (devOnlineEnabled && !connectedLobbyOpen);
       elements.spectatorButton.disabled = state.roomClosed || !entryGate.open || Boolean(state.connectedSession) || (devOnlineEnabled && !connectedLobbyOpen);
       if (!entryGate.open && !state.roomClosed) {
         elements.roomCode.textContent = `${entryGate.remainingMinutes}분 후 입장 가능`;
@@ -9108,16 +9748,19 @@
       const currentItem = getSingularityRaceItemDefinition(state.action.currentItemId);
       const roulette = getActiveRaceItemRoulette(now);
       const rouletteItem = roulette ? getRaceItemRouletteDisplayItem(roulette, now) : null;
+      const activeItemAim = currentItem && isRaceItemAimReady(currentItem.itemId, now) ? state.action.itemAim : null;
       const itemMeta = roulette && !roulette.finalized
         ? `ROLL ${getRaceItemShortLabel(rouletteItem)}`
-        : (currentItem ? currentItem.label : "아이템 없음");
+        : (activeItemAim
+          ? `발사 ${activeItemAim.targetName || "위치"}`
+          : (currentItem && isProjectileRaceItem(currentItem.itemId) ? `${currentItem.label} 조준` : (currentItem ? currentItem.label : "아이템 없음")));
       const itemReady = state.action.raceStarted && !isCountdownActive(now) && Boolean(currentItem) && (!roulette || roulette.finalized);
       elements.raceAttackButton.disabled = roomClosed || spectator || Boolean(state.action.finalResult) || attackCooldownRemainingMs > 0;
       elements.raceAttackButton.innerHTML = attackCooldownRemainingMs > 0
         ? `대기<span>${Math.ceil(attackCooldownRemainingMs / 1000)}초</span>`
         : "공격<span>기본</span>";
       elements.raceSkillButton.disabled = roomClosed || spectator || Boolean(state.action.finalResult) || !itemReady;
-      renderRaceSkillItemButton(currentItem, rouletteItem, itemMeta);
+      renderRaceSkillItemButton(currentItem, rouletteItem, itemMeta, activeItemAim);
       const movementDisabled = roomClosed || spectator || (Boolean(state.action.finalResult) && !canMoveInCeremonyRoom()) || state.raceQueueOpen;
       elements.raceJoystick.setAttribute("aria-disabled", String(movementDisabled));
       elements.raceSprintButton.disabled = movementDisabled;
@@ -9138,11 +9781,11 @@
       }
     }
 
-    function renderRaceSkillItemButton(currentItem, rouletteItem, itemMeta) {
+    function renderRaceSkillItemButton(currentItem, rouletteItem, itemMeta, activeItemAim = null) {
       const displayItem = currentItem || rouletteItem || null;
       const title = document.createElement("b");
       const meta = document.createElement("span");
-      title.textContent = displayItem ? "아이템" : "스킬";
+      title.textContent = activeItemAim ? "발사" : (displayItem && isProjectileRaceItem(displayItem.itemId) ? "조준" : (displayItem ? "아이템" : "스킬"));
       meta.textContent = itemMeta;
       if (displayItem) {
         elements.raceSkillButton.replaceChildren(createRaceItemIconNode(displayItem, { size: "button" }), title, meta);
@@ -9459,12 +10102,13 @@
         const delay = context.createDelay(0.45);
         const feedback = context.createGain();
         const wetFilter = context.createBiquadFilter();
-        dryGain.gain.value = 0.9;
+        const countdownEcho = track.role === "sfx-countdown";
+        dryGain.gain.value = countdownEcho ? 1 : 0.9;
         wetGain.gain.value = track.wetGain;
-        delay.delayTime.value = 0.17;
-        feedback.gain.value = 0.18;
+        delay.delayTime.value = countdownEcho ? 0.24 : 0.17;
+        feedback.gain.value = countdownEcho ? 0.32 : 0.18;
         wetFilter.type = "lowpass";
-        wetFilter.frequency.value = 5200;
+        wetFilter.frequency.value = countdownEcho ? 6400 : 5200;
         source.connect(dryGain).connect(context.destination);
         source.connect(wetFilter).connect(delay);
         delay.connect(feedback).connect(delay);
@@ -9480,11 +10124,12 @@
     }
 
     function requestEntryGateMusic(reason = "entry_gate") {
-      if (!isEntryGateMusicAllowed() || state.raceAudio.entryStarted) return;
+      const entryArrivalCue = reason === "queue_entry" || reason === "connected_join";
+      if (!isEntryGateMusicAllowed() || (state.raceAudio.entryStarted && !entryArrivalCue)) return;
       state.raceAudio.entryQueued = true;
       state.raceAudio.entryReason = reason;
       stopMenuBgm();
-      void playEntryGateMusic();
+      void playEntryGateMusic({ restart: entryArrivalCue, force: entryArrivalCue });
     }
 
     function consumeLauncherMenuBgmIntent() {
@@ -9565,7 +10210,6 @@
       if (!played) return false;
       state.raceAudio.entryQueued = false;
       state.raceAudio.menuQueued = false;
-      state.raceAudio.entryStarted = true;
       state.raceAudio.menuStarted = true;
       state.raceAudio.currentMenuTrackKey = trackKey;
       return true;
@@ -9668,7 +10312,10 @@
         playRaceUiSfx("deny");
         return;
       }
-      if (["profile-start-button", "ready-button", "spectator-button", "join-connected-button", "race-result-watch", "race-result-restart", "race-room-closed-exit"].includes(id)) {
+      if (id === "ready-button" && state.screen === SINGULARITY_RACE_SCREENS.LOBBY) {
+        return;
+      }
+      if (["profile-start-button", "ready-button", "spectator-button", "room-refresh-button", "join-connected-button", "race-result-watch", "race-result-restart", "race-room-closed-exit"].includes(id)) {
         playRaceUiSfx("confirm");
         return;
       }
@@ -9809,6 +10456,7 @@
         const boosted = runner.id === "you" && isItemBoostActive(visualTiming.now);
         const blinded = Number(runner.blindedUntilMs || 0) > visualTiming.now;
         const attacking = runner.id === "you" && Number(state.action.attackVisualUntilMs || 0) > visualTiming.now;
+        const impactHit = runner.id === state.action.attackImpactTargetId && Number(state.action.attackImpactUntilMs || 0) > visualTiming.now;
         const facing = attacking ? state.action.attackFacingDirection || motion.facing : motion.facing;
         const running = !attacking && !stunned && motion.running;
         const sprinting = running && motion.sprinting;
@@ -9824,6 +10472,7 @@
           running ? "is-running" : "is-idle",
           sprinting ? "is-sprinting" : "",
           attacking ? "is-attacking" : "",
+          impactHit ? "is-impact-hit" : "",
           stunned ? "is-stunned" : "",
           boosted ? "is-boosted" : "",
           blinded ? "is-blinded" : "",
@@ -9834,6 +10483,8 @@
         if (avatar.className !== nextClassName) avatar.className = nextClassName;
         if (attacking) avatar.dataset.attackVisualId = String(state.action.attackVisualId || 0);
         else delete avatar.dataset.attackVisualId;
+        if (impactHit) avatar.dataset.attackImpactId = String(state.action.attackImpactId || 0);
+        else delete avatar.dataset.attackImpactId;
         if (rewardSkinActive) {
           avatar.dataset.rewardGrade = String(runner.rewardSkinGrade || "").toUpperCase();
           avatar.dataset.rewardLabel = runner.rewardSkinLabel || "";
@@ -9960,7 +10611,7 @@
 
     function renderTrackEffects() {
       if (state.screen === SINGULARITY_RACE_SCREENS.MAP_PREVIEW) {
-        elements.trackEffects.replaceChildren();
+        elements.trackEffects.replaceChildren(...createRaceObstacleEffectNodes());
         elements.trackHud.replaceChildren();
         return;
       }
@@ -9977,6 +10628,7 @@
       });
       const now = Date.now();
       const nodes = [
+        ...createRaceObstacleEffectNodes(),
         ...createRaceItemEffectNodes(now)
       ];
       if (shouldRenderStartGate(now)) {
@@ -10001,7 +10653,31 @@
         .map((hazard) => createRaceItemMarkerNode(getRaceItemHazardClass(hazard), getRaceItemMarkerLabel(hazard), hazard));
       const projectiles = state.action.itemProjectiles
         .map((projectile) => createRaceItemMarkerNode("race-item-projectile", getRaceItemMarkerLabel(projectile), projectile));
-      return [...boxes, ...traps, ...projectiles];
+      const aim = isRaceItemAimReady(state.action.itemAim?.itemId, now)
+        ? [createRaceItemAimNode(state.action.itemAim)]
+        : [];
+      return [...boxes, ...traps, ...projectiles, ...aim];
+    }
+
+    function createRaceObstacleEffectNodes() {
+      if (state.action.finalResult) return [];
+      return listSingularityRaceMapObstacles(selectedRaceMapId()).map(createRaceObstacleNode);
+    }
+
+    function createRaceObstacleNode(obstacle) {
+      const point = raceItemPoint(obstacle.progress, obstacle.laneOffsetPx);
+      const node = document.createElement("div");
+      node.className = `race-obstacle is-${obstacle.kind || "barrier"}`;
+      node.dataset.obstacleId = obstacle.id;
+      node.setAttribute("aria-label", obstacle.label || "Obstacle");
+      node.style.left = `${point.x}%`;
+      node.style.top = `${point.y}%`;
+      return node;
+    }
+
+    function findRaceObstacleById(obstacleId) {
+      return listSingularityRaceMapObstacles(selectedRaceMapId())
+        .find((obstacle) => obstacle.id === obstacleId) || null;
     }
 
     function createRaceItemBoxNode(box) {
@@ -10026,6 +10702,20 @@
       node.style.left = `${point.x}%`;
       node.style.top = `${point.y}%`;
       node.append(createRaceItemIconNode(item, { kind: iconKind, size: "track" }));
+      return node;
+    }
+
+    function createRaceItemAimNode(aim) {
+      const point = raceItemPoint(aim.progress, aim.laneOffsetPx);
+      const node = document.createElement("div");
+      node.className = "race-item-aim";
+      node.setAttribute("aria-label", aim.targetName ? `${aim.targetName} 조준` : "아이템 조준 위치");
+      node.style.left = `${point.x}%`;
+      node.style.top = `${point.y}%`;
+      const label = document.createElement("span");
+      label.className = "race-item-aim-label";
+      label.textContent = aim.targetName ? "LOCK" : "AIM";
+      node.append(label);
       return node;
     }
 
@@ -10281,6 +10971,7 @@
       const playerPoint = runnerTrailPoint(player.progress);
       if (!state.renderCache.minimapPlayerNode || !elements.raceMinimap.firstElementChild) {
         const savePoints = listRestoredMarathonTrailSavePoints(selectedRaceMapId());
+        const obstacles = listSingularityRaceMapObstacles(selectedRaceMapId());
         const svg = svgNode("svg", {
           viewBox: raceMinimapViewBox(playerPoint),
           preserveAspectRatio: "none",
@@ -10298,6 +10989,15 @@
             cy: savePoint.y,
             r: 1.75
           })),
+          ...obstacles.map((obstacle) => {
+            const point = raceItemPoint(obstacle.progress, obstacle.laneOffsetPx);
+            return svgNode("circle", {
+              class: `minimap-obstacle is-${obstacle.kind || "barrier"}`,
+              cx: point.x,
+              cy: point.y,
+              r: 1.05
+            });
+          }),
           playerDot
         );
         state.renderCache.minimapPlayerNode = playerDot;
@@ -10612,6 +11312,7 @@
       const hp = Math.max(0, Math.min(maxHp, player.hp ?? state.action.hp ?? maxHp));
       const hasRewardSkill = hasCurrentRewardSkill();
       const currentItem = getSingularityRaceItemDefinition(state.action.currentItemId);
+      const activeItemAim = currentItem && isRaceItemAimReady(currentItem.itemId, now) ? state.action.itemAim : null;
       const chargeText = state.action.skillMaxCharges === 0 ? "무제한" : `${state.action.skillChargesRemaining}회`;
       elements.actionCharacter.textContent = state.action.placeholderSkinLabel
         ? `${state.action.placeholderSkinLabel} / ${state.action.characterLabel || "-"}`
@@ -10619,7 +11320,9 @@
       elements.actionSkill.textContent = hasRewardSkill
         ? `${getSingularitySkillDisplayName(state.action.skillId)} / ${chargeText}`
         : "세이브 보상 후 해금";
-      elements.actionSkill.textContent = currentItem ? `아이템 / ${currentItem.label}` : "아이템 없음";
+      elements.actionSkill.textContent = activeItemAim
+        ? `아이템 / ${currentItem.label} 조준중`
+        : (currentItem ? `아이템 / ${currentItem.label}` : "아이템 없음");
       elements.actionHp.textContent = `${hp} / ${maxHp}`;
       elements.actionHpBar.style.width = `${Math.round((hp / maxHp) * 100)}%`;
       elements.actionStatus.textContent = getSingularityActionStatusLabel({
@@ -10759,9 +11462,7 @@
         image.src = getSingularityRaceSkinDataUrl(preset.id, "side");
         const title = document.createElement("b");
         title.textContent = preset.name || preset.id;
-        const caption = document.createElement("span");
-        caption.textContent = preset.id;
-        button.append(image, title, caption);
+        button.append(image, title);
         return button;
       });
       elements.skinGrid.replaceChildren(...cards);
@@ -10797,11 +11498,17 @@
 
     function renderConnectedGate() {
       const summaries = getConnectedMarathonRoomSummaries(roomAdapter);
-      const summary = summaries[0];
+      const baseSummary = summaries[0];
+      const presence = getDevRoomPresenceSummary();
+      const summary = baseSummary && presence
+        ? { ...baseSummary, players: presence.players, spectators: presence.spectators }
+        : baseSummary;
       const connected = Boolean(state.connectedSession);
       const entryGate = getQueueEntryGateStatus();
+      const cloudflareJoinClosed = cloudflareOnlineEnabled && summary && summary.phase !== "lobby";
+      elements.roomRefreshButton.hidden = !(devOnlineEnabled || adminLaunchEnabled);
       elements.connectedGate.classList.toggle("is-open", connectedLobbyOpen && !state.roomClosed);
-      elements.connectedButton.disabled = state.roomClosed || !entryGate.open || !connectedLobbyOpen || connected;
+      elements.connectedButton.disabled = state.roomClosed || !entryGate.open || !connectedLobbyOpen || connected || cloudflareJoinClosed;
       elements.connectedButton.textContent = connected ? "개발 방 입장됨" : "개발 방 입장";
       elements.roomCode.textContent = summary
         ? `선수 ${summary.players}/${summary.maxPlayers} / 관전자 ${summary.spectators}/${summary.maxSpectators}`
@@ -10829,6 +11536,13 @@
       }
       if (!entryGate.open) {
         elements.connectedStatus.textContent = `${entryGate.remainingMinutes}분 후 대기열방 입장 가능합니다.`;
+        return;
+      }
+      if (cloudflareJoinClosed) {
+        elements.connectedStatus.textContent = summary.phase === "countdown"
+          ? "카운트다운 중입니다. 새 입장은 다음 판부터 가능합니다."
+          : "경기 중입니다. 새 입장은 다음 판부터 가능합니다.";
+        elements.roomCode.textContent = "경기 중 입장 불가";
         return;
       }
       if (cloudflareOnlineEnabled && connectedLobbyOpen && summary) {

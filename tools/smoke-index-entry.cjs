@@ -10,7 +10,7 @@ const baegeumCityHtml = fs.readFileSync(path.join(root, "baegeum-city-v2.html"),
 
 assert.ok(html.includes('data-primary-mode="singularity-race"'), "root index should mark Singularity Race as the primary mode");
 assert.ok(html.includes('id="primaryRaceLink"'), "root index should expose the primary race link");
-assert.ok(html.includes('href="./singularity-race.html"'), "primary action should open the player race entry");
+assert.ok(html.includes('href="./singularity-race.html?online=cloudflare&amp;serverUrl=wss%3A%2F%2Fsingularity-race-online.rneetn.workers.dev%2Fws"'), "primary action should open the public online player race entry");
 assert.equal(html.includes('href="./singularity-race-admin.html?devOnline=1"'), false, "launcher should not expose the dev host entry as a main user button");
 assert.ok(html.includes("SIMULACRA WORLD"), "launcher should use Simulacra World as the shell brand label");
 assert.equal(html.includes("SINGULARITY RACE"), false, "launcher shell brand should no longer look like the game title");

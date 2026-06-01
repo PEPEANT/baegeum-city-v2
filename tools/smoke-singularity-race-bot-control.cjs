@@ -44,7 +44,13 @@ async function main() {
   assert(admin.includes("admin-add-bots-button"), "host page needs an explicit add-test-bots control");
   assert(admin.includes("admin-clear-bots-button"), "host page needs an explicit clear-test-bots control");
   assert(admin.includes("admin-enter-button"), "host page needs a separate player entry control");
-  assert(admin.includes("elements.enterButton.href = connected && !activeRoomClosed && entryGate.open ? createPlayerRoomHref(activeRoomId) : \"#\""), "host entry control should point to the player lobby instead of starting the race");
+  assert(admin.includes('<button class="button" id="admin-enter-button" type="button">'), "host entry control should be a button, not a page navigation link");
+  assert(admin.includes("entryOpensAtMs: 0"), "host entry control should open the queue gate");
+  assert(admin.includes("admin-refresh-button"), "host page needs a manual refresh control for local room sync");
+  assert(admin.includes("target=\"_blank\" rel=\"noreferrer\""), "host page user links should not kick the admin page into the lobby");
+  assert(html.includes("room-refresh-button"), "player lobby should expose a manual room refresh button");
+  assert(html.includes("createDevRoomAdapterWithStoredParticipants"), "dev joins should merge stored room participants before joining");
+  assert(html.includes("getDevRoomPresenceSummary"), "player lobby should read stored dev snapshots for visible room counts");
   assert(admin.includes("entryGate.open ? \"입장\""), "room cards should label player entry separately from race start");
   assert(admin.includes("roomPacketTransport?.savePackets([], { reason: \"clear_test_bots\" })"), "clearing bots should clear stale relay snapshots");
   assert(admin.includes("roomPacketTransport ? roomPacketTransport.loadPackets([]) : []"), "host page must not reuse stale packet fallback after clear");
