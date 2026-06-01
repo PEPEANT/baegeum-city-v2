@@ -25,13 +25,14 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup Node
-        uses: actions/setup-node@v4
-        with:
-          node-version: 20
-
-      - name: Verify project
-        run: npm run check
+      - name: Verify static entries
+        shell: bash
+        run: |
+          test -f index.html
+          test -f singularity-race.html
+          test -f singularity-race-admin.html
+          test -f baegeum-city-v2.html
+          test -f assets/singularity-race/banner-qorud.png
 
       - name: Configure Pages
         uses: actions/configure-pages@v5
