@@ -3,7 +3,8 @@ export const SINGULARITY_RACE_ITEM_CONTRACT_VERSION = "singularity-race-item-001
 export const SINGULARITY_RACE_ITEM_IDS = Object.freeze({
   BOOSTER: "item:booster",
   BANANA: "item:banana",
-  STUN_SHOT: "item:stun-shot"
+  STUN_SHOT: "item:stun-shot",
+  INK_CLOUD: "item:ink-cloud"
 });
 
 export const SINGULARITY_RACE_ITEM_BOX_RESPAWN_MS = 10000;
@@ -12,11 +13,17 @@ export const SINGULARITY_RACE_BOOSTER_SPEED_MULTIPLIER = 1.28;
 export const SINGULARITY_RACE_BANANA_DURATION_MS = 10000;
 export const SINGULARITY_RACE_BANANA_SLOW_MS = 900;
 export const SINGULARITY_RACE_STUN_SHOT_STUN_MS = 700;
+export const SINGULARITY_RACE_INK_CLOUD_DURATION_MS = 5200;
+export const SINGULARITY_RACE_INK_BLIND_MS = 1600;
+export const SINGULARITY_RACE_INK_SLOW_MS = 520;
+export const SINGULARITY_RACE_ITEM_PICKUP_PROGRESS_RADIUS = 0.72;
+export const SINGULARITY_RACE_ITEM_PICKUP_LANE_RADIUS_PX = 58;
 
 const ITEM_DEFINITIONS = Object.freeze([
-  item(SINGULARITY_RACE_ITEM_IDS.BOOSTER, "부스터", "self", 40),
-  item(SINGULARITY_RACE_ITEM_IDS.BANANA, "바나나", "trap", 35),
-  item(SINGULARITY_RACE_ITEM_IDS.STUN_SHOT, "스턴샷", "projectile", 25)
+  item(SINGULARITY_RACE_ITEM_IDS.BOOSTER, "부스터", "self", 34),
+  item(SINGULARITY_RACE_ITEM_IDS.BANANA, "바나나", "trap", 28),
+  item(SINGULARITY_RACE_ITEM_IDS.STUN_SHOT, "스턴샷", "projectile", 22),
+  item(SINGULARITY_RACE_ITEM_IDS.INK_CLOUD, "먹물탄", "blind", 16)
 ]);
 
 const ITEM_BOX_PROGRESS = Object.freeze([18, 48, 90]);
@@ -73,8 +80,8 @@ export function createSingularityRaceItemPickupTrace(input = {}) {
 }
 
 export function isSingularityRaceItemBoxInPickupRange(itemBox = {}, runner = {}, options = {}) {
-  const progressRadius = positiveNumber(options.progressRadius, 1.45);
-  const laneRadiusPx = positiveNumber(options.laneRadiusPx, 112);
+  const progressRadius = positiveNumber(options.progressRadius, SINGULARITY_RACE_ITEM_PICKUP_PROGRESS_RADIUS);
+  const laneRadiusPx = positiveNumber(options.laneRadiusPx, SINGULARITY_RACE_ITEM_PICKUP_LANE_RADIUS_PX);
   if (isPickupPointInRange(itemBox, runner.progress, runner.laneOffsetPx, progressRadius, laneRadiusPx)) return true;
   return isPickupTraceInRange(itemBox, options.trace, {
     progressRadius,
@@ -91,8 +98,8 @@ export function validateSingularityRaceItemContract() {
   const picked = new Set(Array.from({ length: 64 }, (_, index) => pickSingularityRaceItem(`seed:${index}`).itemId));
   const centerBox = boxes.find((box) => box.progress === 18 && box.laneOffsetPx === 0);
   const traceHit = isSingularityRaceItemBoxInPickupRange(centerBox, { progress: 20, laneOffsetPx: 0 }, {
-    progressRadius: 1.45,
-    laneRadiusPx: 112,
+    progressRadius: SINGULARITY_RACE_ITEM_PICKUP_PROGRESS_RADIUS,
+    laneRadiusPx: SINGULARITY_RACE_ITEM_PICKUP_LANE_RADIUS_PX,
     traceMaxAgeMs: 650,
     nowMs: 1000,
     trace: createSingularityRaceItemPickupTrace({
@@ -104,8 +111,8 @@ export function validateSingularityRaceItemContract() {
     })
   });
   const traceMiss = isSingularityRaceItemBoxInPickupRange(centerBox, { progress: 20, laneOffsetPx: 180 }, {
-    progressRadius: 1.45,
-    laneRadiusPx: 112,
+    progressRadius: SINGULARITY_RACE_ITEM_PICKUP_PROGRESS_RADIUS,
+    laneRadiusPx: SINGULARITY_RACE_ITEM_PICKUP_LANE_RADIUS_PX,
     traceMaxAgeMs: 650,
     nowMs: 1000,
     trace: createSingularityRaceItemPickupTrace({
@@ -117,8 +124,8 @@ export function validateSingularityRaceItemContract() {
     })
   });
   const staleTraceHit = isSingularityRaceItemBoxInPickupRange(centerBox, { progress: 20, laneOffsetPx: 0 }, {
-    progressRadius: 1.45,
-    laneRadiusPx: 112,
+    progressRadius: SINGULARITY_RACE_ITEM_PICKUP_PROGRESS_RADIUS,
+    laneRadiusPx: SINGULARITY_RACE_ITEM_PICKUP_LANE_RADIUS_PX,
     traceMaxAgeMs: 650,
     nowMs: 2000,
     trace: createSingularityRaceItemPickupTrace({
@@ -129,20 +136,38 @@ export function validateSingularityRaceItemContract() {
       createdAtMs: 1000
     })
   });
-  if (ITEM_DEFINITIONS.length !== 3) errors.push("0.1 should expose exactly three race items");
+  const nearLaneMiss = isSingularityRaceItemBoxInPickupRange(centerBox, { progress: 18, laneOffsetPx: 86 }, {
+    progressRadius: SINGULARITY_RACE_ITEM_PICKUP_PROGRESS_RADIUS,
+    laneRadiusPx: SINGULARITY_RACE_ITEM_PICKUP_LANE_RADIUS_PX,
+    traceMaxAgeMs: 650,
+    nowMs: 1000
+  });
+  const nearProgressMiss = isSingularityRaceItemBoxInPickupRange(centerBox, { progress: 19.05, laneOffsetPx: 0 }, {
+    progressRadius: SINGULARITY_RACE_ITEM_PICKUP_PROGRESS_RADIUS,
+    laneRadiusPx: SINGULARITY_RACE_ITEM_PICKUP_LANE_RADIUS_PX,
+    traceMaxAgeMs: 650,
+    nowMs: 1000
+  });
+  if (ITEM_DEFINITIONS.length !== 4) errors.push("0.1 should expose exactly four race items");
   if (boxes.length !== 15) errors.push("item boxes should be 3 rows of 5 boxes");
   if (!boxes.some((box) => box.sectionIndex === 3 && box.progress === 90)) errors.push("final item row should sit on the late straight road");
   if (!picked.has(SINGULARITY_RACE_ITEM_IDS.BOOSTER)) errors.push("booster should be pickable");
   if (!picked.has(SINGULARITY_RACE_ITEM_IDS.BANANA)) errors.push("banana should be pickable");
   if (!picked.has(SINGULARITY_RACE_ITEM_IDS.STUN_SHOT)) errors.push("stun shot should be pickable");
+  if (!picked.has(SINGULARITY_RACE_ITEM_IDS.INK_CLOUD)) errors.push("ink cloud should be pickable");
   if (!canCollectSingularityRaceItem({ raceStarted: true, currentItemId: "", participantType: "player" })) errors.push("empty player slot should collect during race");
   if (canCollectSingularityRaceItem({ raceStarted: true, currentItemId: "item:booster", participantType: "player" })) errors.push("filled item slot should not collect another box");
   if (canCollectSingularityRaceItem({ raceStarted: true, currentItemId: "", participantType: "spectator" })) errors.push("spectators should not collect item boxes");
   if (SINGULARITY_RACE_BOOSTER_SPEED_MULTIPLIER < 1.25 || SINGULARITY_RACE_BOOSTER_SPEED_MULTIPLIER > 1.35) errors.push("booster must stay in the 0.1 safe speed range");
+  if (SINGULARITY_RACE_INK_BLIND_MS < 1200 || SINGULARITY_RACE_INK_BLIND_MS > 2400) errors.push("ink cloud should briefly block vision without lasting too long");
+  if (SINGULARITY_RACE_ITEM_PICKUP_PROGRESS_RADIUS < 0.55 || SINGULARITY_RACE_ITEM_PICKUP_PROGRESS_RADIUS > 0.9) errors.push("item pickup progress radius should stay close to the visible box");
+  if (SINGULARITY_RACE_ITEM_PICKUP_LANE_RADIUS_PX < 44 || SINGULARITY_RACE_ITEM_PICKUP_LANE_RADIUS_PX > 68) errors.push("item pickup lane radius should stay close to the visible box");
   if (stateBoxes.some((box) => !box.boxId || Math.abs(box.laneOffsetPx) > 232)) errors.push("item boxes must stay on the race road");
   if (!traceHit) errors.push("pickup trace should collect a crossed item box");
   if (traceMiss) errors.push("pickup trace should still respect lane distance");
   if (staleTraceHit) errors.push("stale pickup trace should not collect a box");
+  if (nearLaneMiss) errors.push("near lane misses should not collect item boxes");
+  if (nearProgressMiss) errors.push("near progress misses should not collect item boxes");
   return Object.freeze({ ok: errors.length === 0, errors: Object.freeze(errors) });
 }
 

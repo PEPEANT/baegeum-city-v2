@@ -108,12 +108,38 @@ function assertRacePageContracts() {
   assert(pageSource.includes("race_finalized"), "local finish should rehearse server-owned finalization");
   assert(pageSource.includes("server:local-preview"), "local finish packet must be marked as server-preview owned");
   assert(pageSource.includes("race-result-panel"), "race screen needs a minimal finish result layer");
+  assert(pageSource.includes("race-ceremony-space"), "finish should move into a dedicated ceremony room surface");
+  assert(pageSource.includes("race-ceremony-room"), "ceremony surface should be a room, not only a result card");
+  assert(pageSource.includes("race-ceremony-back-wall"), "ceremony room should render physical walls");
+  assert(pageSource.includes("renderRaceCeremonySpace"), "finish result render should build the separate ceremony room");
+  assert(pageSource.includes("createRaceCeremonyPodiumSlot"), "ceremony room should place runners on podium slots");
+  assert(pageSource.includes("CEREMONY_TRANSFER_DELAY_MS"), "finished runners should wait briefly before moving to the ceremony room");
+  assert(pageSource.includes("CEREMONY_RUNNER_TRANSFER_STAGGER_MS"), "ceremony room should move finishers in one by one");
+  assert(pageSource.includes("ceremonyTransferAtMs"), "finish result should carry the pending ceremony transfer time");
+  assert(pageSource.includes("ceremonyEnteredAtMs"), "finish result should record when this client enters the ceremony room");
+  assert(pageSource.includes("canMoveInCeremonyRoom"), "finishers should be able to move inside the ceremony room before podium lock");
+  assert(pageSource.includes("advanceCeremonyPlayerMovement"), "ceremony free movement should use the existing input frame path");
+  assert(pageSource.includes("race-ceremony-floor-crowd"), "ceremony room should have a floor area for arrived finishers");
+  assert(pageSource.includes("race-ceremony-free-player"), "local finisher should render as a movable ceremony-room runner");
+  assert(pageSource.includes("잠시 후 시상대 공간으로 이동합니다"), "finish notice should tell the player they will move to the ceremony room soon");
+  assert(pageSource.includes("race-ceremony-podium"), "finish result layer should show a 1-5 podium ceremony");
+  assert(pageSource.includes("race-ceremony-summary"), "finish result layer should summarize lower finishers, timeouts, and spectators");
+  assert(pageSource.includes("race-ceremony-status"), "finish result layer should show the ceremony wait/award status");
+  assert(pageSource.includes("CEREMONY_GRACE_MS"), "local finish should wait before locking the podium award");
+  assert(pageSource.includes("advanceRaceCeremonyState"), "local finish should advance from ceremony wait to award");
+  assert(pageSource.includes("ceremonyPhase"), "finish result should carry ceremony wait/award phase");
+  assert(pageSource.includes("renderRaceCeremonyPodium"), "finish result render should build the podium ceremony");
+  assert(pageSource.includes("renderRaceCeremonySummary"), "finish result render should keep ceremony summary counts");
   assert(pageSource.includes("race-result-watch"), "finish result layer should let finishers keep watching");
   assert(pageSource.includes("continueWatchingAfterFinish"), "finishers should have a post-finish spectator path");
   assert(pageSource.includes("race-result-restart"), "finish result layer should expose a restart/return button");
+  assert(/\.shell\[data-screen="race"\]\.race-finished \.race-result-panel\s*\{[^}]*pointer-events:\s*auto/s.test(pageSource), "finish result panel must receive pointer events so restart/watch buttons can be clicked");
   assert(pageSource.includes("finalizeRaceResult"), "local and server finishes should share one result finalizer");
   assert(pageSource.includes("restartRaceAfterResult"), "finish restart should clear race state before re-entry");
+  assert(pageSource.includes("joinDevConnectedRoom(\"result_restart\")"), "finish restart should gather connected players back into the waiting room");
+  assert(pageSource.includes("if (source === \"result_restart\") return"), "finish restart must not replay a stale host start command");
   assert(pageSource.includes("state.connectedSession = null"), "finish restart should leave any connected preview session");
+  assert(pageSource.includes("roomPacketTransport.savePackets([], { reason: \"result_restart\" })"), "finish restart should clear the connected room packet relay log");
   assert(pageSource.includes("state.action = createActionRaceState()"), "finish restart should reset action/race state");
   assert(pageSource.includes("state.runnerMotion.clear()"), "finish restart should clear stale runner motion");
   assert(pageSource.includes("createConnectedFinishRanking"), "server-owned snapshots should drive connected race results");
@@ -193,8 +219,9 @@ function assertNetcodePressure(netcode) {
 
 function assertConnectedStartGuards() {
   assert(
-    pageSource.includes("source === \"button\" ? SINGULARITY_RACE_SCREENS.QUEUE : SINGULARITY_RACE_SCREENS.RACE"),
-    "normal connected entries must land in race staging, not the room queue"
+    pageSource.includes("const shouldEnterRaceImmediately = source === \"admin_direct\" || source === \"admin_observer\" || spectator || adminObserver") &&
+      pageSource.includes("setScreen(shouldEnterRaceImmediately ? SINGULARITY_RACE_SCREENS.RACE : SINGULARITY_RACE_SCREENS.QUEUE)"),
+    "normal connected entries must stay in queue until host start, while admin/spectator links may enter race view"
   );
   assert(
     pageSource.includes("savePackets([], { reason: \"session_reset\" })"),

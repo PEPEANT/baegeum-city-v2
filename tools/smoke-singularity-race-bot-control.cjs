@@ -43,9 +43,16 @@ async function main() {
 
   assert(admin.includes("admin-add-bots-button"), "host page needs an explicit add-test-bots control");
   assert(admin.includes("admin-clear-bots-button"), "host page needs an explicit clear-test-bots control");
+  assert(admin.includes("admin-enter-button"), "host page needs a separate player entry control");
+  assert(admin.includes("elements.enterButton.href = connected && !activeRoomClosed && entryGate.open ? createPlayerRoomHref(activeRoomId) : \"#\""), "host entry control should point to the player lobby instead of starting the race");
+  assert(admin.includes("entryGate.open ? \"입장\""), "room cards should label player entry separately from race start");
   assert(admin.includes("roomPacketTransport?.savePackets([], { reason: \"clear_test_bots\" })"), "clearing bots should clear stale relay snapshots");
   assert(admin.includes("roomPacketTransport ? roomPacketTransport.loadPackets([]) : []"), "host page must not reuse stale packet fallback after clear");
   assert(admin.includes("fillRunnerPreviewPack(seeded, botTargetCount)"), "host preview rows should be capped by the test-bot command");
+  assert(admin.includes("function canStartRaceControl()"), "host start control must have an explicit start gate");
+  assert(admin.includes("state.runners.length > 0"), "host start gate should require a visible player or test bot");
+  assert(admin.includes("elements.startButton.disabled = !canStartRaceControl()"), "host start button should stay disabled until entrants exist");
+  assert(admin.includes("선수 입장 대기"), "host should explain that start waits for player entry");
 
   assert(plan.includes("fresh room starts empty") || plan.includes("A fresh room starts empty"), "marathon plan should document empty-first room behavior");
   console.log("Singularity Race bot control smoke passed.");

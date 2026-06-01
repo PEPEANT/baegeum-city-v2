@@ -60,7 +60,7 @@ export function applyRestoredMarathonServerInputCommand(roomInput = {}, commandI
   if (locked) return acceptBlockedInput(room, participant, index, command);
 
   const progressPercent = room.course.distanceMeters > 0 ? participant.progressMeters / room.course.distanceMeters * 100 : 0;
-  const trailPoint = progressToRestoredMarathonTrailPoint(progressPercent);
+  const trailPoint = progressToRestoredMarathonTrailPoint(progressPercent, options.mapId || room.course.mapId);
   const movement = command.hasDirection
     ? resolveSingularityRaceTrackMovement(command.direction, trailPoint)
     : Object.freeze({ forward: 1, lateral: 0 });

@@ -52,8 +52,13 @@ assertIncludes("id=\"race-joystick-thumb\"", "mobile joystick thumb should exist
 assertIncludes("id=\"race-sprint-button\"", "mobile hold-to-run button should exist");
 assertIncludes("id=\"race-options-button\"", "race options gear should exist");
 assertIncludes("id=\"race-options-panel\"", "race options panel should exist");
+assertIncludes("id=\"race-options-home\"", "gear panel should expose home");
+assertIncludes("id=\"race-options-community\"", "gear panel should expose community");
+assertIncludes("id=\"race-options-about\"", "gear panel should expose settings/about");
 assertIncludes("id=\"race-options-chat\"", "gear panel should expose chat focus");
 assertIncludes("id=\"race-options-queue\"", "gear panel should expose queue");
+assertIncludes("id=\"race-about-panel\"", "settings/about panel should exist");
+assertIncludes("https://gall.dcinside.com/mgallery/board/lists?id=thesingularity", "community link should target the Singularity gallery");
 assertIncludes("startVirtualJoystick", "joystick pointer path should exist");
 assertIncludes("moveVirtualJoystick", "joystick move path should exist");
 assertIncludes("stopVirtualJoystick", "joystick release path should exist");
@@ -124,8 +129,12 @@ assert.ok(chatBlock.includes("bottom: 16px"), "desktop race chat should stay nea
 assertIncludes("race-chat-composing", "race chat composer should only open on demand");
 assertIncludes(":not(.race-chat-composing) .chat-panel .chat-form", "race chat form should stay hidden until T/chat click");
 assertIncludes("runner-rank-badge", "runner avatars should expose mobile rank badges");
+assertIncludes("race-ceremony-free", "mobile controls should be able to reappear for ceremony-room free movement");
+assertIncludes("race-finished:not(.race-ceremony-free) .race-input-controls", "finish should hide mobile movement controls except in the ceremony room free-move phase");
+assertIncludes("race-finished.race-ceremony-free:not(.race-watching-after-finish) .race-result-panel", "mobile watch/restart actions should move above ceremony free-move controls");
+assertIncludes("canMoveInCeremonyRoom", "mobile joystick should share the ceremony-room movement gate");
 
-const minimapBlock = cssBlock(".race-minimap");
+const minimapBlock = cssBlock(".race-minimap {");
 assert.ok(minimapBlock.includes("clamp(176px"), "race minimap should stay larger on desktop");
 
 console.log("Singularity Race mobile race UI smoke passed.");

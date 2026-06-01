@@ -7,19 +7,21 @@
   <title>특이점레이스 방장 페이지</title>
   <style>
     :root {
-      --bg: #111319;
-      --panel: #181d22;
-      --panel-2: #20242a;
-      --line: rgba(255, 255, 255, 0.13);
-      --muted: #aeb8bd;
-      --text: #f7faf8;
-      --green: #7ee08f;
-      --cyan: #73d9ee;
-      --red: #ff8a9b;
-      --yellow: #ffe08a;
-      --track: #f4f7f2;
-      --wall: #11161c;
-      --shadow: 0 16px 42px rgba(0, 0, 0, 0.28);
+      color-scheme: dark;
+      --bg: #061326;
+      --panel: rgba(7, 20, 38, 0.88);
+      --panel-2: rgba(10, 31, 58, 0.94);
+      --line: rgba(103, 196, 255, 0.24);
+      --muted: rgba(218, 238, 255, 0.68);
+      --text: #eef8ff;
+      --green: #56c8ff;
+      --cyan: #7de3ff;
+      --red: #ff6b8a;
+      --yellow: #ffc66d;
+      --accent-strong: #168dff;
+      --track: #bceaff;
+      --wall: #061326;
+      --shadow: 0 20px 58px rgba(0, 0, 0, 0.34);
     }
 
     * { box-sizing: border-box; }
@@ -27,7 +29,14 @@
     body {
       margin: 0;
       min-height: 100vh;
-      background: var(--bg);
+      background:
+        linear-gradient(90deg, rgba(86, 200, 255, 0.07) 1px, transparent 1px),
+        linear-gradient(180deg, rgba(86, 200, 255, 0.07) 1px, transparent 1px),
+        radial-gradient(circle at 78% 8%, rgba(86, 200, 255, 0.22), transparent 30%),
+        radial-gradient(circle at 12% 82%, rgba(255, 102, 216, 0.10), transparent 28%),
+        linear-gradient(135deg, rgba(3, 9, 24, 0.96), rgba(7, 24, 48, 0.9)),
+        var(--bg);
+      background-size: 54px 54px, 54px 54px, auto, auto, auto, auto;
       color: var(--text);
       font-family: "Malgun Gothic", "Apple SD Gothic Neo", system-ui, sans-serif;
     }
@@ -73,8 +82,11 @@
     .panel {
       border: 1px solid var(--line);
       border-radius: 8px;
-      background: var(--panel);
+      background:
+        linear-gradient(180deg, rgba(11, 35, 66, 0.82), rgba(5, 16, 32, 0.9)),
+        var(--panel);
       box-shadow: var(--shadow);
+      backdrop-filter: blur(14px);
     }
 
     .topbar {
@@ -98,39 +110,73 @@
     .top-actions a,
     .room-action {
       display: inline-flex;
+      position: relative;
       min-height: 38px;
       align-items: center;
       justify-content: center;
       padding: 0 12px;
       border: 1px solid var(--line);
       border-radius: 8px;
-      background: rgba(255, 255, 255, 0.06);
+      background: rgba(9, 28, 52, 0.72);
       color: var(--text);
       font-weight: 800;
       white-space: nowrap;
+      transition: transform 120ms ease, filter 120ms ease, border-color 120ms ease, box-shadow 120ms ease;
     }
 
     .button.is-primary,
     .top-actions a.is-primary,
     .room-action.is-primary {
-      border-color: rgba(126, 224, 143, 0.48);
-      background: var(--green);
-      color: #07110b;
+      border-color: rgba(86, 200, 255, 0.56);
+      background: linear-gradient(135deg, var(--accent-strong), var(--green));
+      color: #f2fbff;
+      box-shadow: 0 14px 32px rgba(22, 141, 255, 0.20);
     }
 
     .button.is-warn {
-      border-color: rgba(255, 224, 138, 0.45);
-      color: var(--yellow);
+      border-color: rgba(255, 107, 138, 0.42);
+      background: rgba(255, 107, 138, 0.12);
+      color: #ffd5de;
     }
 
-    .button:disabled {
+    .button:disabled,
+    .button[aria-disabled="true"] {
       cursor: not-allowed;
       opacity: 0.45;
+    }
+
+    .button[aria-disabled="true"] {
+      pointer-events: none;
     }
 
     .top-actions a[aria-disabled="true"] {
       pointer-events: none;
       opacity: 0.45;
+    }
+
+    .button:hover:not(:disabled),
+    .top-actions a:hover:not([aria-disabled="true"]),
+    .room-action:hover:not(:disabled),
+    .capacity-option:hover:not(:disabled),
+    .room-card:hover:not(:disabled),
+    .runner-row:hover:not(:disabled),
+    .channel-tab:hover:not(:disabled) {
+      transform: translateY(-1px);
+      filter: brightness(1.06);
+    }
+
+    .button:active:not(:disabled),
+    .top-actions a:active:not([aria-disabled="true"]),
+    .room-action:active:not(:disabled),
+    .capacity-option:active:not(:disabled),
+    .room-card:active:not(:disabled),
+    .runner-row:active:not(:disabled),
+    .channel-tab:active:not(:disabled),
+    .runner-marker:active:not(:disabled),
+    .chat-form button:active:not(:disabled) {
+      animation: ui-press-pop 180ms ease;
+      transform: translateY(1px) scale(0.98);
+      filter: brightness(1.12);
     }
 
     .layout {
@@ -148,7 +194,7 @@
       gap: 12px;
       padding: 12px 14px;
       border-bottom: 1px solid var(--line);
-      background: rgba(255, 255, 255, 0.03);
+      background: linear-gradient(135deg, rgba(22, 141, 255, 0.16), rgba(7, 20, 38, 0.72));
     }
 
     .panel-header p,
@@ -181,17 +227,17 @@
 
     .notice {
       padding: 8px 10px;
-      border: 1px solid rgba(255, 224, 138, 0.3);
+      border: 1px solid rgba(255, 198, 109, 0.3);
       border-radius: 8px;
-      background: rgba(255, 224, 138, 0.07);
+      background: rgba(255, 198, 109, 0.10);
       color: var(--yellow);
       font-size: 12px;
       line-height: 1.45;
     }
 
     .notice.is-open {
-      border-color: rgba(126, 224, 143, 0.38);
-      background: rgba(126, 224, 143, 0.08);
+      border-color: rgba(86, 200, 255, 0.46);
+      background: rgba(86, 200, 255, 0.10);
       color: var(--green);
     }
 
@@ -199,7 +245,9 @@
       width: min(420px, calc(100vw - 28px));
       border: 1px solid var(--line);
       border-radius: 10px;
-      background: var(--panel);
+      background:
+        linear-gradient(180deg, rgba(11, 35, 66, 0.96), rgba(5, 16, 32, 0.98)),
+        var(--panel);
       color: var(--text);
       box-shadow: var(--shadow);
     }
@@ -227,7 +275,7 @@
       min-height: 40px;
       border: 1px solid var(--line);
       border-radius: 8px;
-      background: rgba(255, 255, 255, 0.08);
+      background: rgba(9, 28, 52, 0.88);
       color: var(--text);
       padding: 0 10px;
     }
@@ -252,8 +300,9 @@
       min-width: 0;
       border: 1px solid var(--line);
       border-radius: 8px;
-      background: rgba(255, 255, 255, 0.055);
+      background: rgba(9, 28, 52, 0.72);
       color: var(--text);
+      transition: transform 120ms ease, filter 120ms ease, border-color 120ms ease, box-shadow 120ms ease;
     }
 
     .room-card {
@@ -266,8 +315,9 @@
     .room-card.is-active,
     .runner-row[aria-pressed="true"],
     .channel-tab[aria-pressed="true"] {
-      border-color: rgba(126, 224, 143, 0.7);
-      background: rgba(126, 224, 143, 0.12);
+      border-color: rgba(86, 200, 255, 0.72);
+      background: rgba(86, 200, 255, 0.16);
+      animation: ui-selected-pulse 520ms ease;
     }
 
     .room-card.is-closed {
@@ -301,7 +351,7 @@
       padding: 10px;
       border: 1px solid var(--line);
       border-radius: 8px;
-      background: rgba(115, 217, 238, 0.06);
+      background: rgba(86, 200, 255, 0.08);
     }
 
     .spectator-policy-head {
@@ -321,19 +371,48 @@
       gap: 6px;
     }
 
+    .map-options {
+      grid-template-columns: 1fr;
+    }
+
     .capacity-option {
       min-height: 34px;
       border: 1px solid var(--line);
       border-radius: 8px;
-      background: rgba(255, 255, 255, 0.055);
+      background: rgba(9, 28, 52, 0.72);
       color: var(--text);
       font-weight: 900;
+      transition: transform 120ms ease, filter 120ms ease, border-color 120ms ease, box-shadow 120ms ease;
+    }
+
+    .map-options .capacity-option {
+      min-height: 38px;
+      padding: 0 10px;
+      text-align: left;
+    }
+
+    .map-vote-bar {
+      display: grid;
+      gap: 6px;
+    }
+
+    .map-vote-bar .button {
+      width: 100%;
+      min-height: 36px;
+    }
+
+    .map-vote-status {
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 900;
+      line-height: 1.35;
     }
 
     .capacity-option.is-active {
-      border-color: rgba(126, 224, 143, 0.74);
-      background: rgba(126, 224, 143, 0.14);
+      border-color: rgba(86, 200, 255, 0.74);
+      background: rgba(86, 200, 255, 0.16);
       color: var(--green);
+      animation: ui-selected-pulse 520ms ease;
     }
 
     .camera-panel {
@@ -345,7 +424,11 @@
       position: relative;
       min-height: 520px;
       overflow: hidden;
-      background: #dfe9dd;
+      background:
+        linear-gradient(90deg, rgba(86, 200, 255, 0.07) 1px, transparent 1px),
+        linear-gradient(180deg, rgba(86, 200, 255, 0.07) 1px, transparent 1px),
+        linear-gradient(180deg, #07162c, #041121);
+      background-size: 54px 54px, 54px 54px, auto;
     }
 
     .camera-map {
@@ -407,7 +490,7 @@
       border: 0;
       background: transparent;
       transform: translate(-50%, -50%);
-      transition: left 160ms linear, top 160ms linear;
+      transition: left 160ms linear, top 160ms linear, filter 120ms ease;
     }
 
     .runner-marker img {
@@ -435,10 +518,10 @@
     .runner-marker.is-selected::before {
       position: absolute;
       inset: -7px 0 1px;
-      border: 3px solid rgba(126, 224, 143, 0.9);
+      border: 3px solid rgba(86, 200, 255, 0.9);
       border-radius: 999px;
       content: "";
-      filter: drop-shadow(0 0 8px rgba(126, 224, 143, 0.45));
+      filter: drop-shadow(0 0 8px rgba(86, 200, 255, 0.45));
     }
 
     .camera-window {
@@ -505,7 +588,7 @@
       padding: 9px 10px;
       border: 1px solid var(--line);
       border-radius: 8px;
-      background: rgba(255, 255, 255, 0.045);
+      background: rgba(9, 28, 52, 0.78);
       line-height: 1.45;
     }
 
@@ -552,16 +635,51 @@
       border: 1px solid var(--line);
       border-radius: 8px;
       outline: 0;
-      background: rgba(255, 255, 255, 0.07);
+      background: rgba(9, 28, 52, 0.88);
       color: var(--text);
     }
 
     .chat-form button {
       min-height: 40px;
       border-radius: 8px;
-      background: var(--red);
-      color: #101319;
+      border: 1px solid rgba(86, 200, 255, 0.42);
+      background: linear-gradient(135deg, var(--accent-strong), var(--cyan));
+      color: #f2fbff;
       font-weight: 900;
+      transition: transform 120ms ease, filter 120ms ease, box-shadow 120ms ease;
+    }
+
+    .admin-ui-audio-root {
+      display: none;
+    }
+
+    @keyframes ui-press-pop {
+      0% { box-shadow: 0 0 0 0 rgba(86, 200, 255, 0.28); }
+      55% { box-shadow: 0 0 0 4px rgba(86, 200, 255, 0.16); }
+      100% { box-shadow: 0 0 0 0 rgba(86, 200, 255, 0); }
+    }
+
+    @keyframes ui-selected-pulse {
+      0% { box-shadow: 0 0 0 0 rgba(86, 200, 255, 0.22); }
+      100% { box-shadow: 0 0 0 5px rgba(86, 200, 255, 0); }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .button:active:not(:disabled),
+      .top-actions a:active:not([aria-disabled="true"]),
+      .room-action:active:not(:disabled),
+      .capacity-option:active:not(:disabled),
+      .room-card:active:not(:disabled),
+      .runner-row:active:not(:disabled),
+      .channel-tab:active:not(:disabled),
+      .runner-marker:active:not(:disabled),
+      .chat-form button:active:not(:disabled),
+      .room-card.is-active,
+      .runner-row[aria-pressed="true"],
+      .channel-tab[aria-pressed="true"],
+      .capacity-option.is-active {
+        animation: none;
+      }
     }
 
     @media (max-width: 1120px) {
@@ -592,7 +710,7 @@
       <nav class="top-actions" aria-label="빠른 이동">
         <button class="button is-primary" id="admin-create-room-button" type="button">방 만들기</button>
         <a class="is-primary" id="admin-direct-game-link" href="./singularity-race.html?devOnline=1&amp;adminLaunch=1">관리자 직접 보기</a>
-        <a id="admin-lobby-link" href="./singularity-race.html?devOnline=1">로비</a>
+        <a id="admin-lobby-link" href="./singularity-race.html?devOnline=1">유저 입장</a>
       </nav>
     </header>
 
@@ -616,7 +734,28 @@
             <div class="capacity-options" id="spectator-capacity-options"></div>
             <p class="muted" id="spectator-policy-note">관전자 정원</p>
           </div>
+          <div class="spectator-policy map-policy" aria-label="map selection">
+            <div class="spectator-policy-head">
+              <span>MAP</span>
+              <span id="map-selection-label">기본</span>
+            </div>
+            <div class="capacity-options map-options" id="admin-map-options"></div>
+            <div class="map-vote-bar">
+              <button class="button is-primary" id="admin-map-vote-button" type="button">맵 투표하기</button>
+              <span class="map-vote-status" id="admin-map-vote-status">투표 대기</span>
+            </div>
+            <p class="muted" id="map-selection-note">Manual map pick before voting</p>
+          </div>
+          <div class="spectator-policy entry-policy" aria-label="대기열방 입장 시간">
+            <div class="spectator-policy-head">
+              <span>입장 가능</span>
+              <span id="entry-delay-label">즉시</span>
+            </div>
+            <div class="capacity-options" id="entry-delay-options"></div>
+            <p class="muted" id="entry-delay-note">대기열방 입장 시간</p>
+          </div>
           <div class="quick-actions" aria-label="방장 조작">
+            <a class="button" id="admin-enter-button" href="./singularity-race.html?devOnline=1">입장</a>
             <button class="button is-primary" id="admin-start-button" type="button">시작</button>
             <button class="button" id="admin-add-bots-button" type="button">봇 넣기</button>
             <button class="button" id="admin-clear-bots-button" type="button">봇 비우기</button>
@@ -692,12 +831,24 @@
       </section>
     </section>
 
+    <div class="admin-ui-audio-root" id="admin-ui-audio-root" aria-hidden="true"></div>
+
     <dialog class="admin-dialog" id="room-dialog">
       <form class="dialog-form" id="room-form" method="dialog">
         <h2 id="room-dialog-title">방 만들기</h2>
         <label>
           방 이름
           <input id="room-name-input" maxlength="32" autocomplete="off" placeholder="특이점 스타디움 001" />
+        </label>
+        <label>
+          선수 정원
+          <select id="room-runner-input">
+            <option value="10">10명</option>
+            <option value="20">20명</option>
+            <option value="30">30명</option>
+            <option value="40">40명</option>
+            <option value="50" selected>50명</option>
+          </select>
         </label>
         <label>
           관전자 정원
@@ -750,6 +901,13 @@
       validateRestoredMarathonRoomAdapter
     } from "./src/restored/online/marathon-room-adapter.js";
     import {
+      RESTORED_MARATHON_MAP_VOTE_DURATION_MS,
+      RESTORED_MARATHON_ROOM_POLICY_STORAGE_KEY,
+      createRestoredMarathonMapVote,
+      finalizeRestoredMarathonMapVote,
+      getRestoredMarathonEntryGateStatus,
+      getRestoredMarathonMapVoteStatus,
+      listRestoredMarathonEntryDelayMinuteOptions,
       listRestoredMarathonSpectatorCapOptions,
       readRestoredMarathonRoomPolicy,
       writeRestoredMarathonRoomPolicy
@@ -781,13 +939,19 @@
       RESTORED_MARATHON_WORLD_HEIGHT,
       RESTORED_MARATHON_WORLD_WIDTH,
       createRestoredMarathonTrailSvgPath,
+      getRestoredMarathonTrailMap,
       listRestoredMarathonTrailSavePoints,
+      listRestoredMarathonTrailMaps,
+      normalizeRestoredMarathonTrailMapId,
       progressToRestoredMarathonTrailPoint,
       progressToRestoredMarathonMapPoint
     } from "./src/restored/games/marathon-trail-geometry.js";
     import {
       RESTORED_MARATHON_MAX_RUNNERS
     } from "./src/restored/games/marathon-contract.js";
+    import {
+      getRestoredAssetById
+    } from "./src/restored/assets/asset-manifest.js";
     import {
       getPlayableSkinPresets,
       getPresetSkinDataUrl
@@ -812,6 +976,18 @@
     const ROAD_LANE_HALF_WIDTH_PX = 232;
     const DEFAULT_DEV_ROOM_ID = "room:singularity-race:dev-001";
     const ADMIN_SELECTED_ROOM_STORAGE_KEY = "singularity-race:admin-selected-room:v1";
+    const ADMIN_UI_SFX_TRACKS = Object.freeze([
+      { key: "ui-tap", assetId: "audio:sfx:singularity-race:ui-tap", src: resolveAdminUiAssetPath("audio:sfx:singularity-race:ui-tap"), volume: 0.24 },
+      { key: "ui-confirm", assetId: "audio:sfx:singularity-race:ui-confirm", src: resolveAdminUiAssetPath("audio:sfx:singularity-race:ui-confirm"), volume: 0.26 },
+      { key: "ui-toggle", assetId: "audio:sfx:singularity-race:ui-toggle", src: resolveAdminUiAssetPath("audio:sfx:singularity-race:ui-toggle"), volume: 0.22 },
+      { key: "ui-deny", assetId: "audio:sfx:singularity-race:ui-deny", src: resolveAdminUiAssetPath("audio:sfx:singularity-race:ui-deny"), volume: 0.22 }
+    ]);
+    const ADMIN_UI_SFX_KEYS = Object.freeze({
+      tap: "ui-tap",
+      confirm: "ui-confirm",
+      toggle: "ui-toggle",
+      deny: "ui-deny"
+    });
     const devOnlineEnabled = new URLSearchParams(window.location.search).get("devOnline") === "1";
     const devRooms = readRestoredMarathonDevRooms(window.localStorage);
     const selectedRoomId = window.localStorage.getItem(ADMIN_SELECTED_ROOM_STORAGE_KEY) || "";
@@ -826,12 +1002,15 @@
       clientId: "client:admin-host",
       serverTimeMs: 1000,
       maxSpectators: initialRoomPolicy.maxSpectators,
+      mapId: initialRoomPolicy.mapId,
       devRooms: orderedDevRooms
     });
     const adapterValidation = validateRestoredMarathonRoomAdapter(adapter);
     const rooms = getConnectedMarathonRoomSummaries(adapter);
     const activeRoomClosed = activeDevRoom?.phase === "closed" || rooms[0]?.phase === "abandoned";
     const connected = adapterValidation.ok && canOpenConnectedMarathonLobby(adapter) && !activeRoomClosed;
+    const adminUiAudioElements = new Map();
+    let adminUiAudioUnlocked = false;
     const roomPolicy = readRestoredMarathonRoomPolicy(window.localStorage, activeRoomId, initialRoomPolicy);
     const channels = adapter.channels?.length ? adapter.channels : createRestoredMarathonChannelSet({ roomId: activeRoomId });
     const visibleChannels = filterVisibleRestoredMarathonChannels(channels, connected ? "admin" : "spectator")
@@ -864,9 +1043,18 @@
       spectatorCapacityLabel: document.querySelector("#spectator-capacity-label"),
       spectatorCapacityOptions: document.querySelector("#spectator-capacity-options"),
       spectatorPolicyNote: document.querySelector("#spectator-policy-note"),
+      mapSelectionLabel: document.querySelector("#map-selection-label"),
+      mapOptions: document.querySelector("#admin-map-options"),
+      mapVoteButton: document.querySelector("#admin-map-vote-button"),
+      mapVoteStatus: document.querySelector("#admin-map-vote-status"),
+      mapSelectionNote: document.querySelector("#map-selection-note"),
+      entryDelayLabel: document.querySelector("#entry-delay-label"),
+      entryDelayOptions: document.querySelector("#entry-delay-options"),
+      entryDelayNote: document.querySelector("#entry-delay-note"),
       createRoomButton: document.querySelector("#admin-create-room-button"),
       directGameLink: document.querySelector("#admin-direct-game-link"),
       lobbyLink: document.querySelector("#admin-lobby-link"),
+      enterButton: document.querySelector("#admin-enter-button"),
       startButton: document.querySelector("#admin-start-button"),
       addBotsButton: document.querySelector("#admin-add-bots-button"),
       clearBotsButton: document.querySelector("#admin-clear-bots-button"),
@@ -897,6 +1085,7 @@
       roomForm: document.querySelector("#room-form"),
       roomDialogTitle: document.querySelector("#room-dialog-title"),
       roomNameInput: document.querySelector("#room-name-input"),
+      roomRunnerInput: document.querySelector("#room-runner-input"),
       roomSpectatorInput: document.querySelector("#room-spectator-input"),
       roomBotInput: document.querySelector("#room-bot-input"),
       roomCancelButton: document.querySelector("#room-cancel-button"),
@@ -907,7 +1096,8 @@
       roomRemoveDialog: document.querySelector("#room-remove-dialog"),
       roomRemoveForm: document.querySelector("#room-remove-form"),
       roomRemoveCopy: document.querySelector("#room-remove-copy"),
-      roomRemoveCancelButton: document.querySelector("#room-remove-cancel-button")
+      roomRemoveCancelButton: document.querySelector("#room-remove-cancel-button"),
+      uiAudioRoot: document.querySelector("#admin-ui-audio-root")
     };
     const state = {
       selectedRunnerId: "",
@@ -915,16 +1105,34 @@
       messages: chatTransport.seedMessages(createInitialRestoredMarathonChannelMessages(channels)),
       packets: roomPacketTransport ? roomPacketTransport.loadPackets([]) : [],
       roomPolicy,
+      mapId: normalizeRestoredMarathonTrailMapId(roomPolicy.mapId),
       runners: []
     };
 
+    setupAdminUiAudioElements();
     setupMap();
     refreshRunners();
     render();
     setInterval(() => {
+      syncRoomPolicyFromStorage();
+      finalizeMapVoteIfNeeded();
       refreshRunners();
+      renderGate();
+      renderMapSelection();
+      renderMapVotePolicy();
+      renderEntryDelayPolicy();
       renderCamera();
     }, 1000);
+    window.addEventListener("storage", (event) => {
+      if (event.key !== RESTORED_MARATHON_ROOM_POLICY_STORAGE_KEY) return;
+      syncRoomPolicyFromStorage();
+      finalizeMapVoteIfNeeded();
+      render();
+    });
+    window.addEventListener("keydown", unlockAdminUiAudio, { capture: true });
+    window.addEventListener("pointerdown", unlockAdminUiAudio, { passive: true });
+    window.addEventListener("touchstart", unlockAdminUiAudio, { passive: true });
+    document.addEventListener("click", handleAdminUiClickSfx, { capture: true });
 
     elements.createRoomButton.addEventListener("click", () => {
       openRoomDialog("create");
@@ -961,27 +1169,34 @@
 
     elements.roomForm.addEventListener("submit", (event) => {
       event.preventDefault();
+      if (!event.submitter) playAdminUiSfx("confirm");
       saveRoomFromDialog();
     });
 
     elements.roomDeleteForm.addEventListener("submit", (event) => {
       event.preventDefault();
+      if (!event.submitter) playAdminUiSfx("confirm");
       closeActiveRoom();
     });
 
     elements.roomRemoveForm.addEventListener("submit", (event) => {
       event.preventDefault();
+      if (!event.submitter) playAdminUiSfx("confirm");
       removeActiveRoom();
     });
 
     elements.startButton.addEventListener("click", () => {
-      if (!connected) return;
+      if (!canStartRaceControl()) {
+        elements.startStatus.textContent = connected ? "선수 입장 대기" : "방 없음";
+        render();
+        return;
+      }
       publishRaceStartControl();
     });
 
     elements.addBotsButton.addEventListener("click", () => {
       if (!connected) return;
-      publishTestBotControl(MAX_RUNNERS);
+      publishTestBotControl(getActiveRoomMaxRunners());
     });
 
     elements.clearBotsButton.addEventListener("click", () => {
@@ -1014,11 +1229,70 @@
       renderSpectatorPolicy();
     });
 
+    elements.mapOptions.addEventListener("click", (event) => {
+      if (!connected) return;
+      const voteStatus = getRestoredMarathonMapVoteStatus(state.roomPolicy, Date.now());
+      if (voteStatus.active && !voteStatus.ended) return;
+      const button = event.target.closest("[data-map-id]");
+      if (!button) return;
+      const mapId = normalizeRestoredMarathonTrailMapId(button.dataset.mapId);
+      state.mapId = mapId;
+      state.roomPolicy = writeRestoredMarathonRoomPolicy(window.localStorage, {
+        ...state.roomPolicy,
+        roomId: activeRoomId,
+        mapId
+      });
+      setupMap();
+      elements.startStatus.textContent = `MAP ${getRestoredMarathonTrailMap(mapId).shortLabel}`;
+      renderRooms();
+      renderMapSelection();
+      renderMapVotePolicy();
+      renderCamera();
+    });
+
+    elements.mapVoteButton.addEventListener("click", () => {
+      if (!connected || activeRoomClosed) return;
+      const policy = createRestoredMarathonMapVote({
+        ...state.roomPolicy,
+        roomId: activeRoomId,
+        mapId: state.mapId
+      }, {
+        nowMs: Date.now(),
+        durationMs: RESTORED_MARATHON_MAP_VOTE_DURATION_MS
+      });
+      state.roomPolicy = writeRestoredMarathonRoomPolicy(window.localStorage, policy);
+      elements.startStatus.textContent = "맵 투표 진행 중";
+      render();
+    });
+
+    elements.entryDelayOptions.addEventListener("click", (event) => {
+      if (!connected) return;
+      const button = event.target.closest("[data-entry-delay-minutes]");
+      if (!button) return;
+      const minutes = Math.max(0, Math.round(Number(button.dataset.entryDelayMinutes) || 0));
+      state.roomPolicy = writeRestoredMarathonRoomPolicy(window.localStorage, {
+        ...state.roomPolicy,
+        roomId: activeRoomId,
+        entryOpensAtMs: minutes > 0 ? Date.now() + minutes * 60000 : 0
+      });
+      elements.startStatus.textContent = minutes > 0 ? `${minutes}분 후 입장 가능` : "즉시 입장 가능";
+      renderGate();
+      renderRooms();
+      renderEntryDelayPolicy();
+    });
+
     elements.form.addEventListener("submit", (event) => {
       event.preventDefault();
-      if (!connected) return;
+      if (!connected) {
+        playAdminUiSfx("deny");
+        return;
+      }
       const text = elements.input.value.trim().replace(/\s+/g, " ");
-      if (!text) return;
+      if (!text) {
+        playAdminUiSfx("deny");
+        return;
+      }
+      if (!event.submitter) playAdminUiSfx("confirm");
       const result = chatTransport.submitMessage(state.messages, {
         channelId: state.activeChannel,
         senderId: "admin:host",
@@ -1044,14 +1318,85 @@
       render();
     });
 
+    function resolveAdminUiAssetPath(assetId, fallbackPath = "") {
+      const asset = getRestoredAssetById(assetId);
+      if (!asset?.path) return fallbackPath;
+      return asset.path.startsWith(".") ? asset.path : `./${asset.path}`;
+    }
+
+    function setupAdminUiAudioElements() {
+      if (!elements.uiAudioRoot) return;
+      for (const track of ADMIN_UI_SFX_TRACKS) {
+        if (!track.src || adminUiAudioElements.has(track.key)) continue;
+        const audio = document.createElement("audio");
+        audio.id = `admin-ui-audio-${track.key}`;
+        audio.preload = "auto";
+        audio.volume = track.volume;
+        audio.src = track.src;
+        audio.dataset.trackKey = track.key;
+        audio.dataset.assetId = track.assetId;
+        audio.dataset.role = "sfx-ui";
+        elements.uiAudioRoot.append(audio);
+        adminUiAudioElements.set(track.key, audio);
+      }
+    }
+
+    function unlockAdminUiAudio() {
+      setupAdminUiAudioElements();
+      adminUiAudioUnlocked = true;
+    }
+
+    function playAdminUiSfx(cue = "tap") {
+      const key = ADMIN_UI_SFX_KEYS[cue] || ADMIN_UI_SFX_KEYS.tap;
+      unlockAdminUiAudio();
+      const audio = adminUiAudioElements.get(key);
+      if (!audio || !adminUiAudioUnlocked) return false;
+      try {
+        audio.currentTime = 0;
+      } catch {}
+      audio.play().catch(() => {
+        adminUiAudioUnlocked = false;
+      });
+      return true;
+    }
+
+    function handleAdminUiClickSfx(event) {
+      const control = event.target?.closest?.("button, a, .room-card, .runner-row, .channel-tab, .capacity-option, .runner-marker");
+      if (!control) return;
+      if (control.matches(":disabled") || control.getAttribute("aria-disabled") === "true") {
+        playAdminUiSfx("deny");
+        return;
+      }
+      const id = control.id || "";
+      if (id === "admin-start-button" && !canStartRaceControl()) {
+        playAdminUiSfx("deny");
+        return;
+      }
+      if (["admin-enter-button", "admin-start-button", "admin-add-bots-button", "admin-clear-bots-button", "admin-observer-button", "room-save-button", "room-delete-confirm-button", "room-remove-confirm-button"].includes(id)
+        || control.closest("#chat-form")) {
+        playAdminUiSfx("confirm");
+        return;
+      }
+      if (["admin-create-room-button", "admin-room-settings-button", "admin-delete-room-button", "admin-remove-room-button", "camera-all-button", "room-cancel-button", "room-delete-cancel-button", "room-remove-cancel-button"].includes(id)
+        || control.classList.contains("room-card")
+        || control.classList.contains("runner-row")
+        || control.classList.contains("channel-tab")
+        || control.classList.contains("capacity-option")
+        || control.classList.contains("runner-marker")) {
+        playAdminUiSfx("toggle");
+        return;
+      }
+      playAdminUiSfx("tap");
+    }
+
     function setupMap() {
-      const path = createRestoredMarathonTrailSvgPath();
+      const path = createRestoredMarathonTrailSvgPath(92, state.mapId);
       elements.trackWall.setAttribute("d", path);
       elements.trackRoad.setAttribute("d", path);
       elements.trackLine.setAttribute("d", path);
-      const finishLine = trailMarkerLine(progressToRestoredMarathonTrailPoint(100), 4.4);
+      const finishLine = trailMarkerLine(progressToRestoredMarathonTrailPoint(100, state.mapId), 4.4);
       for (const [key, value] of Object.entries(finishLine)) elements.finishLine.setAttribute(key, value);
-      elements.savePoints.replaceChildren(...listRestoredMarathonTrailSavePoints().map((point) => {
+      elements.savePoints.replaceChildren(...listRestoredMarathonTrailSavePoints(state.mapId).map((point) => {
         const group = document.createElementNS("http://www.w3.org/2000/svg", "g");
         const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
         const label = document.createElementNS("http://www.w3.org/2000/svg", "text");
@@ -1078,10 +1423,39 @@
       };
     }
 
+    function syncRoomPolicyFromStorage() {
+      const nextPolicy = readRestoredMarathonRoomPolicy(window.localStorage, activeRoomId, state.roomPolicy);
+      const nextMapId = normalizeRestoredMarathonTrailMapId(nextPolicy.mapId);
+      const mapChanged = nextMapId !== state.mapId;
+      state.roomPolicy = nextPolicy;
+      state.mapId = nextMapId;
+      if (mapChanged) setupMap();
+      return mapChanged;
+    }
+
+    function finalizeMapVoteIfNeeded() {
+      const status = getRestoredMarathonMapVoteStatus(state.roomPolicy, Date.now());
+      if (!status.ended) return false;
+      const nextPolicy = finalizeRestoredMarathonMapVote(state.roomPolicy, { nowMs: Date.now() });
+      state.roomPolicy = writeRestoredMarathonRoomPolicy(window.localStorage, {
+        ...nextPolicy,
+        roomId: activeRoomId
+      });
+      state.mapId = normalizeRestoredMarathonTrailMapId(state.roomPolicy.mapId);
+      setupMap();
+      elements.startStatus.textContent = `투표 결과 MAP ${getRestoredMarathonTrailMap(state.mapId).shortLabel}`;
+      return true;
+    }
+
     function render() {
+      syncRoomPolicyFromStorage();
+      finalizeMapVoteIfNeeded();
       renderGate();
       renderRooms();
       renderSpectatorPolicy();
+      renderMapSelection();
+      renderMapVotePolicy();
+      renderEntryDelayPolicy();
       renderCamera();
       renderRunnerList();
       renderChannelTabs();
@@ -1093,8 +1467,10 @@
       elements.roomDialog.dataset.mode = creating ? "create" : "settings";
       elements.roomDialogTitle.textContent = creating ? "방 만들기" : "방 설정";
       elements.roomNameInput.value = creating ? `특이점 스타디움 ${String(devRooms.length + 1).padStart(3, "0")}` : activeDevRoom.displayName;
+      elements.roomRunnerInput.value = String(creating ? MAX_RUNNERS : activeDevRoom.maxRunners);
       elements.roomSpectatorInput.value = String(creating ? 32 : activeDevRoom.maxSpectators);
       elements.roomBotInput.value = String(readTestBotControl()?.botCount || 0);
+      elements.roomBotInput.max = String(creating ? MAX_RUNNERS : activeDevRoom.maxRunners);
       openDialog(elements.roomDialog);
       elements.roomNameInput.focus();
       elements.roomNameInput.select();
@@ -1108,7 +1484,7 @@
         ...(creating ? {} : activeDevRoom),
         roomId,
         displayName: elements.roomNameInput.value,
-        maxRunners: MAX_RUNNERS,
+        maxRunners: Number(elements.roomRunnerInput.value),
         maxSpectators: Number(elements.roomSpectatorInput.value),
         createdAtMs: creating ? now : activeDevRoom.createdAtMs,
         updatedAtMs: now
@@ -1123,9 +1499,12 @@
       writeRestoredMarathonRoomPolicy(window.localStorage, {
         roomId: room.roomId,
         maxSpectators: room.maxSpectators,
+        mapId: state.mapId,
+        entryOpensAtMs: creating ? 0 : state.roomPolicy.entryOpensAtMs,
+        mapVote: creating ? undefined : state.roomPolicy.mapVote,
         spectatorMidJoin: true
       });
-      const botCount = Math.max(0, Math.min(MAX_RUNNERS, Math.round(Number(elements.roomBotInput.value) || 0)));
+      const botCount = Math.max(0, Math.min(room.maxRunners, Math.round(Number(elements.roomBotInput.value) || 0)));
       if (botCount > 0) {
         const command = createSingularityRaceTestBotsCommand({
           nowMs: now,
@@ -1225,6 +1604,7 @@
     }
 
     function renderGate() {
+      const entryGate = getRestoredMarathonEntryGateStatus(state.roomPolicy, Date.now());
       elements.gate.textContent = connected
         ? "방 열림"
         : (devOnlineEnabled ? "생성된 방 없음" : "개발 모드 꺼짐");
@@ -1233,9 +1613,11 @@
       elements.createRoomButton.disabled = !devOnlineEnabled;
       elements.directGameLink.setAttribute("aria-disabled", String(!connected || activeRoomClosed));
       elements.directGameLink.href = connected && !activeRoomClosed ? createAdminDirectRoomHref(activeRoomId) : "#";
-      elements.lobbyLink.setAttribute("aria-disabled", String(!connected || activeRoomClosed));
-      elements.lobbyLink.href = connected && !activeRoomClosed ? createPlayerRoomHref(activeRoomId) : "./singularity-race.html?devOnline=1";
-      elements.startButton.disabled = !connected;
+      elements.lobbyLink.setAttribute("aria-disabled", String(!connected || activeRoomClosed || !entryGate.open));
+      elements.lobbyLink.href = connected && !activeRoomClosed && entryGate.open ? createPlayerRoomHref(activeRoomId) : "./singularity-race.html?devOnline=1";
+      elements.enterButton.setAttribute("aria-disabled", String(!connected || activeRoomClosed || !entryGate.open));
+      elements.enterButton.href = connected && !activeRoomClosed && entryGate.open ? createPlayerRoomHref(activeRoomId) : "#";
+      elements.startButton.disabled = !canStartRaceControl();
       elements.addBotsButton.disabled = !connected;
       elements.clearBotsButton.disabled = !connected;
       elements.roomSettingsButton.disabled = !connected;
@@ -1243,9 +1625,20 @@
       elements.removeRoomButton.disabled = !activeDevRoom;
       elements.cameraAll.disabled = !connected;
       elements.observerButton.disabled = !connected || activeRoomClosed;
+      elements.mapVoteButton.disabled = !connected || activeRoomClosed || (getRestoredMarathonMapVoteStatus(state.roomPolicy, Date.now()).active && !getRestoredMarathonMapVoteStatus(state.roomPolicy, Date.now()).ended);
       elements.spectatorCapacityOptions.style.pointerEvents = connected ? "" : "none";
+      elements.entryDelayOptions.style.pointerEvents = connected ? "" : "none";
       elements.input.disabled = !connected;
       elements.submit.disabled = !connected;
+    }
+
+    function canStartRaceControl() {
+      const voteStatus = getRestoredMarathonMapVoteStatus(state.roomPolicy, Date.now());
+      return connected && !activeRoomClosed && state.runners.length > 0 && (!voteStatus.active || voteStatus.ended);
+    }
+
+    function getActiveRoomMaxRunners() {
+      return Math.max(1, Math.min(MAX_RUNNERS, Number(rooms[0]?.maxPlayers || activeDevRoom?.maxRunners || MAX_RUNNERS)));
     }
 
     function renderRooms() {
@@ -1259,6 +1652,7 @@
       const roomCards = rooms.map((room) => {
         const row = document.createElement("div");
         const roomClosed = room.phase === "abandoned";
+        const entryGate = getRestoredMarathonEntryGateStatus(state.roomPolicy, Date.now());
         row.className = `room-card${room.roomId === activeRoomId ? " is-active" : ""}${roomClosed ? " is-closed" : ""}`;
         row.dataset.roomId = room.roomId;
         row.addEventListener("click", (event) => {
@@ -1272,13 +1666,14 @@
         meta.className = "room-meta";
         const maxSpectators = state.roomPolicy.maxSpectators;
         const visibleRunners = state.runners.length;
-        meta.innerHTML = `<span>선수 ${visibleRunners}/${room.maxPlayers || MAX_RUNNERS}</span><span>관전자 ${room.spectators || 0}/${maxSpectators}</span>`;
+        const mapLabel = getRestoredMarathonTrailMap(state.mapId).shortLabel;
+        meta.innerHTML = `<span>선수 ${visibleRunners}/${room.maxPlayers || MAX_RUNNERS}</span><span>관전자 ${room.spectators || 0}/${maxSpectators}</span><span>MAP ${mapLabel}</span>`;
         if (roomClosed) meta.innerHTML = `<span>종료됨</span><span>재입장 불가</span>`;
         const action = document.createElement("a");
         action.className = "room-action is-primary";
-        action.href = roomClosed ? "#" : createPlayerRoomHref(room.roomId);
-        action.setAttribute("aria-disabled", String(roomClosed));
-        action.textContent = "로비";
+        action.href = roomClosed || !entryGate.open ? "#" : createPlayerRoomHref(room.roomId);
+        action.setAttribute("aria-disabled", String(roomClosed || !entryGate.open));
+        action.textContent = entryGate.open ? "입장" : `${entryGate.remainingMinutes}분 후`;
         if (roomClosed) action.textContent = "종료됨";
         row.append(title, meta, action);
         return row;
@@ -1334,6 +1729,63 @@
       }));
     }
 
+    function renderMapSelection() {
+      const selectedMap = getRestoredMarathonTrailMap(state.mapId);
+      const voteStatus = getRestoredMarathonMapVoteStatus(state.roomPolicy, Date.now());
+      elements.mapSelectionLabel.textContent = selectedMap.shortLabel;
+      elements.mapSelectionNote.textContent = connected
+        ? (voteStatus.active ? `맵 투표 진행 중 ${voteStatus.remainingSeconds}초` : selectedMap.description)
+        : "방을 먼저 만들어야 합니다.";
+      elements.mapOptions.replaceChildren(...listRestoredMarathonTrailMaps().map((map) => {
+        const button = document.createElement("button");
+        button.className = `capacity-option${map.id === selectedMap.id ? " is-active" : ""}`;
+        button.type = "button";
+        button.disabled = !connected || (voteStatus.active && !voteStatus.ended);
+        button.dataset.mapId = map.id;
+        button.title = map.description;
+        button.textContent = map.shortLabel;
+        return button;
+      }));
+    }
+
+    function renderMapVotePolicy() {
+      const status = getRestoredMarathonMapVoteStatus(state.roomPolicy, Date.now());
+      const mapLabel = (mapId) => getRestoredMarathonTrailMap(mapId).shortLabel;
+      elements.mapVoteButton.textContent = status.active && !status.ended ? "투표 진행 중" : "맵 투표하기";
+      if (!connected) {
+        elements.mapVoteStatus.textContent = "방을 먼저 만들어야 합니다.";
+        return;
+      }
+      if (status.active && !status.ended) {
+        const counts = status.options.map((mapId) => `${mapLabel(mapId)} ${status.counts[mapId] || 0}`).join(" / ");
+        elements.mapVoteStatus.textContent = `${status.remainingSeconds}초 남음 · ${counts}`;
+        return;
+      }
+      if (status.closed && status.resultMapId) {
+        elements.mapVoteStatus.textContent = `최근 투표 결과: MAP ${mapLabel(status.resultMapId)}`;
+        return;
+      }
+      elements.mapVoteStatus.textContent = "투표 대기";
+    }
+
+    function renderEntryDelayPolicy() {
+      const gate = getRestoredMarathonEntryGateStatus(state.roomPolicy, Date.now());
+      elements.entryDelayLabel.textContent = gate.open ? "즉시" : `${gate.remainingMinutes}분 후`;
+      elements.entryDelayNote.textContent = connected
+        ? (gate.open ? "대기열방 입장 가능" : `${gate.remainingMinutes}분 후 대기열방 입장 가능`)
+        : "방을 먼저 만들어야 합니다.";
+      elements.entryDelayOptions.replaceChildren(...listRestoredMarathonEntryDelayMinuteOptions().map((minutes) => {
+        const button = document.createElement("button");
+        const active = minutes === 0 ? gate.open : !gate.open && gate.remainingMinutes === minutes;
+        button.className = `capacity-option${active ? " is-active" : ""}`;
+        button.type = "button";
+        button.disabled = !connected;
+        button.dataset.entryDelayMinutes = String(minutes);
+        button.textContent = minutes === 0 ? "즉시" : `${minutes}분 후`;
+        return button;
+      }));
+    }
+
     function refreshRunners() {
       state.packets = roomPacketTransport ? roomPacketTransport.loadPackets([]) : [];
       const snapshot = [...state.packets].reverse().find((packet) => packet.type === "state_snapshot");
@@ -1369,7 +1821,7 @@
       const runners = [...seed];
       const names = ["나", "하늘", "보리", "초코", "모찌", "루미", "궤도", "픽셀", "대시", "민트", "젤리", "연", "물결", "햇살", "네온", "사이다", "구름", "베리", "스파크", "푸딩", "망고", "비스킷", "점이", "루비", "클로버", "자두", "토스트", "태피", "코코", "유자"];
       const clockDrift = ((Date.now() / 1000) % 20) * 0.05;
-      const count = Math.max(0, Math.min(MAX_RUNNERS, Math.round(Number(targetCount) || 0)));
+      const count = Math.max(0, Math.min(getActiveRoomMaxRunners(), Math.round(Number(targetCount) || 0)));
       for (let index = runners.length; index < count; index += 1) {
         runners.push({
           id: `preview:${index + 1}`,
@@ -1526,18 +1978,19 @@
     }
 
     function publishTestBotControl(botCount) {
+      const cappedBotCount = Math.max(0, Math.min(getActiveRoomMaxRunners(), Math.round(Number(botCount) || 0)));
       const command = createSingularityRaceTestBotsCommand({
         nowMs: Date.now(),
         roomId: activeRoomId,
         sourceClientId: "client:singularity-race-host",
-        botCount
+        botCount: cappedBotCount
       });
       writeSingularityRaceTestBotsCommand(window.localStorage, command);
       publishSingularityRaceControlCommand(raceControlBroadcast, command);
-      if (botCount <= 0) roomPacketTransport?.savePackets([], { reason: "clear_test_bots" });
+      if (cappedBotCount <= 0) roomPacketTransport?.savePackets([], { reason: "clear_test_bots" });
       refreshRunners();
       elements.startStatus.textContent = botCount > 0
-        ? `봇 ${botCount}명`
+        ? `봇 ${cappedBotCount}명`
         : "봇 없음";
       render();
     }
@@ -1545,6 +1998,7 @@
     function runnerToMapPoint(runner) {
       const laneOffsetPx = clampNumber(Number(runner.laneOffsetPx) || 0, -ROAD_LANE_HALF_WIDTH_PX, ROAD_LANE_HALF_WIDTH_PX);
       return progressToRestoredMarathonMapPoint(runner.progress, {
+        mapId: state.mapId,
         laneOffsetPx,
         laneHalfWidthPx: ROAD_LANE_HALF_WIDTH_PX,
         worldWidth: TRACK_WORLD_WIDTH,

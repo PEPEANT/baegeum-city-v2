@@ -24,7 +24,7 @@ export function createRestoredMarathonDevRoomRecord(options = {}) {
     version: RESTORED_MARATHON_DEV_ROOM_REGISTRY_VERSION,
     roomId,
     displayName: cleanRoomName(options.displayName || "특이점 스타디움 001"),
-    maxRunners: RESTORED_MARATHON_MAX_RUNNERS,
+    maxRunners: clampInteger(options.maxRunners ?? RESTORED_MARATHON_MAX_RUNNERS, 1, RESTORED_MARATHON_MAX_RUNNERS),
     maxSpectators: clampInteger(options.maxSpectators ?? RESTORED_MARATHON_DEFAULT_MAX_SPECTATORS, 0, RESTORED_MARATHON_MAX_SPECTATORS),
     phase: ALLOWED_PHASES.includes(options.phase) ? options.phase : "lobby",
     createdAtMs,
@@ -98,6 +98,7 @@ export function createRestoredMarathonRoomsFromDevRegistry(devRooms = [], option
     authority: RESTORED_MARATHON_AUTHORITY.SERVER_REQUIRED,
     maxRunners: record.maxRunners,
     maxSpectators: record.maxSpectators,
+    course: options.course,
     mapVersion,
     phase: record.phase === "closed" ? "abandoned" : record.phase,
     serverTimeMs
@@ -118,6 +119,7 @@ export function validateRestoredMarathonDevRoomRegistryContract() {
   const deleted = deleteRestoredMarathonDevRoom(storage, created.room.roomId);
   const adapterRooms = createRestoredMarathonRoomsFromDevRegistry(readBack, { serverTimeMs: 200 });
   const errors = [];
+  if (createRestoredMarathonDevRoomRecord({ maxRunners: 12 }).maxRunners !== 12) errors.push("room runner cap should persist");
   if (created.room.displayName !== "테스트 방") errors.push("room name should be trimmed");
   if (created.room.maxSpectators !== RESTORED_MARATHON_MAX_SPECTATORS) errors.push("spectator cap should clamp");
   if (readBack.length !== 1) errors.push("room registry should persist one room");

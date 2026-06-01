@@ -37,7 +37,7 @@ export function advanceSingularityLocalBotPack(runners, options = {}) {
     const hpFactor = (runner.hp ?? 100) < 60 ? 0.72 : 1;
     const slowFactor = Number(runner.slowUntilMs || 0) > nowMs ? 0.42 : 1;
     const laneDrift = Math.sin((nowMs / 900) + index) * 10 * elapsedSeconds;
-    const trailPoint = progressToRestoredMarathonTrailPoint(runner.progress);
+    const trailPoint = progressToRestoredMarathonTrailPoint(runner.progress, context.mapId);
     const speedScale = calculateRestoredMarathonSpeedScale(trailPoint.tangent);
     const nextProgress = Math.min(context.railMaxProgress, runner.progress + ((baseSpeed + packBoost) * hpFactor * slowFactor * speedScale * elapsedSeconds));
     const nextLaneOffsetPx = clampNumber((runner.laneOffsetPx || 0) + laneDrift, -context.roadLaneHalfWidthPx, context.roadLaneHalfWidthPx);
@@ -91,7 +91,8 @@ function createLocalSimContext(options = {}) {
     startPaddockMinProgress: numberOption(options.startPaddockMinProgress, DEFAULTS.startPaddockMinProgress),
     startPaddockMaxProgress: numberOption(options.startPaddockMaxProgress, DEFAULTS.startPaddockMaxProgress),
     roadLaneHalfWidthPx: numberOption(options.roadLaneHalfWidthPx, DEFAULTS.roadLaneHalfWidthPx),
-    railMaxProgress: numberOption(options.railMaxProgress, DEFAULTS.railMaxProgress)
+    railMaxProgress: numberOption(options.railMaxProgress, DEFAULTS.railMaxProgress),
+    mapId: options.mapId
   };
 }
 

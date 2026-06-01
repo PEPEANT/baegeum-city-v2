@@ -21,11 +21,12 @@ async function main() {
 
   const definitions = itemContract.listSingularityRaceItemDefinitions();
   const boxes = itemContract.createSingularityRaceItemBoxes();
-  assert(definitions.length === 3, "0.1 item set must stay at three items");
+  assert(definitions.length === 4, "0.1 item set should expose booster, banana, stun-shot, and ink-cloud");
   assert(boxes.length === 15, "track should expose three rows of five item boxes");
   assert(definitions.some((item) => item.itemId === itemContract.SINGULARITY_RACE_ITEM_IDS.BOOSTER), "booster item missing");
   assert(definitions.some((item) => item.itemId === itemContract.SINGULARITY_RACE_ITEM_IDS.BANANA), "banana item missing");
   assert(definitions.some((item) => item.itemId === itemContract.SINGULARITY_RACE_ITEM_IDS.STUN_SHOT), "stun-shot item missing");
+  assert(definitions.some((item) => item.itemId === itemContract.SINGULARITY_RACE_ITEM_IDS.INK_CLOUD), "ink-cloud item missing");
   assert(
     boxes.filter((box) => box.sectionIndex === 3).every((box) => box.progress === 90),
     "final item row should stay on the late straight road"
@@ -34,8 +35,8 @@ async function main() {
   assert(itemContract.SINGULARITY_RACE_BOOSTER_SPEED_MULTIPLIER <= 1.35, "booster should stay collision-safe");
   const centerBox = boxes.find((box) => box.progress === 18 && box.laneOffsetPx === 0);
   const crossedBox = itemContract.isSingularityRaceItemBoxInPickupRange(centerBox, { progress: 20, laneOffsetPx: 0 }, {
-    progressRadius: 1.45,
-    laneRadiusPx: 112,
+    progressRadius: itemContract.SINGULARITY_RACE_ITEM_PICKUP_PROGRESS_RADIUS,
+    laneRadiusPx: itemContract.SINGULARITY_RACE_ITEM_PICKUP_LANE_RADIUS_PX,
     traceMaxAgeMs: 650,
     nowMs: 1000,
     trace: itemContract.createSingularityRaceItemPickupTrace({
@@ -47,8 +48,24 @@ async function main() {
     })
   });
   assert(crossedBox, "fast movement trace should collect a crossed item box");
-  assert(readHtmlNumberConstant(html, "ITEM_BOX_PICKUP_PROGRESS_RADIUS") >= 1.2, "item pickup progress radius should prevent box pass-through");
-  assert(readHtmlNumberConstant(html, "ITEM_BOX_PICKUP_LANE_RADIUS_PX") >= 100, "item pickup lane radius should prevent lane-edge pass-through");
+  const nearLaneMiss = itemContract.isSingularityRaceItemBoxInPickupRange(centerBox, { progress: 18, laneOffsetPx: 86 }, {
+    progressRadius: itemContract.SINGULARITY_RACE_ITEM_PICKUP_PROGRESS_RADIUS,
+    laneRadiusPx: itemContract.SINGULARITY_RACE_ITEM_PICKUP_LANE_RADIUS_PX,
+    traceMaxAgeMs: 650,
+    nowMs: 1000
+  });
+  const nearProgressMiss = itemContract.isSingularityRaceItemBoxInPickupRange(centerBox, { progress: 19.05, laneOffsetPx: 0 }, {
+    progressRadius: itemContract.SINGULARITY_RACE_ITEM_PICKUP_PROGRESS_RADIUS,
+    laneRadiusPx: itemContract.SINGULARITY_RACE_ITEM_PICKUP_LANE_RADIUS_PX,
+    traceMaxAgeMs: 650,
+    nowMs: 1000
+  });
+  assert(!nearLaneMiss, "near lane misses should not collect item boxes");
+  assert(!nearProgressMiss, "near progress misses should not collect item boxes");
+  assert(itemContract.SINGULARITY_RACE_ITEM_PICKUP_PROGRESS_RADIUS <= 0.9, "item pickup progress radius should stay near the visible box");
+  assert(itemContract.SINGULARITY_RACE_ITEM_PICKUP_PROGRESS_RADIUS >= 0.55, "item pickup progress radius should still catch visible contact");
+  assert(itemContract.SINGULARITY_RACE_ITEM_PICKUP_LANE_RADIUS_PX <= 68, "item pickup lane radius should not collect distant near-misses");
+  assert(itemContract.SINGULARITY_RACE_ITEM_PICKUP_LANE_RADIUS_PX >= 44, "item pickup lane radius should still catch visible contact");
   assert(readHtmlNumberConstant(html, "ITEM_BOX_PICKUP_TRACE_MAX_AGE_MS") >= 500, "item pickup should keep a short movement trace for frame skips");
   assert(/\.race-item-box\s*\{[\s\S]*width:\s*50px;[\s\S]*height:\s*50px;/.test(html), "item boxes should render large enough to read and collect");
 
@@ -66,13 +83,37 @@ async function main() {
     "useBoosterItem",
     "useBananaItem",
     "useStunShotItem",
+    "useInkCloudItem",
+    "findInkCloudTarget",
+    "applyRaceItemBlind",
+    "createRaceItemIconNode",
+    "getRaceItemIconKind",
+    "getRaceItemIconParts",
+    "renderRaceSkillItemButton",
+    "race-vision-mask",
+    "renderRaceVisionMask",
+    "visionBlockedUntilMs",
+    "race-item-icon",
+    "is-box",
+    "is-booster",
+    "is-banana",
+    "is-stun-shot",
+    "race-item-ink",
+    "is-ink",
+    "is-boosted",
+    "is-blinded",
     "createRaceItemEffectNodes",
     "race-item-box",
     "race-item-trap",
     "race-item-projectile",
     "race-item-roulette",
     "SINGULARITY_RACE_BOOSTER_SPEED_MULTIPLIER",
+    "SINGULARITY_RACE_INK_CLOUD_DURATION_MS",
+    "SINGULARITY_RACE_INK_BLIND_MS",
+    "SINGULARITY_RACE_INK_SLOW_MS",
     "SINGULARITY_RACE_ITEM_BOX_RESPAWN_MS",
+    "SINGULARITY_RACE_ITEM_PICKUP_PROGRESS_RADIUS",
+    "SINGULARITY_RACE_ITEM_PICKUP_LANE_RADIUS_PX",
     "ITEM_ROULETTE_DURATION_MS",
     "ITEM_BOX_PICKUP_PROGRESS_RADIUS",
     "ITEM_BOX_PICKUP_LANE_RADIUS_PX",
@@ -83,7 +124,6 @@ async function main() {
     "rememberItemPickupTrace",
     "itemMeta",
     "itemReady",
-    "raceSkillButton.innerHTML",
     "function useActionSkill",
     "createRestoredMarathonSkillUse"
   ]) {

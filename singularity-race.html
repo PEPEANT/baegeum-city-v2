@@ -7,19 +7,21 @@
   <title>특이점레이스 로비</title>
   <style>
     :root {
-      --bg: #edf4ec;
-      --paper: #fbfdf9;
-      --panel: rgba(255, 255, 252, 0.94);
-      --panel-strong: #f2f7f1;
-      --line: rgba(38, 53, 47, 0.16);
-      --muted: #64746c;
-      --text: #17231e;
-      --green: #42c879;
-      --cyan: #4cc4da;
-      --pink: #ff7aa7;
-      --yellow: #ffd86c;
-      --danger: #f05d5d;
-      --world-grid: rgba(55, 69, 61, 0.055);
+      color-scheme: dark;
+      --bg: #061326;
+      --paper: rgba(9, 28, 52, 0.92);
+      --panel: rgba(7, 20, 38, 0.88);
+      --panel-strong: rgba(10, 31, 58, 0.94);
+      --line: rgba(103, 196, 255, 0.24);
+      --muted: rgba(218, 238, 255, 0.68);
+      --text: #eef8ff;
+      --green: #56c8ff;
+      --cyan: #7de3ff;
+      --pink: #ff66d8;
+      --yellow: #ffc66d;
+      --danger: #ff6b8a;
+      --accent-strong: #168dff;
+      --world-grid: rgba(86, 200, 255, 0.07);
       --track-grass: #cbd8c3;
       --track-grass-deep: #b9cbb3;
       --track-rail: #2c3639;
@@ -29,7 +31,7 @@
       --track-wall: #b8bdb7;
       --track-wall-top: #edf0e7;
       --track-centerline: #e1b647;
-      --shadow: 0 18px 46px rgba(48, 63, 57, 0.16);
+      --shadow: 0 20px 58px rgba(0, 0, 0, 0.32);
     }
 
     * {
@@ -42,8 +44,9 @@
       background:
         linear-gradient(90deg, var(--world-grid) 1px, transparent 1px),
         linear-gradient(180deg, var(--world-grid) 1px, transparent 1px),
-        radial-gradient(circle at 78% 8%, rgba(76, 196, 218, 0.18), transparent 30%),
-        linear-gradient(180deg, rgba(255, 255, 255, 0.58), transparent 42%),
+        radial-gradient(circle at 78% 8%, rgba(86, 200, 255, 0.22), transparent 30%),
+        radial-gradient(circle at 12% 82%, rgba(255, 102, 216, 0.10), transparent 28%),
+        linear-gradient(135deg, rgba(3, 9, 24, 0.96), rgba(7, 24, 48, 0.9)),
         var(--bg);
       background-size: 54px 54px, 54px 54px, auto, auto, auto;
       color: var(--text);
@@ -89,6 +92,10 @@
       display: none;
     }
 
+    .shell:not([data-screen="queue"]) .skin-panel {
+      display: none;
+    }
+
     .shell:not([data-screen="profile"]) .profile-screen {
       display: none;
     }
@@ -110,6 +117,7 @@
     }
 
     .shell[data-screen="queue"] .track-scene,
+    .shell[data-screen="queue"] .track-panel .panel-header,
     .shell[data-screen="queue"] .action-hud,
     .shell[data-screen="queue"] .checkpoint-strip,
     .shell[data-screen="queue"] .race-standings,
@@ -132,20 +140,36 @@
     }
 
     .shell[data-screen="queue"] .track-panel {
-      grid-column: 1;
-      grid-row: 1;
+      grid-column: 1 / -1;
+      grid-row: 2;
     }
 
     .shell[data-screen="queue"] .chat-panel {
+      grid-column: 1;
+      grid-row: 1;
+      min-height: 360px;
+    }
+
+    .shell[data-screen="queue"] .skin-panel {
       grid-column: 2;
       grid-row: 1;
-      min-height: min(560px, calc(100vh - 132px));
+      min-height: 360px;
+    }
+
+    .shell[data-screen="queue"] .skin-panel .panel-body {
+      display: flex;
+      flex-direction: column;
+      min-height: 0;
+    }
+
+    .shell[data-screen="queue"] .skin-grid {
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      max-height: 306px;
+      overflow: auto;
     }
 
     .shell[data-screen="queue"] .slot-grid {
-      grid-template-columns: repeat(5, minmax(0, 1fr));
-      max-height: min(520px, calc(100vh - 240px));
-      overflow: auto;
+      grid-template-columns: repeat(auto-fill, minmax(118px, 1fr));
       padding-top: 14px;
     }
 
@@ -157,6 +181,18 @@
 
     .shell[data-screen="queue"] .runner-slot span {
       display: none;
+    }
+
+    .queue-empty-state {
+      grid-column: 1 / -1;
+      padding: 18px 16px;
+      border: 1px dashed rgba(86, 200, 255, 0.38);
+      border-radius: 8px;
+      background: rgba(9, 28, 52, 0.5);
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 800;
+      text-align: center;
     }
 
     .queue-actions {
@@ -208,6 +244,7 @@
     }
 
     .shell[data-screen="mapPreview"] #track-runners,
+    .shell[data-screen="mapPreview"] .track-start-crowd,
     .shell[data-screen="mapPreview"] .track-effects,
     .shell[data-screen="mapPreview"] .track-hud {
       display: none;
@@ -591,6 +628,15 @@
       font-weight: 900;
     }
 
+    .race-action-button b {
+      display: block;
+      margin-top: 0;
+      color: inherit;
+      font-size: 11px;
+      font-weight: 1000;
+      line-height: 1;
+    }
+
     .race-action-button:disabled {
       cursor: default;
       opacity: 0.58;
@@ -702,13 +748,179 @@
       gap: 7px;
     }
 
-    .race-options-panel button {
+    .race-options-panel button,
+    .race-options-panel a {
+      display: grid;
+      place-items: center;
       min-height: 36px;
       border: 1px solid rgba(74, 91, 84, 0.16);
       border-radius: 8px;
       background: rgba(255, 255, 252, 0.9);
       color: #17231e;
+      text-decoration: none;
       font-weight: 900;
+    }
+
+    .race-about-panel[hidden] {
+      display: none;
+    }
+
+    .race-about-panel {
+      position: fixed;
+      inset: 0;
+      z-index: 270;
+      display: grid;
+      place-items: center;
+      padding: 18px;
+      background: rgba(5, 12, 20, 0.62);
+      backdrop-filter: blur(10px);
+    }
+
+    .race-about-card {
+      display: grid;
+      gap: 12px;
+      width: min(520px, 100%);
+      max-height: calc(100vh - 36px);
+      overflow: auto;
+      padding: 18px;
+      border: 1px solid rgba(102, 183, 255, 0.34);
+      border-radius: 8px;
+      background: linear-gradient(180deg, rgba(15, 32, 56, 0.98), rgba(8, 18, 34, 0.98));
+      color: #eef8ff;
+      box-shadow: 0 24px 80px rgba(0, 0, 0, 0.38);
+    }
+
+    .race-about-card h2,
+    .race-about-card p {
+      margin: 0;
+    }
+
+    .race-about-card h2 {
+      font-size: 22px;
+      line-height: 1.2;
+    }
+
+    .race-about-card p,
+    .race-about-card li {
+      color: rgba(238, 248, 255, 0.72);
+      font-size: 13px;
+      font-weight: 800;
+      line-height: 1.55;
+    }
+
+    .race-about-card ul {
+      display: grid;
+      gap: 5px;
+      margin: 0;
+      padding-left: 18px;
+    }
+
+    .race-about-card button {
+      justify-self: end;
+      min-height: 36px;
+      padding: 0 14px;
+      border: 1px solid rgba(86, 200, 255, 0.4);
+      border-radius: 8px;
+      background: rgba(22, 141, 255, 0.24);
+      color: #eef8ff;
+      font-weight: 900;
+    }
+
+    .map-vote-panel[hidden] {
+      display: none;
+    }
+
+    .map-vote-panel {
+      position: fixed;
+      inset: 0;
+      z-index: 268;
+      display: grid;
+      place-items: center;
+      padding: 18px;
+      background: rgba(3, 10, 22, 0.58);
+      backdrop-filter: blur(10px);
+    }
+
+    .map-vote-card {
+      display: grid;
+      gap: 12px;
+      width: min(560px, 100%);
+      padding: 18px;
+      border: 1px solid rgba(86, 200, 255, 0.4);
+      border-radius: 8px;
+      background: linear-gradient(180deg, rgba(12, 34, 64, 0.98), rgba(5, 17, 33, 0.98));
+      color: #eef8ff;
+      box-shadow: 0 24px 80px rgba(0, 0, 0, 0.38);
+    }
+
+    .map-vote-card h2,
+    .map-vote-card p {
+      margin: 0;
+    }
+
+    .map-vote-card h2 {
+      font-size: 23px;
+      line-height: 1.15;
+    }
+
+    .map-vote-card p {
+      color: rgba(238, 248, 255, 0.74);
+      font-size: 13px;
+      font-weight: 800;
+      line-height: 1.45;
+    }
+
+    .map-vote-options {
+      display: grid;
+      gap: 8px;
+    }
+
+    .map-vote-option {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      align-items: center;
+      gap: 12px;
+      min-height: 56px;
+      padding: 10px 12px;
+      border: 1px solid rgba(86, 200, 255, 0.28);
+      border-radius: 8px;
+      background: rgba(8, 27, 52, 0.84);
+      color: #eef8ff;
+      text-align: left;
+      transition: transform 120ms ease, border-color 120ms ease, background 120ms ease;
+    }
+
+    .map-vote-option:hover:not(:disabled) {
+      border-color: rgba(86, 200, 255, 0.72);
+      transform: translateY(-1px);
+    }
+
+    .map-vote-option.is-selected {
+      border-color: rgba(86, 200, 255, 0.86);
+      background: rgba(22, 141, 255, 0.24);
+    }
+
+    .map-vote-option b,
+    .map-vote-option span {
+      display: block;
+    }
+
+    .map-vote-option span {
+      margin-top: 3px;
+      color: rgba(238, 248, 255, 0.64);
+      font-size: 12px;
+      line-height: 1.35;
+    }
+
+    .map-vote-count {
+      min-width: 42px;
+      padding: 6px 8px;
+      border-radius: 999px;
+      background: rgba(86, 200, 255, 0.16);
+      color: #7de3ff;
+      font-size: 12px;
+      font-weight: 900;
+      text-align: center;
     }
 
     .race-zoom-setting {
@@ -742,7 +954,9 @@
       padding: 22px;
       border: 1px solid var(--line);
       border-radius: 8px;
-      background: var(--panel);
+      background:
+        linear-gradient(180deg, rgba(11, 35, 66, 0.84), rgba(5, 16, 32, 0.9)),
+        var(--panel);
       box-shadow: var(--shadow);
       display: grid;
       gap: 18px;
@@ -754,18 +968,17 @@
       font-size: 38px;
       line-height: 1;
       letter-spacing: 0;
-    }
-
-    .profile-hero p {
-      margin: 6px 0 0;
-      color: var(--muted);
-      font-size: 14px;
-      line-height: 1.5;
+      text-shadow: 0 0 28px rgba(86, 200, 255, 0.24);
     }
 
     .profile-form {
       display: grid;
       gap: 14px;
+    }
+
+    .profile-heading {
+      display: grid;
+      gap: 12px;
     }
 
     .profile-name-row {
@@ -782,6 +995,15 @@
       background: var(--paper);
       color: var(--text);
       padding: 0 13px;
+      outline: 0;
+      box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.03);
+    }
+
+    .profile-name-row input:focus {
+      border-color: rgba(86, 200, 255, 0.74);
+      box-shadow:
+        0 0 0 3px rgba(86, 200, 255, 0.13),
+        inset 0 0 0 1px rgba(255, 255, 255, 0.05);
     }
 
     .profile-preview {
@@ -791,7 +1013,8 @@
       padding: 12px;
       border: 1px solid var(--line);
       border-radius: 8px;
-      background: var(--panel-strong);
+      background: rgba(255, 255, 252, 0.94);
+      color: #17231e;
     }
 
     .profile-preview img {
@@ -807,14 +1030,19 @@
 
     .profile-preview span {
       margin-top: 3px;
-      color: var(--muted);
+      color: #52656f;
       font-size: 12px;
     }
 
     .profile-skin-grid {
       display: grid;
-      grid-template-columns: repeat(6, minmax(0, 1fr));
+      grid-template-columns: repeat(4, minmax(0, 1fr));
       gap: 8px;
+      max-height: clamp(260px, calc(100vh - 308px), 468px);
+      overflow-y: auto;
+      overscroll-behavior: contain;
+      padding-right: 4px;
+      scrollbar-gutter: stable;
     }
 
     .topbar {
@@ -825,7 +1053,9 @@
       padding: 16px 18px;
       border: 1px solid var(--line);
       border-radius: 8px;
-      background: var(--panel);
+      background:
+        linear-gradient(135deg, rgba(22, 141, 255, 0.18), rgba(7, 20, 38, 0.86)),
+        var(--panel);
       box-shadow: var(--shadow);
       backdrop-filter: blur(14px);
     }
@@ -839,6 +1069,7 @@
       font-size: 38px;
       line-height: 1;
       letter-spacing: 0;
+      text-shadow: 0 0 28px rgba(86, 200, 255, 0.22);
     }
 
     .brand p {
@@ -876,7 +1107,9 @@
       min-width: 0;
       border: 1px solid var(--line);
       border-radius: 8px;
-      background: var(--panel);
+      background:
+        linear-gradient(180deg, rgba(11, 35, 66, 0.82), rgba(5, 16, 32, 0.9)),
+        var(--panel);
       box-shadow: var(--shadow);
       overflow: hidden;
       backdrop-filter: blur(14px);
@@ -889,7 +1122,7 @@
       gap: 12px;
       padding: 14px 14px 10px;
       border-bottom: 1px solid var(--line);
-      background: rgba(242, 247, 241, 0.86);
+      background: linear-gradient(135deg, rgba(22, 141, 255, 0.16), rgba(7, 20, 38, 0.72));
     }
 
     .panel-header h2 {
@@ -909,10 +1142,10 @@
     .badge {
       flex: 0 0 auto;
       padding: 6px 8px;
-      border: 1px solid rgba(120, 219, 147, 0.35);
+      border: 1px solid rgba(86, 200, 255, 0.44);
       border-radius: 999px;
       color: var(--green);
-      background: rgba(120, 219, 147, 0.08);
+      background: rgba(86, 200, 255, 0.10);
       font-size: 12px;
       line-height: 1;
       white-space: nowrap;
@@ -930,7 +1163,7 @@
       padding: 12px;
       border: 1px solid var(--line);
       border-radius: 8px;
-      background: var(--panel-strong);
+      background: rgba(10, 31, 58, 0.84);
     }
 
     .room-name strong {
@@ -953,8 +1186,8 @@
     }
 
     .signal.is-connected {
-      background: var(--green);
-      box-shadow: 0 0 18px rgba(120, 219, 147, 0.72);
+      background: #7de3ff;
+      box-shadow: 0 0 18px rgba(86, 200, 255, 0.72);
     }
 
     .connected-gate {
@@ -962,14 +1195,14 @@
       gap: 9px;
       margin-top: 12px;
       padding: 10px;
-      border: 1px solid rgba(255, 224, 138, 0.3);
+      border: 1px solid rgba(255, 198, 109, 0.3);
       border-radius: 8px;
       background: rgba(255, 216, 108, 0.16);
     }
 
     .connected-gate.is-open {
-      border-color: rgba(120, 219, 147, 0.42);
-      background: rgba(120, 219, 147, 0.08);
+      border-color: rgba(86, 200, 255, 0.46);
+      background: rgba(86, 200, 255, 0.10);
     }
 
     .connected-gate strong,
@@ -993,8 +1226,8 @@
     .connected-gate button {
       min-height: 38px;
       border-radius: 8px;
-      background: var(--green);
-      color: #091018;
+      background: linear-gradient(135deg, var(--accent-strong), var(--green));
+      color: #f2fbff;
       font-weight: 800;
     }
 
@@ -1006,7 +1239,7 @@
       margin-top: 9px;
       border: 1px solid rgba(112, 216, 239, 0.36);
       border-radius: 8px;
-      background: rgba(76, 196, 218, 0.12);
+      background: rgba(86, 200, 255, 0.12);
       color: var(--cyan);
       font-size: 12px;
       font-weight: 900;
@@ -1031,12 +1264,13 @@
     .primary,
     .secondary,
     .ghost {
+      position: relative;
       min-height: 42px;
       border-radius: 8px;
-      color: #091018;
+      color: #f2fbff;
       font-weight: 800;
       line-height: 1.2;
-      transition: transform 120ms ease, filter 120ms ease;
+      transition: transform 120ms ease, filter 120ms ease, border-color 120ms ease, box-shadow 120ms ease;
     }
 
     .primary:hover,
@@ -1047,23 +1281,39 @@
       filter: brightness(1.05);
     }
 
+    .primary:active:not(:disabled),
+    .secondary:active:not(:disabled),
+    .ghost:active:not(:disabled),
+    .skin-card:active:not(:disabled),
+    .channel-tab:active:not(:disabled),
+    .connected-gate button:active:not(:disabled),
+    .admin-link:active {
+      animation: ui-press-pop 180ms ease;
+      transform: translateY(1px) scale(0.98);
+      filter: brightness(1.12);
+    }
+
     .primary {
-      background: var(--green);
+      border: 1px solid rgba(86, 200, 255, 0.56);
+      background: linear-gradient(135deg, var(--accent-strong), var(--green));
+      box-shadow: 0 14px 32px rgba(22, 141, 255, 0.20);
     }
 
     .primary.is-ready {
-      background: var(--pink);
+      border-color: rgba(255, 102, 216, 0.48);
+      background: linear-gradient(135deg, rgba(255, 102, 216, 0.94), rgba(22, 141, 255, 0.68));
     }
 
     .secondary {
-      background: var(--cyan);
+      border: 1px solid rgba(125, 227, 255, 0.42);
+      background: rgba(86, 200, 255, 0.18);
     }
 
     .ghost {
       grid-column: 1 / -1;
       color: var(--text);
       border: 1px solid var(--line);
-      background: rgba(255, 255, 255, 0.72);
+      background: rgba(8, 24, 44, 0.72);
     }
 
     .packet-list {
@@ -1079,7 +1329,7 @@
       padding: 10px;
       border: 1px solid var(--line);
       border-radius: 8px;
-      background: rgba(255, 255, 255, 0.72);
+      background: rgba(9, 28, 52, 0.72);
       color: var(--muted);
       font-size: 12px;
       line-height: 1.35;
@@ -1104,7 +1354,7 @@
       padding: 10px;
       border: 1px solid var(--line);
       border-radius: 8px;
-      background: rgba(255, 255, 255, 0.72);
+      background: rgba(9, 28, 52, 0.72);
     }
 
     .action-card span {
@@ -1132,7 +1382,7 @@
       margin-top: 9px;
       overflow: hidden;
       border-radius: 999px;
-      background: rgba(38, 53, 47, 0.1);
+      background: rgba(103, 196, 255, 0.14);
     }
 
     .action-meter i {
@@ -1154,15 +1404,15 @@
       min-height: 34px;
       border: 1px solid var(--line);
       border-radius: 8px;
-      background: rgba(255, 255, 255, 0.72);
+      background: rgba(9, 28, 52, 0.72);
       color: var(--muted);
       font-size: 11px;
       font-weight: 900;
     }
 
     .checkpoint-dot.is-cleared {
-      border-color: rgba(120, 219, 147, 0.6);
-      background: rgba(66, 200, 121, 0.16);
+      border-color: rgba(86, 200, 255, 0.62);
+      background: rgba(86, 200, 255, 0.16);
       color: var(--green);
     }
 
@@ -1184,12 +1434,12 @@
       padding: 8px;
       border: 1px solid var(--line);
       border-radius: 8px;
-      background: rgba(255, 255, 255, 0.72);
+      background: rgba(9, 28, 52, 0.72);
     }
 
     .standing-row.is-player {
-      border-color: rgba(120, 219, 147, 0.58);
-      background: rgba(66, 200, 121, 0.14);
+      border-color: rgba(86, 200, 255, 0.62);
+      background: rgba(86, 200, 255, 0.16);
     }
 
     .standing-row b,
@@ -1317,6 +1567,14 @@
       background-size: 88px 88px, 88px 88px, auto;
     }
 
+    .shell:not([data-screen="race"]) .track-scene {
+      border-color: rgba(103, 196, 255, 0.28);
+      background:
+        linear-gradient(90deg, rgba(86, 200, 255, 0.07) 1px, transparent 1px),
+        linear-gradient(180deg, rgba(86, 200, 255, 0.07) 1px, transparent 1px),
+        linear-gradient(180deg, rgba(7, 22, 44, 0.98), rgba(4, 14, 28, 0.98));
+    }
+
     .track-world {
       position: absolute;
       top: 0;
@@ -1336,6 +1594,159 @@
       width: 100%;
       height: 100%;
       z-index: 10;
+    }
+
+    .track-start-crowd {
+      position: absolute;
+      left: 3.8%;
+      top: 76.4%;
+      z-index: 34;
+      width: 31%;
+      height: 17%;
+      pointer-events: none;
+    }
+
+    .start-crowd-fence {
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: 4%;
+      height: 24%;
+      border: 3px solid rgba(229, 247, 255, 0.42);
+      border-radius: 8px;
+      background:
+        linear-gradient(90deg, transparent 0 10%, rgba(229, 247, 255, 0.24) 10% 11%, transparent 11% 22%),
+        linear-gradient(180deg, rgba(229, 247, 255, 0.18), rgba(86, 200, 255, 0.08));
+      box-shadow:
+        inset 0 0 0 2px rgba(86, 200, 255, 0.12),
+        0 10px 20px rgba(0, 0, 0, 0.18);
+    }
+
+    .start-crowd-row {
+      position: absolute;
+      left: 0;
+      right: 0;
+      display: flex;
+      align-items: flex-end;
+      justify-content: center;
+      gap: clamp(8px, 0.9vw, 18px);
+    }
+
+    .start-crowd-row.is-back {
+      top: 0;
+      opacity: 0.82;
+      transform: scale(0.82);
+      transform-origin: 50% 100%;
+    }
+
+    .start-crowd-row.is-front {
+      bottom: 15%;
+    }
+
+    .pixel-citizen {
+      --citizen-hair: #2a1b16;
+      --citizen-shirt: #5d7d9b;
+      --citizen-pants: #273142;
+      position: relative;
+      display: grid;
+      justify-items: center;
+      width: 34px;
+      height: 56px;
+      animation: start-crowd-hop 1100ms ease-in-out infinite;
+      animation-delay: var(--hop-delay, 0ms);
+      filter: drop-shadow(0 7px 5px rgba(0, 0, 0, 0.24));
+    }
+
+    .pixel-citizen::before {
+      content: "";
+      position: absolute;
+      left: 9px;
+      top: 11px;
+      width: 16px;
+      height: 14px;
+      background:
+        linear-gradient(var(--citizen-hair) 0 5px, #ffd9b8 5px 100%);
+      box-shadow:
+        3px 13px 0 2px var(--citizen-shirt),
+        3px 29px 0 1px var(--citizen-pants),
+        -4px 19px 0 0 #ffd9b8,
+        22px 19px 0 0 #ffd9b8;
+      image-rendering: pixelated;
+    }
+
+    .pixel-citizen::after {
+      content: "";
+      position: absolute;
+      left: 13px;
+      top: 20px;
+      width: 3px;
+      height: 3px;
+      background: #111827;
+      box-shadow: 7px 0 0 #111827;
+    }
+
+    .pixel-citizen[data-variant="1"] {
+      --citizen-hair: #4b2c1c;
+      --citizen-shirt: #65a30d;
+      --citizen-pants: #1f2937;
+    }
+
+    .pixel-citizen[data-variant="2"] {
+      --citizen-hair: #1f2937;
+      --citizen-shirt: #f97316;
+      --citizen-pants: #111827;
+    }
+
+    .pixel-citizen[data-variant="3"] {
+      --citizen-hair: #6b3f21;
+      --citizen-shirt: #0284c7;
+      --citizen-pants: #334155;
+    }
+
+    .pixel-citizen[data-variant="4"] {
+      --citizen-hair: #111827;
+      --citizen-shirt: #a855f7;
+      --citizen-pants: #1e293b;
+    }
+
+    .crowd-sign {
+      position: absolute;
+      left: 50%;
+      bottom: 42px;
+      min-width: 56px;
+      max-width: 108px;
+      padding: 4px 6px;
+      border: 2px solid rgba(30, 41, 59, 0.86);
+      border-radius: 4px;
+      background: #fff7cf;
+      color: #172554;
+      font-size: 9px;
+      font-weight: 1000;
+      line-height: 1.12;
+      text-align: center;
+      transform: translateX(-50%) rotate(var(--sign-tilt, -3deg));
+      box-shadow: 0 5px 0 rgba(0, 0, 0, 0.12);
+    }
+
+    .crowd-sign::after {
+      content: "";
+      position: absolute;
+      left: 50%;
+      top: 100%;
+      width: 4px;
+      height: 18px;
+      background: rgba(64, 43, 28, 0.82);
+      transform: translateX(-50%);
+    }
+
+    @keyframes start-crowd-hop {
+      0%, 100% {
+        transform: translateY(0);
+      }
+
+      50% {
+        transform: translateY(-7px);
+      }
     }
 
     .trail-outline {
@@ -1443,6 +1854,304 @@
       pointer-events: none;
     }
 
+    .race-ceremony-space {
+      position: absolute;
+      inset: 0;
+      z-index: 150;
+      display: none;
+      overflow: hidden;
+      background:
+        linear-gradient(180deg, rgba(5, 19, 42, 0.96) 0%, rgba(5, 34, 70, 0.92) 48%, rgba(9, 19, 36, 0.98) 100%),
+        repeating-linear-gradient(90deg, rgba(86, 200, 255, 0.12) 0 1px, transparent 1px 96px);
+      color: #e9fbff;
+      pointer-events: none;
+    }
+
+    .race-ceremony-room {
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      width: min(900px, 88%);
+      height: min(560px, 78%);
+      overflow: hidden;
+      border: 3px solid rgba(121, 220, 255, 0.5);
+      border-radius: 8px;
+      background:
+        linear-gradient(180deg, rgba(11, 39, 78, 0.96) 0 52%, rgba(4, 13, 27, 0.98) 52% 100%);
+      box-shadow:
+        inset 0 0 0 1px rgba(233, 251, 255, 0.12),
+        inset 0 0 80px rgba(86, 200, 255, 0.08),
+        0 24px 60px rgba(1, 7, 16, 0.56);
+      transform: translate(-50%, -50%);
+    }
+
+    .race-ceremony-back-wall {
+      position: absolute;
+      left: 8%;
+      right: 8%;
+      top: 8%;
+      height: 44%;
+      border: 2px solid rgba(86, 200, 255, 0.28);
+      border-bottom-color: rgba(86, 200, 255, 0.44);
+      border-radius: 8px 8px 3px 3px;
+      background:
+        repeating-linear-gradient(90deg, rgba(233, 251, 255, 0.08) 0 1px, transparent 1px 56px),
+        repeating-linear-gradient(0deg, rgba(233, 251, 255, 0.06) 0 1px, transparent 1px 42px),
+        linear-gradient(180deg, rgba(13, 61, 111, 0.72), rgba(8, 32, 67, 0.94));
+      box-shadow: inset 0 -16px 26px rgba(1, 7, 16, 0.24);
+    }
+
+    .race-ceremony-side-wall {
+      position: absolute;
+      top: 11%;
+      width: 18%;
+      height: 70%;
+      border: 2px solid rgba(86, 200, 255, 0.2);
+      background:
+        repeating-linear-gradient(0deg, rgba(233, 251, 255, 0.05) 0 1px, transparent 1px 38px),
+        linear-gradient(180deg, rgba(8, 31, 65, 0.82), rgba(3, 13, 29, 0.96));
+      opacity: 0.82;
+    }
+
+    .race-ceremony-side-wall.is-left {
+      left: -2%;
+      transform: skewY(-11deg);
+      transform-origin: 100% 0;
+    }
+
+    .race-ceremony-side-wall.is-right {
+      right: -2%;
+      transform: skewY(11deg);
+      transform-origin: 0 0;
+    }
+
+    .shell[data-screen="race"].race-finished.race-ceremony-entered:not(.race-watching-after-finish) .race-ceremony-space {
+      display: block;
+    }
+
+    .shell[data-screen="race"].race-finished.race-ceremony-entered:not(.race-watching-after-finish) .track-world,
+    .shell[data-screen="race"].race-finished.race-ceremony-entered:not(.race-watching-after-finish) .track-hud,
+    .shell[data-screen="race"].race-finished.race-ceremony-entered:not(.race-watching-after-finish) .race-minimap,
+    .shell[data-screen="race"].race-finished.race-ceremony-entered:not(.race-watching-after-finish) .race-standings,
+    .shell[data-screen="race"].race-finished.race-ceremony-entered:not(.race-watching-after-finish) .race-item-roulette,
+    .shell[data-screen="race"].race-finished.race-ceremony-entered:not(.race-watching-after-finish) .race-vision-mask {
+      display: none;
+    }
+
+    .race-ceremony-skyline {
+      position: absolute;
+      left: -4%;
+      right: -4%;
+      bottom: 27%;
+      height: 32%;
+      opacity: 0.64;
+      background:
+        linear-gradient(180deg, transparent 0 28%, rgba(86, 200, 255, 0.12) 28% 29%, transparent 29%),
+        repeating-linear-gradient(90deg,
+          rgba(7, 18, 36, 0.68) 0 38px,
+          rgba(12, 43, 79, 0.78) 38px 64px,
+          rgba(6, 17, 34, 0.7) 64px 108px);
+      clip-path: polygon(0 68%, 4% 68%, 4% 42%, 9% 42%, 9% 56%, 15% 56%, 15% 28%, 21% 28%, 21% 63%, 28% 63%, 28% 38%, 34% 38%, 34% 54%, 41% 54%, 41% 22%, 48% 22%, 48% 61%, 55% 61%, 55% 34%, 62% 34%, 62% 50%, 69% 50%, 69% 26%, 76% 26%, 76% 62%, 84% 62%, 84% 44%, 91% 44%, 91% 70%, 100% 70%, 100% 100%, 0 100%);
+    }
+
+    .race-ceremony-floor {
+      position: absolute;
+      left: -10%;
+      right: -10%;
+      bottom: -10%;
+      height: 42%;
+      background:
+        linear-gradient(180deg, rgba(86, 200, 255, 0.12), transparent 34%),
+        repeating-linear-gradient(90deg, rgba(86, 200, 255, 0.15) 0 1px, transparent 1px 82px),
+        repeating-linear-gradient(0deg, rgba(86, 200, 255, 0.12) 0 1px, transparent 1px 42px),
+        linear-gradient(180deg, rgba(4, 23, 48, 0.92), rgba(4, 12, 24, 0.98));
+      transform: perspective(720px) rotateX(62deg);
+      transform-origin: 50% 100%;
+    }
+
+    .race-ceremony-stage {
+      position: absolute;
+      left: 50%;
+      bottom: clamp(28px, 6vh, 54px);
+      width: min(720px, 86%);
+      height: min(390px, 70%);
+      transform: translateX(-50%);
+    }
+
+    .race-ceremony-floor-crowd {
+      position: absolute;
+      left: 50%;
+      bottom: clamp(18px, 4vh, 36px);
+      display: flex;
+      width: min(560px, 80%);
+      min-height: 58px;
+      align-items: flex-end;
+      justify-content: center;
+      gap: clamp(8px, 1.6vw, 18px);
+      transform: translateX(-50%);
+    }
+
+    .race-ceremony-floor-runner {
+      display: grid;
+      min-width: 42px;
+      justify-items: center;
+      gap: 2px;
+      opacity: 0.92;
+      animation: ceremony-runner-rise 620ms cubic-bezier(0.16, 1, 0.3, 1) both;
+    }
+
+    .race-ceremony-floor-runner img {
+      width: clamp(30px, 4.4vw, 42px);
+      height: clamp(30px, 4.4vw, 42px);
+      object-fit: contain;
+      filter:
+        drop-shadow(0 0 5px rgba(86, 200, 255, 0.42))
+        drop-shadow(0 8px 8px rgba(1, 7, 16, 0.46));
+    }
+
+    .race-ceremony-floor-runner span {
+      max-width: 54px;
+      overflow: hidden;
+      color: rgba(233, 251, 255, 0.78);
+      font-size: 8px;
+      font-weight: 950;
+      line-height: 1;
+      text-align: center;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      text-shadow: 0 2px 8px rgba(0, 0, 0, 0.62);
+    }
+
+    .race-ceremony-free-player {
+      position: absolute;
+      left: var(--ceremony-player-x);
+      top: var(--ceremony-player-y);
+      z-index: 8;
+      transform: translate(-50%, -100%);
+    }
+
+    .race-ceremony-free-player img {
+      width: clamp(42px, 7vw, 58px);
+      height: clamp(42px, 7vw, 58px);
+      filter:
+        drop-shadow(0 0 10px rgba(86, 200, 255, 0.72))
+        drop-shadow(0 10px 10px rgba(1, 7, 16, 0.58));
+    }
+
+    .race-ceremony-free-player span {
+      max-width: 72px;
+      color: #ffffff;
+      text-shadow: 0 0 10px rgba(86, 200, 255, 0.86), 0 2px 8px rgba(0, 0, 0, 0.78);
+    }
+
+    .race-ceremony-floor-runner.is-arriving {
+      animation-delay: var(--arrival-delay, 0ms);
+    }
+
+    .race-ceremony-slot {
+      position: absolute;
+      bottom: 0;
+      left: var(--podium-left);
+      width: clamp(76px, 12vw, 116px);
+      height: calc(var(--step-height) + 112px);
+      transform: translateX(-50%);
+    }
+
+    .race-ceremony-runner {
+      position: absolute;
+      left: 50%;
+      bottom: calc(var(--step-height) + 4px);
+      display: grid;
+      justify-items: center;
+      gap: 4px;
+      transform: translateX(-50%);
+      animation: ceremony-runner-rise 720ms cubic-bezier(0.16, 1, 0.3, 1) both;
+      animation-delay: calc(var(--podium-rank) * 70ms);
+    }
+
+    .race-ceremony-runner img {
+      width: clamp(42px, 6.4vw, 62px);
+      height: clamp(42px, 6.4vw, 62px);
+      object-fit: contain;
+      image-rendering: auto;
+      filter:
+        drop-shadow(0 0 8px rgba(86, 200, 255, 0.58))
+        drop-shadow(0 10px 10px rgba(1, 7, 16, 0.52));
+    }
+
+    .race-ceremony-name {
+      max-width: 96px;
+      padding: 3px 7px;
+      overflow: hidden;
+      border: 1px solid rgba(233, 251, 255, 0.54);
+      border-radius: 999px;
+      background: rgba(4, 15, 31, 0.82);
+      color: #e9fbff;
+      font-size: 10px;
+      font-weight: 1000;
+      line-height: 1;
+      text-align: center;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      box-shadow: 0 0 12px rgba(86, 200, 255, 0.2);
+    }
+
+    .race-ceremony-step {
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      height: var(--step-height);
+      border: 2px solid rgba(121, 220, 255, 0.66);
+      border-bottom-width: 5px;
+      border-radius: 8px 8px 3px 3px;
+      background:
+        linear-gradient(180deg, rgba(195, 242, 255, 0.38), rgba(19, 108, 216, 0.72)),
+        repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.14) 0 1px, transparent 1px 12px);
+      box-shadow:
+        inset 0 12px 0 rgba(255, 255, 255, 0.13),
+        0 0 24px rgba(86, 200, 255, 0.22),
+        0 16px 28px rgba(1, 7, 16, 0.5);
+    }
+
+    .race-ceremony-step::before {
+      content: attr(data-rank);
+      position: absolute;
+      left: 50%;
+      top: 10px;
+      color: rgba(233, 251, 255, 0.92);
+      font-size: clamp(18px, 3vw, 30px);
+      font-weight: 1000;
+      line-height: 1;
+      text-shadow: 0 0 12px rgba(86, 200, 255, 0.72);
+      transform: translateX(-50%);
+    }
+
+    .race-ceremony-slot[data-rank="1"] .race-ceremony-step {
+      border-color: rgba(255, 221, 118, 0.82);
+      background:
+        linear-gradient(180deg, rgba(255, 236, 151, 0.72), rgba(25, 128, 220, 0.78)),
+        repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.16) 0 1px, transparent 1px 12px);
+      box-shadow:
+        inset 0 14px 0 rgba(255, 255, 255, 0.16),
+        0 0 30px rgba(255, 221, 118, 0.32),
+        0 18px 30px rgba(1, 7, 16, 0.56);
+    }
+
+    .race-ceremony-slot.is-empty .race-ceremony-runner {
+      display: none;
+    }
+
+    .race-ceremony-space[data-phase="wait"] .race-ceremony-runner {
+      bottom: 8px;
+      opacity: 0.88;
+    }
+
+    .race-ceremony-space[data-phase="wait"] .race-ceremony-step {
+      opacity: 0.9;
+      filter: saturate(0.84);
+    }
+
     .track-hud {
       position: absolute;
       inset: 0;
@@ -1456,7 +2165,7 @@
       bottom: 96px;
       z-index: 230;
       display: none;
-      width: min(360px, calc(100% - 24px));
+      width: min(520px, calc(100% - 24px));
       gap: 8px;
       padding: 12px;
       border: 1px solid rgba(74, 91, 84, 0.22);
@@ -1754,6 +2463,22 @@
 
     .shell[data-screen="race"].race-finished .race-result-panel {
       display: grid;
+      pointer-events: auto;
+    }
+
+    .shell[data-screen="race"].race-finished.race-ceremony-entered:not(.race-watching-after-finish) .race-result-panel {
+      left: 50%;
+      bottom: 18px;
+      width: auto;
+      padding: 0;
+      border: 0;
+      background: transparent;
+      box-shadow: none;
+      backdrop-filter: none;
+    }
+
+    .shell[data-screen="race"].race-finished.race-ceremony-entered:not(.race-watching-after-finish) .race-result-panel > :not(.race-result-actions) {
+      display: none;
     }
 
     .shell[data-screen="race"].race-room-closed .race-room-closed-panel {
@@ -1768,7 +2493,7 @@
       display: none;
     }
 
-    .shell[data-screen="race"].race-finished .race-input-controls {
+    .shell[data-screen="race"].race-finished:not(.race-ceremony-free) .race-input-controls {
       display: none;
     }
 
@@ -1823,6 +2548,104 @@
       font-style: normal;
       text-overflow: ellipsis;
       white-space: nowrap;
+    }
+
+    .race-ceremony-podium {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+      align-items: end;
+      gap: 5px;
+      min-height: 92px;
+      margin-top: 2px;
+    }
+
+    .race-ceremony-status {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      justify-self: center;
+      min-height: 24px;
+      padding: 4px 9px;
+      border: 1px solid rgba(22, 141, 255, 0.22);
+      border-radius: 999px;
+      background: rgba(86, 200, 255, 0.12);
+      color: #165a9a;
+      font-size: 11px;
+      font-weight: 1000;
+    }
+
+    .race-podium-slot {
+      display: grid;
+      min-width: 0;
+      min-height: 62px;
+      align-content: end;
+      gap: 3px;
+      padding: 7px 5px;
+      border: 1px solid rgba(22, 141, 255, 0.2);
+      border-radius: 8px 8px 4px 4px;
+      background: linear-gradient(180deg, rgba(86, 200, 255, 0.18), rgba(5, 26, 50, 0.08));
+      text-align: center;
+      box-shadow: inset 0 -7px 0 rgba(22, 141, 255, 0.12);
+    }
+
+    .race-ceremony-podium[data-phase="wait"] .race-podium-slot {
+      opacity: 0.88;
+    }
+
+    .race-ceremony-podium[data-phase="award"] .race-podium-slot {
+      border-color: rgba(86, 200, 255, 0.46);
+      box-shadow:
+        inset 0 -7px 0 rgba(22, 141, 255, 0.16),
+        0 0 18px rgba(86, 200, 255, 0.14);
+    }
+
+    .race-podium-slot[data-rank="1"] {
+      min-height: 92px;
+      border-color: rgba(255, 211, 105, 0.54);
+      background: linear-gradient(180deg, rgba(255, 221, 118, 0.5), rgba(86, 200, 255, 0.12));
+    }
+
+    .race-podium-slot[data-rank="2"] { min-height: 78px; }
+    .race-podium-slot[data-rank="3"] { min-height: 70px; }
+
+    .race-podium-rank {
+      color: #0f72d6;
+      font-size: 13px;
+      font-weight: 1000;
+    }
+
+    .race-podium-name,
+    .race-podium-meta {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .race-podium-name {
+      color: #102235;
+      font-size: 11px;
+      font-weight: 1000;
+    }
+
+    .race-podium-meta,
+    .race-ceremony-summary {
+      color: #4b6070;
+      font-size: 10px;
+      font-weight: 900;
+    }
+
+    .race-ceremony-summary {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 5px;
+      margin-top: 2px;
+    }
+
+    .race-ceremony-summary span {
+      padding: 3px 6px;
+      border: 1px solid rgba(22, 141, 255, 0.18);
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.55);
     }
 
     .race-result-actions {
@@ -2027,42 +2850,288 @@
 
     .race-item-box,
     .race-item-trap,
-    .race-item-projectile {
+    .race-item-projectile,
+    .race-item-ink {
       position: absolute;
       display: grid;
       place-items: center;
       border-radius: 8px;
       transform: translate(-50%, -50%);
-      color: #17231e;
-      font-size: 12px;
-      font-weight: 1000;
-      line-height: 1;
       pointer-events: none;
     }
 
     .race-item-box {
       width: 50px;
       height: 50px;
-      border: 3px solid rgba(56, 74, 66, 0.62);
-      background: #ffd86f;
-      font-size: 15px;
-      box-shadow: 0 6px 0 rgba(98, 80, 29, 0.28), 0 12px 26px rgba(16, 19, 27, 0.18);
+      border: 2px solid rgba(116, 214, 255, 0.76);
+      background:
+        linear-gradient(90deg, transparent 0 45%, rgba(204, 245, 255, 0.42) 45% 55%, transparent 55%),
+        linear-gradient(180deg, #1a83ca 0 42%, #0c3d7a 42% 100%);
+      box-shadow:
+        0 0 14px rgba(86, 200, 255, 0.48),
+        0 7px 0 rgba(4, 25, 56, 0.42),
+        0 16px 26px rgba(5, 18, 36, 0.28);
+      animation: race-item-box-scan 1.15s ease-in-out infinite alternate;
     }
 
     .race-item-trap {
-      width: 34px;
-      height: 24px;
-      border: 1px solid rgba(96, 72, 28, 0.38);
-      background: #ffe38a;
-      box-shadow: 0 8px 16px rgba(96, 72, 28, 0.18);
+      width: 42px;
+      height: 34px;
+      border: 1px solid rgba(255, 216, 92, 0.44);
+      background: rgba(23, 18, 5, 0.1);
+      box-shadow: 0 0 15px rgba(255, 216, 92, 0.36), 0 10px 18px rgba(96, 72, 28, 0.24);
     }
 
     .race-item-projectile {
-      width: 26px;
-      height: 26px;
-      border: 1px solid rgba(59, 123, 160, 0.36);
-      background: #bdefff;
-      box-shadow: 0 0 16px rgba(42, 165, 210, 0.42);
+      width: 34px;
+      height: 34px;
+      border: 1px solid rgba(93, 197, 255, 0.46);
+      border-radius: 50%;
+      background: rgba(7, 31, 60, 0.16);
+      box-shadow: 0 0 18px rgba(93, 197, 255, 0.62), 0 0 34px rgba(93, 197, 255, 0.24);
+      animation: race-stun-pulse 0.34s ease-in-out infinite alternate;
+    }
+
+    .race-item-ink {
+      width: 52px;
+      height: 38px;
+      border: 1px solid rgba(8, 15, 26, 0.58);
+      border-radius: 44% 56% 48% 52%;
+      color: #e9fbff;
+      background:
+        radial-gradient(circle at 28% 34%, rgba(93, 197, 255, 0.34) 0 14%, transparent 16%),
+        radial-gradient(circle at 62% 58%, rgba(255, 255, 255, 0.2) 0 10%, transparent 12%),
+        #07111f;
+      box-shadow: 0 0 18px rgba(3, 10, 20, 0.72), 0 12px 26px rgba(3, 10, 20, 0.34);
+      opacity: 0.92;
+    }
+
+    .race-item-icon {
+      position: relative;
+      display: inline-block;
+      width: 34px;
+      height: 34px;
+      flex: 0 0 auto;
+      overflow: hidden;
+      border-radius: 8px;
+      color: #e9fbff;
+      vertical-align: middle;
+    }
+
+    .race-item-icon.is-track {
+      width: 34px;
+      height: 34px;
+    }
+
+    .race-item-box .race-item-icon {
+      width: 42px;
+      height: 42px;
+    }
+
+    .race-item-roulette-icon .race-item-icon {
+      width: 40px;
+      height: 40px;
+    }
+
+    .race-item-roulette-chip .race-item-icon {
+      width: 16px;
+      height: 16px;
+      border-radius: 4px;
+    }
+
+    .race-action-button .race-item-icon {
+      display: block;
+      width: 22px;
+      height: 22px;
+      margin: 0 auto 2px;
+      border-radius: 6px;
+    }
+
+    .race-item-icon-part,
+    .race-item-icon::before,
+    .race-item-icon::after {
+      position: absolute;
+      display: block;
+      content: "";
+    }
+
+    .race-item-icon.is-box {
+      border: 1px solid rgba(198, 240, 255, 0.78);
+      background:
+        repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.12) 0 2px, transparent 2px 6px),
+        linear-gradient(180deg, #57c7ff 0 43%, #136bd8 43% 100%);
+      box-shadow: inset 0 -4px 0 rgba(4, 34, 76, 0.38);
+    }
+
+    .race-item-icon.is-box .box-lid {
+      left: 4px;
+      right: 4px;
+      top: 6px;
+      height: 8px;
+      border-radius: 3px;
+      background: #b9f2ff;
+      box-shadow: 0 2px 0 rgba(4, 34, 76, 0.26);
+    }
+
+    .race-item-icon.is-box .box-core {
+      left: 5px;
+      right: 5px;
+      top: 16px;
+      bottom: 5px;
+      border-radius: 4px;
+      background: #0951a8;
+      box-shadow: inset 0 4px 0 rgba(255, 255, 255, 0.2);
+    }
+
+    .race-item-icon.is-box .box-lock {
+      left: 50%;
+      top: 18px;
+      width: 8px;
+      height: 12px;
+      border-radius: 2px;
+      background: #fff176;
+      box-shadow: 0 0 8px rgba(255, 241, 118, 0.54);
+      transform: translateX(-50%);
+    }
+
+    .race-item-icon.is-booster {
+      background: radial-gradient(circle at 50% 74%, rgba(74, 222, 128, 0.28), transparent 56%);
+      overflow: visible;
+    }
+
+    .race-item-icon.is-booster .booster-body {
+      left: 12px;
+      top: 4px;
+      width: 12px;
+      height: 24px;
+      border: 2px solid rgba(223, 250, 255, 0.9);
+      border-radius: 10px 10px 5px 5px;
+      background: linear-gradient(180deg, #e9fbff 0 22%, #56c8ff 22% 70%, #0f63c6 70%);
+      box-shadow: 0 0 13px rgba(86, 200, 255, 0.78);
+      transform: rotate(28deg);
+    }
+
+    .race-item-icon.is-booster .booster-window {
+      left: 17px;
+      top: 9px;
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: #061326;
+      box-shadow: 0 0 0 2px rgba(185, 242, 255, 0.75);
+      transform: rotate(28deg);
+    }
+
+    .race-item-icon.is-booster .booster-flame {
+      left: 6px;
+      top: 23px;
+      width: 12px;
+      height: 12px;
+      border-radius: 10px 10px 10px 2px;
+      background: linear-gradient(135deg, #fff176, #ff7a4f 68%, transparent 69%);
+      filter: drop-shadow(0 0 8px rgba(255, 216, 92, 0.78));
+      transform: rotate(28deg);
+    }
+
+    .race-item-icon.is-banana {
+      overflow: visible;
+    }
+
+    .race-item-icon.is-banana .banana-curve {
+      left: 5px;
+      top: 8px;
+      width: 25px;
+      height: 17px;
+      border-right: 6px solid #ffd83d;
+      border-bottom: 6px solid #ffd83d;
+      border-left: 4px solid transparent;
+      border-top: 4px solid transparent;
+      border-radius: 50%;
+      filter: drop-shadow(0 0 7px rgba(255, 216, 92, 0.54));
+      transform: rotate(-24deg);
+    }
+
+    .race-item-icon.is-banana .banana-stem {
+      left: 24px;
+      top: 7px;
+      width: 5px;
+      height: 8px;
+      border-radius: 2px;
+      background: #7c4a16;
+      transform: rotate(38deg);
+    }
+
+    .race-item-icon.is-banana .banana-tip {
+      left: 7px;
+      top: 23px;
+      width: 5px;
+      height: 5px;
+      border-radius: 50%;
+      background: #fff4a6;
+    }
+
+    .race-item-icon.is-stun-shot {
+      border-radius: 50%;
+      background: radial-gradient(circle, #f4fdff 0 18%, #63d7ff 19% 44%, #115ed0 45% 72%, transparent 73%);
+      box-shadow: 0 0 16px rgba(99, 215, 255, 0.78);
+      overflow: visible;
+    }
+
+    .race-item-icon.is-stun-shot .stun-core {
+      left: 10px;
+      top: 10px;
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background: #f4fdff;
+      box-shadow: 0 0 14px rgba(244, 253, 255, 0.92);
+    }
+
+    .race-item-icon.is-stun-shot .stun-bolt {
+      left: 16px;
+      top: 3px;
+      width: 13px;
+      height: 28px;
+      background: #fff176;
+      clip-path: polygon(40% 0, 100% 0, 62% 38%, 100% 38%, 24% 100%, 45% 52%, 0 52%);
+      filter: drop-shadow(0 0 6px rgba(255, 241, 118, 0.82));
+    }
+
+    .race-item-icon.is-ink {
+      border-radius: 46% 54% 48% 52%;
+      background:
+        radial-gradient(circle at 30% 30%, rgba(93, 197, 255, 0.36) 0 13%, transparent 14%),
+        radial-gradient(circle at 67% 58%, rgba(255, 255, 255, 0.16) 0 10%, transparent 11%),
+        #050b14;
+      box-shadow: 0 0 15px rgba(3, 10, 20, 0.92);
+    }
+
+    .race-item-icon.is-ink .ink-blob-a {
+      left: 2px;
+      top: 10px;
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: #050b14;
+    }
+
+    .race-item-icon.is-ink .ink-blob-b {
+      left: 16px;
+      top: 6px;
+      width: 19px;
+      height: 22px;
+      border-radius: 50%;
+      background: #091225;
+    }
+
+    .race-item-icon.is-ink .ink-spark {
+      left: 20px;
+      top: 11px;
+      width: 5px;
+      height: 5px;
+      border-radius: 50%;
+      background: #56c8ff;
+      box-shadow: 0 0 9px rgba(86, 200, 255, 0.82);
     }
 
     .race-item-roulette {
@@ -2078,6 +3147,26 @@
 
     .shell[data-screen="race"] .race-item-roulette.is-visible {
       display: grid;
+    }
+
+    .race-vision-mask {
+      position: absolute;
+      inset: 0;
+      z-index: 266;
+      display: none;
+      pointer-events: none;
+      background:
+        radial-gradient(circle at 18% 24%, rgba(0, 0, 0, 0.96) 0 12%, transparent 20%),
+        radial-gradient(circle at 74% 28%, rgba(0, 0, 0, 0.88) 0 15%, transparent 24%),
+        radial-gradient(circle at 46% 60%, rgba(0, 0, 0, 0.9) 0 22%, transparent 34%),
+        radial-gradient(circle at 84% 78%, rgba(0, 0, 0, 0.76) 0 10%, transparent 18%),
+        rgba(4, 10, 18, 0.42);
+      backdrop-filter: blur(1.5px) saturate(0.72);
+      animation: ink-vision-pulse 0.56s ease-in-out infinite alternate;
+    }
+
+    .shell[data-screen="race"] .race-vision-mask.is-visible {
+      display: block;
     }
 
     .race-item-roulette-panel {
@@ -2119,6 +3208,11 @@
 
     .race-item-roulette.is-stun-shot .race-item-roulette-icon {
       background: #bdefff;
+    }
+
+    .race-item-roulette.is-ink .race-item-roulette-icon {
+      color: #e9fbff;
+      background: #07111f;
     }
 
     .race-item-roulette-copy {
@@ -2281,9 +3375,22 @@
         drop-shadow(0 5px 5px rgba(16, 19, 27, 0.34));
     }
 
+    .runner-avatar.is-boosted {
+      filter:
+        drop-shadow(0 0 7px rgba(93, 197, 255, 0.92))
+        drop-shadow(0 0 14px rgba(48, 180, 255, 0.42))
+        drop-shadow(0 5px 5px rgba(16, 19, 27, 0.34));
+    }
+
     .runner-avatar.is-colliding {
       filter:
         drop-shadow(0 0 6px rgba(255, 224, 138, 0.86))
+        drop-shadow(0 5px 5px rgba(16, 19, 27, 0.34));
+    }
+
+    .runner-avatar.is-blinded {
+      filter:
+        drop-shadow(0 0 7px rgba(6, 12, 22, 0.9))
         drop-shadow(0 5px 5px rgba(16, 19, 27, 0.34));
     }
 
@@ -2580,6 +3687,26 @@
       100% { opacity: 1; transform: translateY(0) scale(1); }
     }
 
+    @keyframes race-item-box-scan {
+      0% { filter: brightness(0.96); transform: translate(-50%, -50%) translateY(0); }
+      100% { filter: brightness(1.16); transform: translate(-50%, -50%) translateY(-2px); }
+    }
+
+    @keyframes race-stun-pulse {
+      0% { filter: brightness(0.92); transform: translate(-50%, -50%) scale(0.96); }
+      100% { filter: brightness(1.18); transform: translate(-50%, -50%) scale(1.04); }
+    }
+
+    @keyframes ceremony-runner-rise {
+      0% { opacity: 0; transform: translateX(-50%) translateY(42px) scale(0.92); }
+      100% { opacity: 1; transform: translateX(-50%) translateY(0) scale(1); }
+    }
+
+    @keyframes ink-vision-pulse {
+      0% { opacity: 0.82; filter: contrast(1); }
+      100% { opacity: 0.96; filter: contrast(1.18); }
+    }
+
     @keyframes narration-rise {
       0% { opacity: 0; transform: translateY(36px) scale(0.94); }
       100% { opacity: 1; transform: translateY(0) scale(1); }
@@ -2700,6 +3827,17 @@
       100% { opacity: 1; transform: translateX(-50%) translateY(0) scale(1); }
     }
 
+    @keyframes ui-press-pop {
+      0% { box-shadow: 0 0 0 0 rgba(86, 200, 255, 0.28); }
+      55% { box-shadow: 0 0 0 4px rgba(86, 200, 255, 0.16); }
+      100% { box-shadow: 0 0 0 0 rgba(86, 200, 255, 0); }
+    }
+
+    @keyframes ui-selected-pulse {
+      0% { box-shadow: 0 0 0 0 rgba(86, 200, 255, 0.22); }
+      100% { box-shadow: 0 0 0 5px rgba(86, 200, 255, 0); }
+    }
+
     @media (prefers-reduced-motion: reduce) {
       .player-focus-ring,
       .track-countdown,
@@ -2711,6 +3849,18 @@
       .runner-avatar::before,
       .runner-avatar.is-reward-skin,
       .runner-avatar.is-reward-skin::after {
+        animation: none;
+      }
+
+      .primary:active:not(:disabled),
+      .secondary:active:not(:disabled),
+      .ghost:active:not(:disabled),
+      .skin-card:active:not(:disabled),
+      .channel-tab:active:not(:disabled),
+      .connected-gate button:active:not(:disabled),
+      .admin-link:active,
+      .skin-card[aria-pressed="true"],
+      .channel-tab[aria-pressed="true"] {
         animation: none;
       }
     }
@@ -2728,7 +3878,7 @@
       padding: 9px 8px;
       border: 1px solid var(--line);
       border-radius: 8px;
-      background: rgba(255, 255, 252, 0.72);
+      background: rgba(9, 28, 52, 0.72);
     }
 
     .runner-slot strong {
@@ -2750,8 +3900,8 @@
     }
 
     .runner-slot.is-player {
-      border-color: rgba(120, 219, 147, 0.58);
-      background: rgba(66, 200, 121, 0.14);
+      border-color: rgba(86, 200, 255, 0.62);
+      background: rgba(86, 200, 255, 0.16);
     }
 
     .skin-grid {
@@ -2766,15 +3916,16 @@
       padding: 9px 8px;
       border: 1px solid var(--line);
       border-radius: 8px;
-      background: rgba(255, 255, 252, 0.72);
-      color: var(--text);
+      background: rgba(255, 255, 252, 0.94);
+      color: #17231e;
       text-align: left;
-      transition: transform 120ms ease, filter 120ms ease, border-color 120ms ease;
+      transition: transform 120ms ease, filter 120ms ease, border-color 120ms ease, box-shadow 120ms ease;
     }
 
     .skin-card[aria-pressed="true"] {
       border-color: var(--green);
-      background: rgba(66, 200, 121, 0.15);
+      background: linear-gradient(180deg, rgba(255, 255, 252, 0.98), rgba(223, 244, 255, 0.96));
+      animation: ui-selected-pulse 520ms ease;
     }
 
     .skin-card img {
@@ -2795,7 +3946,7 @@
     .skin-card span {
       display: block;
       margin-top: 3px;
-      color: var(--muted);
+      color: #52656f;
       font-size: 11px;
       line-height: 1.2;
     }
@@ -2829,7 +3980,7 @@
       padding: 0 10px;
       border: 1px solid var(--line);
       border-radius: 8px;
-      background: rgba(255, 255, 252, 0.72);
+      background: rgba(9, 28, 52, 0.72);
       color: var(--text);
       font-size: 12px;
       font-weight: 800;
@@ -2837,8 +3988,9 @@
 
     .channel-tab[aria-pressed="true"] {
       border-color: var(--green);
-      background: rgba(66, 200, 121, 0.15);
+      background: rgba(86, 200, 255, 0.17);
       color: var(--green);
+      animation: ui-selected-pulse 520ms ease;
     }
 
     .message {
@@ -2846,20 +3998,20 @@
       padding: 10px 11px;
       border: 1px solid var(--line);
       border-radius: 8px;
-      background: rgba(255, 255, 252, 0.82);
+      background: rgba(9, 28, 52, 0.78);
       line-height: 1.45;
     }
 
     .message.is-me {
       align-self: flex-end;
       border-color: rgba(112, 216, 239, 0.44);
-      background: rgba(76, 196, 218, 0.14);
+      background: rgba(86, 200, 255, 0.16);
     }
 
     .message.is-system {
       border-color: rgba(255, 224, 138, 0.34);
-      background: rgba(255, 216, 108, 0.18);
-      color: #8a6200;
+      background: rgba(255, 198, 109, 0.12);
+      color: var(--yellow);
     }
 
     .message b {
@@ -2901,18 +4053,19 @@
     .chat-form button {
       min-height: 42px;
       border-radius: 8px;
-      background: var(--cyan);
-      color: #091018;
+      border: 1px solid rgba(86, 200, 255, 0.42);
+      background: linear-gradient(135deg, var(--accent-strong), var(--cyan));
+      color: #f2fbff;
       font-weight: 800;
     }
 
     .notice {
       margin-top: 12px;
       padding: 10px;
-      border: 1px solid rgba(255, 224, 138, 0.3);
+      border: 1px solid rgba(255, 198, 109, 0.3);
       border-radius: 8px;
-      background: rgba(255, 216, 108, 0.18);
-      color: #7b5a00;
+      background: rgba(255, 198, 109, 0.12);
+      color: var(--yellow);
       font-size: 12px;
       line-height: 1.5;
     }
@@ -2972,6 +4125,22 @@
         min-height: 360px;
       }
 
+      .shell[data-screen="queue"] .skin-panel {
+        grid-column: 1;
+        grid-row: 1;
+        min-height: 0;
+      }
+
+      .shell[data-screen="queue"] .skin-grid {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        max-height: 268px;
+      }
+
+      .shell[data-screen="queue"] .track-panel {
+        grid-column: 1;
+        grid-row: 3;
+      }
+
       .shell[data-screen="queue"] .slot-grid {
         grid-template-columns: repeat(3, minmax(0, 1fr));
         max-height: none;
@@ -2982,12 +4151,17 @@
         grid-template-columns: 1fr;
       }
 
+      .shell[data-screen="queue"] .skin-grid {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+      }
+
       .profile-name-row {
         grid-template-columns: 1fr;
       }
 
       .profile-skin-grid {
-        grid-template-columns: repeat(3, minmax(0, 1fr));
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        max-height: min(42vh, 360px);
       }
 
       .profile-skin-grid .skin-card {
@@ -3083,6 +4257,10 @@
         pointer-events: none;
       }
 
+      .shell[data-screen="race"].race-finished.race-ceremony-free:not(.race-watching-after-finish) .race-result-panel {
+        bottom: 252px;
+      }
+
       .race-dpad {
         left: 12px;
         width: 124px;
@@ -3152,6 +4330,7 @@
 
       .profile-skin-grid {
         gap: 6px;
+        max-height: min(40vh, 330px);
       }
 
       .profile-skin-grid .skin-card img {
@@ -3166,11 +4345,14 @@
   <main class="shell" id="app-shell" data-screen="profile">
     <section class="profile-screen" id="profile-screen" aria-label="첫 접속 프로필 설정">
       <div class="profile-hero">
-        <div>
-          <h1>특이점레이스</h1>
-          <p>닉네임과 스킨을 먼저 고른 뒤 로비에 입장합니다.</p>
-        </div>
         <form class="profile-form" id="profile-form">
+          <div class="profile-heading">
+            <h1>특이점레이스</h1>
+            <div class="profile-name-row">
+              <input id="nickname-input" maxlength="16" autocomplete="nickname" placeholder="닉네임 입력" />
+              <button class="primary" id="profile-start-button" type="submit">시작하기</button>
+            </div>
+          </div>
           <div class="profile-preview">
             <img id="profile-skin-preview" alt="선택한 스킨" />
             <div>
@@ -3179,17 +4361,13 @@
             </div>
           </div>
           <div class="profile-skin-grid" id="profile-skin-grid" aria-label="처음 선택할 스킨"></div>
-          <div class="profile-name-row">
-            <input id="nickname-input" maxlength="16" autocomplete="nickname" placeholder="닉네임 입력" />
-            <button class="primary" id="profile-start-button" type="submit">시작하기</button>
-          </div>
         </form>
       </div>
     </section>
 
     <header class="topbar">
       <div class="brand">
-        <h1>특이점레이스</h1>
+        <h1 id="main-title">특이점레이스</h1>
         <p id="flow-copy">방을 고르고, 준비한 뒤, 방장이 시작하면 경기장으로 들어갑니다.</p>
       </div>
     </header>
@@ -3254,13 +4432,41 @@
         <div class="track-scene" aria-label="track preview">
           <div class="track-world" id="track-world">
             <svg class="trail-map" id="trail-map" viewBox="0 0 100 100" preserveAspectRatio="none" role="img" aria-label="single trail with three save points"></svg>
+            <div class="track-start-crowd" id="track-start-crowd" aria-hidden="true">
+              <div class="start-crowd-row is-back">
+                <div class="pixel-citizen" data-variant="1" style="--hop-delay:-180ms"></div>
+                <div class="pixel-citizen" data-variant="3" style="--hop-delay:-520ms"><span class="crowd-sign" style="--sign-tilt:4deg">AGI 2027</span></div>
+                <div class="pixel-citizen" data-variant="2" style="--hop-delay:-80ms"></div>
+                <div class="pixel-citizen" data-variant="4" style="--hop-delay:-760ms"><span class="crowd-sign">특이점갤러리 화이팅</span></div>
+                <div class="pixel-citizen" data-variant="1" style="--hop-delay:-320ms"></div>
+                <div class="pixel-citizen" data-variant="3" style="--hop-delay:-620ms"></div>
+                <div class="pixel-citizen" data-variant="2" style="--hop-delay:-240ms"><span class="crowd-sign" style="--sign-tilt:5deg">1등 부기줄</span></div>
+                <div class="pixel-citizen" data-variant="4" style="--hop-delay:-420ms"></div>
+              </div>
+              <div class="start-crowd-row is-front">
+                <div class="pixel-citizen" data-variant="2" style="--hop-delay:-120ms"><span class="crowd-sign">특이점은온다</span></div>
+                <div class="pixel-citizen" data-variant="0" style="--hop-delay:-360ms"></div>
+                <div class="pixel-citizen" data-variant="3" style="--hop-delay:-610ms"><span class="crowd-sign" style="--sign-tilt:3deg">달려라</span></div>
+                <div class="pixel-citizen" data-variant="1" style="--hop-delay:-250ms"></div>
+                <div class="pixel-citizen" data-variant="4" style="--hop-delay:-700ms"><span class="crowd-sign" style="--sign-tilt:-5deg">AGI 2027</span></div>
+                <div class="pixel-citizen" data-variant="2" style="--hop-delay:-450ms"></div>
+                <div class="pixel-citizen" data-variant="3" style="--hop-delay:-30ms"><span class="crowd-sign">특갤 파이팅</span></div>
+                <div class="pixel-citizen" data-variant="1" style="--hop-delay:-560ms"></div>
+                <div class="pixel-citizen" data-variant="0" style="--hop-delay:-210ms"><span class="crowd-sign" style="--sign-tilt:4deg">가즈아</span></div>
+              </div>
+              <div class="start-crowd-fence"></div>
+            </div>
             <div class="trail-caption">자유 출발 구역 / 방장 게이트 / 3개 세이브 지점</div>
             <div class="track-effects" id="track-effects" aria-hidden="true"></div>
             <div id="track-runners"></div>
           </div>
+          <div class="race-ceremony-space" id="race-ceremony-space" aria-label="시상대 전용 공간"></div>
           <div class="race-minimap" id="race-minimap" aria-label="미니맵"></div>
           <button class="race-options-button" id="race-options-button" type="button" aria-label="옵션">⚙</button>
           <div class="race-options-panel" id="race-options-panel" aria-label="옵션">
+            <a id="race-options-home" href="./index.html">홈</a>
+            <a id="race-options-community" href="https://gall.dcinside.com/mgallery/board/lists?id=thesingularity" target="_blank" rel="noreferrer">커뮤니티</a>
+            <button id="race-options-about" type="button">설정</button>
             <button id="race-options-chat" type="button">채팅 입력</button>
             <button id="race-options-queue" type="button">대기열</button>
             <div class="race-zoom-setting" aria-label="카메라 확대">
@@ -3270,11 +4476,31 @@
           </div>
           <div class="track-hud" id="track-hud" aria-hidden="true"></div>
           <div class="race-item-roulette" id="race-item-roulette" aria-live="polite"></div>
+          <div class="race-vision-mask" id="race-vision-mask" aria-hidden="true"></div>
           <div class="race-narration" id="race-narration" aria-live="polite" hidden></div>
           <div class="race-audio-root" id="race-audio-root" aria-hidden="true"></div>
+          <div class="race-about-panel" id="race-about-panel" aria-label="특이점레이스 설정" hidden>
+            <div class="race-about-card">
+              <h2>특이점 레이스</h2>
+              <p>특이점을 향해 달리는 픽셀 캐릭터들의 실시간 레이스 게임. 각 캐릭터는 고유한 스킬과 개성을 가지고 있으며, 플레이어는 로비에서 캐릭터를 선택한 뒤 도시 트랙에서 경쟁하게 됩니다.</p>
+              <ul>
+                <li>제작자: 훈서기</li>
+                <li>제작일: 2026-05-25</li>
+                <li>제작 도구: 코덱스 5.5</li>
+                <li>웹 디자인 도움: 제미나이 3.5</li>
+                <li>커뮤니티 활동: 디시인사이드</li>
+                <li>도움 및 피드백: 특이점이 온다 갤러리</li>
+                <li>특별출연: 지피쨩 등</li>
+              </ul>
+              <button id="race-about-close" type="button">닫기</button>
+            </div>
+          </div>
           <div class="race-result-panel" id="race-result-panel" aria-live="polite">
             <strong id="race-result-title">완주 완료</strong>
             <span id="race-result-copy">최종 기록을 정리하고 있습니다.</span>
+            <div class="race-ceremony-status" id="race-ceremony-status">시상대 확정 대기중</div>
+            <div class="race-ceremony-podium" id="race-ceremony-podium" aria-label="1위부터 5위 시상대"></div>
+            <div class="race-ceremony-summary" id="race-ceremony-summary" aria-label="시상식 결과 요약"></div>
             <ol class="race-result-list" id="race-result-list"></ol>
             <div class="race-result-actions">
               <button id="race-result-watch" type="button">관전 계속</button>
@@ -3382,20 +4608,31 @@
           <button type="submit">전송</button>
         </form>
       </aside>
+      <section class="panel skin-panel">
+        <div class="panel-header">
+          <div>
+            <h2>스킨 변경</h2>
+            <p>대기열방에서도 출발 전 스킨을 바꿀 수 있습니다.</p>
+          </div>
+          <span class="badge">스킨</span>
+        </div>
+        <div class="panel-body">
+          <div class="skin-grid" id="skin-grid" aria-label="대기열방 스킨 변경"></div>
+        </div>
+      </section>
     </section>
 
-    <section class="panel skin-panel debug-only">
-      <div class="panel-header">
+    <div class="map-vote-panel" id="map-vote-panel" aria-label="맵 투표" hidden>
+      <div class="map-vote-card">
         <div>
-          <h2>스킨 선택</h2>
-          <p>Drawing World 스킨 프리셋을 로비 카드로 연결했습니다.</p>
+          <h2>맵 투표</h2>
+          <p id="map-vote-copy">방장이 다음 경기 맵 투표를 열었습니다.</p>
         </div>
-        <span class="badge">스킨</span>
+        <div class="map-vote-options" id="map-vote-options"></div>
+        <p id="map-vote-result">투표는 맵만 정하고, 출발은 방장이 따로 시작합니다.</p>
       </div>
-      <div class="panel-body">
-        <div class="skin-grid" id="skin-grid" aria-label="skin presets"></div>
-      </div>
-    </section>
+    </div>
+
   </main>
 
   <script type="module">
@@ -3415,7 +4652,12 @@
       validateRestoredMarathonRoomAdapter
     } from "./src/restored/online/marathon-room-adapter.js";
     import {
-      readRestoredMarathonRoomPolicy
+      RESTORED_MARATHON_ROOM_POLICY_STORAGE_KEY,
+      castRestoredMarathonMapVote,
+      getRestoredMarathonEntryGateStatus,
+      getRestoredMarathonMapVoteStatus,
+      readRestoredMarathonRoomPolicy,
+      writeRestoredMarathonRoomPolicy
     } from "./src/restored/online/marathon-room-policy.js";
     import {
       closeRestoredMarathonDevRoom,
@@ -3479,6 +4721,10 @@
       createRestoredMarathonTrailSvgPath,
       createRestoredMarathonTrailWallSvgPaths,
       estimateRestoredMarathonTrailProgressFromPoint,
+      getRestoredMarathonTrailMap,
+      listRestoredMarathonTrailMaps,
+      listRestoredMarathonTrailSavePoints,
+      normalizeRestoredMarathonTrailMapId,
       progressToRestoredMarathonTrailPoint
     } from "./src/restored/games/marathon-trail-geometry.js";
     import {
@@ -3538,8 +4784,13 @@
       SINGULARITY_RACE_BANANA_SLOW_MS,
       SINGULARITY_RACE_BOOSTER_DURATION_MS,
       SINGULARITY_RACE_BOOSTER_SPEED_MULTIPLIER,
+      SINGULARITY_RACE_INK_BLIND_MS,
+      SINGULARITY_RACE_INK_CLOUD_DURATION_MS,
+      SINGULARITY_RACE_INK_SLOW_MS,
       SINGULARITY_RACE_ITEM_BOX_RESPAWN_MS,
       SINGULARITY_RACE_ITEM_IDS,
+      SINGULARITY_RACE_ITEM_PICKUP_LANE_RADIUS_PX,
+      SINGULARITY_RACE_ITEM_PICKUP_PROGRESS_RADIUS,
       SINGULARITY_RACE_STUN_SHOT_STUN_MS,
       canCollectSingularityRaceItem,
       createSingularityRaceItemBoxState,
@@ -3630,6 +4881,16 @@
     const RAIL_MIN_PROGRESS = 2.5;
     const RAIL_MAX_PROGRESS = 100;
     const LOCAL_FINISH_PROGRESS = 99.5;
+    const CEREMONY_GRACE_MS = 15000;
+    const CEREMONY_TRANSFER_DELAY_MS = 1800;
+    const CEREMONY_RUNNER_TRANSFER_STAGGER_MS = 650;
+    const CEREMONY_FREE_MOVE_MIN_X = 16;
+    const CEREMONY_FREE_MOVE_MAX_X = 84;
+    const CEREMONY_FREE_MOVE_MIN_Y = 56;
+    const CEREMONY_FREE_MOVE_MAX_Y = 88;
+    const CEREMONY_FREE_MOVE_SPEED_PER_SECOND = 18;
+    const CEREMONY_FREE_MOVE_SPRINT_SPEED_PER_SECOND = 25;
+    const CEREMONY_TOP_COUNT = 5;
     const PLAYER_COLLISION_STALL_MS = 360;
     const BASIC_ATTACK_COOLDOWN_MS = 1150;
     const BASIC_ATTACK_STALL_MS = 520;
@@ -3657,11 +4918,29 @@
       {
         key: "entry",
         assetId: "audio:bgm:singularity-race:squid-wake",
-        role: "personal-entry",
+        role: "entry-bgm",
         src: resolveRestoredAssetPath("audio:bgm:singularity-race:squid-wake"),
         volume: 0.42,
         loop: false,
         wetGain: 0.12
+      },
+      {
+        key: "menu-modern-future-world",
+        assetId: "audio:bgm:singularity-race:modern-future-world",
+        role: "menu-bgm",
+        src: resolveRestoredAssetPath("audio:bgm:singularity-race:modern-future-world"),
+        volume: 0.42,
+        loop: false,
+        wetGain: 0.11
+      },
+      {
+        key: "menu-atlas-futuristic",
+        assetId: "audio:bgm:singularity-race:atlas-futuristic",
+        role: "menu-bgm",
+        src: resolveRestoredAssetPath("audio:bgm:singularity-race:atlas-futuristic"),
+        volume: 0.42,
+        loop: false,
+        wetGain: 0.11
       },
       {
         key: "race-primary",
@@ -3680,11 +4959,129 @@
         volume: 0.52,
         loop: true,
         wetGain: 0.15
+      },
+      {
+        key: "sfx-countdown-bell",
+        assetId: "audio:sfx:singularity-race:countdown-bell",
+        role: "sfx-countdown",
+        src: resolveRestoredAssetPath("audio:sfx:singularity-race:countdown-bell"),
+        volume: 0.58,
+        loop: false,
+        wetGain: 0.08
+      },
+      {
+        key: "sfx-attack-swipe",
+        assetId: "audio:sfx:singularity-race:attack-swipe",
+        role: "sfx-attack",
+        src: resolveRestoredAssetPath("audio:sfx:singularity-race:attack-swipe"),
+        volume: 0.56,
+        loop: false,
+        wetGain: 0.06
+      },
+      {
+        key: "sfx-item-pickup",
+        assetId: "audio:sfx:singularity-race:item-pickup",
+        role: "sfx-item-pickup",
+        src: resolveRestoredAssetPath("audio:sfx:singularity-race:item-pickup"),
+        volume: 0.5,
+        loop: false,
+        wetGain: 0.05
+      },
+      {
+        key: "sfx-item-use",
+        assetId: "audio:sfx:singularity-race:item-use",
+        role: "sfx-item-use",
+        src: resolveRestoredAssetPath("audio:sfx:singularity-race:item-use"),
+        volume: 0.48,
+        loop: false,
+        wetGain: 0.06
+      },
+      {
+        key: "sfx-item-hit",
+        assetId: "audio:sfx:singularity-race:item-hit",
+        role: "sfx-item-hit",
+        src: resolveRestoredAssetPath("audio:sfx:singularity-race:item-hit"),
+        volume: 0.5,
+        loop: false,
+        wetGain: 0.04
+      },
+      {
+        key: "sfx-skill-use",
+        assetId: "audio:sfx:singularity-race:skill-use",
+        role: "sfx-skill-use",
+        src: resolveRestoredAssetPath("audio:sfx:singularity-race:skill-use"),
+        volume: 0.48,
+        loop: false,
+        wetGain: 0.07
+      },
+      {
+        key: "sfx-winner-finish",
+        assetId: "audio:sfx:singularity-race:winner-finish",
+        role: "sfx-winner-finish",
+        src: resolveRestoredAssetPath("audio:sfx:singularity-race:winner-finish"),
+        volume: 0.5,
+        loop: false,
+        wetGain: 0.1
+      },
+      {
+        key: "sfx-podium-applause",
+        assetId: "audio:sfx:singularity-race:podium-applause",
+        role: "sfx-podium-applause",
+        src: resolveRestoredAssetPath("audio:sfx:singularity-race:podium-applause"),
+        volume: 0.64,
+        loop: false,
+        wetGain: 0.08
+      },
+      {
+        key: "sfx-ui-tap",
+        assetId: "audio:sfx:singularity-race:ui-tap",
+        role: "sfx-ui",
+        src: resolveRestoredAssetPath("audio:sfx:singularity-race:ui-tap"),
+        volume: 0.24,
+        loop: false,
+        wetGain: 0
+      },
+      {
+        key: "sfx-ui-confirm",
+        assetId: "audio:sfx:singularity-race:ui-confirm",
+        role: "sfx-ui",
+        src: resolveRestoredAssetPath("audio:sfx:singularity-race:ui-confirm"),
+        volume: 0.26,
+        loop: false,
+        wetGain: 0
+      },
+      {
+        key: "sfx-ui-toggle",
+        assetId: "audio:sfx:singularity-race:ui-toggle",
+        role: "sfx-ui",
+        src: resolveRestoredAssetPath("audio:sfx:singularity-race:ui-toggle"),
+        volume: 0.22,
+        loop: false,
+        wetGain: 0
+      },
+      {
+        key: "sfx-ui-deny",
+        assetId: "audio:sfx:singularity-race:ui-deny",
+        role: "sfx-ui",
+        src: resolveRestoredAssetPath("audio:sfx:singularity-race:ui-deny"),
+        volume: 0.22,
+        loop: false,
+        wetGain: 0
       }
     ]);
     const RACE_AUDIO_TRACK_BY_KEY = Object.freeze(Object.fromEntries(RACE_AUDIO_TRACKS.map((track) => [track.key, track])));
-    const ITEM_BOX_PICKUP_PROGRESS_RADIUS = 1.45;
-    const ITEM_BOX_PICKUP_LANE_RADIUS_PX = 112;
+    const ENTRY_GATE_AUDIO_TRACK_KEY = "entry";
+    const COUNTDOWN_BELL_TRACK_KEY = "sfx-countdown-bell";
+    const MENU_AUDIO_TRACK_KEYS = Object.freeze(["menu-modern-future-world", "menu-atlas-futuristic"]);
+    const RACE_SFX_TRACK_KEYS = Object.freeze(["sfx-countdown-bell", "sfx-attack-swipe", "sfx-item-pickup", "sfx-item-use", "sfx-item-hit", "sfx-skill-use", "sfx-winner-finish", "sfx-podium-applause", "sfx-ui-tap", "sfx-ui-confirm", "sfx-ui-toggle", "sfx-ui-deny"]);
+    const UI_SFX_KEYS = Object.freeze({
+      tap: "sfx-ui-tap",
+      confirm: "sfx-ui-confirm",
+      toggle: "sfx-ui-toggle",
+      deny: "sfx-ui-deny"
+    });
+    const ITEM_BOX_PICKUP_PROGRESS_RADIUS = SINGULARITY_RACE_ITEM_PICKUP_PROGRESS_RADIUS;
+    const ITEM_BOX_PICKUP_LANE_RADIUS_PX = SINGULARITY_RACE_ITEM_PICKUP_LANE_RADIUS_PX;
     const ITEM_BOX_PICKUP_TRACE_MAX_AGE_MS = 650;
     const RACE_HUD_RENDER_INTERVAL_MS = 220;
     const RACE_RANKING_RENDER_INTERVAL_MS = 420;
@@ -3692,10 +5089,15 @@
     const RACE_REWARD_SKIN_VISUAL_MS = 6500;
     const PLAYER_LATE_START_GRACE_MS = 15000;
     const SPECTATOR_LATE_JOIN_GRACE_MS = 12 * 60 * 1000;
+    const RANDOM_PLAYER_NAME_MIN = 1;
+    const RANDOM_PLAYER_NAME_MAX = 99;
+    const LAUNCHER_MENU_BGM_INTENT_KEY = "singularity-race:launcher-menu-bgm-intent";
     const STORAGE_KEY = "singularity-race:lobby-skin";
     const PROFILE_STORAGE_KEY = "singularity-race:profile:v1";
-    const FEATURED_SKIN_IDS = Object.freeze(["kaguya", "singularity-fan", "robot", "gpichan", "pepe-runner", "moderator-armband", "yalrkun", "lakers-wile", "sam-altman", "demis-hassabis"]);
-    const PROFILE_SKIN_LIMIT = 12;
+    const MAP_VOTE_VOTER_STORAGE_KEY = "singularity-race:map-vote-voter:v1";
+    const FEATURED_SKIN_IDS = Object.freeze(["singularity-fan", "robot", "atlas-robot", "pepe-runner", "gpichan", "claude-chan", "grok-chan", "gemini-chan", "moderator-armband", "yalrkun", "lakers-wile", "sam-altman", "demis-hassabis"]);
+    const TRAILING_SKIN_IDS = Object.freeze(["kaguya"]);
+    const PROFILE_SKIN_LIMIT = 24;
     const VIRTUAL_MOVE_KEYS = Object.freeze(["KeyW", "KeyA", "KeyS", "KeyD"]);
     const VIRTUAL_RELEASE_KEYS = Object.freeze([...VIRTUAL_MOVE_KEYS, "ShiftLeft", "ShiftRight"]);
     const JOYSTICK_DEADZONE_PX = 14;
@@ -3720,6 +5122,7 @@
       : devRooms;
     const DEV_ROOM_ID = activeDevRoom?.roomId || "room:singularity-race:dev-001";
     const roomPolicy = readRestoredMarathonRoomPolicy(window.localStorage, DEV_ROOM_ID);
+    const initialRaceMapId = normalizeRestoredMarathonTrailMapId(roomPolicy.mapId);
     if (queryParams.get("resetProfile") === "1") {
       window.localStorage.removeItem(PROFILE_STORAGE_KEY);
       window.localStorage.removeItem(STORAGE_KEY);
@@ -3729,14 +5132,16 @@
       clientId: "client:singularity-race-dev",
       serverTimeMs: 1000,
       maxSpectators: roomPolicy.maxSpectators,
+      mapId: initialRaceMapId,
       devRooms: orderedDevRooms
     });
     const adapterValidation = validateRestoredMarathonRoomAdapter(roomAdapter);
-    const activeDevRoomClosed = activeDevRoom?.phase === "closed";
+    const activeDevRoomClosed = (devOnlineEnabled || adminLaunchEnabled) && activeDevRoom?.phase === "closed";
     const connectedLobbyOpen = adapterValidation.ok && canOpenConnectedMarathonLobby(roomAdapter) && !activeDevRoomClosed;
     const canAdminDirectLaunch = adminLaunchEnabled && connectedLobbyOpen && !adminObserverEnabled;
     const canAdminObserverLaunch = adminLaunchEnabled && adminObserverEnabled && connectedLobbyOpen;
     const shouldOpenAdminObserverShell = adminLaunchEnabled && adminObserverEnabled && !activeDevRoomClosed;
+    const devRoomControlsEnabled = devOnlineEnabled || adminLaunchEnabled;
     const roomControlStorageKey = createSingularityRaceControlStorageKey(DEV_ROOM_ID);
     const testBotControlStorageKey = createSingularityRaceTestBotsStorageKey(DEV_ROOM_ID);
     const narrationControlStorageKey = createSingularityRaceNarrationStorageKey(DEV_ROOM_ID);
@@ -3757,6 +5162,7 @@
 
     const elements = {
       shell: document.querySelector("#app-shell"),
+      mainTitle: document.querySelector("#main-title"),
       flowCopy: document.querySelector("#flow-copy"),
       profileForm: document.querySelector("#profile-form"),
       nicknameInput: document.querySelector("#nickname-input"),
@@ -3770,6 +5176,13 @@
       raceOptionsPanel: document.querySelector("#race-options-panel"),
       raceOptionsChat: document.querySelector("#race-options-chat"),
       raceOptionsQueue: document.querySelector("#race-options-queue"),
+      raceOptionsAbout: document.querySelector("#race-options-about"),
+      raceAboutPanel: document.querySelector("#race-about-panel"),
+      raceAboutClose: document.querySelector("#race-about-close"),
+      mapVotePanel: document.querySelector("#map-vote-panel"),
+      mapVoteCopy: document.querySelector("#map-vote-copy"),
+      mapVoteOptions: document.querySelector("#map-vote-options"),
+      mapVoteResult: document.querySelector("#map-vote-result"),
       raceZoomLabel: document.querySelector("#race-zoom-label"),
       raceZoomReset: document.querySelector("#race-zoom-reset"),
       raceInputControls: document.querySelector("#race-input-controls"),
@@ -3810,12 +5223,17 @@
       trackWorld: document.querySelector("#track-world"),
       trackHud: document.querySelector("#track-hud"),
       raceItemRoulette: document.querySelector("#race-item-roulette"),
+      raceVisionMask: document.querySelector("#race-vision-mask"),
+      raceCeremonySpace: document.querySelector("#race-ceremony-space"),
       raceNarration: document.querySelector("#race-narration"),
       raceAudioRoot: document.querySelector("#race-audio-root"),
       raceMinimap: document.querySelector("#race-minimap"),
       raceResultPanel: document.querySelector("#race-result-panel"),
       raceResultTitle: document.querySelector("#race-result-title"),
       raceResultCopy: document.querySelector("#race-result-copy"),
+      raceCeremonyStatus: document.querySelector("#race-ceremony-status"),
+      raceCeremonyPodium: document.querySelector("#race-ceremony-podium"),
+      raceCeremonySummary: document.querySelector("#race-ceremony-summary"),
       raceResultList: document.querySelector("#race-result-list"),
       raceResultWatch: document.querySelector("#race-result-watch"),
       raceResultRestart: document.querySelector("#race-result-restart"),
@@ -3866,6 +5284,7 @@
         : SINGULARITY_RACE_SCREENS.PROFILE,
       nickname: savedProfile?.nickname || "YOU",
       selectedSkin: initialSkin,
+      mapId: initialRaceMapId,
       ready: false,
       participantType: shouldOpenAdminObserverShell ? "spectator" : "player",
       previewTick: 0,
@@ -3902,6 +5321,11 @@
         unlocked: false,
         entryQueued: false,
         entryStarted: false,
+        menuQueued: false,
+        menuStarted: false,
+        currentMenuTrackIndex: 0,
+        currentMenuTrackKey: "",
+        lastEntryGateOpen: getRestoredMarathonEntryGateStatus(roomPolicy, Date.now()).open,
         raceQueued: false,
         raceStarted: false,
         currentRaceTrackKey: ""
@@ -3956,6 +5380,7 @@
       console.error("Singularity Race initial render failed", error);
     }
     setupRaceControlListener();
+    const launcherMenuBgmRequested = consumeLauncherMenuBgmIntent();
 
     chatTransport.subscribe((messages) => {
       state.messages = messages;
@@ -3978,15 +5403,28 @@
     elements.trackScene.addEventListener("touchmove", handleTrackPinchMove, { passive: false });
     elements.trackScene.addEventListener("touchend", handleTrackPinchEnd);
     elements.trackScene.addEventListener("touchcancel", handleTrackPinchEnd);
-    requestAnimationFrame(advanceActionPreviewLoop);
+    scheduleActionPreviewLoop();
+    startActionPreviewWatchdog();
+    window.setInterval(() => {
+      syncEntryGateMusicCue();
+      const voteStatus = getCurrentMapVoteStatus();
+      if (state.screen === SINGULARITY_RACE_SCREENS.RACE || (!voteStatus.active && getQueueEntryGateStatus().open)) return;
+      renderAll();
+    }, 1000);
 
-    if (savedProfile && state.participantType === "player" && !state.adminObserverMode) {
+    if (launcherMenuBgmRequested && state.participantType === "player" && !state.adminObserverMode) {
+      requestPersonalEntryMusic("launcher_start");
+      unlockRaceAudio();
+    } else if (savedProfile && state.participantType === "player" && !state.adminObserverMode) {
       requestPersonalEntryMusic("saved_profile");
     }
+
+    document.addEventListener("click", handleRaceUiClickSfx, { capture: true });
 
     elements.profileForm.addEventListener("submit", (event) => {
       event.preventDefault();
       unlockRaceAudio();
+      if (!event.submitter) playRaceUiSfx("confirm");
       completeProfileSetup();
     });
 
@@ -4033,6 +5471,18 @@
     elements.raceOptionsQueue.addEventListener("click", () => {
       state.raceOptionsOpen = false;
       toggleRaceQueueOverlay();
+    });
+
+    elements.raceOptionsAbout.addEventListener("click", () => {
+      openRaceAboutPanel();
+    });
+
+    elements.raceAboutClose.addEventListener("click", () => {
+      closeRaceAboutPanel();
+    });
+
+    elements.raceAboutPanel.addEventListener("click", (event) => {
+      if (event.target === elements.raceAboutPanel) closeRaceAboutPanel();
     });
 
     elements.raceZoomReset.addEventListener("click", () => {
@@ -4196,6 +5646,7 @@
       }
       const spectator = participantType === "spectator";
       const adminObserver = spectator && Boolean(options.adminObserver);
+      syncRaceMapFromRoomPolicy();
       const result = joinConnectedMarathonRoom(roomAdapter, {
         participantId: spectator ? "spectator:you" : "runner:you",
         participantType,
@@ -4222,6 +5673,7 @@
       state.adminObserverFollowRunnerId = "";
       state.adminObserverKeys = {};
       if (adminObserver) state.cameraZoom = ADMIN_OBSERVER_CAMERA_ZOOM;
+      state.mapId = selectedRaceMapId();
       state.action = createActionRaceState();
       const snapshot = createConnectedMarathonStateSnapshot(result.room, {
         participantId: result.session.playerId,
@@ -4242,8 +5694,9 @@
       openConnectedRoomPacketRelay(result.session.roomId, state.connectedPackets);
       state.activeChannel = spectator ? findChannelIdByType("room") : result.session.roomId;
       state.ready = false;
-      setScreen(source === "button" ? SINGULARITY_RACE_SCREENS.QUEUE : SINGULARITY_RACE_SCREENS.RACE);
-      if (!spectator && !adminObserver) requestPersonalEntryMusic("connected_join");
+      const shouldEnterRaceImmediately = source === "admin_direct" || source === "admin_observer" || spectator || adminObserver;
+      setScreen(shouldEnterRaceImmediately ? SINGULARITY_RACE_SCREENS.RACE : SINGULARITY_RACE_SCREENS.QUEUE);
+      if (!spectator && !adminObserver) requestEntryGateMusic("connected_join");
       syncLateRaceControlForConnectedSession(source);
       applyNarrationControlCommand(readSingularityRaceNarrationCommand(window.localStorage, result.session.roomId));
       if (adminObserver) resetAdminObserverCamera();
@@ -4283,6 +5736,12 @@
         renderAll();
         return;
       }
+      const gate = getQueueEntryGateStatus();
+      if (!gate.open) {
+        pushSystem(`${gate.remainingMinutes}분 후 입장 가능합니다.`);
+        renderAll();
+        return;
+      }
       if (!connectedLobbyOpen) {
         pushSystem("관전 입장은 온라인 방 연결 후 가능합니다. 개발 확인은 ?devOnline=1에서 열립니다.");
         renderAll();
@@ -4295,6 +5754,98 @@
       return channelSet.find((channel) => channel.type === type)?.channelId || state.activeChannel;
     }
 
+    function selectedRaceMapId() {
+      return normalizeRestoredMarathonTrailMapId(state.mapId);
+    }
+
+    function selectedRaceMap() {
+      return getRestoredMarathonTrailMap(selectedRaceMapId());
+    }
+
+    function resetRaceMapRenderCache() {
+      state.renderCache.minimapPlayerNode = null;
+      state.runnerVisuals.clear();
+      state.runnerMotion.clear();
+      elements.raceMinimap?.replaceChildren();
+    }
+
+    function readCurrentRoomPolicy() {
+      return readRestoredMarathonRoomPolicy(window.localStorage, DEV_ROOM_ID, roomPolicy);
+    }
+
+    function getQueueEntryGateStatus(nowMs = Date.now()) {
+      return getRestoredMarathonEntryGateStatus(readCurrentRoomPolicy(), nowMs);
+    }
+
+    function syncEntryGateMusicCue(nowMs = Date.now()) {
+      const gate = getQueueEntryGateStatus(nowMs);
+      const wasOpen = Boolean(state.raceAudio.lastEntryGateOpen);
+      state.raceAudio.lastEntryGateOpen = gate.open;
+      if (!gate.open || wasOpen || state.screen === SINGULARITY_RACE_SCREENS.PROFILE) return;
+      requestEntryGateMusic("entry_gate_open");
+    }
+
+    function getCurrentMapVoteStatus(nowMs = Date.now()) {
+      return getRestoredMarathonMapVoteStatus(readCurrentRoomPolicy(), nowMs);
+    }
+
+    function currentRoomMaxRunners() {
+      const summary = getConnectedMarathonRoomSummaries(roomAdapter)[0];
+      return Math.max(1, Math.min(MAX_RUNNERS, Number(summary?.maxPlayers || activeDevRoom?.maxRunners || MAX_RUNNERS)));
+    }
+
+    function currentRoomSpectatorCount() {
+      const summary = getConnectedMarathonRoomSummaries(roomAdapter)[0];
+      return Math.max(0, Math.round(Number(summary?.spectators || 0)));
+    }
+
+    function canEnterQueueNow() {
+      return !getQueueEntryGateStatus().remainingMs;
+    }
+
+    function syncRaceMapFromRoomPolicy() {
+      const nextPolicy = readCurrentRoomPolicy();
+      const nextMapId = normalizeRestoredMarathonTrailMapId(nextPolicy.mapId);
+      if (nextMapId === selectedRaceMapId()) return false;
+      if (state.screen === SINGULARITY_RACE_SCREENS.RACE && state.action.raceStarted) {
+        pushSystem(`MAP ${getRestoredMarathonTrailMap(nextMapId).shortLabel} is queued for the next race.`);
+        return false;
+      }
+      state.mapId = nextMapId;
+      resetRaceMapRenderCache();
+      renderTrailMap();
+      pushSystem(`MAP ${selectedRaceMap().shortLabel}`);
+      renderAll();
+      return true;
+    }
+
+    function getMapVoteVoterId() {
+      const saved = window.localStorage.getItem(MAP_VOTE_VOTER_STORAGE_KEY);
+      if (saved) return saved;
+      const token = typeof globalThis.crypto?.randomUUID === "function"
+        ? globalThis.crypto.randomUUID()
+        : `${Date.now()}-${Math.round(Math.random() * 1000000)}`;
+      const voterId = `voter:${String(token).replace(/[^a-z0-9-]/gi, "").slice(0, 48)}`;
+      window.localStorage.setItem(MAP_VOTE_VOTER_STORAGE_KEY, voterId);
+      return voterId;
+    }
+
+    function castCurrentMapVote(mapId) {
+      const policy = readCurrentRoomPolicy();
+      const status = getRestoredMarathonMapVoteStatus(policy, Date.now());
+      if (!status.active || status.ended) {
+        playRaceUiSfx("deny");
+        return;
+      }
+      const voted = castRestoredMarathonMapVote(policy, getMapVoteVoterId(), mapId);
+      writeRestoredMarathonRoomPolicy(window.localStorage, {
+        ...voted,
+        roomId: DEV_ROOM_ID
+      });
+      pushSystem(`MAP ${getRestoredMarathonTrailMap(mapId).shortLabel} 투표 완료`);
+      renderAll();
+    }
+
     function getCurrentChatRole() {
       return state.participantType === "spectator" ? "spectator" : "player";
     }
@@ -4304,6 +5855,7 @@
     }
 
     function syncLateRaceControlForConnectedSession(source) {
+      if (source === "result_restart") return;
       const command = readSingularityRaceControlCommand(window.localStorage, state.connectedSession?.roomId);
       const now = Date.now();
       if (shouldAcceptSingularityRaceControlCommand(command, { nowMs: now })) {
@@ -4368,7 +5920,7 @@
         nowMs: Date.now(),
         roomId: DEV_ROOM_ID,
         sourceClientId: "client:singularity-race-admin-observer",
-        botCount: clampNumber(Math.round(Number(botCount) || 0), 0, MAX_RUNNERS)
+        botCount: clampNumber(Math.round(Number(botCount) || 0), 0, currentRoomMaxRunners())
       });
       writeSingularityRaceTestBotsCommand(window.localStorage, command);
       publishSingularityRaceControlCommand(raceControlBroadcast, command);
@@ -4480,14 +6032,19 @@
     elements.chatForm.addEventListener("submit", (event) => {
       event.preventDefault();
       const text = elements.chatInput.value.trim().replace(/\s+/g, " ");
-      if (!text) return;
+      if (!text) {
+        playRaceUiSfx("deny");
+        return;
+      }
       const now = Date.now();
       const chatGate = acceptChatSend(now);
       if (!chatGate.ok) {
+        playRaceUiSfx("deny");
         showChatBlockedNotice(chatGate.message, now);
         renderMessages();
         return;
       }
+      if (!event.submitter) playRaceUiSfx("confirm");
       const appended = chatTransport.submitMessage(state.messages, {
         channelId: state.activeChannel,
         senderId: state.participantType === "spectator" ? "spectator:you" : "player:you",
@@ -4503,6 +6060,7 @@
           elements.chatInput.blur();
         }
       } else {
+        playRaceUiSfx("deny");
         showChatBlockedNotice("채팅을 보낼 수 없습니다.", now);
       }
       elements.chatInput.value = "";
@@ -4576,8 +6134,12 @@
       const featured = FEATURED_SKIN_IDS
         .map((id) => byId.get(id))
         .filter(Boolean);
-      const remaining = skinPresets.filter((preset) => !FEATURED_SKIN_IDS.includes(preset.id));
-      return [...featured, ...remaining];
+      const trailing = TRAILING_SKIN_IDS
+        .map((id) => byId.get(id))
+        .filter(Boolean);
+      const pinnedIds = new Set([...FEATURED_SKIN_IDS, ...TRAILING_SKIN_IDS]);
+      const remaining = skinPresets.filter((preset) => !pinnedIds.has(preset.id));
+      return [...featured, ...remaining, ...trailing];
     }
 
     function readPlayerProfile() {
@@ -4594,7 +6156,7 @@
 
     function savePlayerProfile(profile) {
       const nextProfile = {
-        nickname: normalizeNickname(profile?.nickname),
+        nickname: normalizeNickname(profile?.nickname, { generateFallback: true }),
         skinId: presets.some((preset) => preset.id === profile?.skinId) ? profile.skinId : defaultSkin
       };
       window.localStorage.setItem(PROFILE_STORAGE_KEY, JSON.stringify(nextProfile));
@@ -4602,9 +6164,26 @@
       return nextProfile;
     }
 
-    function normalizeNickname(value) {
+    function normalizeNickname(value, options = {}) {
       const text = String(value || "").trim().replace(/\s+/g, " ").slice(0, 16);
+      if (!text && options.generateFallback) return createRandomPlayerNickname();
       return text || "YOU";
+    }
+
+    function createRandomPlayerNickname() {
+      const span = RANDOM_PLAYER_NAME_MAX - RANDOM_PLAYER_NAME_MIN + 1;
+      const value = RANDOM_PLAYER_NAME_MIN + (readRandomByte() % span);
+      return `플레이어${String(value).padStart(2, "0")}`;
+    }
+
+    function readRandomByte() {
+      const cryptoApi = window.crypto || window.msCrypto;
+      if (cryptoApi?.getRandomValues) {
+        const bytes = new Uint8Array(1);
+        cryptoApi.getRandomValues(bytes);
+        return bytes[0];
+      }
+      return Math.floor(Math.random() * 256);
     }
 
     function completeProfileSetup() {
@@ -4632,6 +6211,7 @@
         releaseVirtualMoveKeys(false);
         releaseAdminObserverKeys();
       } else {
+        stopMenuBgm();
         state.raceChatOpen = true;
         state.raceChatInputOpen = false;
       }
@@ -4644,9 +6224,15 @@
         renderAll();
         return;
       }
+      const gate = getQueueEntryGateStatus();
+      if (!gate.open) {
+        pushSystem(`${gate.remainingMinutes}분 후 대기열방 입장 가능합니다.`);
+        renderAll();
+        return;
+      }
       if (!readPlayerProfile()) savePlayerProfile({ nickname: state.nickname, skinId: state.selectedSkin });
       setScreen(SINGULARITY_RACE_SCREENS.QUEUE);
-      if (state.participantType === "player") requestPersonalEntryMusic("queue_entry");
+      if (state.participantType === "player") requestEntryGateMusic("queue_entry");
       if (connectedLobbyOpen && !state.connectedSession) {
         joinDevConnectedRoom(source === "quick" ? "quick_entry" : "queue_entry");
         return;
@@ -4669,7 +6255,7 @@
       if (!state.connectedSession && state.runners.length < 1) {
         state.runners = createRunners(1, state.selectedSkin, false);
       }
-      if (state.participantType === "player") requestPersonalEntryMusic("race_screen");
+      if (state.participantType === "player") stopMenuBgm();
       pushSystem("경기장 화면으로 이동했습니다. 방장 시작을 기다립니다.");
       renderAll();
     }
@@ -4686,6 +6272,7 @@
     function restartRaceAfterResult() {
       if (!state.action.finalResult) return;
       releaseVirtualMoveKeys(false);
+      if (roomPacketTransport) roomPacketTransport.savePackets([], { reason: "result_restart" });
       unsubscribeRoomPackets();
       unsubscribeRoomPackets = () => {};
       roomPacketTransport = null;
@@ -4711,9 +6298,13 @@
       state.renderCache.lastRunnerRankMs = 0;
       state.raceQueueOpen = false;
       state.raceOptionsOpen = false;
-      state.runners = createRunners(Math.max(1, state.testBotTargetCount || 1), state.selectedSkin, false);
-      setScreen(connectedLobbyOpen ? SINGULARITY_RACE_SCREENS.LOBBY : SINGULARITY_RACE_SCREENS.QUEUE);
-      pushSystem("결과를 정리하고 대기 상태로 돌아왔습니다.");
+      state.runners = createRunners(1, state.selectedSkin, false);
+      setScreen(SINGULARITY_RACE_SCREENS.QUEUE);
+      if (connectedLobbyOpen && !state.roomClosed) {
+        joinDevConnectedRoom("result_restart");
+        return;
+      }
+      pushSystem("결과를 정리하고 대기열방으로 돌아왔습니다.");
       renderAll();
     }
 
@@ -4778,6 +6369,11 @@
     function setupRaceControlListener() {
       window.addEventListener("storage", (event) => {
         if (!event.newValue) return;
+        if (event.key === RESTORED_MARATHON_ROOM_POLICY_STORAGE_KEY) {
+          syncRaceMapFromRoomPolicy();
+          renderAll();
+        }
+        if (!devRoomControlsEnabled) return;
         if (event.key === roomControlStorageKey || event.key === SINGULARITY_RACE_CONTROL_STORAGE_KEY) {
           const command = parseSingularityRaceControlCommand(event.newValue);
           applyRoomClosedControlCommand(command);
@@ -4790,7 +6386,7 @@
           applyNarrationControlCommand(parseSingularityRaceControlCommand(event.newValue));
         }
       });
-      if (raceControlBroadcast) {
+      if (devRoomControlsEnabled && raceControlBroadcast) {
         raceControlBroadcast.onmessage = (event) => {
           applyRoomClosedControlCommand(event.data);
           applyRaceControlCommand(event.data);
@@ -4798,6 +6394,7 @@
           applyTestBotControlCommand(event.data);
         };
       }
+      if (!devRoomControlsEnabled) return;
       const storedRoomCommand = readSingularityRaceControlCommand(window.localStorage, DEV_ROOM_ID);
       applyRoomClosedControlCommand(storedRoomCommand, { replay: true });
       applyRaceControlCommand(storedRoomCommand, { replay: true });
@@ -4864,7 +6461,7 @@
         roomId: DEV_ROOM_ID
       })) return;
       lastTestBotControlCommandId = command.commandId;
-      state.testBotTargetCount = Math.max(0, Math.min(MAX_RUNNERS, Math.round(Number(command.botCount) || 0)));
+      state.testBotTargetCount = Math.max(0, Math.min(currentRoomMaxRunners(), Math.round(Number(command.botCount) || 0)));
       if (state.roomClosed) return;
       if (state.action.raceStarted) {
         pushSystem("경기 진행 중에는 테스트 봇 수를 바꾸지 않습니다.");
@@ -4893,12 +6490,21 @@
       state.action.countdownAnnounced = false;
       state.action.gateOpenedAtMs = 0;
       setRaceCue("countdown", createCountdownLabel(now), state.runners[0]?.progress || START_LINE_PROGRESS, "you");
+      stopMenuBgm();
+      stopEntryGateMusic();
+      playCountdownBellSfx(createCountdownBellOffsetSeconds(now, gateOpensAtMs));
       pushSystem(source === "admin" ? "방장이 10초 카운트다운을 시작했습니다." : "출발 카운트다운이 시작되었습니다.");
       return true;
     }
 
     function isCountdownActive(now = Date.now()) {
       return Boolean(state.action.countdownEndsAtMs && state.action.countdownEndsAtMs > now);
+    }
+
+    function createCountdownBellOffsetSeconds(now, gateOpensAtMs) {
+      const remainingMs = Math.max(0, Number(gateOpensAtMs) - Number(now));
+      const elapsedMs = Math.max(0, SINGULARITY_RACE_START_COUNTDOWN_MS - remainingMs);
+      return Math.min(9.8, elapsedMs / 1000);
     }
 
     function finishCountdownIfReady(now = Date.now()) {
@@ -4958,12 +6564,12 @@
 
     function getStoredTestBotCount() {
       const command = readSingularityRaceTestBotsCommand(window.localStorage, DEV_ROOM_ID);
-      return Math.max(0, Math.min(MAX_RUNNERS, Math.round(Number(command?.botCount) || 0)));
+      return Math.max(0, Math.min(currentRoomMaxRunners(), Math.round(Number(command?.botCount) || 0)));
     }
 
     function syncLocalTestBotPack() {
       if (state.connectedSession) return;
-      const targetCount = Math.max(1, Math.min(MAX_RUNNERS, state.testBotTargetCount || 0));
+      const targetCount = Math.max(1, Math.min(currentRoomMaxRunners(), state.testBotTargetCount || 0));
       if (state.testBotTargetCount <= 0) {
         state.runners = state.runners.filter((runner) => !isTestBotRunner(runner)).slice(0, 1);
         if (!state.runners.length) state.runners = createRunners(1, state.selectedSkin, false);
@@ -5011,16 +6617,18 @@
     function setupConnectedDevSnapshotRuntime(roomId, options = {}) {
       if (!devOnlineEnabled || !roomId) return null;
       const spectator = state.participantType === "spectator";
-      const targetRunnerCount = Math.max(spectator ? 0 : 1, Math.min(MAX_RUNNERS, Math.round(Number(options.botCount) || 0)));
+      const roomMaxRunners = currentRoomMaxRunners();
+      const targetRunnerCount = Math.max(spectator ? 0 : 1, Math.min(roomMaxRunners, Math.round(Number(options.botCount) || 0)));
       connectedDevServer = createRestoredMarathonWebSocketDevServerMock({
         roomId,
         clock: () => Date.now(),
         course: {
+          mapId: selectedRaceMapId(),
           distanceMeters: 900,
-          checkpointMeters: createRestoredMarathonTrailSaveCheckpointMeters(900)
+          checkpointMeters: createRestoredMarathonTrailSaveCheckpointMeters(900, selectedRaceMapId())
         },
         netcodeProfile,
-        packetLimit: MAX_RUNNERS * 24
+        packetLimit: roomMaxRunners * 24
       });
       connectedDevClients = [];
       for (let index = 0; index < targetRunnerCount; index += 1) {
@@ -5158,6 +6766,7 @@
         itemHazards: [],
         itemProjectiles: [],
         itemBoostUntilMs: 0,
+        visionBlockedUntilMs: 0,
         itemSequence: 0,
         itemRoulette: null,
         itemPickupTrace: null,
@@ -5173,7 +6782,17 @@
         playerFinished: false,
         watchingAfterFinish: false,
         finalResult: null,
+        ceremonyStartedAtMs: 0,
+        ceremonyTransferAtMs: 0,
+        ceremonyEnteredAtMs: 0,
+        ceremonyAwardAtMs: 0,
+        lastCeremonyRefreshMs: 0,
+        ceremonyPlayerX: 50,
+        ceremonyPlayerY: 76,
         finishAnnounced: false,
+        finishSfxPlayed: false,
+        podiumApplauseQueued: false,
+        podiumApplausePlayed: false,
         lastCollisionCueMs: 0,
         packetLog: [
           { type: "input_update", detail: "WASD / Shift" },
@@ -5182,6 +6801,56 @@
           { type: "respawn_notice", detail: "Checkpoint" }
         ]
       };
+    }
+
+    function isCeremonyRoomActive() {
+      return state.screen === SINGULARITY_RACE_SCREENS.RACE
+        && Boolean(state.action.finalResult)
+        && Boolean(state.action.ceremonyEnteredAtMs)
+        && !state.action.watchingAfterFinish
+        && !state.roomClosed;
+    }
+
+    function isCeremonyLocalPlayerOnPodium(result = state.action.finalResult) {
+      if (!result || result.ceremonyPhase !== "award") return false;
+      const playerRank = Number(result.playerRank || 0);
+      return playerRank >= 1 && playerRank <= CEREMONY_TOP_COUNT;
+    }
+
+    function canMoveInCeremonyRoom() {
+      return isCeremonyRoomActive()
+        && state.participantType !== "spectator"
+        && !isCeremonyLocalPlayerOnPodium();
+    }
+
+    function advanceCeremonyPlayerMovement(frame, elapsedSeconds) {
+      if (!canMoveInCeremonyRoom()) return false;
+      const direction = frame?.direction || {};
+      const dx = Number(direction.x || 0);
+      const dy = Number(direction.y || 0);
+      if (Math.abs(dx) < 0.01 && Math.abs(dy) < 0.01) return false;
+      const speed = frame.mode === "sprint"
+        ? CEREMONY_FREE_MOVE_SPRINT_SPEED_PER_SECOND
+        : CEREMONY_FREE_MOVE_SPEED_PER_SECOND;
+      const nextX = clampNumber(
+        Number(state.action.ceremonyPlayerX || 50) + (dx * speed * elapsedSeconds),
+        CEREMONY_FREE_MOVE_MIN_X,
+        CEREMONY_FREE_MOVE_MAX_X
+      );
+      const nextY = clampNumber(
+        Number(state.action.ceremonyPlayerY || 76) + (dy * speed * elapsedSeconds),
+        CEREMONY_FREE_MOVE_MIN_Y,
+        CEREMONY_FREE_MOVE_MAX_Y
+      );
+      const moved = Math.abs(nextX - Number(state.action.ceremonyPlayerX || 50)) > 0.02
+        || Math.abs(nextY - Number(state.action.ceremonyPlayerY || 76)) > 0.02;
+      if (!moved) return false;
+      state.action.ceremonyPlayerX = nextX;
+      state.action.ceremonyPlayerY = nextY;
+      state.action.lastMovementInputAtMs = Date.now();
+      if (dx < -0.01) state.action.lastFacingDirection = "left";
+      if (dx > 0.01) state.action.lastFacingDirection = "right";
+      return true;
     }
 
     function handleActionKeyDown(event) {
@@ -5200,7 +6869,15 @@
         return;
       }
       if (state.participantType === "spectator") return;
-      if (state.action.finalResult) return;
+      if (state.action.finalResult) {
+        if (!canMoveInCeremonyRoom() || event.code === "KeyE") return;
+        if (event.repeat && !state.action.keys[event.code]) return;
+        const wasPressed = Boolean(state.action.keys[event.code]);
+        state.action.keys[event.code] = true;
+        if (!wasPressed) recordMovementInput(event.code);
+        renderAll();
+        return;
+      }
       if (event.repeat && !state.action.keys[event.code]) return;
       const wasPressed = Boolean(state.action.keys[event.code]);
       state.action.keys[event.code] = true;
@@ -5299,6 +6976,7 @@
       state.action.attackVisualId += 1;
       scheduleAttackVisualCleanup(state.action.attackVisualId);
       state.action.attackFacingDirection = attackFacingDirection;
+      void playRaceSfx("sfx-attack-swipe");
       if (!state.connectedSession) {
         pushActionPacket(
           createRestoredMarathonAttackEnvelope(action, createActionPacketOptions()),
@@ -5384,7 +7062,7 @@
     function resolveBasicAttackAim(event, player) {
       if (event) {
         const { x, y } = eventToTrackWorldPercent(event);
-        const aimProgress = estimateRestoredMarathonTrailProgressFromPoint(x, y);
+        const aimProgress = estimateRestoredMarathonTrailProgressFromPoint(x, y, selectedRaceMapId());
         return { direction: aimProgress >= player.progress ? 1 : -1, progress: aimProgress };
       }
       const facing = state.runnerMotion.get("you")?.facing || "right";
@@ -5463,10 +7141,26 @@
       if (!state.action.lastTickMs) state.action.lastTickMs = now;
       const elapsedSeconds = Math.min(0.25, (now - state.action.lastTickMs) / 1000);
       state.action.lastTickMs = now;
+      const ceremonyChanged = advanceRaceCeremonyState(now);
       if (state.adminObserverMode) {
         const snapshotChanged = advanceConnectedDevSnapshotFeed(now);
         const cameraMoved = advanceAdminObserverCamera(elapsedSeconds);
         if (snapshotChanged || cameraMoved) renderActionPreviewFrame(now);
+        return;
+      }
+      if (isCeremonyRoomActive()) {
+        const moved = advanceCeremonyPlayerMovement(createRestoredMarathonInputFrame({
+          participantId: "runner:you",
+          keys: state.action.keys,
+          sequence: Math.floor(now / 180)
+        }), elapsedSeconds);
+        if (moved || ceremonyChanged || now - Number(state.action.lastCeremonyRefreshMs || 0) < 80) {
+          renderActionPreviewFrame(now);
+        }
+        return;
+      }
+      if (ceremonyChanged) {
+        renderActionPreviewFrame(now);
         return;
       }
       if (state.action.raceFinished && !state.connectedSession) {
@@ -5531,15 +7225,40 @@
       if (state.action.raceStarted || moved || botsMoved || itemsChanged || state.raceNarration) renderActionPreviewFrame(now);
     }
 
+    function scheduleActionPreviewLoop() {
+      if (typeof window.requestAnimationFrame === "function") {
+        window.requestAnimationFrame(advanceActionPreviewLoop);
+        return;
+      }
+      window.setTimeout(advanceActionPreviewLoop, 33);
+    }
+
+    function startActionPreviewWatchdog() {
+      window.setInterval(() => {
+        if (document.hidden || state.screen !== SINGULARITY_RACE_SCREENS.RACE) return;
+        if (Date.now() - state.action.lastTickMs < 500) return;
+        try {
+          advanceActionPreview();
+        } catch (error) {
+          console.error("Singularity Race action preview watchdog failed", error);
+        }
+      }, 250);
+    }
+
     function advanceActionPreviewLoop() {
-      advanceActionPreview();
-      requestAnimationFrame(advanceActionPreviewLoop);
+      try {
+        advanceActionPreview();
+      } catch (error) {
+        console.error("Singularity Race action preview loop failed", error);
+      }
+      scheduleActionPreviewLoop();
     }
 
     function advanceLocalBotPack(elapsedSeconds) {
       const result = advanceSingularityLocalBotPack(state.runners, {
         elapsedSeconds,
         nowMs: Date.now(),
+        mapId: selectedRaceMapId(),
         playerProgress: state.runners[0]?.progress || 0,
         roadLaneHalfWidthPx: ROAD_LANE_HALF_WIDTH_PX,
         railMaxProgress: RAIL_MAX_PROGRESS
@@ -5552,6 +7271,7 @@
       const result = advanceSingularityWaitingBotPack(state.runners, {
         elapsedSeconds,
         nowMs: now,
+        mapId: selectedRaceMapId(),
         startLineProgress: START_LINE_PROGRESS,
         startPaddockMinProgress: START_PADDOCK_MIN_PROGRESS,
         startPaddockMaxProgress: START_PADDOCK_MAX_PROGRESS,
@@ -5595,6 +7315,7 @@
           ? Object.freeze({ ...itemBox, respawnAtMs: now + SINGULARITY_RACE_ITEM_BOX_RESPAWN_MS })
           : itemBox
       ));
+      void playRaceSfx("sfx-item-pickup");
       startRaceItemRoulette(item, sequence, player.progress, now);
       return true;
     }
@@ -5686,9 +7407,11 @@
         return false;
       }
       state.action.currentItemId = "";
+      void playRaceSfx("sfx-item-use");
       if (item.itemId === SINGULARITY_RACE_ITEM_IDS.BOOSTER) useBoosterItem(item);
       else if (item.itemId === SINGULARITY_RACE_ITEM_IDS.BANANA) useBananaItem(item);
       else if (item.itemId === SINGULARITY_RACE_ITEM_IDS.STUN_SHOT) useStunShotItem(item);
+      else if (item.itemId === SINGULARITY_RACE_ITEM_IDS.INK_CLOUD) useInkCloudItem(item);
       pushLocalItemPacket(item);
       renderAll();
       return true;
@@ -5731,6 +7454,7 @@
         expiresAtMs: Date.now() + 420
       }));
       if (targetEntry) {
+        void playRaceSfx("sfx-item-hit");
         state.runners[targetEntry.index] = applyRaceItemSlow(
           targetEntry.runner,
           Date.now(),
@@ -5743,6 +7467,33 @@
         setRaceCue("item", item.label, player.progress, "you", { durationMs: 1100 });
         pushSystem("스턴샷 발사: 맞은 러너가 없습니다.");
       }
+    }
+
+    function useInkCloudItem(item) {
+      const player = state.runners[0];
+      if (!player) return;
+      const targetEntry = findInkCloudTarget(player);
+      const now = Date.now();
+      const progress = targetEntry
+        ? targetEntry.runner.progress
+        : clampNumber((Number(player.progress) || START_LINE_PROGRESS) + 2.8, RAIL_MIN_PROGRESS, RAIL_MAX_PROGRESS);
+      const laneOffsetPx = clampNumber(
+        targetEntry ? targetEntry.runner.laneOffsetPx : player.laneOffsetPx,
+        -ROAD_LANE_HALF_WIDTH_PX,
+        ROAD_LANE_HALF_WIDTH_PX
+      );
+      state.action.itemHazards.push(Object.freeze({
+        id: `ink:${++state.action.itemSequence}`,
+        itemId: item.itemId,
+        ownerId: "you",
+        progress,
+        laneOffsetPx,
+        expiresAtMs: now + SINGULARITY_RACE_INK_CLOUD_DURATION_MS
+      }));
+      setRaceCue("item", item.label, progress, "you", { durationMs: 1300 });
+      pushSystem(targetEntry
+        ? `${targetEntry.runner.name || "러너"} 앞에 먹물탄을 터뜨렸습니다.`
+        : "먹물탄 사용: 앞쪽 시야 방해 구름을 남겼습니다.");
     }
 
     function findStunShotTarget(player) {
@@ -5760,26 +7511,58 @@
         .sort((left, right) => left.progressGap - right.progressGap || left.laneGap - right.laneGap)[0] || null;
     }
 
+    function findInkCloudTarget(player) {
+      const playerProgress = Number(player?.progress || 0);
+      const playerLane = Number(player?.laneOffsetPx || 0);
+      return state.runners
+        .map((runner, index) => ({ runner, index }))
+        .filter((entry) => entry.index > 0 && !isRunnerStunned(entry.runner))
+        .map((entry) => ({
+          ...entry,
+          progressGap: (Number(entry.runner.progress) || 0) - playerProgress,
+          laneGap: Math.abs((Number(entry.runner.laneOffsetPx) || 0) - playerLane)
+        }))
+        .filter((entry) => entry.progressGap >= 0.2 && entry.progressGap <= 6.8 && entry.laneGap <= 176)
+        .sort((left, right) => left.progressGap - right.progressGap || left.laneGap - right.laneGap)[0] || null;
+    }
+
     function applyRaceItemHazards(now = Date.now()) {
       let changed = false;
       const activeHazards = [];
       for (const hazard of state.action.itemHazards) {
         const hitIndex = state.runners.findIndex((runner, index) => (
-          index > 0
+          index >= 0
           && runner.id !== hazard.ownerId
-          && Math.abs((Number(runner.progress) || 0) - (Number(hazard.progress) || 0)) <= 0.65
-          && Math.abs((Number(runner.laneOffsetPx) || 0) - (Number(hazard.laneOffsetPx) || 0)) <= 74
+          && Math.abs((Number(runner.progress) || 0) - (Number(hazard.progress) || 0)) <= raceItemHazardProgressRadius(hazard)
+          && Math.abs((Number(runner.laneOffsetPx) || 0) - (Number(hazard.laneOffsetPx) || 0)) <= raceItemHazardLaneRadius(hazard)
         ));
         if (hitIndex < 0) {
           activeHazards.push(hazard);
           continue;
         }
-        state.runners[hitIndex] = applyRaceItemSlow(state.runners[hitIndex], now, SINGULARITY_RACE_BANANA_SLOW_MS, 220);
-        setRaceCue("hit", "바나나", state.runners[hitIndex].progress, state.runners[hitIndex].id, { durationMs: 1200 });
+        const hitRunner = state.runners[hitIndex];
+        const hitLabel = getSingularityRaceItemDefinition(hazard.itemId)?.label || "ITEM";
+        if (hazard.itemId === SINGULARITY_RACE_ITEM_IDS.INK_CLOUD) {
+          state.runners[hitIndex] = applyRaceItemBlind(hitRunner, now);
+          if (hitRunner.id === "you") state.action.visionBlockedUntilMs = Math.max(Number(state.action.visionBlockedUntilMs || 0), now + SINGULARITY_RACE_INK_BLIND_MS);
+          setRaceCue("hit", hitLabel, state.runners[hitIndex].progress, state.runners[hitIndex].id, { durationMs: 1200 });
+        } else {
+          state.runners[hitIndex] = applyRaceItemSlow(hitRunner, now, SINGULARITY_RACE_BANANA_SLOW_MS, 220);
+          setRaceCue("hit", hitLabel, state.runners[hitIndex].progress, state.runners[hitIndex].id, { durationMs: 1200 });
+        }
+        void playRaceSfx("sfx-item-hit");
         changed = true;
       }
       if (changed) state.action.itemHazards = activeHazards;
       return changed;
+    }
+
+    function raceItemHazardProgressRadius(hazard) {
+      return hazard?.itemId === SINGULARITY_RACE_ITEM_IDS.INK_CLOUD ? 0.95 : 0.65;
+    }
+
+    function raceItemHazardLaneRadius(hazard) {
+      return hazard?.itemId === SINGULARITY_RACE_ITEM_IDS.INK_CLOUD ? 112 : 74;
     }
 
     function applyRaceItemSlow(runner, now, slowMs, stunMs = 0) {
@@ -5787,6 +7570,15 @@
         ...runner,
         slowUntilMs: Math.max(Number(runner.slowUntilMs || 0), now + slowMs),
         stunnedUntilMs: Math.max(Number(runner.stunnedUntilMs || 0), now + stunMs),
+        collisionAtMs: now
+      };
+    }
+
+    function applyRaceItemBlind(runner, now) {
+      return {
+        ...runner,
+        slowUntilMs: Math.max(Number(runner.slowUntilMs || 0), now + SINGULARITY_RACE_INK_SLOW_MS),
+        blindedUntilMs: Math.max(Number(runner.blindedUntilMs || 0), now + SINGULARITY_RACE_INK_BLIND_MS),
         collisionAtMs: now
       };
     }
@@ -5819,6 +7611,7 @@
         return;
       }
       state.action.raceStarted = true;
+      void playRaceSfx("sfx-skill-use");
       if (use.consumesCharge) state.action.skillChargesRemaining -= 1;
       state.action.stallUntilMs = Date.now() + use.movementStallMs;
       let collision = Object.freeze({ blockedPlayer: false });
@@ -5846,6 +7639,7 @@
         renderAll();
         return;
       }
+      void playRaceSfx("sfx-skill-use");
       pushActionPacket(
         createRestoredMarathonSkillEnvelope({
           participantId: "runner:you",
@@ -5949,16 +7743,36 @@
     }
 
     function finalizeRaceResult(options = {}) {
+      const previousResult = state.action.finalResult;
+      const now = Date.now();
       const ranking = normalizeRaceResultRanking(options.ranking || createLocalFinishRanking(), options.finishedParticipantId || "runner:you");
       const finishedParticipantId = options.finishedParticipantId || "runner:you";
       const playerRow = ranking.find((row) => row.participantId === finishedParticipantId)
         || ranking.find((row) => row.participantId === "runner:you")
         || ranking[0]
         || null;
+      const raceFinished = Boolean(options.raceFinished || previousResult?.raceFinished);
+      const ceremonyStartedAtMs = Number.isFinite(Number(options.ceremonyStartedAtMs))
+        ? Number(options.ceremonyStartedAtMs)
+        : Number(previousResult?.ceremonyStartedAtMs || state.action.ceremonyStartedAtMs || now);
+      const playerFinished = Boolean(playerRow?.finished || options.playerFinished || raceFinished);
+      const ceremonyTransferAtMs = Number.isFinite(Number(options.ceremonyTransferAtMs))
+        ? Number(options.ceremonyTransferAtMs)
+        : Number(previousResult?.ceremonyTransferAtMs || state.action.ceremonyTransferAtMs || (playerFinished ? now + CEREMONY_TRANSFER_DELAY_MS : 0));
+      const ceremonyEnteredAtMs = Number(previousResult?.ceremonyEnteredAtMs || state.action.ceremonyEnteredAtMs || 0);
+      const ceremonyAwardAtMs = raceFinished
+        ? now
+        : (Number.isFinite(Number(options.ceremonyAwardAtMs))
+          ? Number(options.ceremonyAwardAtMs)
+          : Number(previousResult?.ceremonyAwardAtMs || state.action.ceremonyAwardAtMs || (now + CEREMONY_GRACE_MS)));
       state.action.finishedLocalPreview = true;
-      state.action.playerFinished = Boolean(playerRow?.finished || options.playerFinished || options.raceFinished);
-      state.action.raceFinished = Boolean(options.raceFinished);
-      if (state.action.raceFinished) stopRaceMusic();
+      state.action.playerFinished = playerFinished;
+      state.action.raceFinished = raceFinished;
+      state.action.ceremonyStartedAtMs = ceremonyStartedAtMs;
+      state.action.ceremonyTransferAtMs = ceremonyTransferAtMs;
+      state.action.ceremonyEnteredAtMs = ceremonyEnteredAtMs;
+      state.action.ceremonyAwardAtMs = ceremonyAwardAtMs;
+      stopRaceMusic();
       state.action.watchingAfterFinish = false;
       state.action.keys = {};
       for (const button of elements.virtualMoveButtons) button.classList.remove("is-held");
@@ -5971,11 +7785,20 @@
         finishedParticipantId,
         playerRank: playerRow?.rank || null,
         progressPercent: options.progressPercent ?? playerRow?.progressPercent ?? null,
-        ranking: Object.freeze(ranking.slice(0, 5)),
-        finalizedAtMs: Date.now()
+        ranking: Object.freeze(ranking.slice(0, CEREMONY_TOP_COUNT)),
+        fullRanking: Object.freeze(ranking),
+        raceFinished: state.action.raceFinished,
+        ceremonyPhase: state.action.ceremonyEnteredAtMs ? (state.action.raceFinished ? "award" : "wait") : "transfer",
+        ceremonyStartedAtMs,
+        ceremonyTransferAtMs,
+        ceremonyEnteredAtMs,
+        ceremonyAwardAtMs,
+        finalizedAtMs: now
       });
       const player = state.runners[0];
       if (player) setRaceCue("finish", "완주", player.progress, "you");
+      playWinnerFinishSfx();
+      if (state.action.raceFinished && state.action.ceremonyEnteredAtMs) schedulePodiumApplauseSfx();
       if (options.publishPacket) {
         pushActionPacket(
           createRestoredMarathonTransportEnvelope("race_finalized", {
@@ -5993,6 +7816,60 @@
           ? "완주했습니다. 결과 화면에서 순위를 확인할 수 있습니다."
           : "완주했습니다. 서버가 나머지 기록을 집계하고 있습니다.");
       }
+    }
+
+    function advanceRaceCeremonyState(now = Date.now()) {
+      const result = state.action.finalResult;
+      if (!result) return false;
+      let changed = false;
+      const transferAtMs = Number(result.ceremonyTransferAtMs || state.action.ceremonyTransferAtMs || 0);
+      if (!state.action.ceremonyEnteredAtMs && transferAtMs > 0 && now >= transferAtMs) {
+        state.action.ceremonyEnteredAtMs = now;
+        state.action.finalResult = Object.freeze({
+          ...result,
+          ceremonyPhase: result.raceFinished ? "award" : "wait",
+          ceremonyEnteredAtMs: now
+        });
+        pushSystem("시상대 공간으로 이동했습니다. 채팅은 그대로 유지됩니다.");
+        changed = true;
+        if (result.raceFinished) schedulePodiumApplauseSfx();
+      }
+      if (state.action.finalResult?.raceFinished) return changed;
+      if (result.source !== "local" || state.connectedSession) return changed;
+      const shouldRefreshRanking = now - Number(state.action.lastCeremonyRefreshMs || 0) >= 500;
+      if (shouldRefreshRanking) {
+        refreshLocalCeremonyRanking(state.action.finalResult || result);
+        state.action.lastCeremonyRefreshMs = now;
+      }
+      if (now < Number(result.ceremonyAwardAtMs || 0)) return changed || shouldRefreshRanking;
+      const latestResult = state.action.finalResult || result;
+      const ranking = normalizeRaceResultRanking(createLocalFinishRanking(), latestResult.finishedParticipantId || "runner:you");
+      state.action.raceFinished = true;
+      state.action.ceremonyAwardAtMs = now;
+      state.action.finalResult = Object.freeze({
+        ...latestResult,
+        title: "시상식",
+        copy: "제한 시간이 끝났습니다. 최종 시상대가 확정되었습니다.",
+        ranking: Object.freeze(ranking.slice(0, CEREMONY_TOP_COUNT)),
+        fullRanking: Object.freeze(ranking),
+        raceFinished: true,
+        ceremonyPhase: "award",
+        ceremonyEnteredAtMs: state.action.ceremonyEnteredAtMs || now,
+        ceremonyAwardAtMs: now,
+        finalizedAtMs: now
+      });
+      schedulePodiumApplauseSfx();
+      pushSystem("시상식 결과가 확정되었습니다. 1위부터 5위까지 시상대에 표시됩니다.");
+      return true;
+    }
+
+    function refreshLocalCeremonyRanking(result) {
+      const ranking = normalizeRaceResultRanking(createLocalFinishRanking(), result.finishedParticipantId || "runner:you");
+      state.action.finalResult = Object.freeze({
+        ...result,
+        ranking: Object.freeze(ranking.slice(0, CEREMONY_TOP_COUNT)),
+        fullRanking: Object.freeze(ranking)
+      });
     }
 
     function createLocalFinishRanking() {
@@ -6121,7 +7998,7 @@
     }
 
     function createTrackForwardInputDirection(progress, laneBias = 0) {
-      const point = progressToRestoredMarathonTrailPoint(progress);
+      const point = progressToRestoredMarathonTrailPoint(progress, selectedRaceMapId());
       const x = (point.tangent?.x || 0) + ((point.normal?.x || 0) * laneBias);
       const y = (point.tangent?.y || 0) + ((point.normal?.y || 0) * laneBias);
       const length = Math.hypot(x, y) || 1;
@@ -6320,6 +8197,7 @@
         ? SINGULARITY_RACE_BOOSTER_SPEED_MULTIPLIER
         : 1;
       const nextPlayer = advanceSingularityRaceLocalPrediction(player, frame, elapsedSeconds, {
+        mapId: selectedRaceMapId(),
         runProgressPerSecond: LOCAL_RUN_PROGRESS_PER_SECOND * boostMultiplier,
         sprintProgressPerSecond: LOCAL_SPRINT_PROGRESS_PER_SECOND * boostMultiplier,
         laneSpeedPxPerSecond: LOCAL_LANE_SPEED_PX_PER_SECOND,
@@ -6386,7 +8264,7 @@
         ? (staging ? LOCAL_STAGING_SPRINT_PROGRESS_PER_SECOND : LOCAL_SPRINT_PROGRESS_PER_SECOND)
         : (staging ? LOCAL_STAGING_RUN_PROGRESS_PER_SECOND : LOCAL_RUN_PROGRESS_PER_SECOND);
       const lateralSpeed = sprinting ? LOCAL_LANE_SPRINT_SPEED_PX_PER_SECOND : LOCAL_LANE_SPEED_PX_PER_SECOND;
-      const trailPoint = progressToRestoredMarathonTrailPoint(Number(player.progress) || START_LINE_PROGRESS);
+      const trailPoint = progressToRestoredMarathonTrailPoint(Number(player.progress) || START_LINE_PROGRESS, selectedRaceMapId());
       const movement = resolveSingularityRaceTrackMovement(direction, trailPoint);
       const speedScale = calculateRestoredMarathonSpeedScale(trailPoint.tangent);
       const boostMultiplier = state.action.raceStarted && Date.now() < Number(state.action.itemBoostUntilMs || 0)
@@ -6625,8 +8503,18 @@
       renderAll();
     }
 
+    function openRaceAboutPanel() {
+      state.raceOptionsOpen = false;
+      renderAll();
+      elements.raceAboutPanel.hidden = false;
+    }
+
+    function closeRaceAboutPanel() {
+      elements.raceAboutPanel.hidden = true;
+    }
+
     function startVirtualJoystick(event) {
-      if (state.participantType === "spectator" || state.action.finalResult || state.raceQueueOpen) return;
+      if (state.participantType === "spectator" || (state.action.finalResult && !canMoveInCeremonyRoom()) || state.raceQueueOpen) return;
       event.preventDefault();
       activeJoystickPointerId = event.pointerId;
       try {
@@ -6685,7 +8573,7 @@
       if (!VIRTUAL_MOVE_KEYS.includes(code)) return;
       if (state.roomClosed) return false;
       if (state.participantType === "spectator") return;
-      if (state.action.finalResult) return;
+      if (state.action.finalResult && !canMoveInCeremonyRoom()) return;
       if (pressed && (state.screen !== SINGULARITY_RACE_SCREENS.RACE || state.raceQueueOpen)) return;
       const nextPressed = Boolean(pressed);
       if (Boolean(state.action.keys[code]) === nextPressed) return false;
@@ -6700,7 +8588,7 @@
 
     function setVirtualSprint(pressed, shouldRender = true) {
       if (state.roomClosed) return false;
-      if (state.participantType === "spectator" || state.action.finalResult) return false;
+      if (state.participantType === "spectator" || (state.action.finalResult && !canMoveInCeremonyRoom())) return false;
       if (pressed && (state.screen !== SINGULARITY_RACE_SCREENS.RACE || state.raceQueueOpen)) return false;
       const nextPressed = Boolean(pressed);
       if (Boolean(state.action.keys.ShiftLeft) === nextPressed) return false;
@@ -6812,6 +8700,7 @@
       renderSkins();
       renderChannelTabs();
       renderMessages();
+      renderMapVoteModal();
       renderConnectedGate();
       renderConnectedPackets();
       renderNetcodeBudget();
@@ -6866,19 +8755,25 @@
       elements.shell.classList.toggle("race-chat-composing", state.screen === SINGULARITY_RACE_SCREENS.RACE && state.raceChatOpen && state.raceChatInputOpen);
       elements.shell.classList.toggle("race-options-open", state.screen === SINGULARITY_RACE_SCREENS.RACE && state.raceOptionsOpen);
       elements.shell.classList.toggle("race-finished", state.screen === SINGULARITY_RACE_SCREENS.RACE && Boolean(state.action.finalResult));
+      elements.shell.classList.toggle("race-ceremony-entered", state.screen === SINGULARITY_RACE_SCREENS.RACE && isCeremonyRoomActive());
+      elements.shell.classList.toggle("race-ceremony-free", state.screen === SINGULARITY_RACE_SCREENS.RACE && canMoveInCeremonyRoom());
       elements.shell.classList.toggle("race-watching-after-finish", state.screen === SINGULARITY_RACE_SCREENS.RACE && Boolean(state.action.watchingAfterFinish));
       elements.shell.classList.toggle("race-room-closed", state.screen === SINGULARITY_RACE_SCREENS.RACE && state.roomClosed);
     }
 
     function renderFlowMetrics() {
+      const now = Date.now();
       elements.readyButton.textContent = getSingularityRacePrimaryActionLabel(state.screen);
       elements.readyButton.classList.toggle("is-ready", false);
       elements.spectatorButton.textContent = state.participantType === "spectator" ? "관전 중" : "관전 입장";
       elements.spectatorButton.disabled = Boolean(state.connectedSession);
       elements.fillButton.disabled = Boolean(state.connectedSession);
       elements.previewButton.textContent = getSingularityRacePreviewActionLabel(state.screen);
+      const map = selectedRaceMap();
+      const entryGate = getQueueEntryGateStatus(now);
+      elements.mainTitle.textContent = state.screen === SINGULARITY_RACE_SCREENS.QUEUE ? "특이점레이스 대기열방" : "특이점레이스";
       elements.roomTitle.textContent = getSingularityRaceRoomTitle(state.screen);
-      elements.roomCopy.textContent = getSingularityRaceRoomCopy(state.screen);
+      elements.roomCopy.textContent = `${getSingularityRaceRoomCopy(state.screen)} / MAP ${map.shortLabel}`;
       elements.roomBadge.textContent = getSingularityRaceRoomBadge(state.screen);
       elements.roomDisplayName.textContent = "특이점 스타디움 001";
       elements.flowCopy.textContent = getSingularityRaceFlowCopy(state.screen);
@@ -6886,12 +8781,16 @@
         ? "카운트다운"
         : (state.action.raceStarted ? "경기 중" : "대기");
       elements.trackTitle.textContent = getSingularityRaceTrackTitle(state.screen);
-      elements.trackCopy.textContent = getSingularityRaceTrackCopy(state.screen);
+      elements.trackCopy.textContent = `${getSingularityRaceTrackCopy(state.screen)} / ${map.label}`;
       elements.notice.textContent = getSingularityRaceNotice(state.screen);
       const summary = getConnectedMarathonRoomSummaries(roomAdapter)[0];
       elements.roomDisplayName.textContent = summary?.displayName || activeDevRoom?.displayName || "생성된 방 없음";
-      elements.readyButton.disabled = state.roomClosed || Boolean(state.connectedSession) || (devOnlineEnabled && !connectedLobbyOpen);
-      elements.spectatorButton.disabled = state.roomClosed || Boolean(state.connectedSession) || (devOnlineEnabled && !connectedLobbyOpen);
+      elements.readyButton.disabled = state.roomClosed || !entryGate.open || Boolean(state.connectedSession) || (devOnlineEnabled && !connectedLobbyOpen);
+      elements.spectatorButton.disabled = state.roomClosed || !entryGate.open || Boolean(state.connectedSession) || (devOnlineEnabled && !connectedLobbyOpen);
+      if (!entryGate.open && !state.roomClosed) {
+        elements.roomCode.textContent = `${entryGate.remainingMinutes}분 후 입장 가능`;
+        elements.notice.textContent = `${entryGate.remainingMinutes}분 후 대기열방 입장 가능합니다.`;
+      }
       if (state.roomClosed) {
         elements.roomCode.textContent = "방이 종료되었습니다.";
         elements.notice.textContent = "관리자가 이 방을 종료했습니다. 새 방이 열리면 다시 입장할 수 있습니다.";
@@ -6935,15 +8834,14 @@
         ? `대기<span>${Math.ceil(attackCooldownRemainingMs / 1000)}초</span>`
         : "공격<span>기본</span>";
       elements.raceSkillButton.disabled = roomClosed || spectator || Boolean(state.action.finalResult) || !itemReady;
-      elements.raceSkillButton.innerHTML = `스킬<span>${skillMeta}</span>`;
-      elements.raceSkillButton.innerHTML = `스킬<span>${itemMeta}</span>`;
-      const movementDisabled = roomClosed || spectator || Boolean(state.action.finalResult) || state.raceQueueOpen;
+      renderRaceSkillItemButton(currentItem, rouletteItem, itemMeta);
+      const movementDisabled = roomClosed || spectator || (Boolean(state.action.finalResult) && !canMoveInCeremonyRoom()) || state.raceQueueOpen;
       elements.raceJoystick.setAttribute("aria-disabled", String(movementDisabled));
       elements.raceSprintButton.disabled = movementDisabled;
       elements.raceSprintButton.classList.toggle("is-held", Boolean(state.action.keys.ShiftLeft || state.action.keys.ShiftRight));
       for (const button of elements.virtualMoveButtons) {
         button.classList.toggle("is-held", Boolean(state.action.keys[button.dataset.key]));
-        button.disabled = spectator;
+        button.disabled = movementDisabled;
       }
       if (spectator) {
         elements.raceAttackButton.disabled = true;
@@ -6957,10 +8855,24 @@
       }
     }
 
+    function renderRaceSkillItemButton(currentItem, rouletteItem, itemMeta) {
+      const displayItem = currentItem || rouletteItem || null;
+      const title = document.createElement("b");
+      const meta = document.createElement("span");
+      title.textContent = displayItem ? "아이템" : "스킬";
+      meta.textContent = itemMeta;
+      if (displayItem) {
+        elements.raceSkillButton.replaceChildren(createRaceItemIconNode(displayItem, { size: "button" }), title, meta);
+        return;
+      }
+      elements.raceSkillButton.replaceChildren(title, meta);
+    }
+
     function renderTrailMap() {
-      const path = createRestoredMarathonTrailSvgPath();
-      const wallPaths = createRestoredMarathonTrailWallSvgPaths();
-      const finishLine = trailMarkerLine(progressToRestoredMarathonTrailPoint(100), 4.4);
+      const mapId = selectedRaceMapId();
+      const path = createRestoredMarathonTrailSvgPath(92, mapId);
+      const wallPaths = createRestoredMarathonTrailWallSvgPaths(92, { mapId });
+      const finishLine = trailMarkerLine(progressToRestoredMarathonTrailPoint(100, selectedRaceMapId()), 4.4);
       elements.trailMap.replaceChildren(
         svgNode("path", { class: "trail-outline", d: path }),
         svgNode("path", { class: "trail-surface", d: path }),
@@ -6976,7 +8888,7 @@
     }
 
     function runnerTrailPoint(progress) {
-      const point = progressToRestoredMarathonTrailPoint(progress);
+      const point = progressToRestoredMarathonTrailPoint(progress, selectedRaceMapId());
       return {
         x: Math.max(2, Math.min(97, point.x)),
         y: Math.max(2, Math.min(97, point.y)),
@@ -7236,7 +9148,8 @@
       const context = ensureRaceAudioContext();
       state.raceAudio.unlocked = true;
       if (context?.state === "suspended") void context.resume().catch(() => {});
-      if (state.raceAudio.entryQueued) void playPersonalEntryMusic();
+      if (state.raceAudio.entryQueued) void playEntryGateMusic();
+      if (state.raceAudio.menuQueued) void playPersonalEntryMusic();
       if (state.raceAudio.raceQueued) void startRaceMusic();
     }
 
@@ -7280,25 +9193,117 @@
     }
 
     function requestPersonalEntryMusic(reason = "entry") {
-      if (state.participantType === "spectator" || state.adminObserverMode || state.raceAudio.entryStarted) return;
-      if (state.raceAudio.raceStarted || state.action.raceStarted) return;
+      requestMenuBgm(reason);
+    }
+
+    function requestEntryGateMusic(reason = "entry_gate") {
+      if (!isEntryGateMusicAllowed() || state.raceAudio.entryStarted) return;
       state.raceAudio.entryQueued = true;
       state.raceAudio.entryReason = reason;
-      void playPersonalEntryMusic();
+      stopMenuBgm();
+      void playEntryGateMusic();
+    }
+
+    function consumeLauncherMenuBgmIntent() {
+      try {
+        const requestedAt = Number(window.sessionStorage.getItem(LAUNCHER_MENU_BGM_INTENT_KEY) || 0);
+        window.sessionStorage.removeItem(LAUNCHER_MENU_BGM_INTENT_KEY);
+        return requestedAt > 0 && Date.now() - requestedAt < 30000;
+      } catch {
+        return false;
+      }
+    }
+
+    function requestMenuBgm(reason = "menu") {
+      if (!isMenuBgmAllowed() || state.raceAudio.menuStarted) return;
+      state.raceAudio.menuQueued = true;
+      state.raceAudio.menuReason = reason;
+      void startMenuBgm();
     }
 
     async function playPersonalEntryMusic() {
-      if (!state.raceAudio.entryQueued || state.raceAudio.entryStarted || state.raceAudio.raceStarted) return false;
+      return startMenuBgm();
+    }
+
+    async function playEntryGateMusic(options = {}) {
+      if (!isEntryGateMusicAllowed()) {
+        stopEntryGateMusic();
+        return false;
+      }
+      if (!(state.raceAudio.entryQueued || options.force)) return false;
       if (!state.raceAudio.unlocked) return false;
-      const played = await playRaceAudioTrack("entry", { restart: true });
+      const audio = raceAudioElements.get(ENTRY_GATE_AUDIO_TRACK_KEY);
+      if (!options.force && state.raceAudio.entryStarted && audio && !audio.paused && !audio.ended) return true;
+      stopMenuBgm();
+      const played = await playRaceAudioTrack(ENTRY_GATE_AUDIO_TRACK_KEY, { restart: options.restart !== false });
       if (!played) return false;
       state.raceAudio.entryQueued = false;
       state.raceAudio.entryStarted = true;
       return true;
     }
 
+    function isMenuBgmAllowed() {
+      return state.participantType === "player"
+        && !state.adminObserverMode
+        && !state.roomClosed
+        && state.screen !== SINGULARITY_RACE_SCREENS.RACE
+        && !state.action.raceStarted
+        && !state.raceAudio.raceStarted;
+    }
+
+    function isEntryGateMusicAllowed() {
+      return state.participantType === "player"
+        && !state.adminObserverMode
+        && !state.roomClosed
+        && !state.action.raceStarted
+        && !state.raceAudio.raceStarted;
+    }
+
+    function isMenuAudioTrack(trackKey) {
+      return MENU_AUDIO_TRACK_KEYS.includes(trackKey);
+    }
+
+    async function startMenuBgm(options = {}) {
+      if (!isMenuBgmAllowed()) {
+        stopMenuBgm();
+        return false;
+      }
+      if (!(state.raceAudio.entryQueued || state.raceAudio.menuQueued || options.force)) return false;
+      if (!state.raceAudio.unlocked) return false;
+      const trackKey = state.raceAudio.currentMenuTrackKey
+        || MENU_AUDIO_TRACK_KEYS[state.raceAudio.currentMenuTrackIndex]
+        || MENU_AUDIO_TRACK_KEYS[0];
+      const currentAudio = raceAudioElements.get(trackKey);
+      if (!options.force && state.raceAudio.menuStarted && currentAudio && !currentAudio.paused && !currentAudio.ended) return true;
+      for (const key of MENU_AUDIO_TRACK_KEYS) {
+        if (key !== trackKey) stopRaceAudioTrack(key);
+      }
+      const played = await playRaceAudioTrack(trackKey, { restart: options.restart !== false });
+      if (!played) return false;
+      state.raceAudio.entryQueued = false;
+      state.raceAudio.menuQueued = false;
+      state.raceAudio.entryStarted = true;
+      state.raceAudio.menuStarted = true;
+      state.raceAudio.currentMenuTrackKey = trackKey;
+      return true;
+    }
+
+    function handleMenuBgmEnded(trackKey) {
+      if (!state.raceAudio.menuStarted || !isMenuBgmAllowed()) {
+        stopMenuBgm();
+        return;
+      }
+      const currentIndex = Math.max(0, MENU_AUDIO_TRACK_KEYS.indexOf(trackKey));
+      state.raceAudio.currentMenuTrackIndex = (currentIndex + 1) % MENU_AUDIO_TRACK_KEYS.length;
+      state.raceAudio.currentMenuTrackKey = MENU_AUDIO_TRACK_KEYS[state.raceAudio.currentMenuTrackIndex];
+      void startMenuBgm({ force: true, restart: true });
+    }
+
     function requestRaceMusicStart(reason = "race_start") {
       if (state.roomClosed || state.raceAudio.raceStarted) return;
+      stopMenuBgm();
+      stopEntryGateMusic();
+      stopCountdownBellSfx();
       state.raceAudio.raceQueued = true;
       state.raceAudio.raceReason = reason;
       void startRaceMusic();
@@ -7306,9 +9311,10 @@
 
     async function startRaceMusic() {
       if (state.roomClosed || state.raceAudio.raceStarted) return false;
+      stopMenuBgm();
+      stopEntryGateMusic();
+      stopCountdownBellSfx();
       if (!state.raceAudio.unlocked) return false;
-      stopRaceAudioTrack("entry");
-      state.raceAudio.entryQueued = false;
       const played = await playRaceAudioTrack("race-primary", { restart: true });
       if (!played) return false;
       state.raceAudio.raceQueued = false;
@@ -7324,7 +9330,12 @@
       try {
         audio.volume = track.volume;
         audio.loop = Boolean(track.loop);
-        if (options.restart !== false) audio.currentTime = 0;
+        const startAtSeconds = Number(options.startAtSeconds);
+        if (Number.isFinite(startAtSeconds)) {
+          try { audio.currentTime = Math.max(0, startAtSeconds); } catch {}
+        } else if (options.restart !== false) {
+          try { audio.currentTime = 0; } catch {}
+        }
         await audio.play();
         const context = ensureRaceAudioContext();
         if (context?.state === "suspended") await context.resume().catch(() => {});
@@ -7336,7 +9347,87 @@
       }
     }
 
+    function playRaceSfx(trackKey, options = {}) {
+      if (!RACE_SFX_TRACK_KEYS.includes(trackKey)) return false;
+      setupRaceAudioElements();
+      return playRaceAudioTrack(trackKey, {
+        restart: options.restart !== false,
+        startAtSeconds: options.startAtSeconds
+      });
+    }
+
+    function playCountdownBellSfx(offsetSeconds = 0) {
+      return playRaceSfx(COUNTDOWN_BELL_TRACK_KEY, {
+        restart: true,
+        startAtSeconds: offsetSeconds
+      });
+    }
+
+    function stopCountdownBellSfx() {
+      stopRaceAudioTrack(COUNTDOWN_BELL_TRACK_KEY);
+    }
+
+    function playRaceUiSfx(cue = "tap") {
+      const trackKey = UI_SFX_KEYS[cue] || UI_SFX_KEYS.tap;
+      unlockRaceAudio();
+      return playRaceSfx(trackKey);
+    }
+
+    function handleRaceUiClickSfx(event) {
+      const control = event.target?.closest?.("button, a, .skin-card, .channel-tab");
+      if (!control || control.closest(".race-input-controls") || control.closest(".race-dpad")) return;
+      if (control.matches(":disabled") || control.getAttribute("aria-disabled") === "true") {
+        playRaceUiSfx("deny");
+        return;
+      }
+      const id = control.id || "";
+      if (id === "fill-button") {
+        playRaceUiSfx("deny");
+        return;
+      }
+      if (["profile-start-button", "ready-button", "spectator-button", "join-connected-button", "race-result-watch", "race-result-restart", "race-room-closed-exit"].includes(id)) {
+        playRaceUiSfx("confirm");
+        return;
+      }
+      if (control.closest(".chat-form")) {
+        playRaceUiSfx("confirm");
+        return;
+      }
+      if (["preview-button", "race-queue-toggle", "race-options-button", "race-options-chat", "race-options-queue", "race-options-about", "race-about-close", "race-zoom-reset"].includes(id)
+        || control.classList.contains("skin-card")
+        || control.classList.contains("channel-tab")) {
+        playRaceUiSfx("toggle");
+        return;
+      }
+      playRaceUiSfx("tap");
+    }
+
+    function playWinnerFinishSfx() {
+      if (state.action.finishSfxPlayed) return false;
+      state.action.finishSfxPlayed = true;
+      return playRaceSfx("sfx-winner-finish");
+    }
+
+    function schedulePodiumApplauseSfx() {
+      if (state.action.podiumApplauseQueued) return;
+      state.action.podiumApplauseQueued = true;
+      window.setTimeout(() => {
+        if (!state.action.finalResult || state.action.podiumApplausePlayed) return;
+        state.action.podiumApplausePlayed = true;
+        void playRaceSfx("sfx-podium-applause");
+      }, 2800);
+    }
+
     function handleRaceAudioEnded(trackKey) {
+      if (trackKey === ENTRY_GATE_AUDIO_TRACK_KEY) {
+        state.raceAudio.entryStarted = false;
+        if (isMenuBgmAllowed()) requestMenuBgm("entry_gate_complete");
+        return;
+      }
+      if (isMenuAudioTrack(trackKey)) {
+        handleMenuBgmEnded(trackKey);
+        return;
+      }
       if (trackKey !== "race-primary") return;
       if (!isRaceAudioContinuing()) {
         stopRaceMusic();
@@ -7372,10 +9463,28 @@
       state.raceAudio.currentRaceTrackKey = "";
     }
 
+    function stopMenuBgm() {
+      for (const key of MENU_AUDIO_TRACK_KEYS) stopRaceAudioTrack(key);
+      state.raceAudio.menuQueued = false;
+      state.raceAudio.menuStarted = false;
+      state.raceAudio.currentMenuTrackKey = "";
+    }
+
+    function stopEntryGateMusic() {
+      stopRaceAudioTrack(ENTRY_GATE_AUDIO_TRACK_KEY);
+      state.raceAudio.entryQueued = false;
+      state.raceAudio.entryStarted = false;
+    }
+
+    function stopRaceSfx() {
+      for (const key of RACE_SFX_TRACK_KEYS) stopRaceAudioTrack(key);
+    }
+
     function stopAllRaceAudio() {
       stopRaceMusic();
-      stopRaceAudioTrack("entry");
-      state.raceAudio.entryQueued = false;
+      stopMenuBgm();
+      stopEntryGateMusic();
+      stopRaceSfx();
     }
 
     function trailMarkerLine(point, half = 3.8) {
@@ -7400,6 +9509,7 @@
         state.runnerMotion.clear();
         renderTrackEffects();
         renderItemRoulette();
+        renderRaceVisionMask();
         renderRaceNarration();
         renderRaceMinimap();
         updateTrackCamera();
@@ -7413,6 +9523,8 @@
         const point = smoothRunnerVisualPoint(runner, index, visualTiming.elapsedMs);
         const motion = updateRunnerMotionState(runner, point, visualTiming);
         const stunned = isRunnerStunned(runner, visualTiming.now);
+        const boosted = runner.id === "you" && isItemBoostActive(visualTiming.now);
+        const blinded = Number(runner.blindedUntilMs || 0) > visualTiming.now;
         const attacking = runner.id === "you" && Number(state.action.attackVisualUntilMs || 0) > visualTiming.now;
         const facing = attacking ? state.action.attackFacingDirection || motion.facing : motion.facing;
         const running = !attacking && !stunned && motion.running;
@@ -7430,6 +9542,8 @@
           sprinting ? "is-sprinting" : "",
           attacking ? "is-attacking" : "",
           stunned ? "is-stunned" : "",
+          boosted ? "is-boosted" : "",
+          blinded ? "is-blinded" : "",
           colliding ? "is-colliding" : "",
           rewardSkinActive ? "is-reward-skin" : "",
           rewardSkinGrade ? `is-reward-grade-${rewardSkinGrade}` : ""
@@ -7462,9 +9576,14 @@
       }
       renderTrackEffects();
       renderItemRoulette();
+      renderRaceVisionMask();
       renderRaceNarration();
       renderRaceMinimap();
       updateTrackCamera();
+    }
+
+    function isItemBoostActive(now = Date.now()) {
+      return Number(state.action.itemBoostUntilMs || 0) > now;
     }
 
     function isRunnerRewardSkinActive(runner, now) {
@@ -7596,24 +9715,71 @@
         .filter((box) => isSingularityRaceItemBoxActive(box, now))
         .map(createRaceItemBoxNode);
       const traps = state.action.itemHazards
-        .map((hazard) => createRaceItemMarkerNode("race-item-trap", "B", hazard));
+        .map((hazard) => createRaceItemMarkerNode(getRaceItemHazardClass(hazard), getRaceItemMarkerLabel(hazard), hazard));
       const projectiles = state.action.itemProjectiles
-        .map((projectile) => createRaceItemMarkerNode("race-item-projectile", "S", projectile));
+        .map((projectile) => createRaceItemMarkerNode("race-item-projectile", getRaceItemMarkerLabel(projectile), projectile));
       return [...boxes, ...traps, ...projectiles];
     }
 
     function createRaceItemBoxNode(box) {
-      return createRaceItemMarkerNode("race-item-box", "?", box);
+      return createRaceItemMarkerNode("race-item-box", "Item Box", box, "box");
     }
 
-    function createRaceItemMarkerNode(className, label, item) {
+    function getRaceItemHazardClass(item) {
+      return item?.itemId === SINGULARITY_RACE_ITEM_IDS.INK_CLOUD ? "race-item-ink" : "race-item-trap";
+    }
+
+    function getRaceItemMarkerLabel(item) {
+      if (item?.itemId === SINGULARITY_RACE_ITEM_IDS.INK_CLOUD) return "I";
+      if (item?.itemId === SINGULARITY_RACE_ITEM_IDS.STUN_SHOT) return "S";
+      return "B";
+    }
+
+    function createRaceItemMarkerNode(className, label, item, iconKind = "") {
       const point = raceItemPoint(item.progress, item.laneOffsetPx);
       const node = document.createElement("div");
       node.className = className;
+      node.setAttribute("aria-label", label);
       node.style.left = `${point.x}%`;
       node.style.top = `${point.y}%`;
-      node.textContent = label;
+      node.append(createRaceItemIconNode(item, { kind: iconKind, size: "track" }));
       return node;
+    }
+
+    function createRaceItemIconNode(item, options = {}) {
+      const kind = options.kind || getRaceItemIconKind(item);
+      const node = document.createElement("span");
+      node.className = [
+        "race-item-icon",
+        `is-${kind}`,
+        options.size ? `is-${options.size}` : ""
+      ].filter(Boolean).join(" ");
+      node.setAttribute("aria-hidden", "true");
+      for (const part of getRaceItemIconParts(kind)) {
+        const partNode = document.createElement("span");
+        partNode.className = `race-item-icon-part ${part}`;
+        node.append(partNode);
+      }
+      return node;
+    }
+
+    function getRaceItemIconKind(item) {
+      if (item?.itemId === SINGULARITY_RACE_ITEM_IDS.BOOSTER) return "booster";
+      if (item?.itemId === SINGULARITY_RACE_ITEM_IDS.BANANA) return "banana";
+      if (item?.itemId === SINGULARITY_RACE_ITEM_IDS.STUN_SHOT) return "stun-shot";
+      if (item?.itemId === SINGULARITY_RACE_ITEM_IDS.INK_CLOUD) return "ink";
+      return "box";
+    }
+
+    function getRaceItemIconParts(kind) {
+      const parts = {
+        box: ["box-lid", "box-core", "box-lock"],
+        booster: ["booster-body", "booster-window", "booster-flame"],
+        banana: ["banana-curve", "banana-stem", "banana-tip"],
+        "stun-shot": ["stun-core", "stun-bolt"],
+        ink: ["ink-blob-a", "ink-blob-b", "ink-spark"]
+      };
+      return parts[kind] || parts.box;
     }
 
     function raceItemPoint(progress, laneOffsetPx = 0) {
@@ -7751,6 +9917,15 @@
       elements.raceItemRoulette.replaceChildren(createRaceItemRouletteNode(roulette, displayItem, spinning));
     }
 
+    function renderRaceVisionMask(now = Date.now()) {
+      if (!elements.raceVisionMask) return;
+      const visible = state.screen === SINGULARITY_RACE_SCREENS.RACE
+        && !state.action.finalResult
+        && Number(state.action.visionBlockedUntilMs || 0) > now;
+      elements.raceVisionMask.classList.toggle("is-visible", visible);
+      if (!visible && Number(state.action.visionBlockedUntilMs || 0) <= now) state.action.visionBlockedUntilMs = 0;
+    }
+
     function getActiveRaceItemRoulette(now = Date.now()) {
       const roulette = state.action.itemRoulette;
       if (!roulette) return null;
@@ -7770,7 +9945,7 @@
       panel.className = "race-item-roulette-panel";
       const icon = document.createElement("div");
       icon.className = "race-item-roulette-icon";
-      icon.textContent = getRaceItemShortLabel(displayItem);
+      icon.append(createRaceItemIconNode(displayItem, { size: "roulette" }));
       const copy = document.createElement("div");
       copy.className = "race-item-roulette-copy";
       const status = document.createElement("span");
@@ -7782,7 +9957,8 @@
       for (const item of listSingularityRaceItemDefinitions()) {
         const chip = document.createElement("span");
         chip.className = `race-item-roulette-chip${item.itemId === displayItem?.itemId ? " is-active" : ""}`;
-        chip.textContent = getRaceItemShortLabel(item);
+        chip.title = item.label;
+        chip.append(createRaceItemIconNode(item, { size: "mini" }));
         reel.append(chip);
       }
       copy.append(status, label, reel);
@@ -7794,6 +9970,7 @@
       if (item?.itemId === SINGULARITY_RACE_ITEM_IDS.BOOSTER) return "B";
       if (item?.itemId === SINGULARITY_RACE_ITEM_IDS.BANANA) return "!";
       if (item?.itemId === SINGULARITY_RACE_ITEM_IDS.STUN_SHOT) return "S";
+      if (item?.itemId === SINGULARITY_RACE_ITEM_IDS.INK_CLOUD) return "I";
       return "?";
     }
 
@@ -7801,6 +9978,7 @@
       if (item?.itemId === SINGULARITY_RACE_ITEM_IDS.BOOSTER) return "is-booster";
       if (item?.itemId === SINGULARITY_RACE_ITEM_IDS.BANANA) return "is-banana";
       if (item?.itemId === SINGULARITY_RACE_ITEM_IDS.STUN_SHOT) return "is-stun-shot";
+      if (item?.itemId === SINGULARITY_RACE_ITEM_IDS.INK_CLOUD) return "is-ink";
       return "";
     }
 
@@ -7819,7 +9997,7 @@
       }
       const playerPoint = runnerTrailPoint(player.progress);
       if (!state.renderCache.minimapPlayerNode || !elements.raceMinimap.firstElementChild) {
-        const savePoints = listRestoredMarathonTrailSavePoints();
+        const savePoints = listRestoredMarathonTrailSavePoints(selectedRaceMapId());
         const svg = svgNode("svg", {
           viewBox: raceMinimapViewBox(playerPoint),
           preserveAspectRatio: "none",
@@ -7827,7 +10005,7 @@
           "aria-label": "race minimap"
         });
         const playerDot = svgNode("circle", { class: "minimap-player", cx: playerPoint.x, cy: playerPoint.y, r: 1.45 });
-        const path = createRestoredMarathonTrailSvgPath(64);
+        const path = createRestoredMarathonTrailSvgPath(64, selectedRaceMapId());
         svg.append(
           svgNode("path", { class: "minimap-rail", d: path }),
           svgNode("path", { class: "minimap-road", d: path }),
@@ -7860,14 +10038,35 @@
       if (!result) {
         elements.raceResultTitle.textContent = "완주 완료";
         elements.raceResultCopy.textContent = "최종 기록을 정리하고 있습니다.";
+        elements.raceCeremonySpace.replaceChildren();
+        delete elements.raceCeremonySpace.dataset.phase;
+        elements.raceCeremonyStatus.textContent = "";
+        elements.raceCeremonyPodium.replaceChildren();
+        delete elements.raceCeremonyPodium.dataset.phase;
+        elements.raceCeremonySummary.replaceChildren();
         elements.raceResultList.replaceChildren();
         return;
       }
       elements.raceResultTitle.textContent = result.title;
-      elements.raceResultCopy.textContent = result.playerRank
-        ? `${result.copy} 내 순위 #${result.playerRank}`
+      const transferRemainingSeconds = Math.max(0, Math.ceil((Number(result.ceremonyTransferAtMs || 0) - Date.now()) / 1000));
+      const resultCopy = result.ceremonyPhase === "transfer" && !state.action.ceremonyEnteredAtMs
+        ? `잠시 후 시상대 공간으로 이동합니다. ${transferRemainingSeconds > 0 ? `${transferRemainingSeconds}초` : "곧 이동"}`
         : result.copy;
-      const rows = result.ranking.slice(0, 5).map((row) => {
+      elements.raceResultCopy.textContent = result.playerRank
+        ? `${resultCopy} 내 순위 #${result.playerRank}`
+        : resultCopy;
+      renderRaceCeremonyStatus(result);
+      if (result.ceremonyPhase === "transfer" && !state.action.ceremonyEnteredAtMs) {
+        elements.raceCeremonyPodium.replaceChildren();
+        elements.raceCeremonySummary.replaceChildren();
+        elements.raceResultList.replaceChildren();
+        renderRaceCeremonySpace(result);
+        return;
+      }
+      renderRaceCeremonyPodium(result);
+      renderRaceCeremonySummary(result);
+      renderRaceCeremonySpace(result);
+      const rows = result.ranking.slice(0, CEREMONY_TOP_COUNT).map((row) => {
         const item = document.createElement("li");
         const name = document.createElement("em");
         const meta = document.createElement("b");
@@ -7877,6 +10076,190 @@
         return item;
       });
       elements.raceResultList.replaceChildren(...rows);
+    }
+
+    function renderRaceCeremonySpace(result) {
+      const phase = result.ceremonyPhase || (result.raceFinished ? "award" : "wait");
+      elements.raceCeremonySpace.dataset.phase = phase;
+      if (!state.action.ceremonyEnteredAtMs) {
+        elements.raceCeremonySpace.replaceChildren();
+        return;
+      }
+      const room = document.createElement("div");
+      room.className = "race-ceremony-room";
+      const backWall = document.createElement("div");
+      backWall.className = "race-ceremony-back-wall";
+      const leftWall = document.createElement("div");
+      leftWall.className = "race-ceremony-side-wall is-left";
+      const rightWall = document.createElement("div");
+      rightWall.className = "race-ceremony-side-wall is-right";
+      const floor = document.createElement("div");
+      floor.className = "race-ceremony-floor";
+      const stage = document.createElement("div");
+      stage.className = "race-ceremony-stage";
+      const floorCrowd = createRaceCeremonyFloorCrowd(result);
+      const freePlayer = canMoveInCeremonyRoom() ? createRaceCeremonyFreePlayerNode(result) : null;
+      const rowsByRank = new Map((result.ranking || []).slice(0, CEREMONY_TOP_COUNT).map((row) => [row.rank, row]));
+      for (const rank of [2, 1, 3, 4, 5].slice(0, CEREMONY_TOP_COUNT)) {
+        const row = phase === "award" ? (rowsByRank.get(rank) || null) : null;
+        stage.append(createRaceCeremonyPodiumSlot(rank, row));
+      }
+      room.append(backWall, leftWall, rightWall, floor, stage, floorCrowd);
+      if (freePlayer) room.append(freePlayer);
+      elements.raceCeremonySpace.replaceChildren(room);
+    }
+
+    function createRaceCeremonyFloorCrowd(result) {
+      const crowd = document.createElement("div");
+      crowd.className = "race-ceremony-floor-crowd";
+      const now = Date.now();
+      const phase = result.ceremonyPhase || (result.raceFinished ? "award" : "wait");
+      const rows = (result.fullRanking || result.ranking || [])
+        .filter((row) => row?.finished)
+        .filter((row) => phase !== "award" || Number(row.rank || 0) > CEREMONY_TOP_COUNT)
+        .filter((row) => !(row.participantId === "runner:you" && canMoveInCeremonyRoom()))
+        .filter((row) => hasCeremonyRunnerArrived(row, result, now))
+        .slice(0, 9);
+      const nodes = rows.map((row) => createRaceCeremonyFloorRunner(row, result));
+      crowd.replaceChildren(...nodes);
+      return crowd;
+    }
+
+    function createRaceCeremonyFloorRunner(row, result) {
+      const node = document.createElement("div");
+      node.className = "race-ceremony-floor-runner is-arriving";
+      const arrivalDelay = Math.max(0, getCeremonyRunnerTransferAtMs(row, result) - Number(result.ceremonyTransferAtMs || result.ceremonyStartedAtMs || 0));
+      node.style.setProperty("--arrival-delay", `${arrivalDelay}ms`);
+      const img = document.createElement("img");
+      img.alt = "";
+      img.decoding = "async";
+      img.src = getSingularityRaceSkinDataUrl(getCeremonyRunnerSkin(row), "side");
+      const name = document.createElement("span");
+      name.textContent = row.rank ? `#${row.rank} ${formatRaceResultName(row)}` : formatRaceResultName(row);
+      node.append(img, name);
+      return node;
+    }
+
+    function createRaceCeremonyFreePlayerNode(result) {
+      const row = (result.fullRanking || result.ranking || []).find((entry) => entry.participantId === "runner:you")
+        || { participantId: "runner:you", displayName: state.nickname || "YOU", rank: result.playerRank || 0 };
+      const node = createRaceCeremonyFloorRunner(row, result);
+      node.classList.add("race-ceremony-free-player", "is-player");
+      node.style.setProperty("--ceremony-player-x", `${state.action.ceremonyPlayerX || 50}%`);
+      node.style.setProperty("--ceremony-player-y", `${state.action.ceremonyPlayerY || 76}%`);
+      return node;
+    }
+
+    function getCeremonyRunnerTransferAtMs(row, result) {
+      const base = Number(result.ceremonyTransferAtMs || result.ceremonyStartedAtMs || 0);
+      const rank = Math.max(1, Number(row?.rank || 1));
+      return base + ((rank - 1) * CEREMONY_RUNNER_TRANSFER_STAGGER_MS);
+    }
+
+    function hasCeremonyRunnerArrived(row, result, now = Date.now()) {
+      if (result.ceremonyPhase === "award" || result.raceFinished) return true;
+      return now >= getCeremonyRunnerTransferAtMs(row, result);
+    }
+
+    function createRaceCeremonyPodiumSlot(rank, row) {
+      const slot = document.createElement("div");
+      slot.className = `race-ceremony-slot${row ? "" : " is-empty"}`;
+      slot.dataset.rank = String(rank);
+      slot.style.setProperty("--podium-rank", String(rank));
+      slot.style.setProperty("--podium-left", getCeremonyPodiumLeft(rank));
+      slot.style.setProperty("--step-height", getCeremonyPodiumStepHeight(rank));
+      const runnerNode = document.createElement("div");
+      runnerNode.className = "race-ceremony-runner";
+      if (row) {
+        const img = document.createElement("img");
+        img.alt = "";
+        img.decoding = "async";
+        img.src = getSingularityRaceSkinDataUrl(getCeremonyRunnerSkin(row), "side");
+        const name = document.createElement("span");
+        name.className = "race-ceremony-name";
+        name.textContent = formatRaceResultName(row);
+        runnerNode.append(img, name);
+      }
+      const step = document.createElement("div");
+      step.className = "race-ceremony-step";
+      step.dataset.rank = `${rank}`;
+      slot.append(runnerNode, step);
+      return slot;
+    }
+
+    function getCeremonyPodiumLeft(rank) {
+      const left = { 1: "50%", 2: "36%", 3: "64%", 4: "22%", 5: "78%" };
+      return left[rank] || "50%";
+    }
+
+    function getCeremonyPodiumStepHeight(rank) {
+      const height = { 1: "132px", 2: "104px", 3: "90px", 4: "72px", 5: "64px" };
+      return height[rank] || "64px";
+    }
+
+    function getCeremonyRunnerSkin(row) {
+      const runnerId = runnerIdFromParticipantId(row?.participantId || "");
+      const runner = state.runners.find((entry) => entry.id === runnerId);
+      if (runner?.skin) return runner.skin;
+      return presets[(Math.max(1, Number(row?.rank) || 1) - 1) % presets.length]?.id || defaultSkin;
+    }
+
+    function renderRaceCeremonyStatus(result) {
+      const phase = result.ceremonyPhase || (result.raceFinished ? "award" : "wait");
+      elements.raceCeremonyPodium.dataset.phase = phase;
+      if (phase === "transfer" && !state.action.ceremonyEnteredAtMs) {
+        const transferRemainingSeconds = Math.max(0, Math.ceil((Number(result.ceremonyTransferAtMs || 0) - Date.now()) / 1000));
+        elements.raceCeremonyStatus.textContent = `잠시 후 시상대 공간으로 이동합니다 ${transferRemainingSeconds > 0 ? `${transferRemainingSeconds}초` : ""}`.trim();
+        return;
+      }
+      if (phase === "award") {
+        elements.raceCeremonyStatus.textContent = "시상대 확정";
+        return;
+      }
+      const remainingSeconds = Math.max(0, Math.ceil((Number(result.ceremonyAwardAtMs || 0) - Date.now()) / 1000));
+      elements.raceCeremonyStatus.textContent = result.source === "server"
+        ? "서버 최종 집계 대기중"
+        : `완주자가 차례로 이동 중 · 시상대 확정까지 ${remainingSeconds}초`;
+    }
+
+    function renderRaceCeremonyPodium(result) {
+      const rowsByRank = new Map(result.ranking.slice(0, CEREMONY_TOP_COUNT).map((row) => [row.rank, row]));
+      const nodes = [2, 1, 3, 4, 5].slice(0, CEREMONY_TOP_COUNT).map((rank) => {
+        const row = rowsByRank.get(rank) || null;
+        const slot = document.createElement("div");
+        slot.className = "race-podium-slot";
+        slot.dataset.rank = String(rank);
+        const rankNode = document.createElement("i");
+        const nameNode = document.createElement("b");
+        const metaNode = document.createElement("span");
+        rankNode.className = "race-podium-rank";
+        nameNode.className = "race-podium-name";
+        metaNode.className = "race-podium-meta";
+        rankNode.textContent = `${rank}위`;
+        nameNode.textContent = row ? formatRaceResultName(row) : "빈 자리";
+        metaNode.textContent = row ? formatRaceResultMeta(row) : "-";
+        slot.append(rankNode, nameNode, metaNode);
+        return slot;
+      });
+      elements.raceCeremonyPodium.replaceChildren(...nodes);
+    }
+
+    function renderRaceCeremonySummary(result) {
+      const rows = result.fullRanking || result.ranking || [];
+      const belowTopFive = rows.filter((row) => row.rank > 5);
+      const finishedBelow = belowTopFive.filter((row) => row.finished).length;
+      const notFinished = rows.filter((row) => !row.finished).length;
+      const spectatorCount = currentRoomSpectatorCount();
+      const chips = [
+        `6위 이하 완주 ${finishedBelow}명`,
+        `${result.raceFinished ? "시간초과" : "미도착/집계"} ${notFinished}명`,
+        `관전자 ${spectatorCount}명`
+      ].map((text) => {
+        const chip = document.createElement("span");
+        chip.textContent = text;
+        return chip;
+      });
+      elements.raceCeremonySummary.replaceChildren(...chips);
     }
 
     function formatRaceResultName(row) {
@@ -7898,19 +10281,33 @@
     }
 
     function renderSlots() {
+      const slotCount = currentRoomMaxRunners();
       if (!debugUiEnabled) {
         const showQueueSlots = state.screen === SINGULARITY_RACE_SCREENS.QUEUE
           || (state.screen === SINGULARITY_RACE_SCREENS.RACE && state.raceQueueOpen);
-        const slots = showQueueSlots
-          ? Array.from({ length: MAX_RUNNERS }, (_, index) => state.runners[index] || null)
-          : [];
+        const slots = showQueueSlots ? getVisibleQueueRunners() : [];
+        if (showQueueSlots && !slots.length) {
+          elements.runnerSlots.replaceChildren(createQueueEmptyStateNode());
+          return;
+        }
         elements.runnerSlots.replaceChildren(...slots.map((runner, index) => createSingularityQueueSlotNode(runner, index)));
         return;
       }
       elements.runnerSlots.replaceChildren(...Array.from(
-        { length: MAX_RUNNERS },
+        { length: slotCount },
         (_, index) => createSingularityQueueSlotNode(state.runners[index], index, { debug: true })
       ));
+    }
+
+    function getVisibleQueueRunners() {
+      return state.runners.filter((runner) => runner && runner.id);
+    }
+
+    function createQueueEmptyStateNode() {
+      const empty = document.createElement("div");
+      empty.className = "queue-empty-state";
+      empty.textContent = "아직 대기열에 입장한 플레이어가 없습니다.";
+      return empty;
     }
 
     function renderActionHud() {
@@ -8019,9 +10416,9 @@
       elements.adminObserverApplyBots.disabled = state.roomClosed;
       elements.adminObserverClearBots.disabled = state.roomClosed;
       elements.adminObserverBotCount.disabled = state.roomClosed;
-      elements.adminObserverBotCount.max = String(MAX_RUNNERS);
+      elements.adminObserverBotCount.max = String(currentRoomMaxRunners());
       if (document.activeElement !== elements.adminObserverBotCount) {
-        elements.adminObserverBotCount.value = String(Math.max(0, Math.min(MAX_RUNNERS, state.testBotTargetCount || 0)));
+        elements.adminObserverBotCount.value = String(Math.max(0, Math.min(currentRoomMaxRunners(), state.testBotTargetCount || 0)));
       }
       elements.adminObserverCameraMode.value = state.adminObserverCameraMode;
       elements.adminObserverTarget.disabled = state.adminObserverCameraMode !== "runner" || state.runners.length <= 0;
@@ -8069,6 +10466,7 @@
         button.addEventListener("click", () => {
           state.selectedSkin = preset.id;
           localStorage.setItem(STORAGE_KEY, preset.id);
+          savePlayerProfile({ nickname: state.nickname, skinId: preset.id });
           pushSystem(`${preset.name || preset.id} 스킨을 선택했습니다.`);
           renderAll();
         });
@@ -8118,13 +10516,15 @@
       const summaries = getConnectedMarathonRoomSummaries(roomAdapter);
       const summary = summaries[0];
       const connected = Boolean(state.connectedSession);
+      const entryGate = getQueueEntryGateStatus();
       elements.connectedGate.classList.toggle("is-open", connectedLobbyOpen && !state.roomClosed);
-      elements.connectedButton.disabled = state.roomClosed || !connectedLobbyOpen || connected;
+      elements.connectedButton.disabled = state.roomClosed || !entryGate.open || !connectedLobbyOpen || connected;
       elements.connectedButton.textContent = connected ? "개발 방 입장됨" : "개발 방 입장";
       elements.roomCode.textContent = summary
         ? `선수 ${summary.players}/${summary.maxPlayers} / 관전자 ${summary.spectators}/${summary.maxSpectators}`
-        : (devOnlineEnabled ? "생성된 방 없음" : `최대 ${MAX_RUNNERS}명 / 관전자 입장 가능`);
+        : (devOnlineEnabled ? "생성된 방 없음" : `최대 ${currentRoomMaxRunners()}명 / 관전자 입장 가능`);
       if (state.roomClosed) elements.roomCode.textContent = "방이 종료되었습니다.";
+      else if (!entryGate.open) elements.roomCode.textContent = `${entryGate.remainingMinutes}분 후 입장 가능`;
       elements.connectionSignal.classList.toggle("is-connected", connected);
       if (!adapterValidation.ok) {
         elements.connectedStatus.textContent = `연결 설정 오류: ${adapterValidation.errors.join(", ")}`;
@@ -8138,6 +10538,10 @@
       }
       if (state.roomClosed) {
         elements.connectedStatus.textContent = "관리자가 종료한 방입니다. 새 방이 열릴 때까지 입장할 수 없습니다.";
+        return;
+      }
+      if (!entryGate.open) {
+        elements.connectedStatus.textContent = `${entryGate.remainingMinutes}분 후 대기열방 입장 가능합니다.`;
         return;
       }
       elements.connectedStatus.textContent = connectedLobbyOpen && summary
@@ -8216,6 +10620,45 @@
       elements.messages.replaceChildren(...messages.map(createSingularityMessageNode));
       elements.messages.scrollTop = elements.messages.scrollHeight;
     }
+
+    function renderMapVoteModal() {
+      const status = getCurrentMapVoteStatus(Date.now());
+      const canShow = status.active
+        && state.screen !== SINGULARITY_RACE_SCREENS.PROFILE
+        && state.screen !== SINGULARITY_RACE_SCREENS.RACE
+        && !state.roomClosed;
+      elements.mapVotePanel.hidden = !canShow;
+      if (!canShow) return;
+      const policy = readCurrentRoomPolicy();
+      const voterChoice = policy.mapVote.votes[getMapVoteVoterId()] || "";
+      elements.mapVoteCopy.textContent = status.ended
+        ? "투표 시간이 끝났습니다. 방장이 결과를 확정하는 중입니다."
+        : `${status.remainingSeconds}초 안에 다음 경기 맵을 골라주세요.`;
+      elements.mapVoteResult.textContent = voterChoice
+        ? `내 선택: MAP ${getRestoredMarathonTrailMap(voterChoice).shortLabel}`
+        : "투표는 맵만 정하고, 출발은 방장이 따로 시작합니다.";
+      const maps = listRestoredMarathonTrailMaps().filter((map) => status.options.includes(map.id));
+      elements.mapVoteOptions.replaceChildren(...maps.map((map) => {
+        const button = document.createElement("button");
+        button.className = `map-vote-option${voterChoice === map.id ? " is-selected" : ""}`;
+        button.type = "button";
+        button.disabled = status.ended;
+        button.dataset.mapVoteId = map.id;
+        button.addEventListener("click", () => castCurrentMapVote(map.id));
+        const copy = document.createElement("span");
+        const title = document.createElement("b");
+        title.textContent = `MAP ${map.shortLabel}`;
+        copy.textContent = map.description;
+        const count = document.createElement("i");
+        count.className = "map-vote-count";
+        count.textContent = `${status.counts[map.id] || 0}표`;
+        const text = document.createElement("span");
+        text.append(title, copy);
+        button.append(text, count);
+        return button;
+      }));
+    }
+
     function pushSystem(text) {
       const result = chatTransport.pushSystemMessage(state.messages, {
         channelId: state.activeChannel,

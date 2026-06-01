@@ -52,6 +52,7 @@
 - [Restored Life Minigame System Plan](plans/restored-life-minigame-system.md): Planning draft for convenience-store and fast-food work minigames, including deterministic task scoring, won wage envelopes, condition effects, and relationship hooks.
 - [Singularity Race / Restored Marathon Stadium Plan](plans/restored-marathon-stadium.md): Planning draft and first online-ready contract boundary for the `특이점레이스` standalone lobby, dev-only connected room gate, server-transport-backed adapter shape, separate admin page, spectator/admin chat channels, dev/server transport contracts, 30-runner netcode budget and packet pressure guard, WASD/Shift/E/mouse action race contracts, checkpoint character rewards, 2D 30-runner marathon stadium, local bot practice, checkpoint authority, skins, and future connected rooms.
 - [Restored Study And Career System Plan](plans/restored-study-career-system.md): Planning draft for library study, university classes, company work, won wages, and promotion gates.
+- [Singularity Race v0.1 Lock](singularity-race-v0-1-lock.md): Current focus lock that keeps `특이점레이스` as the playable v0.1 representative game, preserves future expansion paths, and blocks premature common-engine or city/life/economy expansion work.
 - [Restored Feature Plan Template](templates/restored-feature-plan-template.md): Required sections for restored feature plans, including job/occupation impact, ranking impact, chat impact, online authority, assets, and verification.
 
 ## AI Operating Loop

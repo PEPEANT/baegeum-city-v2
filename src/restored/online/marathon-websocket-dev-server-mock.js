@@ -185,6 +185,7 @@ function createStateSnapshot(context, roomId = DEFAULT_ROOM_ID, options = {}) {
     snapshotHz: context.netcodeProfile.snapshotHz,
     movementAuthority: "server",
     phase: room.phase,
+    mapId: room.course.mapId,
     authority: room.authority,
     pingSample,
     reconciliation: createRestoredMarathonReconciliationHint(options.localRunner || {}, options.serverRunner || {}, { elapsedMs: options.elapsedMs ?? 50 }, context.netcodeProfile),

@@ -70,30 +70,23 @@ export const RESTORED_ASSET_MANIFEST = Object.freeze([
     sourceRef: "assets/audio/ost/VENDOR.md",
     status: "legacy-available"
   },
-  {
-    id: "audio:bgm:singularity-race:squid-wake",
-    type: "audio",
-    role: "bgm",
-    path: "assets/restored/audio/singularity-race/bgm/squid-wake.mp3",
-    source: "user-provided local mp3 for Singularity Race private prototype", status: "active",
-    collection: "singularity-race"
-  },
-  {
-    id: "audio:bgm:singularity-race:dont-stop-me",
-    type: "audio",
-    role: "bgm",
-    path: "assets/restored/audio/singularity-race/bgm/dont-stop-me.mp3",
-    source: "user-provided local mp3 for Singularity Race private prototype", status: "active",
-    collection: "singularity-race"
-  },
-  {
-    id: "audio:bgm:singularity-race:tjie-she-pen",
-    type: "audio",
-    role: "bgm",
-    path: "assets/restored/audio/singularity-race/bgm/tjie-she-pen.mp3",
-    source: "user-provided local mp3 for Singularity Race private prototype", status: "active",
-    collection: "singularity-race"
-  },
+  { id: "audio:bgm:singularity-race:squid-wake", type: "audio", role: "bgm", path: "assets/restored/audio/singularity-race/bgm/squid-wake.mp3", source: "user-provided local mp3 for Singularity Race private prototype", status: "active", collection: "singularity-race" },
+  { id: "audio:bgm:singularity-race:modern-future-world", type: "audio", role: "bgm", path: "assets/restored/audio/singularity-race/bgm/modern-future-world.mp3", source: "user-provided local mp3 for Singularity Race launcher/lobby playlist", status: "active", collection: "singularity-race" },
+  { id: "audio:bgm:singularity-race:atlas-futuristic", type: "audio", role: "bgm", path: "assets/restored/audio/singularity-race/bgm/atlas-futuristic.mp3", source: "user-provided local mp3 for Singularity Race launcher/lobby playlist", status: "active", collection: "singularity-race" },
+  { id: "audio:bgm:singularity-race:dont-stop-me", type: "audio", role: "bgm", path: "assets/restored/audio/singularity-race/bgm/dont-stop-me.mp3", source: "user-provided local mp3 for Singularity Race private prototype", status: "active", collection: "singularity-race" },
+  { id: "audio:bgm:singularity-race:tjie-she-pen", type: "audio", role: "bgm", path: "assets/restored/audio/singularity-race/bgm/tjie-she-pen.mp3", source: "user-provided local mp3 for Singularity Race private prototype", status: "active", collection: "singularity-race" },
+  { id: "audio:sfx:singularity-race:countdown-bell", type: "audio", role: "sfx", path: "assets/restored/audio/singularity-race/sfx/countdown-bell.mp3", source: "user-provided local mp3 for Singularity Race 10-second countdown cue", status: "active", collection: "singularity-race" },
+  { id: "audio:sfx:singularity-race:attack-swipe", type: "audio", role: "sfx", path: "assets/restored/audio/singularity-race/sfx/attack-swipe.mp3", source: "generated locally with ffmpeg for Singularity Race attack feedback", status: "active", collection: "singularity-race" },
+  { id: "audio:sfx:singularity-race:item-pickup", type: "audio", role: "sfx", path: "assets/restored/audio/singularity-race/sfx/item-pickup.mp3", source: "generated locally with ffmpeg for Singularity Race item pickup feedback", status: "active", collection: "singularity-race" },
+  { id: "audio:sfx:singularity-race:item-use", type: "audio", role: "sfx", path: "assets/restored/audio/singularity-race/sfx/item-use.mp3", source: "generated locally with ffmpeg for Singularity Race item use feedback", status: "active", collection: "singularity-race" },
+  { id: "audio:sfx:singularity-race:item-hit", type: "audio", role: "sfx", path: "assets/restored/audio/singularity-race/sfx/item-hit.mp3", source: "generated locally with ffmpeg for Singularity Race item hit feedback", status: "active", collection: "singularity-race" },
+  { id: "audio:sfx:singularity-race:skill-use", type: "audio", role: "sfx", path: "assets/restored/audio/singularity-race/sfx/skill-use.mp3", source: "generated locally with ffmpeg for Singularity Race skill feedback", status: "active", collection: "singularity-race" },
+  { id: "audio:sfx:singularity-race:winner-finish", type: "audio", role: "sfx", path: "assets/restored/audio/singularity-race/sfx/winner-finish.mp3", source: "user-provided local mp3 for Singularity Race winner finish cue", status: "active", collection: "singularity-race" },
+  { id: "audio:sfx:singularity-race:podium-applause", type: "audio", role: "sfx", path: "assets/restored/audio/singularity-race/sfx/podium-applause.mp3", source: "user-provided local mp3 for Singularity Race podium applause", status: "active", collection: "singularity-race" },
+  { id: "audio:sfx:singularity-race:ui-tap", type: "audio", role: "sfx", path: "assets/restored/audio/singularity-race/sfx/ui-tap.mp3", source: "generated locally with ffmpeg for Singularity Race UI tap feedback", status: "active", collection: "singularity-race" },
+  { id: "audio:sfx:singularity-race:ui-confirm", type: "audio", role: "sfx", path: "assets/restored/audio/singularity-race/sfx/ui-confirm.mp3", source: "generated locally with ffmpeg for Singularity Race UI confirm feedback", status: "active", collection: "singularity-race" },
+  { id: "audio:sfx:singularity-race:ui-toggle", type: "audio", role: "sfx", path: "assets/restored/audio/singularity-race/sfx/ui-toggle.mp3", source: "generated locally with ffmpeg for Singularity Race UI toggle feedback", status: "active", collection: "singularity-race" },
+  { id: "audio:sfx:singularity-race:ui-deny", type: "audio", role: "sfx", path: "assets/restored/audio/singularity-race/sfx/ui-deny.mp3", source: "generated locally with ffmpeg for Singularity Race blocked UI feedback", status: "active", collection: "singularity-race" },
   {
     id: "image:reference:tank:abrams-style-2d",
     type: "image",
@@ -126,6 +119,7 @@ export const RESTORED_ASSET_MANIFEST = Object.freeze([
     source: "local generated preview",
     status: "legacy-reference"
   },
+  { id: "image:race:singularity-race:launcher-banner", type: "image", role: "race", path: "assets/singularity-race/banner-qorud.png", source: "user-provided desktop banner for Singularity Race launcher", status: "active", collection: "singularity-race" },
   {
     id: "image:race:singularity-race:narration-intro-1",
     type: "image",

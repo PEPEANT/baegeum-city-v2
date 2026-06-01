@@ -3,19 +3,21 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-    <title>배금도시 v2</title>
+    <title>특이점레이스</title>
     <link rel="icon" href="data:,">
     <style>
       :root {
         color-scheme: dark;
-        --bg: #0d1411;
-        --panel: rgba(20, 27, 23, 0.92);
-        --line: rgba(242, 225, 170, 0.18);
-        --ink: #fff4cf;
-        --muted: rgba(255, 244, 207, 0.62);
-        --accent: #f0c661;
-        --green: #64d582;
-        --blue: #74b9ff;
+        --bg: #061326;
+        --panel: rgba(7, 20, 38, 0.88);
+        --panel-strong: rgba(10, 31, 58, 0.94);
+        --line: rgba(103, 196, 255, 0.24);
+        --ink: #eef8ff;
+        --muted: rgba(218, 238, 255, 0.68);
+        --accent: #56c8ff;
+        --accent-strong: #168dff;
+        --warm: #ffc66d;
+        --pink: #ff66d8;
       }
 
       * {
@@ -26,8 +28,9 @@
         min-height: 100vh;
         margin: 0;
         background:
-          linear-gradient(135deg, rgba(6, 10, 8, 0.92), rgba(12, 22, 18, 0.9)),
-          radial-gradient(circle at 78% 18%, rgba(116, 185, 255, 0.14), transparent 28%),
+          radial-gradient(circle at 74% 16%, rgba(86, 200, 255, 0.24), transparent 30%),
+          radial-gradient(circle at 10% 78%, rgba(255, 102, 216, 0.12), transparent 26%),
+          linear-gradient(135deg, rgba(3, 9, 24, 0.96), rgba(7, 24, 48, 0.9)),
           var(--bg);
         color: var(--ink);
         font-family: "Malgun Gothic", "Apple SD Gothic Neo", system-ui, sans-serif;
@@ -35,23 +38,76 @@
 
       main {
         display: grid;
-        grid-template-columns: minmax(280px, 0.92fr) minmax(320px, 1.08fr);
+        grid-template-columns: minmax(286px, 0.84fr) minmax(330px, 1.16fr);
         min-height: 100vh;
       }
 
       .launch-panel {
         display: grid;
         align-content: center;
-        gap: 18px;
+        gap: 20px;
         padding: clamp(24px, 5vw, 72px);
         border-right: 1px solid var(--line);
-        background: rgba(11, 16, 13, 0.58);
+        background:
+          linear-gradient(180deg, rgba(11, 27, 51, 0.66), rgba(4, 13, 27, 0.72)),
+          rgba(5, 14, 26, 0.58);
+      }
+
+      .launcher-nav {
+        position: fixed;
+        top: 18px;
+        left: clamp(18px, 4vw, 72px);
+        right: clamp(18px, 4vw, 72px);
+        z-index: 5;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        pointer-events: none;
+      }
+
+      .nav-logo {
+        color: var(--accent);
+        font-size: 13px;
+        font-weight: 1000;
+        letter-spacing: 0;
+        text-shadow: 0 0 18px rgba(86, 200, 255, 0.46);
+        pointer-events: auto;
+      }
+
+      .nav-links {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: flex-end;
+        gap: 8px;
+        pointer-events: auto;
+      }
+
+      .nav-links a,
+      .nav-links button {
+        min-height: 34px;
+        padding: 0 12px;
+        border: 1px solid rgba(103, 196, 255, 0.22);
+        border-radius: 8px;
+        background: rgba(6, 18, 35, 0.62);
+        color: var(--muted);
+        font: inherit;
+        font-size: 12px;
+        font-weight: 900;
+        cursor: pointer;
+        backdrop-filter: blur(10px);
+      }
+
+      .nav-links a:hover,
+      .nav-links button:hover {
+        border-color: rgba(86, 200, 255, 0.55);
+        color: var(--ink);
       }
 
       .eyebrow {
-        color: var(--green);
+        color: var(--accent);
         font-size: 12px;
-        font-weight: 800;
+        font-weight: 1000;
         letter-spacing: 0;
       }
 
@@ -61,6 +117,7 @@
         font-size: clamp(34px, 6vw, 68px);
         line-height: 1.02;
         letter-spacing: 0;
+        text-shadow: 0 0 28px rgba(86, 200, 255, 0.24);
       }
 
       .status {
@@ -99,10 +156,11 @@
 
       .primary-action {
         min-height: 64px;
-        border-color: rgba(240, 198, 97, 0.72);
-        background: linear-gradient(135deg, rgba(240, 198, 97, 0.24), rgba(100, 213, 130, 0.18));
-        color: #fff8d8;
+        border-color: rgba(86, 200, 255, 0.72);
+        background: linear-gradient(135deg, rgba(22, 141, 255, 0.34), rgba(86, 200, 255, 0.18));
+        color: #f2fbff;
         font-size: 18px;
+        box-shadow: 0 16px 44px rgba(22, 141, 255, 0.18);
       }
 
       .primary-action span,
@@ -115,62 +173,45 @@
         display: grid;
         gap: 10px;
         padding: clamp(24px, 5vw, 72px);
+        align-content: center;
       }
 
       .race-preview {
         position: relative;
-        min-height: 360px;
+        min-height: clamp(320px, 46vw, 520px);
         overflow: hidden;
         border: 1px solid var(--line);
         border-radius: 8px;
-        background:
-          linear-gradient(160deg, rgba(30, 42, 35, 0.98), rgba(18, 24, 22, 0.98)),
-          #151b17;
+        background: #07162c;
+        box-shadow: 0 24px 70px rgba(0, 0, 0, 0.32);
       }
 
-      .track-map {
+      .race-preview img {
         position: absolute;
-        inset: 9%;
-      }
-
-      .track-map svg {
         width: 100%;
         height: 100%;
+        object-fit: cover;
       }
 
-      .runner-dot {
+      .race-preview::after {
+        content: "";
         position: absolute;
-        width: 18px;
-        height: 18px;
-        border: 3px solid rgba(14, 18, 15, 0.9);
-        border-radius: 999px;
-        background: var(--accent);
-        box-shadow: 0 0 0 8px rgba(240, 198, 97, 0.16);
-      }
-
-      .runner-dot.one {
-        left: 21%;
-        top: 66%;
-      }
-
-      .runner-dot.two {
-        left: 54%;
-        top: 39%;
-        background: var(--green);
-      }
-
-      .runner-dot.three {
-        left: 78%;
-        top: 56%;
-        background: var(--blue);
+        inset: 0;
+        background:
+          linear-gradient(180deg, rgba(3, 9, 24, 0.02), rgba(3, 9, 24, 0.42)),
+          linear-gradient(90deg, rgba(3, 9, 24, 0.28), transparent 34%);
+        pointer-events: none;
       }
 
       .preview-label {
         position: absolute;
         left: 18px;
         bottom: 16px;
+        z-index: 1;
         display: grid;
         gap: 4px;
+        max-width: min(440px, calc(100% - 36px));
+        text-shadow: 0 2px 18px rgba(0, 0, 0, 0.62);
       }
 
       .preview-label strong {
@@ -189,28 +230,112 @@
       }
 
       .secondary-action {
-        min-height: 82px;
+        min-height: 112px;
         align-items: flex-start;
         flex-direction: column;
+        gap: 10px;
         padding: 14px;
+        background: var(--panel-strong);
       }
 
       .secondary-action.is-muted {
         opacity: 0.72;
       }
 
+      .secondary-action span {
+        max-width: 100%;
+        line-height: 1.45;
+      }
+
+      .about-modal[hidden] {
+        display: none;
+      }
+
+      .about-modal {
+        position: fixed;
+        inset: 0;
+        z-index: 30;
+        display: grid;
+        place-items: center;
+        padding: 20px;
+        background: rgba(2, 8, 18, 0.74);
+        backdrop-filter: blur(12px);
+      }
+
+      .about-card {
+        display: grid;
+        gap: 14px;
+        width: min(520px, 100%);
+        padding: 22px;
+        border: 1px solid rgba(103, 196, 255, 0.32);
+        border-radius: 8px;
+        background: linear-gradient(180deg, rgba(10, 31, 58, 0.98), rgba(5, 16, 31, 0.98));
+        box-shadow: 0 28px 90px rgba(0, 0, 0, 0.44);
+      }
+
+      .about-card h2,
+      .about-card p {
+        margin: 0;
+      }
+
+      .about-card h2 {
+        font-size: 24px;
+      }
+
+      .about-card p,
+      .about-card li {
+        color: var(--muted);
+        line-height: 1.55;
+      }
+
+      .about-card ul {
+        display: grid;
+        gap: 6px;
+        margin: 0;
+        padding-left: 18px;
+      }
+
+      .about-card button {
+        justify-self: end;
+        min-height: 38px;
+        padding: 0 16px;
+        border: 1px solid rgba(86, 200, 255, 0.42);
+        border-radius: 8px;
+        background: rgba(22, 141, 255, 0.2);
+        color: var(--ink);
+        font-weight: 900;
+      }
+
+      .launcher-audio-root {
+        display: none;
+      }
+
       @media (max-width: 820px) {
         main {
-          grid-template-columns: 1fr;
+          display: flex;
+          flex-direction: column;
+          min-height: auto;
+        }
+
+        .launcher-nav {
+          position: static;
+          padding: 14px 18px 0;
+        }
+
+        body {
+          display: block;
         }
 
         .launch-panel {
+          order: 2;
           min-height: auto;
+          padding-top: 24px;
           border-right: 0;
           border-bottom: 1px solid var(--line);
         }
 
         .mode-list {
+          order: 1;
           padding-top: 18px;
         }
 
@@ -225,60 +350,158 @@
     </style>
   </head>
   <body data-primary-mode="singularity-race">
+    <nav class="launcher-nav" aria-label="시뮬라크월드 링크">
+      <a class="nav-logo" href="./index.html">SIMULACRA WORLD</a>
+      <div class="nav-links">
+        <a href="./index.html">홈</a>
+        <a href="https://gall.dcinside.com/mgallery/board/lists?id=thesingularity" rel="noreferrer">커뮤니티</a>
+        <button type="button" id="aboutOpenButton">설정</button>
+      </div>
+    </nav>
     <main>
       <section class="launch-panel" aria-labelledby="mainTitle">
-        <span class="eyebrow">MAIN MODE</span>
         <h1 id="mainTitle">특이점레이스</h1>
-        <p class="status">배금도시 v2의 첫 완성 목표는 한 판이 시작되고 끝나는 안정적인 레이스입니다.</p>
+        <p class="status">시뮬라크 월드에서 시작되는 특이점이 온다 픽셀 레이스. 디시인사이드 특이점 여러분을 이 작은 세계로 초대합니다.</p>
         <div class="actions">
           <a id="primaryRaceLink" class="primary-action" href="./singularity-race.html">
-            특이점레이스 시작
+            플레이
             <span>0.1</span>
-          </a>
-          <a class="secondary-action" href="./singularity-race-admin.html?devOnline=1">
-            운영 화면
-            <span>host</span>
           </a>
         </div>
       </section>
 
-      <section class="mode-list" aria-label="배금도시 모드">
-        <div class="race-preview" aria-hidden="true">
-          <div class="track-map">
-            <svg viewBox="0 0 1000 620" role="img" aria-label="특이점레이스 트랙">
-              <path d="M82 466 C178 282 292 250 408 362 S646 546 824 390 C936 292 848 124 696 180 C536 238 502 80 334 112 C210 136 170 256 258 328" fill="none" stroke="rgba(10, 13, 11, 0.72)" stroke-width="86" stroke-linecap="round"/>
-              <path d="M82 466 C178 282 292 250 408 362 S646 546 824 390 C936 292 848 124 696 180 C536 238 502 80 334 112 C210 136 170 256 258 328" fill="none" stroke="rgba(222, 204, 147, 0.7)" stroke-width="56" stroke-linecap="round"/>
-              <path d="M82 466 C178 282 292 250 408 362 S646 546 824 390 C936 292 848 124 696 180 C536 238 502 80 334 112 C210 136 170 256 258 328" fill="none" stroke="rgba(255, 246, 198, 0.38)" stroke-width="4" stroke-linecap="round" stroke-dasharray="20 18"/>
-            </svg>
-          </div>
-          <span class="runner-dot one"></span>
-          <span class="runner-dot two"></span>
-          <span class="runner-dot three"></span>
-          <div class="preview-label">
-            <strong>30 Runner Race</strong>
-            <span>fixed camera / mobile controls / result loop</span>
-          </div>
+      <section class="mode-list" aria-label="시뮬라크월드 보관 모드">
+        <div class="race-preview">
+          <img src="./assets/singularity-race/banner-qorud.png" alt="픽셀 캐릭터 도시 레이스 배너">
         </div>
 
         <div class="mode-grid">
-          <a class="secondary-action is-muted" href="./baegeum-city-v2-dice.html">
-            배금도시 허브
-            <span>sub mode</span>
+          <a class="secondary-action is-muted" href="./baegeum-city-v2.html">
+            배금도시 v2
+            <span>확장 엔진 기반 픽셀 도시. 2D 도시와 폰 UI, 장소 이동 실험이 보존된 현재 도시 빌드.</span>
           </a>
           <a class="secondary-action is-muted" href="./baegeum-city-v2-dice.html?map=dice-city&spawn=dice-blackjack-casino-01">
-            다이스시티
-            <span>held</span>
+            다이스시티 v1
+            <span>초기 도시 코어와 카지노 거리 흐름을 보존한 실험 모드.</span>
           </a>
-          <a class="secondary-action is-muted" href="./editor.html">
-            월드 에디터
-            <span>tools</span>
+          <a class="secondary-action is-muted" href="https://drawing-world.onrender.com/" target="_blank" rel="noreferrer">
+            드로잉월드
+            <span>다 함께 그리는 온라인 창작 월드.</span>
           </a>
-          <a class="secondary-action is-muted" href="./skin-lab.html">
-            스킨 테스트장
-            <span>lab</span>
+          <a class="secondary-action is-muted" href="https://pepeant.github.io/MammonCity/" target="_blank" rel="noreferrer">
+            배금도시 v1
+            <span>비주얼노벨 형태의 초기 배금도시 게임.</span>
           </a>
         </div>
       </section>
     </main>
+
+    <section class="about-modal" id="aboutModal" aria-label="시뮬라크월드 설정" hidden>
+      <div class="about-card">
+        <h2>특이점 레이스</h2>
+        <p>시뮬라크 월드에서 시작되는 특이점이 온다 픽셀 레이스. 각 캐릭터는 고유한 스킬과 개성을 가지고 있으며, 플레이어는 로비에서 캐릭터를 선택한 뒤 도시 트랙에서 경쟁하게 됩니다.</p>
+        <ul>
+          <li>제작자: 훈서기</li>
+          <li>제작일: 2026-05-25</li>
+          <li>제작 도구: 코덱스 5.5</li>
+          <li>웹 디자인 도움: 제미나이 3.5</li>
+          <li>커뮤니티 활동: 디시인사이드</li>
+          <li>도움 및 피드백: 특이점이 온다 갤러리</li>
+          <li>특별출연: 지피쨩 등</li>
+        </ul>
+        <button type="button" id="aboutCloseButton">닫기</button>
+      </div>
+    </section>
+    <div class="launcher-audio-root" id="launcherAudioRoot" aria-hidden="true"></div>
+
+    <script type="module">
+      import { getRestoredAssetById } from "./src/restored/assets/asset-manifest.js";
+
+      const launcherBgmAssetIds = Object.freeze([
+        "audio:bgm:singularity-race:modern-future-world",
+        "audio:bgm:singularity-race:atlas-futuristic"
+      ]);
+      const LAUNCHER_MENU_BGM_INTENT_KEY = "singularity-race:launcher-menu-bgm-intent";
+      const launcherBgmTracks = Object.freeze(launcherBgmAssetIds.map((assetId) => {
+        const asset = getRestoredAssetById(assetId);
+        return {
+          key: assetId.split(":").at(-1),
+          assetId,
+          src: asset?.path ? `./${asset.path}` : ""
+        };
+      }));
+      const launcherAudioRoot = document.querySelector("#launcherAudioRoot");
+      const launcherBgmAudio = document.createElement("audio");
+      let launcherBgmIndex = 0;
+      let launcherBgmStopped = false;
+
+      launcherBgmAudio.id = "launcher-bgm-audio";
+      launcherBgmAudio.preload = "auto";
+      launcherBgmAudio.volume = 0.4;
+      launcherBgmAudio.dataset.role = "launcher-lobby-bgm";
+      launcherAudioRoot.append(launcherBgmAudio);
+
+      function loadLauncherBgmTrack() {
+        const track = launcherBgmTracks[launcherBgmIndex % launcherBgmTracks.length];
+        if (!track?.src) return false;
+        if (launcherBgmAudio.dataset.trackKey !== track.key) {
+          launcherBgmAudio.src = track.src;
+          launcherBgmAudio.dataset.trackKey = track.key;
+          launcherBgmAudio.dataset.assetId = track.assetId;
+        }
+        return true;
+      }
+
+      async function startLauncherBgm() {
+        if (launcherBgmStopped || !loadLauncherBgmTrack() || !launcherBgmAudio.paused) return;
+        try {
+          await launcherBgmAudio.play();
+        } catch {
+          // Browser autoplay policy may require another real gesture.
+        }
+      }
+
+      function stopLauncherBgm() {
+        launcherBgmStopped = true;
+        launcherBgmAudio.pause();
+        try {
+          launcherBgmAudio.currentTime = 0;
+        } catch {
+          // Some browsers reject currentTime writes before metadata loads.
+        }
+      }
+
+      function rememberLauncherBgmIntent() {
+        try {
+          window.sessionStorage.setItem(LAUNCHER_MENU_BGM_INTENT_KEY, String(Date.now()));
+        } catch {
+          // Private browsing or storage settings may block sessionStorage.
+        }
+      }
+
+      launcherBgmAudio.addEventListener("ended", () => {
+        if (launcherBgmStopped) return;
+        launcherBgmIndex = (launcherBgmIndex + 1) % launcherBgmTracks.length;
+        void startLauncherBgm();
+      });
+      for (const eventName of ["keydown", "pointerdown", "touchstart"]) {
+        window.addEventListener(eventName, () => void startLauncherBgm(), { passive: true });
+      }
+      document.querySelector("#primaryRaceLink").addEventListener("click", () => {
+        rememberLauncherBgmIntent();
+        stopLauncherBgm();
+      });
+
+      const aboutModal = document.querySelector("#aboutModal");
+      document.querySelector("#aboutOpenButton").addEventListener("click", () => {
+        aboutModal.hidden = false;
+      });
+      document.querySelector("#aboutCloseButton").addEventListener("click", () => {
+        aboutModal.hidden = true;
+      });
+      aboutModal.addEventListener("click", (event) => {
+        if (event.target === aboutModal) aboutModal.hidden = true;
+      });
+    </script>
   </body>
 </html>

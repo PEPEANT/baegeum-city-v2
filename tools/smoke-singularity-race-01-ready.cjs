@@ -7,6 +7,7 @@ const root = path.resolve(__dirname, "..");
 
 const checks = Object.freeze([
   "tools/check-restored-marathon-contract.cjs",
+  "tools/smoke-singularity-race-v01-lock.cjs",
   "tools/smoke-singularity-race-progression.cjs",
   "tools/smoke-singularity-race-camera.cjs",
   "tools/smoke-singularity-race-render-budget.cjs",

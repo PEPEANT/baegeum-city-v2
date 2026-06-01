@@ -1,0 +1,225 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>배금도시 v2</title>
+    <link rel="icon" href="data:,">
+    <link rel="stylesheet" href="./src/styles/app.css">
+    <link rel="stylesheet" href="./src/styles/mammon-hud-integration.css">
+    <link rel="stylesheet" href="./src/styles/mobile-action-controls.css">
+    <link rel="stylesheet" href="./src/styles/table-game-panel.css">
+    <link rel="stylesheet" href="./src/styles/exchange-atm-panel.css">
+    <link rel="stylesheet" href="./vendor/mammon-city/css/phone.css">
+    <link rel="stylesheet" href="./src/styles/mammon-phone-integration.css">
+  </head>
+  <body>
+    <canvas id="game" tabindex="0" aria-label="배금도시 v2 게임 화면"></canvas>
+    <div class="world-clock-panel" aria-live="polite">
+      <span id="worldClockPhase">낮</span>
+      <strong id="worldClockTime">08:00</strong>
+      <span id="worldClockDay">DAY 01</span>
+    </div>
+    <div id="hud-left" aria-label="플레이어 돈" aria-live="polite">
+      <span id="day-display">DAY 01</span>
+      <span class="hud-sep">·</span>
+      <span id="money-display" class="hud-val money">현금 100,000원</span>
+      <span class="hud-sep">·</span>
+      <span id="bank-display" class="hud-val bank">계좌 0원</span>
+      <span class="hud-sep">·</span>
+      <span id="chip-display" class="hud-val chip">칩 0</span>
+    </div>
+    <div id="hud-right" aria-label="플레이어 상태">
+      <div class="hud-stat">
+        <span class="hud-label">체력</span>
+        <span id="stamina-display" class="hud-val stamina">100</span>
+      </div>
+      <span class="hud-divider"></span>
+      <div class="hud-stat">
+        <span class="hud-label">에너지</span>
+        <span id="energy-display" class="hud-val energy">100</span>
+      </div>
+      <span class="hud-divider"></span>
+      <div class="hud-stat">
+        <span class="hud-label">배고픔</span>
+        <span id="hunger-display" class="hud-val hunger">100/100</span>
+      </div>
+    </div>
+    <div id="side-toolbar">
+      <button id="inventory-button" type="button" aria-expanded="false" aria-controls="inventory-panel" aria-label="가방">
+        🎒<span id="inventory-count" class="toolbar-badge">0</span>
+      </button>
+    </div>
+    <div id="inventory-panel" hidden aria-hidden="true">
+      <div class="panel-header">
+        <div>
+          <div class="panel-kicker">INVENTORY</div>
+          <div class="panel-title">가방</div>
+        </div>
+        <button id="inventory-close-button" class="panel-close-button" type="button" aria-label="가방 닫기">닫기</button>
+      </div>
+      <div id="inventory-summary" class="inventory-summary"></div>
+      <div id="inventory-tabs" class="inventory-tabs"></div>
+      <div id="inventory-list" class="inventory-list"></div>
+    </div>
+    <button id="settingsToggle" class="settings-toggle" type="button" aria-expanded="false" aria-controls="settingsPanel" aria-label="설정 열기">⚙</button>
+    <aside id="settingsPanel" class="hud-panel settings-panel" aria-live="polite" hidden>
+      <strong>설정</strong>
+      <span>배금도시 v2</span>
+      <span id="sceneLabel">scene: city</span>
+      <span id="positionLabel">x 0 / y 0</span>
+      <span id="nearbyLabel">nearby: none</span>
+      <span id="playerModeLabel">mode: city</span>
+      <span id="chatChannelLabel">chat: world:city</span>
+      <span id="venueStateLabel">venue: none</span>
+      <span id="onlineRoomLabel">room: none</span>
+      <span id="mapVersionLabel">map: baegeum-city-v2-map-001</span>
+      <div class="feature-audit-mini" aria-label="배금도시 기능 검증">
+        <span id="buildingAuditLabel">buildings: -</span>
+        <span id="appAuditLabel">apps: -</span>
+        <span id="riskAuditLabel">audit: -</span>
+      </div>
+      <span class="hint">WASD 이동 · E 입장/나가기 · G 디버그</span>
+      <div class="ost-controls" aria-label="OST controls">
+        <button id="ostToggle" type="button">OST 재생</button>
+        <button id="ostNext" type="button">다음 곡</button>
+        <span id="ostStatus">RECLAIM 2.5</span>
+      </div>
+      <div class="hud-links">
+        <a href="./editor.html">맵 에디터</a>
+        <a href="./skin-lab.html">캐릭터 테스트장</a>
+      </div>
+    </aside>
+    <button id="chatToggle" class="world-chat-toggle" type="button" aria-expanded="false" aria-controls="worldChatPanel">채팅</button>
+    <aside id="worldChatPanel" class="world-chat is-closed" aria-label="월드 채팅">
+      <div class="world-chat-head">
+        <strong>월드 채팅</strong>
+        <span id="worldChatRoom">world:city</span>
+      </div>
+      <div id="chatLog" class="world-chat-log" aria-live="polite"></div>
+      <form id="chatForm" class="world-chat-form">
+        <input id="chatInput" type="text" maxlength="160" placeholder="T 또는 Enter로 채팅" autocomplete="off">
+        <button type="submit">전송</button>
+      </form>
+    </aside>
+    <div id="mobileActionDock" class="mobile-action-dock" aria-label="모바일 액션">
+      <button id="mobileActionButton" class="mobile-action-button" type="button" disabled>
+        <span id="mobileActionHint" class="mobile-action-hint">E</span>
+        <strong id="mobileActionLabel">액션</strong>
+        <small id="mobileActionTarget">대상 없음</small>
+      </button>
+    </div>
+    <section id="oddEvenTablePanel" class="table-game-panel" aria-live="polite" hidden>
+      <div class="table-game-head">
+        <div>
+          <span id="oddEvenVenueLabel" class="table-game-kicker">홀짝카지노</span>
+          <strong>홀짝 테이블</strong>
+        </div>
+        <span id="oddEvenChipStatus" class="table-game-chip">칩 0</span>
+      </div>
+      <div class="table-game-row" role="group" aria-label="홀짝 선택">
+        <button class="table-game-choice" type="button" data-odd-even-pick="odd">홀</button>
+        <button class="table-game-choice" type="button" data-odd-even-pick="even">짝</button>
+      </div>
+      <div class="table-game-row table-game-bets" role="group" aria-label="베팅 칩 선택">
+        <button class="table-game-bet is-active" type="button" data-chip-option="10">10</button>
+        <button class="table-game-bet" type="button" data-chip-option="50">50</button>
+        <button class="table-game-bet" type="button" data-chip-option="100">100</button>
+      </div>
+      <div class="table-game-row table-game-results" role="group" aria-label="홀짝 결과 테스트">
+        <button class="table-game-result" type="button" data-odd-even-result="odd" disabled>결과 홀</button>
+        <button class="table-game-result" type="button" data-odd-even-result="even" disabled>결과 짝</button>
+        <button id="oddEvenRefundButton" class="table-game-result" type="button" disabled>환불</button>
+      </div>
+      <button id="oddEvenStartButton" class="table-game-start" type="button" disabled>베팅 시스템 준비중</button>
+      <p id="oddEvenHint" class="table-game-hint">지금은 UI 확인 단계. 다음 루프에서 bet_reserved를 연결.</p>
+    </section>
+    <section id="exchangeAtmPanel" class="exchange-atm-panel" aria-live="polite" hidden>
+      <div class="exchange-atm-topbar">
+        <strong>EXCHANGE</strong>
+        <button id="exchangeAtmClose" type="button">닫기 (ESC)</button>
+      </div>
+      <div class="exchange-atm-screen">
+        <div class="exchange-atm-status">
+          <div class="exchange-lcd">
+            <span>CASH (원)</span>
+            <strong id="exchangeAtmCash">0원</strong>
+          </div>
+          <div class="exchange-lcd">
+            <span>CHIPS</span>
+            <strong id="exchangeAtmChips">0</strong>
+          </div>
+          <div class="exchange-lcd">
+            <span>CHIP VALUE (원)</span>
+            <strong id="exchangeAtmChipValue">0원</strong>
+          </div>
+        </div>
+        <div id="exchangeAtmMsg" class="exchange-atm-msg">환전할 금액(칩)을 선택하세요!</div>
+        <div class="exchange-atm-buttons" aria-label="환전 옵션">
+          <button type="button" data-exchange-dir="C2H" data-exchange-amount="10">1만원 → 10칩</button>
+          <button type="button" data-exchange-dir="C2H" data-exchange-amount="50">5만원 → 50칩</button>
+          <button type="button" data-exchange-dir="C2H" data-exchange-amount="100">10만원 → 100칩</button>
+          <button type="button" data-exchange-dir="H2C" data-exchange-amount="10">10칩 → 1만원</button>
+          <button type="button" data-exchange-dir="H2C" data-exchange-amount="50">50칩 → 5만원</button>
+          <button type="button" data-exchange-dir="H2C" data-exchange-amount="100">100칩 → 10만원</button>
+        </div>
+      </div>
+    </section>
+    <div id="phone-stage" hidden aria-hidden="true"></div>
+    <div id="phone-focus-dim" hidden aria-hidden="true"></div>
+
+    <div id="phone-panel">
+      <div class="phone-shell">
+        <div class="phone-notch"></div>
+        <div class="phone-screen">
+          <div class="phone-status-row">
+            <span id="phone-time-display" class="phone-status-time">08:00</span>
+            <span id="phone-status-signal" class="phone-status-signal">TURN 01</span>
+          </div>
+
+          <div id="phone-day-chip" class="phone-day-chip" hidden>TURN 01</div>
+
+          <div id="phone-apps" class="phone-apps"></div>
+
+          <div id="phone-app-screen" class="phone-app-screen" hidden></div>
+        </div>
+
+        <div id="phone-controls" aria-label="Phone controls">
+          <button id="phone-stage-btn" class="phone-control-btn" type="button" aria-pressed="false">
+            <span class="phone-control-icon" aria-hidden="true">⛶</span>
+            <span class="phone-control-label"></span>
+          </button>
+          <button id="city-map-toggle-btn" class="phone-control-btn is-map" type="button" aria-expanded="false" aria-label="지도 열기">
+            <span class="phone-control-icon" aria-hidden="true"></span>
+            <span class="phone-control-label"></span>
+          </button>
+          <button id="phone-home-btn" class="phone-control-btn is-home" type="button" aria-expanded="false">
+            <span class="phone-control-icon" aria-hidden="true"></span>
+            <span class="phone-control-label"></span>
+          </button>
+          <button id="phone-back-btn" class="phone-control-btn" type="button">
+            <span class="phone-control-icon" aria-hidden="true">↩</span>
+            <span class="phone-control-label"></span>
+          </button>
+        </div>
+      </div>
+    </div>
+    <script src="./vendor/iron-line/src/core/math.js"></script>
+    <script src="./vendor/iron-line/src/data/constants.js"></script>
+    <script src="./vendor/iron-line/src/data/scenery-catalog.js"></script>
+    <script src="./vendor/iron-line/src/data/map01.js"></script>
+    <script src="./vendor/iron-line/src/data/map01-custom-layout.js"></script>
+    <script src="./vendor/iron-line/src/systems/renderer.js"></script>
+    <script src="./vendor/iron-line/src/systems/renderer-minimap.js"></script>
+    <script src="./vendor/iron-line/src/systems/renderer-scenery.js"></script>
+    <script type="module" src="./src/main.js"></script>
+    <script type="module" src="./src/ui/world-chat-panel.js"></script>
+    <script type="module" src="./src/ui/player-status-hud.js"></script>
+    <script type="module" src="./src/ui/mobile-action-controls.js"></script>
+    <script type="module" src="./src/ui/odd-even-table-panel.js"></script>
+    <script type="module" src="./src/ui/exchange-atm-panel.js"></script>
+    <script type="module" src="./src/ui/settings-panel.js"></script>
+    <script type="module" src="./src/systems/ost-player.js"></script>
+    <script type="module" src="./src/devices/phone/mammon-phone-shell.js"></script>
+  </body>
+</html>

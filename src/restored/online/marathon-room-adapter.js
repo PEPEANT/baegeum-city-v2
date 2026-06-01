@@ -4,6 +4,7 @@ import { createRestoredMarathonDevRoomRecord, createRestoredMarathonRoomsFromDev
 import { createRestoredMarathonLargeRoomNetcodeProfile, createRestoredMarathonNetcodeProfile, createRestoredMarathonPingSample, createRestoredMarathonReconciliationHint } from "./marathon-netcode-contract.js";
 import { createServerBackedMarathonRoomAdapter } from "./marathon-server-room-adapter.js";
 import { RESTORED_MARATHON_AUTHORITY, RESTORED_MARATHON_CONTRACT_VERSION, RESTORED_MARATHON_DEFAULT_MAX_SPECTATORS, RESTORED_MARATHON_MAX_RUNNERS, canJoinRestoredMarathonRoom, countRestoredMarathonRunners, countRestoredMarathonSpectators, createRestoredMarathonOnlinePacket, createRestoredMarathonParticipant, createRestoredMarathonRoom, validateRestoredMarathonOnlinePacket } from "../games/marathon-contract.js";
+import { normalizeRestoredMarathonTrailMapId } from "../games/marathon-trail-geometry.js";
 export const RESTORED_MARATHON_ROOM_ADAPTER_VERSION = "restored-marathon-room-adapter-001";
 export const RESTORED_MARATHON_DEV_QUERY_FLAG = "devOnline";
 export { createServerBackedMarathonRoomAdapter } from "./marathon-server-room-adapter.js";
@@ -34,6 +35,7 @@ export function createDevConnectedMarathonRoomAdapter(options = {}) {
     })];
   const rooms = createRestoredMarathonRoomsFromDevRegistry(devRoomInputs, {
     mapVersion: options.mapVersion || DEFAULT_MAP_VERSION,
+    course: { ...(options.course || {}), mapId: normalizeRestoredMarathonTrailMapId(options.mapId ?? options.course?.mapId) },
     serverTimeMs
   });
   return Object.freeze({
@@ -104,8 +106,7 @@ export function joinConnectedMarathonRoom(adapter, request = {}) {
   if (request.mapVersion && request.mapVersion !== room.mapVersion) return joinFailure("map_version_mismatch");
   if (request.protocolVersion && request.protocolVersion !== RESTORED_MARATHON_CONTRACT_VERSION) return joinFailure("protocol_version_mismatch");
   if (request.venueSchemaVersion && request.venueSchemaVersion !== DEFAULT_VENUE_SCHEMA_VERSION) return joinFailure("venue_schema_mismatch");
-  const participantId = request.participantId || "runner:you";
-  const nickname = request.nickname || "YOU";
+  const participantId = request.participantId || "runner:you", nickname = request.nickname || "YOU";
   const sequence = Math.max(1, Number(request.sequence || 1));
   const serverTimeMs = Math.max(adapter.online.state.serverTimeMs, Number(request.serverTimeMs || 0));
   const joinRequest = createRestoredMarathonOnlinePacket("join_request", {
@@ -161,6 +162,7 @@ export function createConnectedMarathonStateSnapshot(roomInput, options = {}) {
     serverTickHz: profile.serverTickHz,
     snapshotHz: profile.snapshotHz,
     phase: room.phase,
+    mapId: room.course.mapId,
     authority: room.authority,
     pingSample: createRestoredMarathonPingSample(options.pingTiming || {
       clientSentAtMs: Math.max(0, serverTimeMs - 76),
@@ -215,10 +217,8 @@ export function validateRestoredMarathonRoomAdapterContract() {
     validateRestoredMarathonOnlinePacket(snapshot)
   ];
   const errors = validations.flatMap((validation) => validation.errors);
-  const channelValidation = validateRestoredMarathonChannelContract();
-  errors.push(...channelValidation.errors);
-  const roomRegistryValidation = validateRestoredMarathonDevRoomRegistryContract();
-  errors.push(...roomRegistryValidation.errors);
+  const channelValidation = validateRestoredMarathonChannelContract(); errors.push(...channelValidation.errors);
+  const roomRegistryValidation = validateRestoredMarathonDevRoomRegistryContract(); errors.push(...roomRegistryValidation.errors);
   if (canOpenConnectedMarathonLobby(unavailable)) errors.push("unavailable adapter opened a lobby");
   if (!canOpenConnectedMarathonLobby(connected)) errors.push("dev connected adapter did not open a lobby");
   const emptyDevAdapter = createDevConnectedMarathonRoomAdapter({ devRooms: [] });

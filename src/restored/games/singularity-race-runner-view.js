@@ -16,17 +16,24 @@ const RUN_STYLE_BY_SKIN = Object.freeze({
   gpichan: "bounce",
   "doomer-runner": "heavy",
   "pepe-runner": "hop",
-  "doge-runner": "hop",
+  "doge-runner": "quick",
   "ant-squad": "quick",
   "moderator-armband": "quick",
   yalrkun: "bounce",
   "lakers-wile": "glide",
   "sam-altman": "glide",
   "demis-hassabis": "quick",
-  "ai-believer": "glide",
-  "server-crash": "robot",
+  "ai-believer": "robot",
+  "server-crash": "quick",
   "profit-fairy": "bounce",
-  "stoploss-warrior": "heavy"
+  "stoploss-warrior": "heavy",
+  "grok-chan": "glide",
+  "gemini-chan": "bounce",
+  "claude-chan": "glide",
+  "atlas-robot": "robot",
+  "donald-trump": "heavy",
+  "lee-jaemyung": "quick",
+  "von-neumann": "glide"
 });
 
 export function createSingularityRunnerAvatarNode(runner) {
@@ -154,6 +161,9 @@ export function validateSingularityRaceRunnerViewContract() {
     errors.push("connected player status must stay Korean");
   }
   if (resolveSingularityRunnerRunStyle("robot") !== "robot") errors.push("robot needs a mechanical run style");
+  if (resolveSingularityRunnerRunStyle("atlas-robot") !== "robot") errors.push("아틀라스 needs a robot run style");
+  if (resolveSingularityRunnerRunStyle("ai-believer") !== "robot") errors.push("특궁 should keep a mechanical Robocop-style run");
+  if (resolveSingularityRunnerRunStyle("server-crash") !== "quick") errors.push("역류기 should keep a quick hacker run");
   if (resolveSingularityRunnerRunStyle("gpichan") !== "bounce") errors.push("gpichan needs a bouncy run style");
   return Object.freeze({ ok: errors.length === 0, errors: Object.freeze(errors) });
 }
