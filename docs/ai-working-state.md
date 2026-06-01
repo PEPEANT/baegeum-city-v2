@@ -1,6 +1,14 @@
 # AI Working State
 
 Date: 2026-06-02
+Observed: During the requested commit/push/deploy pass, live Worker `/health` succeeded but live `/rooms` returned Cloudflare 1101. Wrangler tail showed the actual cause: `Exceeded allowed rows written in Durable Objects free tier.`
+Changed: Kept the fix inside `workers/singularity-race-worker.js`. Durable Object storage reads/writes/alarm calls are now wrapped in safe helpers. If storage row writes or alarms are unavailable, the one-room public loop falls back to in-memory phase/countdown state and a local countdown timer instead of crashing `/rooms` or joins. Added a smoke guard and Cloudflare online note so storage quota cannot become a hard public-room dependency again.
+Verified: `node --check workers/singularity-race-worker.js`, `node tools/smoke-singularity-race-cloudflare-online.cjs`, `node tools/smoke-singularity-race-server-load.cjs`, and `git diff --check` passed before redeploy.
+Blocked: Pending redeploy and live `/rooms` recheck at the time of this note.
+Next: Run full check, commit/push the storage fallback, redeploy Worker, and verify live `/health`, `/rooms`, user page, and admin page links.
+Do not: Add billing-required storage assumptions or make the public loop depend on persistent Durable Object writes until the account quota issue is resolved.
+
+Date: 2026-06-02
 Observed: User asked for a final wrap-up sweep to find any unfinished Singularity Race v0.1 bugs or unexpected breakage before stopping.
 Changed: No new gameplay code was needed in this sweep. Rechecked the current launcher, profile, race desktop, race mobile, and dev admin surfaces after the mobile minimap/obstacle/control passes.
 Verified: `npm run check:singularity-race`, `git diff --check`, `node tools/smoke-index-entry.cjs`, `node tools/smoke-singularity-race-combat-full-race.cjs`, `node tools/smoke-singularity-race-progression.cjs`, `node tools/smoke-singularity-race-mobile-race-ui.cjs`, `node tools/smoke-singularity-race-cloudflare-online.cjs`, `node tools/smoke-singularity-race-server-load.cjs`, and full `npm run check` passed. Browser final sweep loaded `index.html`, `singularity-race.html?resetProfile=1`, desktop race, mobile race at 390x844, and `singularity-race-admin.html?devOnline=1`; all had zero console/page errors. Desktop/mobile race showed one runner, six obstacles, minimap with six obstacle markers and one player dot, and no minimap overlap with chat, attack, or sprint controls. Dev admin loaded with one local dev room card; any old room name there is localStorage state, not a code failure.

@@ -49,6 +49,8 @@ export class SingularityRaceRoom {
     this.phase = "lobby";
     this.countdownEndsAtMs = 0;
     this.roomStateLoaded = false;
+    this.storageAvailable = true;
+    this.countdownTimer = null;
     this.restoreSessions();
   }
 
@@ -202,7 +204,8 @@ export class SingularityRaceRoom {
     this.phase = "countdown";
     this.countdownEndsAtMs = now + COUNTDOWN_MS;
     await this.persistRoomState();
-    await this.state.storage.setAlarm(this.countdownEndsAtMs + 25);
+    await this.safeSetAlarm(this.countdownEndsAtMs + 25);
+    this.scheduleCountdownTimer();
     this.broadcast(this.serverPacket("start_countdown", {
       roomId: ROOM_ID,
       gateOpensAtMs: this.countdownEndsAtMs,
@@ -217,7 +220,7 @@ export class SingularityRaceRoom {
     this.countdownEndsAtMs = 0;
     this.chatHistory = [];
     await this.persistRoomState();
-    await this.state.storage.deleteAlarm();
+    await this.safeDeleteAlarm();
     const packet = this.serverPacket("room_reset", { reason, serverOwned: true });
     for (const socket of this.state.getWebSockets()) {
       try {
@@ -291,7 +294,7 @@ export class SingularityRaceRoom {
       this.phase = "lobby";
       this.countdownEndsAtMs = 0;
       await this.persistRoomState();
-      await this.state.storage.deleteAlarm();
+      await this.safeDeleteAlarm();
     }
     this.broadcast(this.serverPacket("disconnect_notice", {
       participantId: session.participantId,
@@ -311,23 +314,81 @@ export class SingularityRaceRoom {
 
   async loadRoomState() {
     if (this.roomStateLoaded) return;
-    const stored = await this.state.storage.get(["phase", "countdownEndsAtMs"]);
+    const stored = await this.safeStorageGet(["phase", "countdownEndsAtMs"]);
     this.phase = sanitizePhase(stored.get("phase"));
     this.countdownEndsAtMs = Number(stored.get("countdownEndsAtMs") || 0);
     if (this.sessions.size === 0 && this.phase !== "lobby") {
       this.phase = "lobby";
       this.countdownEndsAtMs = 0;
       await this.persistRoomState();
-      await this.state.storage.deleteAlarm();
+      await this.safeDeleteAlarm();
     }
     this.roomStateLoaded = true;
+    if (this.phase === "countdown" && this.countdownEndsAtMs > Date.now()) this.scheduleCountdownTimer();
   }
 
   async persistRoomState() {
-    await this.state.storage.put({
+    await this.safeStoragePut({
       phase: this.phase,
       countdownEndsAtMs: this.countdownEndsAtMs
     });
+  }
+
+  async safeStorageGet(keys) {
+    if (!this.storageAvailable) return new Map();
+    try {
+      return await this.state.storage.get(keys);
+    } catch (error) {
+      this.storageAvailable = false;
+      console.warn("storage_read_unavailable", error?.message || error);
+      return new Map();
+    }
+  }
+
+  async safeStoragePut(value) {
+    if (!this.storageAvailable) return false;
+    try {
+      await this.state.storage.put(value);
+      return true;
+    } catch (error) {
+      this.storageAvailable = false;
+      console.warn("storage_write_unavailable", error?.message || error);
+      return false;
+    }
+  }
+
+  async safeSetAlarm(whenMs) {
+    if (!this.storageAvailable) return false;
+    try {
+      await this.state.storage.setAlarm(whenMs);
+      return true;
+    } catch (error) {
+      this.storageAvailable = false;
+      console.warn("storage_alarm_unavailable", error?.message || error);
+      return false;
+    }
+  }
+
+  async safeDeleteAlarm() {
+    if (!this.storageAvailable) return false;
+    try {
+      await this.state.storage.deleteAlarm();
+      return true;
+    } catch (error) {
+      this.storageAvailable = false;
+      console.warn("storage_delete_alarm_unavailable", error?.message || error);
+      return false;
+    }
+  }
+
+  scheduleCountdownTimer() {
+    if (this.countdownTimer || this.countdownEndsAtMs <= Date.now()) return;
+    const delayMs = Math.max(25, this.countdownEndsAtMs - Date.now() + 25);
+    this.countdownTimer = setTimeout(() => {
+      this.countdownTimer = null;
+      if (this.refreshPhase(Date.now())) this.persistRoomState();
+      this.broadcastSnapshot(true);
+    }, delayMs);
   }
 
   restoreSessions() {
