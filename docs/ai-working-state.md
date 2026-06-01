@@ -4,8 +4,9 @@ Date: 2026-06-02
 Observed: During the requested commit/push/deploy pass, live Worker `/health` succeeded but live `/rooms` returned Cloudflare 1101. Wrangler tail showed the actual cause: `Exceeded allowed rows written in Durable Objects free tier.`
 Changed: Kept the fix inside `workers/singularity-race-worker.js`. Durable Object storage reads/writes/alarm calls are now wrapped in safe helpers. If storage row writes or alarms are unavailable, the one-room public loop falls back to in-memory phase/countdown state and a local countdown timer instead of crashing `/rooms` or joins. Added a smoke guard and Cloudflare online note so storage quota cannot become a hard public-room dependency again.
 Verified: `node --check workers/singularity-race-worker.js`, `node tools/smoke-singularity-race-cloudflare-online.cjs`, `node tools/smoke-singularity-race-server-load.cjs`, and `git diff --check` passed before redeploy.
-Blocked: Pending redeploy and live `/rooms` recheck at the time of this note.
-Next: Run full check, commit/push the storage fallback, redeploy Worker, and verify live `/health`, `/rooms`, user page, and admin page links.
+Verified: Full `npm run check` passed after the storage fallback. Committed and pushed the fallback, redeployed Worker version `64ea42bd-e812-4236-b2b3-8b61296c9d97`, redeployed Pages preview `https://9914f27b.singularity-race-client.pages.dev`, and live `/health`, `/rooms`, user page, and admin page all returned successfully with zero browser console errors.
+Blocked: None for this deploy pass. The Cloudflare account still appears to have Durable Object storage write quota pressure, but the public one-room loop now keeps working without storage writes.
+Next: Share the stable user/admin links and use the user page for public play tests; public admin remains disabled by design while first joined user acts as temporary host.
 Do not: Add billing-required storage assumptions or make the public loop depend on persistent Durable Object writes until the account quota issue is resolved.
 
 Date: 2026-06-02
