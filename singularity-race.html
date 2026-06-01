@@ -4693,11 +4693,17 @@
       createRestoredMarathonAttackEnvelope,
       createRestoredMarathonInputEnvelope,
       createRestoredMarathonSkillEnvelope,
+      createRestoredMarathonServerTransportSnapshot,
       createRestoredMarathonTransportEnvelope
     } from "./src/restored/online/marathon-server-transport-contract.js";
     import {
       createRestoredMarathonInputFrame
     } from "./src/restored/games/marathon-input-contract.js";
+    import {
+      SINGULARITY_RACE_CLOUDFLARE_ROOM_ID,
+      createSingularityRaceCloudflareRoomClient,
+      resolveSingularityRaceCloudflareWsUrl
+    } from "./src/restored/online/singularity-race-cloudflare-client.js";
     import {
       RESTORED_MARATHON_MAX_RUNNERS
     } from "./src/restored/games/marathon-contract.js";
@@ -5110,6 +5116,7 @@
     ];
     const queryParams = new URLSearchParams(window.location.search);
     const devOnlineEnabled = queryParams.get("devOnline") === "1";
+    const cloudflareOnlineEnabled = queryParams.get("online") === "cloudflare" || queryParams.get("cfOnline") === "1";
     const adminLaunchEnabled = queryParams.get("adminLaunch") === "1";
     const adminObserverEnabled = queryParams.get("adminObserver") === "1";
     const debugUiEnabled = queryParams.get("debug") === "1";
@@ -5123,6 +5130,28 @@
     const DEV_ROOM_ID = activeDevRoom?.roomId || "room:singularity-race:dev-001";
     const roomPolicy = readRestoredMarathonRoomPolicy(window.localStorage, DEV_ROOM_ID);
     const initialRaceMapId = normalizeRestoredMarathonTrailMapId(roomPolicy.mapId);
+    const CLOUDFLARE_ROOM_ID = queryParams.get("roomId") || SINGULARITY_RACE_CLOUDFLARE_ROOM_ID;
+    const CLOUDFLARE_WS_ENDPOINT = resolveSingularityRaceCloudflareWsUrl(
+      queryParams.get("serverUrl") || queryParams.get("ws") || window.localStorage.getItem("singularity-race:cloudflare-worker-url") || "",
+      window.location
+    );
+    const cloudflareTransport = cloudflareOnlineEnabled ? createRestoredMarathonServerTransportSnapshot({
+      provider: "websocket",
+      mode: "cloudflare_durable_object",
+      status: "connected",
+      endpointId: CLOUDFLARE_WS_ENDPOINT,
+      clientId: "client:cloudflare-browser",
+      roomId: CLOUDFLARE_ROOM_ID,
+      capabilities: { rooms: true, chat: true, input: true, snapshots: true, admin: false }
+    }) : null;
+    const cloudflareRooms = cloudflareOnlineEnabled ? [{
+      roomId: CLOUDFLARE_ROOM_ID,
+      displayName: "특이점레이스 공개방 001",
+      phase: "lobby",
+      maxRunners: MAX_RUNNERS,
+      maxSpectators: roomPolicy.maxSpectators,
+      course: { mapId: initialRaceMapId }
+    }] : [];
     if (queryParams.get("resetProfile") === "1") {
       window.localStorage.removeItem(PROFILE_STORAGE_KEY);
       window.localStorage.removeItem(STORAGE_KEY);
@@ -5133,7 +5162,9 @@
       serverTimeMs: 1000,
       maxSpectators: roomPolicy.maxSpectators,
       mapId: initialRaceMapId,
-      devRooms: orderedDevRooms
+      devRooms: orderedDevRooms,
+      serverTransport: cloudflareTransport,
+      serverRooms: cloudflareRooms
     });
     const adapterValidation = validateRestoredMarathonRoomAdapter(roomAdapter);
     const activeDevRoomClosed = (devOnlineEnabled || adminLaunchEnabled) && activeDevRoom?.phase === "closed";
@@ -5289,6 +5320,7 @@
       participantType: shouldOpenAdminObserverShell ? "spectator" : "player",
       previewTick: 0,
       connectedSession: null,
+      cloudflareHost: false,
       connectedPackets: [],
       lastConnectedSnapshotSequence: 0,
       connectedInputSequence: 0,
@@ -5352,6 +5384,7 @@
     const raceAudioGraphs = new Map();
     let raceAudioContext = null;
     let roomPacketTransport = null;
+    let cloudflareRoomClient = null;
     let connectedDevServer = null;
     let connectedDevLoopState = null;
     let connectedDevClients = [];
@@ -5432,6 +5465,10 @@
       unlockRaceAudio();
       if (state.screen === SINGULARITY_RACE_SCREENS.LOBBY) {
         enterQueue("manual");
+        return;
+      }
+      if (state.screen === SINGULARITY_RACE_SCREENS.QUEUE && state.cloudflareHost) {
+        startCloudflareHostCountdown();
         return;
       }
       if (state.screen === SINGULARITY_RACE_SCREENS.MAP_PREVIEW) enterQueue("map_return");
@@ -5607,7 +5644,7 @@
 
     elements.connectedButton.addEventListener("click", () => {
       unlockRaceAudio();
-      joinDevConnectedRoom("button");
+      joinOnlineConnectedRoom("button");
     });
 
     if (canAdminDirectLaunch) {
@@ -5632,6 +5669,51 @@
         const panelMissing = !elements.shell.classList.contains("is-admin-observer");
         if ((!state.adminObserverMode || panelMissing) && !state.roomClosed) enterAdminObserverFallback("observer_link_retry");
       }, 300);
+    }
+
+    function joinOnlineConnectedRoom(source, participantType = "player", options = {}) {
+      return cloudflareOnlineEnabled
+        ? joinCloudflareConnectedRoom(source, participantType, options)
+        : joinDevConnectedRoom(source, participantType, options);
+    }
+
+    async function joinCloudflareConnectedRoom(source, participantType = "player", options = {}) {
+      if (state.connectedSession || cloudflareRoomClient) return;
+      if (!CLOUDFLARE_WS_ENDPOINT) {
+        pushSystem("Cloudflare Worker 주소가 필요합니다. ?online=cloudflare&serverUrl=wss://.../ws 로 접속하세요.");
+        renderAll();
+        return;
+      }
+      const spectator = participantType === "spectator";
+      state.participantType = spectator ? "spectator" : "player";
+      state.adminObserverMode = false;
+      state.action = createActionRaceState();
+      state.runners = createRunners(spectator ? 0 : 1, state.selectedSkin, false);
+      state.activeChannel = findChannelIdByType("room");
+      setScreen(spectator ? SINGULARITY_RACE_SCREENS.RACE : SINGULARITY_RACE_SCREENS.QUEUE);
+      pushSystem("Cloudflare 공개방에 연결하는 중입니다.");
+      renderAll();
+      cloudflareRoomClient = createSingularityRaceCloudflareRoomClient({
+        endpoint: CLOUDFLARE_WS_ENDPOINT,
+        roomId: CLOUDFLARE_ROOM_ID,
+        locationLike: window.location,
+        onPacket: handleCloudflareRoomPacket,
+        onStatus: handleCloudflareRoomStatus
+      });
+      try {
+        const joinPacket = await cloudflareRoomClient.connect({
+          nickname: state.nickname,
+          skinPreset: state.selectedSkin,
+          participantType,
+          clientId: createCloudflareClientId()
+        });
+        applyCloudflareJoinPacket(joinPacket, source, spectator, options);
+      } catch (error) {
+        cloudflareRoomClient = null;
+        pushSystem(`Cloudflare 공개방 연결 실패: ${error.message || "unknown_error"}`);
+        setScreen(savedProfile ? SINGULARITY_RACE_SCREENS.LOBBY : SINGULARITY_RACE_SCREENS.PROFILE);
+        renderAll();
+      }
     }
 
     function joinDevConnectedRoom(source, participantType = "player", options = {}) {
@@ -5747,7 +5829,133 @@
         renderAll();
         return;
       }
-      joinDevConnectedRoom("spectator", "spectator");
+      joinOnlineConnectedRoom("spectator", "spectator");
+    }
+
+    function applyCloudflareJoinPacket(packet, source, spectator) {
+      const payload = packet?.payload || {};
+      if (!payload.ok) {
+        pushSystem(`Cloudflare 공개방 입장 실패: ${payload.reason || "join_failed"}`);
+        renderAll();
+        return;
+      }
+      state.connectedSession = Object.freeze({
+        roomId: payload.roomId || CLOUDFLARE_ROOM_ID,
+        playerId: payload.playerId || payload.participantId || "",
+        clientId: payload.clientId || "",
+        participantType: payload.participantType || (spectator ? "spectator" : "player"),
+        protocolVersion: payload.protocolVersion || "restored-marathon-001",
+        provider: "cloudflare"
+      });
+      state.participantType = state.connectedSession.participantType;
+      state.cloudflareHost = Boolean(payload.host);
+      state.connectedPackets = [packet];
+      state.activeChannel = findChannelIdByType("room");
+      if (state.participantType === "spectator") setScreen(SINGULARITY_RACE_SCREENS.RACE);
+      else setScreen(source === "button" ? SINGULARITY_RACE_SCREENS.QUEUE : state.screen);
+      pushSystem(state.cloudflareHost
+        ? "Cloudflare 공개방 입장 완료. 현재 이 방의 시작 권한을 가진 호스트입니다."
+        : "Cloudflare 공개방 입장 완료. 다른 접속자와 같은 방에 있습니다.");
+      renderAll();
+    }
+
+    function handleCloudflareRoomPacket(packet) {
+      if (!packet?.type) return;
+      if (packet.type === "chat_history") {
+        state.messages = normalizeCloudflareMessages(packet.payload?.messages || []);
+        renderMessages();
+        return;
+      }
+      if (packet.type === "chat_delivered") {
+        appendCloudflareMessage(packet.payload?.message);
+        return;
+      }
+      if (packet.type === "state_snapshot") {
+        const applied = applyConnectedStateSnapshot(localizeCloudflareSnapshot(packet));
+        state.connectedPackets = [...state.connectedPackets, packet].slice(-12);
+        if (applied) renderAll();
+        else renderConnectedGate();
+        return;
+      }
+      if (packet.type === "start_countdown") {
+        setScreen(SINGULARITY_RACE_SCREENS.RACE);
+        startLocalCountdown("admin", {
+          roomId: CLOUDFLARE_ROOM_ID,
+          gateOpensAtMs: packet.payload?.gateOpensAtMs,
+          commandId: `cloudflare:${packet.sequence}`
+        });
+        renderAll();
+        return;
+      }
+      if (packet.type === "race_started") {
+        state.action.raceStarted = true;
+        state.action.gateOpenedAtMs = packet.payload?.gateOpenedAtMs || Date.now();
+        requestRaceMusicStart("cloudflare");
+        renderAll();
+        return;
+      }
+      if (packet.type === "rate_limited" && packet.payload?.reason !== "input_10hz_limit") {
+        pushSystem(`Cloudflare 제한: ${packet.payload?.reason || "rate_limited"}`);
+        renderAll();
+        return;
+      }
+      if (packet.type === "error") {
+        pushSystem(`Cloudflare 서버: ${packet.payload?.reason || "error"}`);
+        renderAll();
+      }
+    }
+
+    function handleCloudflareRoomStatus(status) {
+      if (status.status === "closed" && state.connectedSession?.provider === "cloudflare") {
+        pushSystem("Cloudflare 공개방 연결이 종료되었습니다.");
+        state.connectedSession = null;
+        state.cloudflareHost = false;
+        cloudflareRoomClient = null;
+        renderAll();
+      }
+    }
+
+    function localizeCloudflareSnapshot(packet) {
+      const localParticipantId = state.connectedSession?.playerId || "";
+      const payload = packet.payload || {};
+      const participants = (payload.participants || []).map((participant) => (
+        participant.participantId === localParticipantId
+          ? { ...participant, participantId: "runner:you", skinPreset: state.selectedSkin }
+          : participant
+      ));
+      return { ...packet, payload: { ...payload, sequence: packet.sequence, participants } };
+    }
+
+    function normalizeCloudflareMessages(messages) {
+      return messages.map((message, index) => ({
+        id: message.id || `cloudflare-history:${index}`,
+        channelId: message.channelId || state.activeChannel,
+        senderId: message.senderId || "server",
+        senderType: message.senderType || "system",
+        displayName: message.displayName || "SYSTEM",
+        text: String(message.text || "").slice(0, 240),
+        sequence: Number(message.sequence || index + 1),
+        createdAtMs: Number(message.createdAtMs || Date.now()),
+        moderationStatus: message.moderationStatus || "approved"
+      }));
+    }
+
+    function appendCloudflareMessage(message) {
+      if (!message?.text) return;
+      const next = normalizeCloudflareMessages([message])[0];
+      state.messages = [...state.messages, next].slice(-500);
+      if (next.senderId === state.connectedSession?.playerId) showRunnerChatBubble("you", next.text, Date.now());
+      renderAll();
+    }
+
+    function createCloudflareClientId() {
+      const key = "singularity-race:cloudflare-client-id";
+      const existing = window.localStorage.getItem(key);
+      if (existing) return existing;
+      const random = window.crypto?.randomUUID?.() || `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+      const clientId = `client:${random}`;
+      window.localStorage.setItem(key, clientId);
+      return clientId;
     }
 
     function findChannelIdByType(type) {
@@ -6045,6 +6253,20 @@
         return;
       }
       if (!event.submitter) playRaceUiSfx("confirm");
+      if (cloudflareRoomClient && state.connectedSession?.provider === "cloudflare") {
+        const sent = sendCloudflareChatMessage(text);
+        if (!sent) {
+          playRaceUiSfx("deny");
+          showChatBlockedNotice("Cloudflare 공개방에 채팅을 보낼 수 없습니다.", now);
+        }
+        elements.chatInput.value = "";
+        if (state.screen === SINGULARITY_RACE_SCREENS.RACE) {
+          state.raceChatInputOpen = false;
+          elements.chatInput.blur();
+        }
+        renderAll();
+        return;
+      }
       const appended = chatTransport.submitMessage(state.messages, {
         channelId: state.activeChannel,
         senderId: state.participantType === "spectator" ? "spectator:you" : "player:you",
@@ -6080,6 +6302,21 @@
       state.lastChatSentAtMs = now;
       state.recentChatSentAtMs.push(now);
       return { ok: true };
+    }
+
+    function sendCloudflareChatMessage(text) {
+      if (!cloudflareRoomClient || !state.connectedSession) return false;
+      return cloudflareRoomClient.sendEnvelope(createRestoredMarathonTransportEnvelope("chat_send", {
+        messageId: `message:${state.connectedSession.clientId}:${Date.now()}`,
+        channelId: state.activeChannel,
+        senderId: state.connectedSession.playerId,
+        senderType: state.participantType === "spectator" ? "spectator" : "player",
+        text
+      }, {
+        clientId: state.connectedSession.clientId,
+        roomId: state.connectedSession.roomId,
+        sequence: ++state.connectedInputSequence
+      }));
     }
 
     function showChatBlockedNotice(text, now) {
@@ -6234,7 +6471,7 @@
       setScreen(SINGULARITY_RACE_SCREENS.QUEUE);
       if (state.participantType === "player") requestEntryGateMusic("queue_entry");
       if (connectedLobbyOpen && !state.connectedSession) {
-        joinDevConnectedRoom(source === "quick" ? "quick_entry" : "queue_entry");
+        joinOnlineConnectedRoom(source === "quick" ? "quick_entry" : "queue_entry");
         return;
       }
       state.ready = false;
@@ -6260,6 +6497,22 @@
       renderAll();
     }
 
+    function startCloudflareHostCountdown() {
+      if (!cloudflareRoomClient || !state.cloudflareHost) {
+        pushSystem("Cloudflare 공개방 시작 권한이 없습니다.");
+        renderAll();
+        return;
+      }
+      const sent = cloudflareRoomClient.sendHostStart();
+      if (sent) {
+        setScreen(SINGULARITY_RACE_SCREENS.RACE);
+        pushSystem("Cloudflare 공개방에 10초 시작 신호를 보냈습니다.");
+      } else {
+        pushSystem("Cloudflare 공개방 시작 신호를 보낼 수 없습니다.");
+      }
+      renderAll();
+    }
+
     function continueWatchingAfterFinish() {
       if (!state.action.finalResult) return;
       releaseVirtualMoveKeys(false);
@@ -6276,10 +6529,13 @@
       unsubscribeRoomPackets();
       unsubscribeRoomPackets = () => {};
       roomPacketTransport = null;
+      cloudflareRoomClient?.close();
+      cloudflareRoomClient = null;
       connectedDevServer = null;
       connectedDevLoopState = null;
       connectedDevClients = [];
       state.connectedSession = null;
+      state.cloudflareHost = false;
       state.connectedPackets = [];
       state.lastConnectedSnapshotSequence = 0;
       state.connectedInputSequence = 0;
@@ -6301,7 +6557,7 @@
       state.runners = createRunners(1, state.selectedSkin, false);
       setScreen(SINGULARITY_RACE_SCREENS.QUEUE);
       if (connectedLobbyOpen && !state.roomClosed) {
-        joinDevConnectedRoom("result_restart");
+        joinOnlineConnectedRoom("result_restart");
         return;
       }
       pushSystem("결과를 정리하고 대기열방으로 돌아왔습니다.");
@@ -6313,11 +6569,14 @@
       unsubscribeRoomPackets();
       unsubscribeRoomPackets = () => {};
       roomPacketTransport = null;
+      cloudflareRoomClient?.close();
+      cloudflareRoomClient = null;
       connectedDevServer = null;
       connectedDevLoopState = null;
       connectedDevClients = [];
       state.roomClosed = true;
       state.connectedSession = null;
+      state.cloudflareHost = false;
       state.connectedPackets = [];
       state.lastConnectedSnapshotSequence = 0;
       state.connectedInputSequence = 0;
@@ -6342,10 +6601,13 @@
       unsubscribeRoomPackets();
       unsubscribeRoomPackets = () => {};
       roomPacketTransport = null;
+      cloudflareRoomClient?.close();
+      cloudflareRoomClient = null;
       connectedDevServer = null;
       connectedDevLoopState = null;
       connectedDevClients = [];
       state.connectedSession = null;
+      state.cloudflareHost = false;
       state.connectedPackets = [];
       state.lastConnectedSnapshotSequence = 0;
       state.connectedInputSequence = 0;
@@ -6743,6 +7005,8 @@
         keys: {},
         lastTickMs: 0,
         lastMovementInputAtMs: 0,
+        lastConnectedInputSentAtMs: 0,
+        lastConnectedInputSignature: "",
         lastFacingDirection: "right",
         stallUntilMs: 0,
         attackCooldownUntilMs: 0,
@@ -7925,7 +8189,7 @@
 
     function createActionPacketOptions() {
       return {
-        clientId: "client:singularity-race-lobby",
+        clientId: state.connectedSession?.clientId || "client:singularity-race-lobby",
         roomId: state.connectedSession?.roomId || "room:singularity-race:local-preview",
         sequence: ++state.connectedInputSequence
       };
@@ -7950,13 +8214,18 @@
         skillPressed,
         sequence: state.connectedInputSequence + 1
       });
+      const now = Date.now();
+      const signature = `${frame.pace}:${frame.mode}:${Math.round((frame.direction?.x || 0) * 10) / 10}:${Math.round((frame.direction?.y || 0) * 10) / 10}`;
+      if (!skillPressed && signature === state.action.lastConnectedInputSignature && now - state.action.lastConnectedInputSentAtMs < 100) return;
+      state.action.lastConnectedInputSignature = signature;
+      state.action.lastConnectedInputSentAtMs = now;
       pushActionPacket(
         createRestoredMarathonInputEnvelope({
           participantId: frame.participantId,
           pace: frame.pace,
           mode: frame.mode,
           direction: frame.direction,
-          raceTimeMs: Date.now()
+          raceTimeMs: now
         }, createActionPacketOptions()),
         frame.mode
       );
@@ -8038,6 +8307,11 @@
     }
 
     function publishConnectedPacket(envelope, detail) {
+      if (cloudflareRoomClient && state.connectedSession?.provider === "cloudflare") {
+        const sent = cloudflareRoomClient.sendEnvelope(envelope);
+        if (!sent) pushSystem(`Cloudflare packet blocked: ${detail || envelope.type}`);
+        return sent;
+      }
       if (!state.connectedSession || !roomPacketTransport) return false;
       const result = roomPacketTransport.submitPacket(state.connectedPackets, envelope, {
         reason: detail || envelope.type
@@ -8053,6 +8327,7 @@
     }
 
     function forwardActionPacketToConnectedDevServer(envelope) {
+      if (state.connectedSession?.provider === "cloudflare") return false;
       if (!connectedDevServer || !shouldForwardConnectedServerAction(envelope)) return false;
       const client = findConnectedDevClientForEnvelope(envelope);
       if (!client) return false;
@@ -8785,7 +9060,10 @@
       elements.notice.textContent = getSingularityRaceNotice(state.screen);
       const summary = getConnectedMarathonRoomSummaries(roomAdapter)[0];
       elements.roomDisplayName.textContent = summary?.displayName || activeDevRoom?.displayName || "생성된 방 없음";
-      elements.readyButton.disabled = state.roomClosed || !entryGate.open || Boolean(state.connectedSession) || (devOnlineEnabled && !connectedLobbyOpen);
+      const cloudflareHostCanStart = cloudflareOnlineEnabled && state.cloudflareHost && state.connectedSession
+        && state.screen === SINGULARITY_RACE_SCREENS.QUEUE && !state.action.raceStarted;
+      if (cloudflareHostCanStart) elements.readyButton.textContent = "10초 카운트다운 시작";
+      elements.readyButton.disabled = state.roomClosed || !entryGate.open || (Boolean(state.connectedSession) && !cloudflareHostCanStart) || (devOnlineEnabled && !connectedLobbyOpen);
       elements.spectatorButton.disabled = state.roomClosed || !entryGate.open || Boolean(state.connectedSession) || (devOnlineEnabled && !connectedLobbyOpen);
       if (!entryGate.open && !state.roomClosed) {
         elements.roomCode.textContent = `${entryGate.remainingMinutes}분 후 입장 가능`;
@@ -10531,6 +10809,10 @@
         return;
       }
       if (connected) {
+        if (state.connectedSession?.provider === "cloudflare") {
+          elements.connectedStatus.textContent = `${state.connectedSession.roomId} 공개방 연결됨 / ${state.cloudflareHost ? "호스트" : "참가자"} / 패킷 ${state.connectedPackets.length}`;
+          return;
+        }
         elements.connectedStatus.textContent = state.participantType === "spectator"
           ? `관전 연결됨: ${state.connectedSession.roomId} / 채팅 가능`
           : `개발 방 연결됨: ${state.connectedSession.roomId} / ${state.connectedSession.protocolVersion} / 중계 ${state.connectedPackets.length}`;
@@ -10542,6 +10824,10 @@
       }
       if (!entryGate.open) {
         elements.connectedStatus.textContent = `${entryGate.remainingMinutes}분 후 대기열방 입장 가능합니다.`;
+        return;
+      }
+      if (cloudflareOnlineEnabled && connectedLobbyOpen && summary) {
+        elements.connectedStatus.textContent = `${summary.displayName} 공개방 열림: 선수 ${summary.players}/${summary.maxPlayers} / 관전자 ${summary.spectators}/${summary.maxSpectators}`;
         return;
       }
       elements.connectedStatus.textContent = connectedLobbyOpen && summary

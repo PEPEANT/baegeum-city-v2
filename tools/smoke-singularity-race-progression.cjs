@@ -136,7 +136,7 @@ function assertRacePageContracts() {
   assert(/\.shell\[data-screen="race"\]\.race-finished \.race-result-panel\s*\{[^}]*pointer-events:\s*auto/s.test(pageSource), "finish result panel must receive pointer events so restart/watch buttons can be clicked");
   assert(pageSource.includes("finalizeRaceResult"), "local and server finishes should share one result finalizer");
   assert(pageSource.includes("restartRaceAfterResult"), "finish restart should clear race state before re-entry");
-  assert(pageSource.includes("joinDevConnectedRoom(\"result_restart\")"), "finish restart should gather connected players back into the waiting room");
+  assert(pageSource.includes("joinOnlineConnectedRoom(\"result_restart\")"), "finish restart should gather connected players back into the waiting room");
   assert(pageSource.includes("if (source === \"result_restart\") return"), "finish restart must not replay a stale host start command");
   assert(pageSource.includes("state.connectedSession = null"), "finish restart should leave any connected preview session");
   assert(pageSource.includes("roomPacketTransport.savePackets([], { reason: \"result_restart\" })"), "finish restart should clear the connected room packet relay log");

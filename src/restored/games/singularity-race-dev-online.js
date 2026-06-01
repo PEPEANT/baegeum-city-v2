@@ -66,7 +66,7 @@ export function mergeSingularityServerSnapshotRunners(existingRunners = [], snap
     return Object.freeze({
       id,
       name: participant.displayName || existing?.name || `Runner ${index + 1}`,
-      skin: existing?.skin || (id === "you" ? options.selectedSkin : presets[index % presets.length]?.id) || options.defaultSkin || "default",
+      skin: existing?.skin || (id === "you" ? options.selectedSkin : participant.skinPreset || presets[index % presets.length]?.id) || options.defaultSkin || "default",
       ready: false,
       progress: display.progress,
       laneOffsetPx: display.laneOffsetPx,
@@ -122,6 +122,9 @@ export function validateSingularityRaceDevOnlineContract() {
   if (!merged.applied || merged.runners[0].id !== "you") errors.push("server snapshots must map runner:you onto the local player");
   if (merged.runners[0].progress < 9 || merged.runners[0].progress > 11) errors.push("server snapshot meters must become display progress percent");
   if (merged.runners[0].skin !== "gpichan") errors.push("server snapshot merge must preserve the local player skin");
+  const remoteSkin = mergeSingularityServerSnapshotRunners([], { sequence: 11, phase: "lobby",
+    participants: [{ participantId: "runner:remote", displayName: "Remote", skinPreset: "robot" }] }, { defaultSkin: "singularity-fan" });
+  if (remoteSkin.runners[0]?.skin !== "robot") errors.push("remote server snapshot should preserve participant skin presets");
   const predicted = mergeSingularityServerSnapshotRunners([
     { id: "you", name: "YOU", skin: "gpichan", progress: 12, laneOffsetPx: 80, hp: 100, maxHp: 100, clientPredicted: true }
   ], {
@@ -228,15 +231,8 @@ function smoothServerCorrection(localValue, serverValue, options) {
   return Object.freeze({ value: round4(local + delta * options.correctionFactor), delta: round3(delta), snapped: false });
 }
 
-function positiveNumber(value, fallback) {
-  const number = Number(value);
-  return Number.isFinite(number) && number > 0 ? number : fallback;
-}
-
-function finiteNumber(value, fallback) {
-  const number = Number(value);
-  return Number.isFinite(number) ? number : fallback;
-}
+function positiveNumber(value, fallback) { const number = Number(value); return Number.isFinite(number) && number > 0 ? number : fallback; }
+function finiteNumber(value, fallback) { const number = Number(value); return Number.isFinite(number) ? number : fallback; }
 
 function clampNumber(value, min, max) {
   const number = finiteNumber(value, min);

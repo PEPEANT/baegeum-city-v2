@@ -1,0 +1,11 @@
+name = "singularity-race-online"
+main = "workers/singularity-race-worker.js"
+compatibility_date = "2026-06-01"
+
+[[durable_objects.bindings]]
+name = "SINGULARITY_RACE_ROOM"
+class_name = "SingularityRaceRoom"
+
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["SingularityRaceRoom"]

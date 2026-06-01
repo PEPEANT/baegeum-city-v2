@@ -80,7 +80,7 @@ assert.ok(!/location\.(href|assign|replace)\s*=/.test(indexSource), "launcher sh
   "finalizeRaceResult",
   "continueWatchingAfterFinish",
   "restartRaceAfterResult",
-  "joinDevConnectedRoom(\"result_restart\")",
+  "joinOnlineConnectedRoom(\"result_restart\")",
   "if (source === \"result_restart\") return",
   "state.connectedSession = null",
   "roomPacketTransport.savePackets([], { reason: \"result_restart\" })",

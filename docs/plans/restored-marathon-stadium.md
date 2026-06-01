@@ -296,6 +296,17 @@ Implementation path for the real online bridge:
 5. Run 30-runner soak tests for at least one full race duration with packet pressure, ping, and visual correction metrics visible to the host page.
 6. Promote attack, skill, checkpoint reward, respawn, and D/C/B/A/S character grade decisions from local rehearsal into server-owned handlers.
 
+Cloudflare online first slice:
+
+- Provider: Cloudflare Workers + Durable Objects, scoped to Singularity Race only.
+- Room model: one fixed public room, `room:singularity-race:public-001`.
+- Capacity target: 50 runners and 32 spectators, with the first real test target still 20-30 humans before trusting the 50-runner cap.
+- Input budget: client input must stay at or below 10 Hz.
+- Snapshot budget: Durable Object snapshots at 5 Hz by default, with an 8 Hz ceiling reserved for later tuning.
+- Chat budget: server-delivered room chat with cooldown and burst limits.
+- Host model: first player in the room is the temporary host until authenticated host/admin roles are added.
+- Public authority note: this slice enables real shared presence, chat, start countdown, and server snapshots. Final ranking, rewards, checkpoint authority, moderation, and multi-room matchmaking remain future server-owned work.
+
 Camera direction plan:
 
 - Keep the UI, buttons, chat, queue overlay, and HUD unrotated.
