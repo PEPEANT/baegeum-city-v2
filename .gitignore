@@ -1,6 +1,7 @@
 node_modules/
 .codex-server*.log
 .playwright-mcp/
+.wrangler/
 __pycache__/
 *.pyc
 .env

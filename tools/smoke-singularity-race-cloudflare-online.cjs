@@ -33,6 +33,10 @@ const merge = read("src/restored/games/singularity-race-dev-online.js");
   "const CHAT_COOLDOWN_MS = 900",
   "export class SingularityRaceRoom",
   "this.state.acceptWebSocket(server)",
+  "this.state.storage.setAlarm",
+  "this.state.storage.put",
+  "async alarm()",
+  "sanitizePhase",
   "host_start_countdown",
   "chat_burst_limit"
 ].forEach((token) => assertIncludes(worker, token, `worker should keep ${token}`));
@@ -61,6 +65,7 @@ const merge = read("src/restored/games/singularity-race-dev-online.js");
   "localizeCloudflareSnapshot",
   "sendCloudflareChatMessage",
   "startCloudflareHostCountdown",
+  'elements.previewButton.textContent = "10초 카운트다운 시작"',
   "10초 카운트다운 시작"
 ].forEach((token) => assertIncludes(race, token, `race page should keep ${token}`));
 

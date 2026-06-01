@@ -5486,6 +5486,10 @@
         return;
       }
       if (state.screen === SINGULARITY_RACE_SCREENS.QUEUE) {
+        if (cloudflareOnlineEnabled && state.cloudflareHost && state.connectedSession && !state.action.raceStarted) {
+          startCloudflareHostCountdown();
+          return;
+        }
         enterMapPreview();
         return;
       }
@@ -9063,6 +9067,7 @@
       const cloudflareHostCanStart = cloudflareOnlineEnabled && state.cloudflareHost && state.connectedSession
         && state.screen === SINGULARITY_RACE_SCREENS.QUEUE && !state.action.raceStarted;
       if (cloudflareHostCanStart) elements.readyButton.textContent = "10초 카운트다운 시작";
+      if (cloudflareHostCanStart) elements.previewButton.textContent = "10초 카운트다운 시작";
       elements.readyButton.disabled = state.roomClosed || !entryGate.open || (Boolean(state.connectedSession) && !cloudflareHostCanStart) || (devOnlineEnabled && !connectedLobbyOpen);
       elements.spectatorButton.disabled = state.roomClosed || !entryGate.open || Boolean(state.connectedSession) || (devOnlineEnabled && !connectedLobbyOpen);
       if (!entryGate.open && !state.roomClosed) {

@@ -30,11 +30,13 @@ export class SingularityRaceRoom {
     this.chatHistory = [];
     this.phase = "lobby";
     this.countdownEndsAtMs = 0;
+    this.roomStateLoaded = false;
     this.restoreSessions();
   }
 
   async fetch(request) {
-    this.refreshPhase(Date.now());
+    await this.loadRoomState();
+    if (this.refreshPhase(Date.now())) await this.persistRoomState();
     const url = new URL(request.url);
     if (url.pathname.endsWith("/summary")) return json(roomSummary(this));
     if (request.headers.get("Upgrade") !== "websocket") {
@@ -44,7 +46,8 @@ export class SingularityRaceRoom {
   }
 
   async webSocketMessage(socket, message) {
-    this.refreshPhase(Date.now());
+    await this.loadRoomState();
+    if (this.refreshPhase(Date.now())) await this.persistRoomState();
     const packet = parsePacket(message);
     const session = this.getSession(socket);
     if (!packet || !session) return send(socket, this.serverPacket("error", { reason: "bad_packet" }));
@@ -57,11 +60,11 @@ export class SingularityRaceRoom {
   }
 
   async webSocketClose(socket) {
-    this.disconnectSocket(socket, "closed");
+    await this.disconnectSocket(socket, "closed");
   }
 
   async webSocketError(socket) {
-    this.disconnectSocket(socket, "error");
+    await this.disconnectSocket(socket, "error");
   }
 
   acceptSocket(request) {
@@ -92,7 +95,7 @@ export class SingularityRaceRoom {
       snapshotHz: Math.round(1000 / SNAPSHOT_INTERVAL_MS),
       minSnapshotHz: Math.round(1000 / MIN_SNAPSHOT_INTERVAL_MS)
     }, session));
-    send(server, this.serverPacket("join_result", joinPayload(session), session));
+    send(server, this.serverPacket("join_result", joinPayload(this, session), session));
     send(server, this.serverPacket("chat_history", {
       serverOwned: true,
       messages: this.chatHistory.slice(-CHAT_LIMIT)
@@ -142,18 +145,26 @@ export class SingularityRaceRoom {
     }, session));
   }
 
-  handleHostStart(socket, session) {
+  async handleHostStart(socket, session) {
     if (!session.host) return send(socket, this.serverPacket("error", { reason: "host_required" }, session));
     if (this.phase !== "lobby" && this.phase !== "finished") return send(socket, this.serverPacket("error", { reason: "room_not_in_lobby" }, session));
     const now = Date.now();
     this.phase = "countdown";
     this.countdownEndsAtMs = now + COUNTDOWN_MS;
+    await this.persistRoomState();
+    await this.state.storage.setAlarm(this.countdownEndsAtMs + 25);
     this.broadcast(this.serverPacket("start_countdown", {
       roomId: ROOM_ID,
       gateOpensAtMs: this.countdownEndsAtMs,
       countdownMs: COUNTDOWN_MS,
       serverOwned: true
     }, session));
+    this.broadcastSnapshot(true);
+  }
+
+  async alarm() {
+    await this.loadRoomState();
+    if (this.refreshPhase(Date.now())) await this.persistRoomState();
     this.broadcastSnapshot(true);
   }
 
@@ -206,10 +217,16 @@ export class SingularityRaceRoom {
     return this.sessions.get(attached.clientId);
   }
 
-  disconnectSocket(socket, reason) {
+  async disconnectSocket(socket, reason) {
     const session = this.getSession(socket);
     if (!session) return;
     this.sessions.delete(session.clientId);
+    if (this.sessions.size === 0) {
+      this.phase = "lobby";
+      this.countdownEndsAtMs = 0;
+      await this.persistRoomState();
+      await this.state.storage.deleteAlarm();
+    }
     this.broadcast(this.serverPacket("disconnect_notice", {
       participantId: session.participantId,
       reason
@@ -221,7 +238,30 @@ export class SingularityRaceRoom {
     if (this.phase === "countdown" && this.countdownEndsAtMs > 0 && now >= this.countdownEndsAtMs) {
       this.phase = "racing";
       this.broadcast(this.serverPacket("race_started", { gateOpenedAtMs: this.countdownEndsAtMs, serverOwned: true }));
+      return true;
     }
+    return false;
+  }
+
+  async loadRoomState() {
+    if (this.roomStateLoaded) return;
+    const stored = await this.state.storage.get(["phase", "countdownEndsAtMs"]);
+    this.phase = sanitizePhase(stored.get("phase"));
+    this.countdownEndsAtMs = Number(stored.get("countdownEndsAtMs") || 0);
+    if (this.sessions.size === 0 && this.phase !== "lobby") {
+      this.phase = "lobby";
+      this.countdownEndsAtMs = 0;
+      await this.persistRoomState();
+      await this.state.storage.deleteAlarm();
+    }
+    this.roomStateLoaded = true;
+  }
+
+  async persistRoomState() {
+    await this.state.storage.put({
+      phase: this.phase,
+      countdownEndsAtMs: this.countdownEndsAtMs
+    });
   }
 
   restoreSessions() {
@@ -295,7 +335,7 @@ function participantSnapshots(room) {
   }));
 }
 
-function joinPayload(session) {
+function joinPayload(room, session) {
   return {
     ok: true,
     playerId: session.participantId,
@@ -305,8 +345,9 @@ function joinPayload(session) {
     displayName: session.displayName,
     skinPreset: session.skinPreset,
     host: session.host,
-    phase: "lobby",
+    phase: room.phase,
     mapId: "stadium-basic",
+    countdownEndsAtMs: room.countdownEndsAtMs,
     mapVersion: "baegeum-city-v2-map-001",
     venueSchemaVersion: "venue-schema-001",
     protocolVersion: "restored-marathon-001",
@@ -372,6 +413,7 @@ function round2(value) { return Math.round(Number(value || 0) * 100) / 100; }
 function normalizeClientId(value) { return String(value || "").replace(/[^a-zA-Z0-9:_-]/g, "").slice(0, 80); }
 function cleanText(value, max) { return String(value || "").replace(/\s+/g, " ").trim().slice(0, max); }
 function safeObject(value) { return value && typeof value === "object" ? value : {}; }
+function sanitizePhase(value) { return ["lobby", "countdown", "racing", "finished"].includes(value) ? value : "lobby"; }
 function parsePacket(message) { try { return JSON.parse(String(message)); } catch { return null; } }
 function send(socket, packet) { socket.send(JSON.stringify(packet)); }
 function json(payload, status = 200) { return new Response(JSON.stringify(payload), { status, headers: { "content-type": "application/json; charset=utf-8", "access-control-allow-origin": "*" } }); }

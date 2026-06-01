@@ -27,6 +27,13 @@ After deploying the Worker, open the game with:
 singularity-race.html?online=cloudflare&serverUrl=wss://YOUR-WORKER.YOUR-SUBDOMAIN.workers.dev/ws
 ```
 
+Current public Worker:
+
+```text
+https://singularity-race-online.rneetn.workers.dev
+wss://singularity-race-online.rneetn.workers.dev/ws
+```
+
 On localhost, the client defaults to:
 
 ```text
@@ -37,6 +44,7 @@ ws://127.0.0.1:8787/ws
 
 - The first player in the room becomes the temporary host.
 - Host start sends a server-owned 10-second countdown.
+- Durable Object storage persists countdown phase across alarm wakeups, then resets the fixed public room to lobby when the last socket leaves.
 - Map vote, rematch, final ranking authority, checkpoint reward authority, and moderation tools remain future work.
 - Clients may send input, chat, attack, and skill packets.
 - Clients must not decide final ranking, rewards, room capacity, or server snapshots.
