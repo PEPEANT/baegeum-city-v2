@@ -1,6 +1,12 @@
 # AI Working State
 
 Date: 2026-06-02
+Observed: User reviewed the deployed/editor screenshot and said the new obstacle visuals were too large.
+Changed: Reduced the race editor obstacle marker sizes and matching in-race obstacle CSS sizes while keeping the barricade, traffic-block, and crate silhouettes. The spectator final position remains `progress: 0.05` and `laneOffsetPx: 0`.
+Verified: `node tools/smoke-singularity-race-map-editor.cjs`, `node tools/smoke-singularity-race-obstacles.cjs`, `npm run check:singularity-race`, `git diff --check`, and full `npm run check` passed. Headless Chrome screenshot verification on the clean map editor profile showed the smaller obstacle markers and the same finalized spectator position.
+Next: Commit, push, and redeploy the static Pages bundle so the public preview reflects the smaller obstacles.
+
+Date: 2026-06-02
 Observed: User finalized the basic spectator position from the map editor screenshot and asked obstacle visuals to read as barricades/boxes before commit/deploy.
 Changed: The basic-map start crowd default in `src/restored/games/singularity-race-spectator-contract.js` is now `progress: 0.05` and `laneOffsetPx: 0`, matching the saved editor position. `singularity-race-map-editor.html` and `singularity-race.html` now render obstacles as larger barricade, traffic-block, and crate pieces instead of tiny square/cone markers. `tools/smoke-singularity-race-obstacles.cjs` and `tools/smoke-singularity-race-map-editor.cjs` now guard the finalized spectator default and obstacle visual tokens.
 Verified: `node --check tools/smoke-singularity-race-map-editor.cjs`, `node --check tools/smoke-singularity-race-obstacles.cjs`, `node tools/smoke-singularity-race-map-editor.cjs`, `node tools/smoke-singularity-race-obstacles.cjs`, `npm run check:singularity-race`, `git diff --check`, and full `npm run check` passed on the final diff. Headless Chrome with a clean temporary profile confirmed the map editor defaults to `0.05 / 0px` and shows obstacle markers as crate/barrier/block shapes. The in-app Browser `iab` session was unavailable, so Chrome headless screenshot verification was used.
