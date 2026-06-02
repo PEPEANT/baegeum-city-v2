@@ -1632,13 +1632,16 @@
 
     .track-start-crowd {
       position: absolute;
-      left: 8.4%;
-      top: 79.2%;
+      inset: 0;
       z-index: 34;
-      width: 19%;
-      height: 3.8%;
       pointer-events: none;
-      transform: rotate(-1deg);
+    }
+
+    .track-start-crowd-group {
+      position: absolute;
+      width: var(--crowd-width, 19%);
+      height: var(--crowd-height, 3.8%);
+      transform: rotate(var(--crowd-rotation, -1deg));
       transform-origin: 10% 100%;
     }
 
@@ -2963,24 +2966,44 @@
 
     .race-obstacle.is-cone {
       width: 42px;
-      height: 46px;
-      border: 0;
-      border-radius: 6px 6px 10px 10px;
+      height: 48px;
+      border: 2px solid rgba(255, 244, 214, 0.9);
+      border-radius: 10px 10px 8px 8px;
       background:
-        linear-gradient(180deg, transparent 0 8%, #ffd76a 8% 19%, transparent 19% 31%, #fff2b3 31% 41%, transparent 41% 100%),
-        linear-gradient(160deg, transparent 0 13%, #ff7a2d 14% 100%);
-      clip-path: polygon(50% 0, 92% 82%, 100% 100%, 0 100%, 8% 82%);
-      box-shadow: 0 7px 0 rgba(65, 33, 13, 0.34), 0 15px 22px rgba(4, 18, 38, 0.24);
+        linear-gradient(90deg, transparent 0 12%, rgba(255, 255, 255, 0.28) 12% 22%, transparent 22% 100%),
+        linear-gradient(180deg, #ffd76a 0 16%, #ff7a2d 16% 40%, #fff2b3 40% 52%, #ff7a2d 52% 84%, #b94b25 84% 100%);
+      box-shadow:
+        0 6px 0 rgba(65, 33, 13, 0.34),
+        0 15px 22px rgba(4, 18, 38, 0.24);
+    }
+
+    .race-obstacle.is-cone::before {
+      left: 7px;
+      right: 7px;
+      top: -7px;
+      height: 8px;
+      background: #ffc35a;
+      box-shadow: inset 0 -2px 0 rgba(134, 65, 20, 0.26);
     }
 
     .race-obstacle.is-crate {
       width: 50px;
       height: 50px;
-      border-color: rgba(95, 156, 206, 0.74);
+      border-color: rgba(245, 232, 201, 0.82);
       background:
-        linear-gradient(45deg, transparent 43%, rgba(229, 244, 255, 0.52) 44% 56%, transparent 57%),
-        linear-gradient(-45deg, transparent 43%, rgba(229, 244, 255, 0.42) 44% 56%, transparent 57%),
-        linear-gradient(180deg, #355d7f, #142b47);
+        linear-gradient(45deg, transparent 42%, rgba(83, 49, 29, 0.54) 43% 57%, transparent 58%),
+        linear-gradient(-45deg, transparent 42%, rgba(83, 49, 29, 0.48) 43% 57%, transparent 58%),
+        linear-gradient(90deg, transparent 44%, rgba(83, 49, 29, 0.38) 45% 55%, transparent 56%),
+        linear-gradient(180deg, #c98a45, #714727);
+    }
+
+    .race-obstacle.is-crate::before {
+      inset: 7px;
+      height: auto;
+      border: 2px solid rgba(83, 49, 29, 0.36);
+      border-radius: 4px;
+      background: transparent;
+      box-shadow: none;
     }
 
     .race-item-box {
@@ -4721,30 +4744,7 @@
         <div class="track-scene" aria-label="track preview">
           <div class="track-world" id="track-world">
             <svg class="trail-map" id="trail-map" viewBox="0 0 100 100" preserveAspectRatio="none" role="img" aria-label="single trail with three save points"></svg>
-            <div class="track-start-crowd" id="track-start-crowd" aria-hidden="true">
-              <div class="start-crowd-row is-back">
-                <div class="pixel-citizen" data-variant="1" style="--hop-delay:-180ms"></div>
-                <div class="pixel-citizen" data-variant="3" style="--hop-delay:-520ms"><span class="crowd-sign" style="--sign-tilt:4deg">AGI 2027</span></div>
-                <div class="pixel-citizen" data-variant="2" style="--hop-delay:-80ms"></div>
-                <div class="pixel-citizen" data-variant="4" style="--hop-delay:-760ms"><span class="crowd-sign">특이점갤러리 화이팅</span></div>
-                <div class="pixel-citizen" data-variant="1" style="--hop-delay:-320ms"></div>
-                <div class="pixel-citizen" data-variant="3" style="--hop-delay:-620ms"></div>
-                <div class="pixel-citizen" data-variant="2" style="--hop-delay:-240ms"><span class="crowd-sign" style="--sign-tilt:5deg">1등 부기줄</span></div>
-                <div class="pixel-citizen" data-variant="4" style="--hop-delay:-420ms"></div>
-              </div>
-              <div class="start-crowd-row is-front">
-                <div class="pixel-citizen" data-variant="2" style="--hop-delay:-120ms"><span class="crowd-sign">특이점은온다</span></div>
-                <div class="pixel-citizen" data-variant="0" style="--hop-delay:-360ms"></div>
-                <div class="pixel-citizen" data-variant="3" style="--hop-delay:-610ms"><span class="crowd-sign" style="--sign-tilt:3deg">달려라</span></div>
-                <div class="pixel-citizen" data-variant="1" style="--hop-delay:-250ms"></div>
-                <div class="pixel-citizen" data-variant="4" style="--hop-delay:-700ms"><span class="crowd-sign" style="--sign-tilt:-5deg">AGI 2027</span></div>
-                <div class="pixel-citizen" data-variant="2" style="--hop-delay:-450ms"></div>
-                <div class="pixel-citizen" data-variant="3" style="--hop-delay:-30ms"><span class="crowd-sign">특갤 파이팅</span></div>
-                <div class="pixel-citizen" data-variant="1" style="--hop-delay:-560ms"></div>
-                <div class="pixel-citizen" data-variant="0" style="--hop-delay:-210ms"><span class="crowd-sign" style="--sign-tilt:4deg">가즈아</span></div>
-              </div>
-              <div class="start-crowd-fence"></div>
-            </div>
+            <div class="track-start-crowd" id="track-start-crowd" aria-hidden="true"></div>
             <div class="trail-caption">자유 출발 구역 / 방장 게이트 / 3개 세이브 지점</div>
             <div class="track-effects" id="track-effects" aria-hidden="true"></div>
             <div id="track-runners"></div>
@@ -5080,6 +5080,13 @@
       resolveSingularityRaceObstacleCollision
     } from "./src/restored/games/singularity-race-obstacle-contract.js";
     import {
+      listSingularityRaceMapSpectators
+    } from "./src/restored/games/singularity-race-spectator-contract.js";
+    import {
+      createSingularityRaceMapDraftKey,
+      normalizeSingularityRaceMapDraft
+    } from "./src/restored/games/singularity-race-map-draft-contract.js";
+    import {
       SINGULARITY_RACE_BANANA_DURATION_MS,
       SINGULARITY_RACE_BANANA_SLOW_MS,
       SINGULARITY_RACE_BOOSTER_DURATION_MS,
@@ -5388,6 +5395,7 @@
     const RACE_RANKING_RENDER_INTERVAL_MS = 420;
     const RACE_SLOT_RENDER_INTERVAL_MS = 700;
     const CONNECTED_INPUT_PUMP_INTERVAL_MS = 100;
+    const RACE_MAP_DRAFT_CACHE_MS = 650;
     const RACE_REWARD_SKIN_VISUAL_MS = 6500;
     const PLAYER_LATE_START_GRACE_MS = 15000;
     const SPECTATOR_LATE_JOIN_GRACE_MS = 12 * 60 * 1000;
@@ -5537,6 +5545,7 @@
       notice: document.querySelector("#notice"),
       trackScene: document.querySelector(".track-scene"),
       trailMap: document.querySelector("#trail-map"),
+      trackStartCrowd: document.querySelector("#track-start-crowd"),
       trackEffects: document.querySelector("#track-effects"),
       trackRunners: document.querySelector("#track-runners"),
       runnerSlots: document.querySelector("#runner-slots"),
@@ -5703,6 +5712,7 @@
     let activePinchZoom = null;
     let raceNarrationFrameId = 0;
     let suppressNextTrackClick = false;
+    let raceMapDraftCache = { mapId: "", key: "", raw: "", draft: null, checkedAtMs: 0 };
 
     elements.shell.classList.toggle("debug-mode", debugUiEnabled);
     elements.shell.dataset.screen = state.screen;
@@ -6449,6 +6459,39 @@
 
     function selectedRaceMap() {
       return getRestoredMarathonTrailMap(selectedRaceMapId());
+    }
+
+    function readCurrentRaceMapDraft(mapId = selectedRaceMapId(), now = Date.now()) {
+      const normalizedMapId = normalizeRestoredMarathonTrailMapId(mapId);
+      const key = createSingularityRaceMapDraftKey(normalizedMapId);
+      if (
+        raceMapDraftCache.mapId === normalizedMapId
+        && raceMapDraftCache.key === key
+        && now - Number(raceMapDraftCache.checkedAtMs || 0) < RACE_MAP_DRAFT_CACHE_MS
+      ) {
+        return raceMapDraftCache.draft;
+      }
+      const raw = readRaceMapDraftRaw(key);
+      if (raceMapDraftCache.mapId === normalizedMapId && raceMapDraftCache.key === key && raceMapDraftCache.raw === raw) {
+        raceMapDraftCache = { ...raceMapDraftCache, checkedAtMs: now };
+        return raceMapDraftCache.draft;
+      }
+      const draft = normalizeSingularityRaceMapDraft(raw, normalizedMapId);
+      raceMapDraftCache = { mapId: normalizedMapId, key, raw, draft, checkedAtMs: now };
+      return draft;
+    }
+
+    function readRaceMapDraftRaw(key) {
+      try {
+        return window.localStorage?.getItem(key) || "";
+      } catch {
+        return "";
+      }
+    }
+
+    function currentRaceMapObstacles() {
+      const mapId = selectedRaceMapId();
+      return listSingularityRaceMapObstacles(mapId, readCurrentRaceMapDraft(mapId));
     }
 
     function resetRaceMapRenderCache() {
@@ -8044,6 +8087,7 @@
         elapsedSeconds,
         nowMs: Date.now(),
         mapId: selectedRaceMapId(),
+        mapDraft: readCurrentRaceMapDraft(),
         playerProgress: state.runners[0]?.progress || 0,
         roadLaneHalfWidthPx: ROAD_LANE_HALF_WIDTH_PX,
         railMaxProgress: RAIL_MAX_PROGRESS
@@ -9186,6 +9230,7 @@
         : 1;
       const nextPlayer = advanceSingularityRaceLocalPrediction(player, frame, elapsedSeconds, {
         mapId: selectedRaceMapId(),
+        mapDraft: readCurrentRaceMapDraft(),
         runProgressPerSecond: LOCAL_RUN_PROGRESS_PER_SECOND * boostMultiplier,
         sprintProgressPerSecond: LOCAL_SPRINT_PROGRESS_PER_SECOND * boostMultiplier,
         laneSpeedPxPerSecond: LOCAL_LANE_SPEED_PX_PER_SECOND,
@@ -9278,6 +9323,7 @@
         laneOffsetPx: nextLane
       }, {
         mapId: selectedRaceMapId(),
+        mapDraft: readCurrentRaceMapDraft(),
         laneHalfWidthPx: ROAD_LANE_HALF_WIDTH_PX,
         minProgress,
         maxProgress,
@@ -9946,6 +9992,75 @@
         svgNode("path", { class: "trail-centerline", d: path }),
         svgNode("line", { class: "trail-finish-line", ...finishLine })
       );
+      renderTrackSpectators();
+    }
+
+    function renderTrackSpectators() {
+      const mapId = selectedRaceMapId();
+      const groups = listSingularityRaceMapSpectators(mapId, readCurrentRaceMapDraft(mapId));
+      elements.trackStartCrowd.replaceChildren(...groups.map(createTrackSpectatorGroupNode));
+    }
+
+    function createTrackSpectatorGroupNode(group) {
+      const width = clampNumber(group.widthPercent || 19, 4, 40);
+      const height = clampNumber(group.heightPercent || 3.8, 1, 12);
+      const point = raceSpectatorTrackPoint(group.progress, group.laneOffsetPx);
+      const node = document.createElement("div");
+      node.className = "track-start-crowd-group";
+      node.dataset.spectatorGroupId = group.id;
+      node.dataset.side = group.side || "left";
+      node.style.left = `${roundTrackPercent(point.x - (width * Number(group.anchorX || 0)))}%`;
+      node.style.top = `${roundTrackPercent(point.y - (height * Number(group.anchorY || 0)))}%`;
+      node.style.setProperty("--crowd-width", `${width}%`);
+      node.style.setProperty("--crowd-height", `${height}%`);
+      node.style.setProperty("--crowd-rotation", `${Number(group.rotationDeg || 0)}deg`);
+      node.append(
+        ...group.rows.map(createTrackSpectatorRowNode),
+        createTrackSpectatorFenceNode()
+      );
+      return node;
+    }
+
+    function createTrackSpectatorRowNode(row) {
+      const node = document.createElement("div");
+      node.className = `start-crowd-row is-${row.layer === "front" ? "front" : "back"}`;
+      node.append(...row.members.map(createTrackSpectatorCitizenNode));
+      return node;
+    }
+
+    function createTrackSpectatorCitizenNode(member) {
+      const node = document.createElement("div");
+      node.className = "pixel-citizen";
+      node.dataset.variant = String(member.variant || 0);
+      node.style.setProperty("--hop-delay", `${Number(member.hopDelayMs || 0)}ms`);
+      const signText = String(member.sign || "").trim();
+      if (signText) {
+        const sign = document.createElement("span");
+        sign.className = "crowd-sign";
+        sign.textContent = signText;
+        sign.style.setProperty("--sign-tilt", `${Number(member.signTiltDeg || -3)}deg`);
+        node.append(sign);
+      }
+      return node;
+    }
+
+    function createTrackSpectatorFenceNode() {
+      const node = document.createElement("div");
+      node.className = "start-crowd-fence";
+      return node;
+    }
+
+    function raceSpectatorTrackPoint(progress, laneOffsetPx = 0) {
+      const point = runnerTrailPoint(progress);
+      const offsetPx = clampNumber(laneOffsetPx, -760, 760);
+      return {
+        x: clampNumber(point.x + (((point.normal?.x || 0) * offsetPx / TRACK_WORLD_WIDTH) * 100), 0, 100),
+        y: clampNumber(point.y + (((point.normal?.y || 1) * offsetPx / TRACK_WORLD_HEIGHT) * 100), 0, 100)
+      };
+    }
+
+    function roundTrackPercent(value) {
+      return Math.round(Number(value || 0) * 100) / 100;
     }
 
     function runnerTrailPoint(progress) {
@@ -10796,7 +10911,7 @@
 
     function createRaceObstacleEffectNodes() {
       if (state.action.finalResult) return [];
-      return listSingularityRaceMapObstacles(selectedRaceMapId()).map(createRaceObstacleNode);
+      return currentRaceMapObstacles().map(createRaceObstacleNode);
     }
 
     function createRaceObstacleNode(obstacle) {
@@ -10811,7 +10926,7 @@
     }
 
     function findRaceObstacleById(obstacleId) {
-      return listSingularityRaceMapObstacles(selectedRaceMapId())
+      return currentRaceMapObstacles()
         .find((obstacle) => obstacle.id === obstacleId) || null;
     }
 
@@ -11106,7 +11221,7 @@
       const playerPoint = runnerTrailPoint(player.progress);
       if (!state.renderCache.minimapPlayerNode || !elements.raceMinimap.firstElementChild) {
         const savePoints = listRestoredMarathonTrailSavePoints(selectedRaceMapId());
-        const obstacles = listSingularityRaceMapObstacles(selectedRaceMapId());
+        const obstacles = currentRaceMapObstacles();
         const svg = svgNode("svg", {
           viewBox: raceMinimapViewBox(playerPoint),
           preserveAspectRatio: "none",

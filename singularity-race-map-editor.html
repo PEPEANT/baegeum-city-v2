@@ -1,0 +1,937 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%23eef2f7'/%3E%3Cpath d='M6 22C13 6 19 28 26 10' fill='none' stroke='%23176bff' stroke-width='3' stroke-linecap='round'/%3E%3Ccircle cx='11' cy='18' r='3' fill='%2317a878'/%3E%3C/svg%3E" />
+  <title>특이점레이스 맵 에디터</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #eef2f7;
+      --panel: #ffffff;
+      --ink: #142033;
+      --muted: #667085;
+      --line: #d7e0ea;
+      --blue: #176bff;
+      --green: #17a878;
+      --yellow: #f4b740;
+      --red: #d95050;
+      --road: #d8e6f4;
+      --road-dark: #33445b;
+      --shadow: 0 16px 40px rgba(28, 45, 68, 0.12);
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background:
+        linear-gradient(90deg, rgba(23, 107, 255, 0.05) 1px, transparent 1px),
+        linear-gradient(180deg, rgba(23, 107, 255, 0.05) 1px, transparent 1px),
+        var(--bg);
+      background-size: 42px 42px;
+      color: var(--ink);
+      font-family: "Malgun Gothic", "Apple SD Gothic Neo", system-ui, sans-serif;
+    }
+
+    button,
+    input,
+    select { font: inherit; }
+
+    button,
+    a {
+      border: 0;
+      color: inherit;
+      text-decoration: none;
+    }
+
+    h1,
+    h2,
+    p { margin: 0; letter-spacing: 0; }
+
+    h1 { font-size: 24px; line-height: 1.15; }
+    h2 { font-size: 16px; line-height: 1.25; }
+    p { color: var(--muted); font-size: 13px; line-height: 1.45; }
+
+    .shell {
+      width: min(1480px, calc(100vw - 28px));
+      margin: 0 auto;
+      padding: 14px 0 18px;
+      display: grid;
+      gap: 12px;
+    }
+
+    .topbar,
+    .panel {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.92);
+      box-shadow: var(--shadow);
+    }
+
+    .topbar {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 12px;
+      align-items: center;
+      padding: 14px 16px;
+    }
+
+    .top-actions,
+    .toolbar,
+    .map-tabs,
+    .field-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .button,
+    .map-tab,
+    .spectator-row {
+      display: inline-flex;
+      min-height: 38px;
+      align-items: center;
+      justify-content: center;
+      padding: 0 12px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+      color: var(--ink);
+      font-weight: 800;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+
+    .button.is-primary {
+      border-color: #125be0;
+      background: var(--blue);
+      color: #fff;
+    }
+
+    .button.is-danger {
+      border-color: rgba(217, 80, 80, 0.42);
+      background: rgba(217, 80, 80, 0.08);
+      color: #a82929;
+    }
+
+    .map-tab[aria-pressed="true"],
+    .spectator-row[aria-pressed="true"] {
+      border-color: rgba(23, 107, 255, 0.72);
+      background: rgba(23, 107, 255, 0.10);
+      color: #0f4ec0;
+    }
+
+    .button:disabled {
+      cursor: not-allowed;
+      opacity: 0.46;
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 340px;
+      gap: 12px;
+      align-items: start;
+    }
+
+    .panel {
+      overflow: hidden;
+    }
+
+    .panel-header {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 10px;
+      align-items: center;
+      padding: 12px 14px;
+      border-bottom: 1px solid var(--line);
+      background: #f8fafc;
+    }
+
+    .body {
+      padding: 12px;
+      display: grid;
+      gap: 12px;
+    }
+
+    .stage {
+      position: relative;
+      width: 100%;
+      aspect-ratio: 23 / 18;
+      min-height: 560px;
+      overflow: hidden;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background:
+        linear-gradient(90deg, rgba(20, 32, 51, 0.04) 1px, transparent 1px),
+        linear-gradient(180deg, rgba(20, 32, 51, 0.04) 1px, transparent 1px),
+        #f5f8fc;
+      background-size: 5% 5%;
+      touch-action: none;
+    }
+
+    .trail-map,
+    .editor-layer {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+    }
+
+    .trail-wall {
+      fill: none;
+      stroke: var(--road-dark);
+      stroke-width: 3.1;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      opacity: 0.72;
+    }
+
+    .trail-road {
+      fill: none;
+      stroke: var(--road);
+      stroke-width: 3.9;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    .trail-line {
+      fill: none;
+      stroke: rgba(20, 32, 51, 0.24);
+      stroke-width: 0.22;
+      stroke-dasharray: 1 1.2;
+    }
+
+    .obstacle-marker,
+    .spectator-marker {
+      position: absolute;
+      transform: translate(-50%, -50%);
+    }
+
+    .obstacle-marker {
+      width: 62px;
+      height: 34px;
+      border: 2px solid rgba(255, 255, 255, 0.96);
+      border-radius: 6px;
+      background:
+        repeating-linear-gradient(135deg, #ffd764 0 8px, #1e3148 8px 16px);
+      box-shadow:
+        0 4px 0 rgba(24, 37, 53, 0.42),
+        0 12px 22px rgba(20, 32, 51, 0.24);
+    }
+
+    .obstacle-marker::before,
+    .obstacle-marker::after {
+      content: "";
+      position: absolute;
+      pointer-events: none;
+    }
+
+    .obstacle-marker::before {
+      left: 9px;
+      right: 9px;
+      top: -8px;
+      height: 8px;
+      border-radius: 4px 4px 1px 1px;
+      background: rgba(226, 238, 246, 0.92);
+      box-shadow: inset 0 -3px 0 rgba(51, 75, 97, 0.26);
+    }
+
+    .obstacle-marker::after {
+      left: 8px;
+      right: 8px;
+      bottom: -9px;
+      height: 9px;
+      border-radius: 999px;
+      background: rgba(20, 32, 51, 0.22);
+      filter: blur(2px);
+    }
+
+    .obstacle-marker.is-barrier {
+      background:
+        repeating-linear-gradient(135deg, #f04f47 0 8px, #fff4d2 8px 16px);
+    }
+
+    .obstacle-marker.is-cone {
+      width: 40px;
+      height: 46px;
+      border-radius: 9px 9px 7px 7px;
+      background:
+        linear-gradient(180deg, #ffd76a 0 16%, #f2762e 16% 40%, #fff0b5 40% 52%, #f2762e 52% 84%, #b94b25 84% 100%);
+    }
+
+    .obstacle-marker.is-cone::before {
+      left: 7px;
+      right: 7px;
+      top: -6px;
+      height: 7px;
+      background: #ffc35a;
+      box-shadow: inset 0 -2px 0 rgba(134, 65, 20, 0.26);
+    }
+
+    .obstacle-marker.is-crate {
+      width: 46px;
+      height: 46px;
+      border-color: rgba(245, 232, 201, 0.94);
+      background:
+        linear-gradient(45deg, transparent 42%, rgba(83, 49, 29, 0.54) 43% 57%, transparent 58%),
+        linear-gradient(-45deg, transparent 42%, rgba(83, 49, 29, 0.48) 43% 57%, transparent 58%),
+        linear-gradient(90deg, transparent 44%, rgba(83, 49, 29, 0.38) 45% 55%, transparent 56%),
+        linear-gradient(180deg, #c98a45, #714727);
+    }
+
+    .obstacle-marker.is-crate::before {
+      inset: 7px;
+      height: auto;
+      border: 2px solid rgba(83, 49, 29, 0.36);
+      border-radius: 4px;
+      background: transparent;
+      box-shadow: none;
+    }
+
+    .spectator-marker {
+      min-width: 92px;
+      min-height: 42px;
+      padding: 6px 8px;
+      border: 2px solid rgba(23, 107, 255, 0.34);
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.88);
+      box-shadow: 0 12px 28px rgba(20, 32, 51, 0.16);
+      cursor: grab;
+      user-select: none;
+      touch-action: none;
+    }
+
+    .spectator-marker.is-selected {
+      border-color: var(--blue);
+      box-shadow: 0 0 0 4px rgba(23, 107, 255, 0.14), 0 14px 32px rgba(20, 32, 51, 0.20);
+    }
+
+    .spectator-marker.is-dragging {
+      cursor: grabbing;
+    }
+
+    .crowd-dots {
+      display: grid;
+      grid-template-columns: repeat(9, 8px);
+      gap: 3px;
+      align-items: center;
+    }
+
+    .crowd-dot {
+      width: 8px;
+      height: 12px;
+      border-radius: 4px 4px 2px 2px;
+      background: #2f7eea;
+    }
+
+    .crowd-dot:nth-child(3n) { background: #17a878; }
+    .crowd-dot:nth-child(4n) { background: #e08d2f; }
+
+    .crowd-sign {
+      display: inline-flex;
+      margin-top: 5px;
+      padding: 2px 5px;
+      border: 1px solid rgba(20, 32, 51, 0.22);
+      border-radius: 4px;
+      background: #fff3bd;
+      color: #4d3610;
+      font-size: 11px;
+      font-weight: 900;
+      max-width: 110px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .badge {
+      display: inline-flex;
+      min-height: 28px;
+      align-items: center;
+      padding: 0 9px;
+      border-radius: 999px;
+      background: rgba(23, 107, 255, 0.10);
+      color: #0f4ec0;
+      font-size: 12px;
+      font-weight: 900;
+      white-space: nowrap;
+    }
+
+    .status {
+      min-height: 34px;
+      display: flex;
+      align-items: center;
+      padding: 8px 10px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #f8fafc;
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 800;
+    }
+
+    .status.is-dirty {
+      border-color: rgba(244, 183, 64, 0.52);
+      background: rgba(244, 183, 64, 0.12);
+      color: #8a5a00;
+    }
+
+    .field {
+      display: grid;
+      gap: 5px;
+    }
+
+    .field label {
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 900;
+    }
+
+    .field input {
+      width: 100%;
+      min-height: 38px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 0 10px;
+      background: #fff;
+      color: var(--ink);
+      font-weight: 800;
+    }
+
+    .field-row .field {
+      flex: 1 1 120px;
+    }
+
+    .spectator-list {
+      display: grid;
+      gap: 8px;
+    }
+
+    .spectator-row {
+      width: 100%;
+      justify-content: space-between;
+      gap: 8px;
+      text-align: left;
+    }
+
+    .spectator-row span {
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 800;
+    }
+
+    .draft-key {
+      overflow-wrap: anywhere;
+      font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    @media (max-width: 1080px) {
+      .topbar,
+      .layout {
+        grid-template-columns: 1fr;
+      }
+
+      .stage {
+        min-height: 420px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="shell">
+    <header class="topbar">
+      <div>
+        <h1>특이점레이스 맵 에디터</h1>
+        <p id="map-title">관중 배치</p>
+      </div>
+      <nav class="top-actions" aria-label="빠른 이동">
+        <a class="button" id="admin-link" href="./singularity-race-admin.html?devOnline=1">관리자</a>
+        <a class="button" id="preview-link" href="./singularity-race.html">미리보기</a>
+        <button class="button is-primary" id="save-button" type="button">저장</button>
+      </nav>
+    </header>
+
+    <section class="layout">
+      <section class="panel">
+        <div class="panel-header">
+          <div class="map-tabs" id="map-tabs"></div>
+          <span class="badge" id="map-badge">MAP</span>
+        </div>
+        <div class="body">
+          <div class="toolbar">
+            <button class="button" id="reset-button" type="button">draft 초기화</button>
+            <button class="button" id="revert-button" type="button">되돌리기</button>
+            <span class="status" id="save-status">저장됨</span>
+          </div>
+          <div class="stage" id="editor-stage" aria-label="race map editor">
+            <svg class="trail-map" viewBox="0 0 100 100" preserveAspectRatio="none" role="img" aria-label="race trail">
+              <path class="trail-wall" id="trail-wall-left"></path>
+              <path class="trail-wall" id="trail-wall-right"></path>
+              <path class="trail-road" id="trail-road"></path>
+              <path class="trail-line" id="trail-line"></path>
+            </svg>
+            <div class="editor-layer" id="editor-layer"></div>
+          </div>
+        </div>
+      </section>
+
+      <aside class="panel">
+        <div class="panel-header">
+          <div>
+            <h2>관중 위치</h2>
+            <p id="selected-label">-</p>
+          </div>
+          <span class="badge" id="dirty-badge">저장됨</span>
+        </div>
+        <div class="body">
+          <div class="spectator-list" id="spectator-list"></div>
+          <div class="field-row">
+            <div class="field">
+              <label for="progress-input">progress</label>
+              <input id="progress-input" type="number" min="0" max="100" step="0.05" />
+            </div>
+            <div class="field">
+              <label for="lane-input">laneOffsetPx</label>
+              <input id="lane-input" type="number" min="-760" max="760" step="1" />
+            </div>
+          </div>
+          <div class="field-row">
+            <div class="field">
+              <label for="width-input">widthPercent</label>
+              <input id="width-input" type="number" min="4" max="40" step="0.1" />
+            </div>
+            <div class="field">
+              <label for="height-input">heightPercent</label>
+              <input id="height-input" type="number" min="1" max="12" step="0.1" />
+            </div>
+          </div>
+          <div class="draft-key" id="draft-key"></div>
+        </div>
+      </aside>
+    </section>
+  </main>
+
+  <script type="module">
+    import {
+      RESTORED_MARATHON_WORLD_HEIGHT,
+      RESTORED_MARATHON_WORLD_WIDTH,
+      createRestoredMarathonTrailSvgPath,
+      createRestoredMarathonTrailWallSvgPaths,
+      estimateRestoredMarathonTrailProgressFromPoint,
+      getRestoredMarathonTrailMap,
+      listRestoredMarathonTrailMaps,
+      normalizeRestoredMarathonTrailMapId,
+      progressToRestoredMarathonMapPoint,
+      progressToRestoredMarathonTrailPoint
+    } from "./src/restored/games/marathon-trail-geometry.js";
+    import { listSingularityRaceMapObstacles } from "./src/restored/games/singularity-race-obstacle-contract.js";
+    import { listSingularityRaceMapSpectators } from "./src/restored/games/singularity-race-spectator-contract.js";
+    import {
+      SINGULARITY_RACE_MAP_DRAFT_BASE_VERSION,
+      createSingularityRaceMapDraft,
+      createSingularityRaceMapDraftKey,
+      normalizeSingularityRaceMapDraft
+    } from "./src/restored/games/singularity-race-map-draft-contract.js";
+
+    const queryParams = new URLSearchParams(window.location.search);
+    const initialMapId = normalizeRestoredMarathonTrailMapId(queryParams.get("mapId") || queryParams.get("map"));
+    const elements = {
+      mapTitle: document.querySelector("#map-title"),
+      mapTabs: document.querySelector("#map-tabs"),
+      mapBadge: document.querySelector("#map-badge"),
+      adminLink: document.querySelector("#admin-link"),
+      previewLink: document.querySelector("#preview-link"),
+      saveButton: document.querySelector("#save-button"),
+      resetButton: document.querySelector("#reset-button"),
+      revertButton: document.querySelector("#revert-button"),
+      saveStatus: document.querySelector("#save-status"),
+      stage: document.querySelector("#editor-stage"),
+      layer: document.querySelector("#editor-layer"),
+      wallLeft: document.querySelector("#trail-wall-left"),
+      wallRight: document.querySelector("#trail-wall-right"),
+      road: document.querySelector("#trail-road"),
+      line: document.querySelector("#trail-line"),
+      spectatorList: document.querySelector("#spectator-list"),
+      selectedLabel: document.querySelector("#selected-label"),
+      dirtyBadge: document.querySelector("#dirty-badge"),
+      progressInput: document.querySelector("#progress-input"),
+      laneInput: document.querySelector("#lane-input"),
+      widthInput: document.querySelector("#width-input"),
+      heightInput: document.querySelector("#height-input"),
+      draftKey: document.querySelector("#draft-key")
+    };
+    const state = {
+      mapId: initialMapId,
+      spectators: [],
+      obstacles: [],
+      selectedGroupId: "",
+      dirty: false,
+      drag: null
+    };
+
+    elements.saveButton.addEventListener("click", saveDraft);
+    elements.resetButton.addEventListener("click", resetDraft);
+    elements.revertButton.addEventListener("click", () => loadMap(state.mapId));
+    elements.progressInput.addEventListener("input", syncSelectedFromInputs);
+    elements.laneInput.addEventListener("input", syncSelectedFromInputs);
+    elements.widthInput.addEventListener("input", syncSelectedFromInputs);
+    elements.heightInput.addEventListener("input", syncSelectedFromInputs);
+    elements.stage.addEventListener("pointerdown", startDrag);
+    elements.stage.addEventListener("pointermove", moveDrag);
+    elements.stage.addEventListener("pointerup", endDrag);
+    elements.stage.addEventListener("pointercancel", endDrag);
+    elements.stage.addEventListener("mousedown", startMouseDrag);
+    window.addEventListener("mousemove", moveMouseDrag);
+    window.addEventListener("mouseup", endMouseDrag);
+    window.addEventListener("beforeunload", (event) => {
+      if (!state.dirty) return;
+      event.preventDefault();
+      event.returnValue = "";
+    });
+
+    renderMapTabs();
+    loadMap(state.mapId);
+
+    function loadMap(mapId) {
+      state.mapId = normalizeRestoredMarathonTrailMapId(mapId);
+      const draft = readStoredDraft(state.mapId);
+      state.spectators = cloneList(listSingularityRaceMapSpectators(state.mapId, draft));
+      state.obstacles = cloneList(listSingularityRaceMapObstacles(state.mapId, draft));
+      state.selectedGroupId = state.spectators[0]?.id || "";
+      state.dirty = false;
+      setupTrail();
+      syncLinks();
+      render();
+    }
+
+    function renderMapTabs() {
+      elements.mapTabs.replaceChildren(...listRestoredMarathonTrailMaps().map((map) => {
+        const button = document.createElement("button");
+        button.className = "map-tab";
+        button.type = "button";
+        button.dataset.mapId = map.id;
+        button.textContent = map.shortLabel;
+        button.title = map.description;
+        button.addEventListener("click", () => {
+          if (map.id === state.mapId) return;
+          if (state.dirty && !window.confirm("저장하지 않은 변경이 있습니다. 맵을 바꿀까요?")) return;
+          loadMap(map.id);
+        });
+        return button;
+      }));
+    }
+
+    function setupTrail() {
+      const path = createRestoredMarathonTrailSvgPath(112, state.mapId);
+      const walls = createRestoredMarathonTrailWallSvgPaths(112, { mapId: state.mapId });
+      elements.wallLeft.setAttribute("d", walls.left);
+      elements.wallRight.setAttribute("d", walls.right);
+      elements.road.setAttribute("d", path);
+      elements.line.setAttribute("d", path);
+    }
+
+    function render() {
+      const map = getRestoredMarathonTrailMap(state.mapId);
+      elements.mapTitle.textContent = map.label;
+      elements.mapBadge.textContent = `MAP ${map.shortLabel}`;
+      elements.draftKey.textContent = createSingularityRaceMapDraftKey(state.mapId);
+      for (const tab of elements.mapTabs.querySelectorAll(".map-tab")) {
+        tab.setAttribute("aria-pressed", String(tab.dataset.mapId === state.mapId));
+      }
+      renderLayer();
+      renderSpectatorList();
+      renderInspector();
+      renderDirtyState();
+    }
+
+    function renderLayer() {
+      const nodes = [
+        ...state.obstacles.map(createObstacleMarker),
+        ...state.spectators.map(createSpectatorMarker)
+      ];
+      elements.layer.replaceChildren(...nodes);
+    }
+
+    function createObstacleMarker(obstacle) {
+      const point = raceMapPoint(obstacle.progress, obstacle.laneOffsetPx);
+      const node = document.createElement("div");
+      node.className = `obstacle-marker is-${obstacle.kind || "barrier"}`;
+      node.dataset.obstacleId = obstacle.id;
+      node.title = `${obstacle.id} / ${Math.round(obstacle.progress * 100) / 100}`;
+      node.style.left = `${point.x}%`;
+      node.style.top = `${point.y}%`;
+      return node;
+    }
+
+    function createSpectatorMarker(group) {
+      const point = raceMapPoint(group.progress, group.laneOffsetPx);
+      const node = document.createElement("button");
+      node.className = `spectator-marker${group.id === state.selectedGroupId ? " is-selected" : ""}${state.drag?.groupId === group.id ? " is-dragging" : ""}`;
+      node.type = "button";
+      node.dataset.spectatorGroupId = group.id;
+      node.style.left = `${point.x}%`;
+      node.style.top = `${point.y}%`;
+      node.setAttribute("aria-pressed", String(group.id === state.selectedGroupId));
+      node.append(createCrowdDots(group), createSignPreview(group));
+      node.addEventListener("click", () => selectGroup(group.id));
+      return node;
+    }
+
+    function createCrowdDots(group) {
+      const node = document.createElement("div");
+      node.className = "crowd-dots";
+      const count = Math.max(1, Math.min(18, Number(group.density) || countMembers(group)));
+      node.append(...Array.from({ length: count }, () => {
+        const dot = document.createElement("span");
+        dot.className = "crowd-dot";
+        return dot;
+      }));
+      return node;
+    }
+
+    function createSignPreview(group) {
+      const node = document.createElement("span");
+      node.className = "crowd-sign";
+      node.textContent = firstSign(group) || group.id;
+      return node;
+    }
+
+    function renderSpectatorList() {
+      elements.spectatorList.replaceChildren(...state.spectators.map((group) => {
+        const button = document.createElement("button");
+        button.className = "spectator-row";
+        button.type = "button";
+        button.setAttribute("aria-pressed", String(group.id === state.selectedGroupId));
+        button.dataset.spectatorGroupId = group.id;
+        button.innerHTML = `<strong>${escapeHtml(firstSign(group) || group.id)}</strong><span>${round2(group.progress)} / ${Math.round(group.laneOffsetPx || 0)}px</span>`;
+        button.addEventListener("click", () => selectGroup(group.id));
+        return button;
+      }));
+    }
+
+    function renderInspector() {
+      const group = selectedGroup();
+      const disabled = !group;
+      elements.selectedLabel.textContent = group ? group.id : "-";
+      elements.progressInput.disabled = disabled;
+      elements.laneInput.disabled = disabled;
+      elements.widthInput.disabled = disabled;
+      elements.heightInput.disabled = disabled;
+      elements.progressInput.value = group ? round2(group.progress) : "";
+      elements.laneInput.value = group ? Math.round(group.laneOffsetPx || 0) : "";
+      elements.widthInput.value = group ? round2(group.widthPercent || 19) : "";
+      elements.heightInput.value = group ? round2(group.heightPercent || 3.8) : "";
+    }
+
+    function renderDirtyState() {
+      elements.saveButton.disabled = !state.dirty;
+      elements.saveStatus.classList.toggle("is-dirty", state.dirty);
+      elements.saveStatus.textContent = state.dirty ? "저장 안 됨" : "저장됨";
+      elements.dirtyBadge.textContent = state.dirty ? "변경됨" : "저장됨";
+    }
+
+    function selectGroup(groupId) {
+      state.selectedGroupId = groupId;
+      render();
+    }
+
+    function syncSelectedFromInputs() {
+      const group = selectedGroup();
+      if (!group) return;
+      patchSelectedGroup({
+        progress: clamp(Number(elements.progressInput.value), 0, 100),
+        laneOffsetPx: clamp(Number(elements.laneInput.value), -760, 760),
+        widthPercent: clamp(Number(elements.widthInput.value), 4, 40),
+        heightPercent: clamp(Number(elements.heightInput.value), 1, 12)
+      });
+    }
+
+    function startDrag(event) {
+      const marker = event.target.closest(".spectator-marker");
+      if (!marker) return;
+      event.preventDefault();
+      marker.setPointerCapture?.(event.pointerId);
+      const groupId = marker.dataset.spectatorGroupId;
+      state.selectedGroupId = groupId;
+      state.drag = { groupId, pointerId: event.pointerId };
+      updateSelectedFromPointer(event);
+    }
+
+    function startMouseDrag(event) {
+      if (state.drag) return;
+      const marker = event.target.closest(".spectator-marker");
+      if (!marker) return;
+      event.preventDefault();
+      state.selectedGroupId = marker.dataset.spectatorGroupId;
+      state.drag = { groupId: state.selectedGroupId, pointerId: "mouse" };
+      updateSelectedFromPointer(event);
+    }
+
+    function moveDrag(event) {
+      if (!state.drag || event.pointerId !== state.drag.pointerId) return;
+      event.preventDefault();
+      updateSelectedFromPointer(event);
+    }
+
+    function moveMouseDrag(event) {
+      if (!state.drag || state.drag.pointerId !== "mouse") return;
+      event.preventDefault();
+      updateSelectedFromPointer(event);
+    }
+
+    function endDrag(event) {
+      if (!state.drag || event.pointerId !== state.drag.pointerId) return;
+      state.drag = null;
+      render();
+    }
+
+    function endMouseDrag() {
+      if (!state.drag || state.drag.pointerId !== "mouse") return;
+      state.drag = null;
+      render();
+    }
+
+    function updateSelectedFromPointer(event) {
+      const point = eventToStagePercent(event);
+      const next = resolveCoordinate(point.x, point.y);
+      patchSelectedGroup({
+        progress: next.progress,
+        laneOffsetPx: next.laneOffsetPx,
+        side: Math.abs(next.laneOffsetPx) < 36 ? "back" : (next.laneOffsetPx < 0 ? "left" : "right")
+      });
+    }
+
+    function patchSelectedGroup(patch) {
+      const index = state.spectators.findIndex((group) => group.id === state.selectedGroupId);
+      if (index < 0) return;
+      state.spectators[index] = { ...state.spectators[index], ...patch };
+      state.dirty = true;
+      render();
+    }
+
+    function saveDraft() {
+      const previous = readStoredDraft(state.mapId);
+      const obstacles = Array.isArray(previous?.obstacles) ? previous.obstacles : state.obstacles;
+      const draft = createSingularityRaceMapDraft({
+        mapId: state.mapId,
+        obstacles,
+        spectators: state.spectators
+      }, {
+        baseMapVersion: SINGULARITY_RACE_MAP_DRAFT_BASE_VERSION,
+        editorRevision: Number(previous?.editorRevision || 0) + 1,
+        savedAt: new Date().toISOString()
+      });
+      window.localStorage.setItem(createSingularityRaceMapDraftKey(state.mapId), JSON.stringify(draft, null, 2));
+      state.dirty = false;
+      renderDirtyState();
+    }
+
+    function resetDraft() {
+      if (!window.confirm("현재 맵 draft를 초기화할까요?")) return;
+      window.localStorage.removeItem(createSingularityRaceMapDraftKey(state.mapId));
+      loadMap(state.mapId);
+    }
+
+    function readStoredDraft(mapId) {
+      try {
+        return normalizeSingularityRaceMapDraft(window.localStorage.getItem(createSingularityRaceMapDraftKey(mapId)), mapId);
+      } catch {
+        return null;
+      }
+    }
+
+    function syncLinks() {
+      const params = new URLSearchParams({ mapId: state.mapId });
+      elements.previewLink.href = `./singularity-race.html?${params.toString()}`;
+      elements.adminLink.href = `./singularity-race-admin.html?devOnline=1&${params.toString()}`;
+    }
+
+    function raceMapPoint(progress, laneOffsetPx) {
+      return progressToRestoredMarathonMapPoint(progress, {
+        mapId: state.mapId,
+        laneOffsetPx,
+        worldWidth: RESTORED_MARATHON_WORLD_WIDTH,
+        worldHeight: RESTORED_MARATHON_WORLD_HEIGHT,
+        minPercent: 0,
+        maxPercent: 100
+      });
+    }
+
+    function eventToStagePercent(event) {
+      const rect = elements.stage.getBoundingClientRect();
+      return {
+        x: clamp(((event.clientX - rect.left) / rect.width) * 100, 0, 100),
+        y: clamp(((event.clientY - rect.top) / rect.height) * 100, 0, 100)
+      };
+    }
+
+    function resolveCoordinate(x, y) {
+      const rough = estimateRestoredMarathonTrailProgressFromPoint(x, y, state.mapId);
+      let bestProgress = rough;
+      let bestDistance = Infinity;
+      for (let progress = Math.max(0, rough - 1.4); progress <= Math.min(100, rough + 1.4); progress += 0.05) {
+        const point = progressToRestoredMarathonTrailPoint(progress, state.mapId);
+        const distance = Math.pow(point.x - x, 2) + Math.pow(point.y - y, 2);
+        if (distance < bestDistance) {
+          bestDistance = distance;
+          bestProgress = progress;
+        }
+      }
+      const center = progressToRestoredMarathonTrailPoint(bestProgress, state.mapId);
+      const dxPx = ((x - center.x) / 100) * RESTORED_MARATHON_WORLD_WIDTH;
+      const dyPx = ((y - center.y) / 100) * RESTORED_MARATHON_WORLD_HEIGHT;
+      const laneOffsetPx = (dxPx * center.normal.x) + (dyPx * center.normal.y);
+      return {
+        progress: round2(clamp(bestProgress, 0, 100)),
+        laneOffsetPx: Math.round(clamp(laneOffsetPx, -760, 760))
+      };
+    }
+
+    function selectedGroup() {
+      return state.spectators.find((group) => group.id === state.selectedGroupId) || null;
+    }
+
+    function countMembers(group) {
+      return (group.rows || []).reduce((sum, row) => sum + (row.members || []).length, 0);
+    }
+
+    function firstSign(group) {
+      for (const row of group.rows || []) {
+        for (const member of row.members || []) {
+          const sign = String(member.sign || "").trim();
+          if (sign) return sign;
+        }
+      }
+      return "";
+    }
+
+    function cloneList(items) {
+      return JSON.parse(JSON.stringify(items || []));
+    }
+
+    function escapeHtml(value) {
+      return String(value).replace(/[&<>"']/g, (char) => ({
+        "&": "&amp;",
+        "<": "&lt;",
+        ">": "&gt;",
+        "\"": "&quot;",
+        "'": "&#39;"
+      }[char]));
+    }
+
+    function clamp(value, min, max) {
+      const number = Number.isFinite(Number(value)) ? Number(value) : min;
+      return Math.max(min, Math.min(max, number));
+    }
+
+    function round2(value) {
+      return Math.round(Number(value || 0) * 100) / 100;
+    }
+  </script>
+</body>
+</html>

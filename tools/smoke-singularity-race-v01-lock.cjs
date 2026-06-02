@@ -22,6 +22,8 @@ const indexSource = readProjectFile("index.html");
 const raceSource = readProjectFile("singularity-race.html");
 const adminSource = readProjectFile("singularity-race-admin.html");
 const skinSource = readProjectFile("src/skins/singularity-race-skin-presets.js");
+const spectatorSource = readProjectFile("src/restored/games/singularity-race-spectator-contract.js");
+const mapDraftSource = readProjectFile("src/restored/games/singularity-race-map-draft-contract.js");
 const mapCatalogSource = readProjectFile("src/restored/games/marathon-trail-map-catalog.js");
 const trailValidationSource = readProjectFile("src/restored/games/marathon-trail-geometry-validation.js");
 const roomPolicySource = readProjectFile("src/restored/online/marathon-room-policy.js");
@@ -94,10 +96,6 @@ assert.ok(!/location\.(href|assign|replace)\s*=/.test(indexSource), "launcher sh
   "start-crowd-sign-wave",
   "pixel-citizen",
   "crowd-sign",
-  "특이점은온다",
-  "특이점갤러리 화이팅",
-  "AGI 2027",
-  "1등 부기줄",
   "race-ceremony-space",
   "race-ceremony-room",
   "race-ceremony-back-wall",
@@ -144,6 +142,25 @@ assert.ok(!/location\.(href|assign|replace)\s*=/.test(indexSource), "launcher sh
   "특별출연: 지피쨩",
   "race-mobile-controls"
 ].forEach((token) => assertIncludes(raceSource, token, `race page should keep ${token}`));
+
+[
+  "SINGULARITY_RACE_SPECTATOR_CONTRACT_VERSION",
+  "listSingularityRaceMapSpectators",
+  "validateSingularityRaceSpectatorContract",
+  "특이점은온다",
+  "특이점갤러리 화이팅",
+  "AGI 2027",
+  "1등 부기줄"
+].forEach((token) => assertIncludes(spectatorSource, token, `spectator contract should keep ${token}`));
+
+[
+  "SINGULARITY_RACE_MAP_DRAFT_CONTRACT_VERSION",
+  "SINGULARITY_RACE_MAP_DRAFT_SCHEMA_VERSION",
+  "createSingularityRaceMapDraftKey",
+  "normalizeSingularityRaceMapDraft",
+  "mergeSingularityRaceMapDraft",
+  "validateSingularityRaceMapDraftContract"
+].forEach((token) => assertIncludes(mapDraftSource, token, `race map draft contract should keep ${token}`));
 
 assertIncludes(raceSource, 'href="https://gall.dcinside.com/mgallery/board/lists?id=thesingularity"', "race page should link the community gallery");
 assertExcludes(raceSource, "닉네임과 스킨을 먼저 고른 뒤 로비에 입장합니다.", "profile intro copy should be replaced by direct nickname/start controls");

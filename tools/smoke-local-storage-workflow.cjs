@@ -13,6 +13,8 @@ async function load(relativePath) {
 (async () => {
   const workflow = await load("src/systems/local-storage-workflow.js");
   const registry = await load("src/data/map-registry.js");
+  const raceMaps = await load("src/restored/games/marathon-trail-map-catalog.js");
+  const raceDraft = await load("src/restored/games/singularity-race-map-draft-contract.js");
   const { PLAYER_ECONOMY_KEY } = await load("src/systems/player-economy-state.js");
   const { ECONOMY_LEDGER_KEY } = await load("src/systems/economy-ledger.js");
   const { ODD_EVEN_ROUND_STATE_KEY } = await load("src/systems/odd-even-round-state.js");
@@ -35,6 +37,12 @@ async function load(relativePath) {
   ]));
   assert.equal(draft.status, workflow.LOCAL_STORAGE_WORKFLOW_STATUSES.STALE, "saved editor draft should be stale");
   assert.ok(draft.blockingIds.includes("world-editor-draft:dice-city"), "draft report should name the map draft");
+
+  const raceMapDraft = workflow.summarizeLocalStorageWorkflow(createMemoryStorage([
+    [raceDraft.createSingularityRaceMapDraftKey(raceMaps.RESTORED_MARATHON_TRAIL_MAP_IDS.BASIC), JSON.stringify({ schemaVersion: raceDraft.SINGULARITY_RACE_MAP_DRAFT_SCHEMA_VERSION, mapId: raceMaps.RESTORED_MARATHON_TRAIL_MAP_IDS.BASIC })]
+  ]));
+  assert.equal(raceMapDraft.status, workflow.LOCAL_STORAGE_WORKFLOW_STATUSES.STALE, "saved race map draft should be stale");
+  assert.ok(raceMapDraft.blockingIds.includes("singularity-race-map-draft:baegeum-city"), "race draft report should name the map draft");
 
   const corrupt = workflow.summarizeLocalStorageWorkflow(createMemoryStorage([[PLAYER_ECONOMY_KEY, "{broken"]]));
   assert.equal(corrupt.status, workflow.LOCAL_STORAGE_WORKFLOW_STATUSES.CORRUPT, "bad JSON should be corrupt");

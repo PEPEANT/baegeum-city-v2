@@ -46,6 +46,7 @@ export function advanceSingularityRaceLocalPrediction(runnerInput = {}, frameInp
   };
   const obstacle = resolveSingularityRaceObstacleCollision(predicted, {
     mapId: options.mapId,
+    mapDraft: options.mapDraft,
     laneHalfWidthPx,
     minProgress,
     maxProgress,

@@ -2,6 +2,7 @@ import {
   STORAGE_DIAGNOSTIC_STATUSES,
   inspectLocalStorage
 } from "./local-storage-diagnostics.js";
+import { RESTORED_MARATHON_TRAIL_MAP_IDS } from "../restored/games/marathon-trail-map-catalog.js";
 
 export const LOCAL_STORAGE_WORKFLOW_STATUSES = Object.freeze({
   CLEAN: "clean",
@@ -22,6 +23,7 @@ const blockingIds = new Set([
   "world-editor-draft:baegeum-city",
   "world-editor-draft:dice-city",
   "world-editor-draft:legacy",
+  ...Object.values(RESTORED_MARATHON_TRAIL_MAP_IDS).map((mapId) => `singularity-race-map-draft:${mapId}`),
   "venue-metadata"
 ]);
 

@@ -711,6 +711,7 @@
         <button class="button is-primary" id="admin-create-room-button" type="button">방 만들기</button>
         <a class="is-primary" id="admin-direct-game-link" href="./singularity-race.html?devOnline=1&amp;adminLaunch=1" target="_blank" rel="noreferrer">관리자 직접 보기</a>
         <a id="admin-lobby-link" href="./singularity-race.html?devOnline=1" target="_blank" rel="noreferrer">유저 입장</a>
+        <a id="admin-map-editor-link" href="./singularity-race-map-editor.html" target="_blank" rel="noreferrer">맵 에디터</a>
       </nav>
     </header>
 
@@ -1061,6 +1062,7 @@
       createRoomButton: document.querySelector("#admin-create-room-button"),
       directGameLink: document.querySelector("#admin-direct-game-link"),
       lobbyLink: document.querySelector("#admin-lobby-link"),
+      mapEditorLink: document.querySelector("#admin-map-editor-link"),
       enterButton: document.querySelector("#admin-enter-button"),
       startButton: document.querySelector("#admin-start-button"),
       refreshButton: document.querySelector("#admin-refresh-button"),
@@ -1886,6 +1888,7 @@
     }
 
     function renderGate() {
+      syncMapEditorLink();
       if (cloudflareAdminEnabled) {
         const publicSummary = state.cloudflareSummary || getAdminRoomSummaries()[0];
         const publicPhase = publicSummary.phase || "lobby";
@@ -2056,6 +2059,18 @@
         roomId
       });
       return `./singularity-race.html?${params.toString()}`;
+    }
+
+    function createRaceMapEditorHref(mapId = state.mapId) {
+      const params = new URLSearchParams({
+        mapId: normalizeRestoredMarathonTrailMapId(mapId)
+      });
+      return `./singularity-race-map-editor.html?${params.toString()}`;
+    }
+
+    function syncMapEditorLink() {
+      elements.mapEditorLink.href = createRaceMapEditorHref(state.mapId);
+      elements.mapEditorLink.setAttribute("aria-disabled", "false");
     }
 
     function renderSpectatorPolicy() {

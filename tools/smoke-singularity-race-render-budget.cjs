@@ -7,6 +7,8 @@ const path = require("node:path");
 const root = path.resolve(__dirname, "..");
 const pageSource = fs.readFileSync(path.join(root, "singularity-race.html"), "utf8");
 const runnerViewSource = fs.readFileSync(path.join(root, "src/restored/games/singularity-race-runner-view.js"), "utf8");
+const spectatorSource = fs.readFileSync(path.join(root, "src/restored/games/singularity-race-spectator-contract.js"), "utf8");
+const mapDraftSource = fs.readFileSync(path.join(root, "src/restored/games/singularity-race-map-draft-contract.js"), "utf8");
 
 function functionBody(name) {
   const start = pageSource.indexOf(`function ${name}(`);
@@ -40,6 +42,7 @@ const staleReleaseBody = functionBody("releaseStaleMovementKeys");
 const sprintBody = functionBody("setVirtualSprint");
 const focusChatBody = functionBody("focusChatInput");
 const closeChatComposerBody = functionBody("closeRaceChatComposer");
+const raceMapDraftBody = functionBody("readCurrentRaceMapDraft");
 
 assert(pageSource.includes("RACE_HUD_RENDER_INTERVAL_MS"), "race HUD render interval should exist");
 assert(!pageSource.includes("RACE_STANDINGS_RENDER_INTERVAL_MS"), "race standings should not be refreshed during the running hot path");
@@ -60,9 +63,17 @@ assert(pageSource.includes("renderCache"), "race render cache should exist");
 assert(pageSource.includes("runnerMotion"), "runner motion cache should exist for run animation");
 assert(pageSource.includes("runner-run-cycle"), "runner sprites should animate like running instead of sliding");
 assert(pageSource.includes("track-start-crowd"), "start-line crowd should exist as a static stadium decoration");
+assert(pageSource.includes("renderTrackSpectators()"), "start-line crowd should be rendered from race spectator data when the trail map renders");
+assert(pageSource.includes("listSingularityRaceMapSpectators"), "start-line crowd should be backed by the spectator contract");
+assert(pageSource.includes("createSingularityRaceMapDraftKey"), "race map draft storage keys should be shared with the page");
+assert(pageSource.includes("normalizeSingularityRaceMapDraft"), "race page should normalize local race map drafts before rendering them");
+assert(raceMapDraftBody.includes("RACE_MAP_DRAFT_CACHE_MS"), "race map draft reads should be cached outside JSON parsing hot paths");
+assert(mapDraftSource.includes("mergeSingularityRaceMapDraft"), "race map drafts should have a shared merge helper for spectators and obstacles");
+assert(spectatorSource.includes("progress: START_CROWD_PROGRESS"), "start-line crowd should have trail progress data");
+assert(spectatorSource.includes("laneOffsetPx: START_CROWD_LANE_OFFSET_PX"), "start-line crowd should have lane-offset data");
+assert(spectatorSource.includes("heightPercent: 3.8"), "start-line crowd should keep the compact block height as data");
 assert(pageSource.includes("start-crowd-hop"), "start-line ordinary citizens should use CSS motion instead of hot-loop JS");
 assert(pageSource.includes("start-crowd-sign-wave"), "start-line crowd signs should wave with CSS motion");
-assert(pageSource.includes("top: 79.2%") && pageSource.includes("height: 3.8%"), "start-line crowd should be a compact back-left spectator block, not split across both road sides");
 assert(!trackBody.includes("track-start-crowd"), "start-line crowd should not be rebuilt by the hot track render loop");
 assert(pageSource.includes("pixel-citizen") && !pageSource.includes("track-start-crowd\"><img"), "start-line crowd should be CSS citizens, not race skin avatars");
 assert(!/\.runner-avatar img\s*\{[^}]*runner-idle-breath/s.test(pageSource), "idle runner sprites should not keep breathing in place");

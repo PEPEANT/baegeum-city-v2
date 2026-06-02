@@ -13,6 +13,8 @@ async function load(relativePath) {
 (async () => {
   const diagnostics = await load("src/systems/local-storage-diagnostics.js");
   const registry = await load("src/data/map-registry.js");
+  const raceMaps = await load("src/restored/games/marathon-trail-map-catalog.js");
+  const raceDraft = await load("src/restored/games/singularity-race-map-draft-contract.js");
   const { PLAYER_ECONOMY_KEY } = await load("src/systems/player-economy-state.js");
   const { ECONOMY_LEDGER_KEY } = await load("src/systems/economy-ledger.js");
   const { ODD_EVEN_ROUND_STATE_KEY } = await load("src/systems/odd-even-round-state.js");
@@ -24,6 +26,7 @@ async function load(relativePath) {
   assert.ok(diagnostics.localStorageInventory.some((item) => item.key === registry.worldEditorDraftKeyForMap(registry.MAP_IDS.BAEGEUM_CITY)), "inventory should include baegeum-city draft");
   assert.ok(diagnostics.localStorageInventory.some((item) => item.key === registry.worldEditorDraftKeyForMap(registry.MAP_IDS.DICE_CITY)), "inventory should include dice-city draft");
   assert.ok(diagnostics.localStorageInventory.some((item) => item.key === registry.LEGACY_WORLD_EDITOR_DRAFT_KEY), "inventory should include legacy world-editor draft");
+  assert.ok(diagnostics.localStorageInventory.some((item) => item.key === raceDraft.createSingularityRaceMapDraftKey(raceMaps.RESTORED_MARATHON_TRAIL_MAP_IDS.BASIC)), "inventory should include Singularity Race map draft");
 
   const emptyStorage = createMemoryStorage();
   const missing = diagnostics.inspectLocalStorageKey({ id: "economy", key: PLAYER_ECONOMY_KEY, format: "json-object", owner: "test" }, emptyStorage);
@@ -35,6 +38,7 @@ async function load(relativePath) {
 
   const validStorage = createMemoryStorage([
     [registry.worldEditorDraftKeyForMap(registry.MAP_IDS.BAEGEUM_CITY), JSON.stringify({ mapVersion: "baegeum-city-v2-map-001" })],
+    [raceDraft.createSingularityRaceMapDraftKey(raceMaps.RESTORED_MARATHON_TRAIL_MAP_IDS.BASIC), JSON.stringify({ schemaVersion: raceDraft.SINGULARITY_RACE_MAP_DRAFT_SCHEMA_VERSION, mapId: raceMaps.RESTORED_MARATHON_TRAIL_MAP_IDS.BASIC })],
     [PLAYER_ECONOMY_KEY, JSON.stringify({ cash: 1000 })],
     [ECONOMY_LEDGER_KEY, JSON.stringify([])],
     [ODD_EVEN_ROUND_STATE_KEY, JSON.stringify({ version: "odd-even-round-state-001", rounds: [] })]
@@ -42,6 +46,7 @@ async function load(relativePath) {
   const statuses = Object.fromEntries(diagnostics.inspectLocalStorage(validStorage).map((item) => [item.key, item.status]));
   assert.equal(statuses[registry.worldEditorDraftKeyForMap(registry.MAP_IDS.BAEGEUM_CITY)], diagnostics.STORAGE_DIAGNOSTIC_STATUSES.OK, "valid baegeum draft JSON should report ok");
   assert.equal(statuses[registry.worldEditorDraftKeyForMap(registry.MAP_IDS.DICE_CITY)], diagnostics.STORAGE_DIAGNOSTIC_STATUSES.MISSING, "missing dice draft should report missing");
+  assert.equal(statuses[raceDraft.createSingularityRaceMapDraftKey(raceMaps.RESTORED_MARATHON_TRAIL_MAP_IDS.BASIC)], diagnostics.STORAGE_DIAGNOSTIC_STATUSES.OK, "valid Singularity Race draft JSON should report ok");
   assert.equal(statuses[PLAYER_ECONOMY_KEY], diagnostics.STORAGE_DIAGNOSTIC_STATUSES.OK, "valid economy JSON should report ok");
   assert.equal(statuses[ECONOMY_LEDGER_KEY], diagnostics.STORAGE_DIAGNOSTIC_STATUSES.OK, "valid ledger JSON should report ok");
   assert.equal(statuses[ODD_EVEN_ROUND_STATE_KEY], diagnostics.STORAGE_DIAGNOSTIC_STATUSES.OK, "valid odd-even round JSON should report ok");

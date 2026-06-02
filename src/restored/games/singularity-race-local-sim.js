@@ -48,6 +48,7 @@ export function advanceSingularityLocalBotPack(runners, options = {}) {
       laneOffsetPx: nextLaneOffsetPx
     }, {
       mapId: context.mapId,
+      mapDraft: context.mapDraft,
       laneHalfWidthPx: context.roadLaneHalfWidthPx,
       maxProgress: context.railMaxProgress,
       nowMs,
@@ -106,7 +107,8 @@ function createLocalSimContext(options = {}) {
     startPaddockMaxProgress: numberOption(options.startPaddockMaxProgress, DEFAULTS.startPaddockMaxProgress),
     roadLaneHalfWidthPx: numberOption(options.roadLaneHalfWidthPx, DEFAULTS.roadLaneHalfWidthPx),
     railMaxProgress: numberOption(options.railMaxProgress, DEFAULTS.railMaxProgress),
-    mapId: options.mapId
+    mapId: options.mapId,
+    mapDraft: options.mapDraft || null
   };
 }
 

@@ -2,6 +2,7 @@ import {
   RESTORED_MARATHON_DEFAULT_TRAIL_MAP_ID,
   RESTORED_MARATHON_TRAIL_MAP_IDS
 } from "./marathon-trail-map-catalog.js";
+import { mergeSingularityRaceMapDraft } from "./singularity-race-map-draft-contract.js";
 
 export const SINGULARITY_RACE_OBSTACLE_CONTRACT_VERSION = "singularity-race-obstacle-contract-001";
 
@@ -40,8 +41,15 @@ const OBSTACLES_BY_MAP_ID = Object.freeze({
   ])
 });
 
-export function listSingularityRaceMapObstacles(mapId = RESTORED_MARATHON_DEFAULT_TRAIL_MAP_ID) {
-  return OBSTACLES_BY_MAP_ID[normalizeObstacleMapId(mapId)] || OBSTACLES_BY_MAP_ID[RESTORED_MARATHON_DEFAULT_TRAIL_MAP_ID];
+export function listSingularityRaceMapObstacles(mapId = RESTORED_MARATHON_DEFAULT_TRAIL_MAP_ID, mapDraft = null) {
+  const normalizedMapId = normalizeObstacleMapId(mapId);
+  const obstacles = OBSTACLES_BY_MAP_ID[normalizedMapId] || OBSTACLES_BY_MAP_ID[RESTORED_MARATHON_DEFAULT_TRAIL_MAP_ID];
+  if (!mapDraft) return obstacles;
+  return mergeSingularityRaceMapDraft({
+    mapId: normalizedMapId,
+    obstacles,
+    spectators: []
+  }, mapDraft).obstacles;
 }
 
 export function resolveSingularityRaceObstacleCollision(runnerInput = {}, options = {}) {
@@ -114,7 +122,7 @@ export function validateSingularityRaceObstacleContract() {
 }
 
 function findObstacleHit(progress, laneOffsetPx, options) {
-  return listSingularityRaceMapObstacles(options.mapId)
+  return listSingularityRaceMapObstacles(options.mapId, options.mapDraft)
     .map((obstacle) => {
       const progressGap = Math.abs(progress - obstacle.progress);
       const laneGap = Math.abs(laneOffsetPx - obstacle.laneOffsetPx);

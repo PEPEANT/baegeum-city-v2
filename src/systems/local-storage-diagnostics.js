@@ -1,5 +1,7 @@
 import { venueMetadataStorageKey } from "../data/gambling-venues.js";
 import { allMapConfigs, LEGACY_WORLD_EDITOR_DRAFT_KEY } from "../data/map-registry.js";
+import { RESTORED_MARATHON_TRAIL_MAP_IDS } from "../restored/games/marathon-trail-map-catalog.js";
+import { createSingularityRaceMapDraftKey } from "../restored/games/singularity-race-map-draft-contract.js";
 import {
   BAEGEUM_SKIN_KEY,
   BAEGEUM_SKIN_PRESET_KEY,
@@ -20,6 +22,7 @@ export const STORAGE_DIAGNOSTIC_STATUSES = Object.freeze({
 export const localStorageInventory = Object.freeze([
   ...allMapConfigs().map((map) => storageItem(`world-editor-draft:${map.mapId}`, map.draftKey, "json-object", "src/data/world-editor-draft.js", { mapId: map.mapId })),
   storageItem("world-editor-draft:legacy", LEGACY_WORLD_EDITOR_DRAFT_KEY, "json-object", "src/data/world-editor-draft.js", { legacy: true }),
+  ...Object.values(RESTORED_MARATHON_TRAIL_MAP_IDS).map((mapId) => storageItem(`singularity-race-map-draft:${mapId}`, createSingularityRaceMapDraftKey(mapId), "json-object", "src/restored/games/singularity-race-map-draft-contract.js", { mapId })),
   storageItem("venue-metadata", venueMetadataStorageKey, "json-array", "src/data/gambling-venues.js"),
   storageItem("player-economy", PLAYER_ECONOMY_KEY, "json-object", "src/systems/player-economy-state.js"),
   storageItem("economy-ledger", ECONOMY_LEDGER_KEY, "json-array", "src/systems/economy-ledger.js"),
