@@ -1,6 +1,13 @@
 # AI Working State
 
 Date: 2026-06-03
+Observed: User chose to stop broad root-cause surgery for now and run a smaller public test with about five players, then asked to commit, push, and deploy the current stabilization slice.
+Deployed: Committed and pushed `e748f79 Stabilize public race sync and gate feedback` to `main`, deployed Worker version `7ef8496b-e4fc-4159-a393-880dd5550bb5`, and redeployed Cloudflare Pages preview `https://bca14acb.singularity-race-client.pages.dev`.
+Verified: Full `npm run check` and `git diff --check` passed before commit. Live Worker `/health` returned OK, `/rooms` returned `lobby`, `entryOpen:false`, and `0/50`; unauthenticated `/admin/state` returned 401. Stable and preview player Pages returned 200 and contain `startConnectedInputPump`, `관리자 대기중`, and `--gate-open-y`; stable admin Pages returned 200 and contain `/admin/state` plus the `유저 입장` control.
+Next: Run a controlled public test with about five players on the stable Pages URL. If stutter remains, use the live ping/jitter debug row and profile `state_snapshot -> renderAll()`, pre-race staging reconciliation, and Cloudflare snapshot cadence before changing larger netcode pieces.
+Do not: Jump straight into 30-player scaling changes or broad synchronization rewrites before the five-player public test produces a concrete remaining symptom.
+
+Date: 2026-06-03
 Observed: User reported that the start gate looked like it opened by pulling toward the runner pack, making the start feel like players were colliding with the door.
 Changed: Changed the Singularity Race start-gate visual from sideways X movement plus rotation to a downward retract animation. Both the shared `createSingularityStartGateNode()` helper and the in-page hot-loop `updateStartGateNode()` now use `--gate-open-y` and `--gate-open-scale` instead of `--gate-open-rotate`, while the physical start gate clamp and countdown authority remain unchanged.
 Guarded: `tools/smoke-singularity-race-progression.cjs` now asserts the gate uses the downward retract variables and does not reintroduce the rotate-open variable.
