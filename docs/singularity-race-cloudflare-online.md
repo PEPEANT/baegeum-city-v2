@@ -50,8 +50,10 @@ ws://127.0.0.1:8787/ws
 ## Server Rules
 
 - The Worker tags the first player as the temporary public-room host for this v2 loop.
-- Public admin is disabled for the v2 public loop. `singularity-race-admin` remains a dev/test page only; public `/admin/*` Worker routes return `public_admin_disabled` and the public admin UI does not call open/reset/start endpoints.
+- Public admin is available only as an `ADMIN_TOKEN`-authenticated minimal Worker console. `singularity-race-admin.html?online=cloudflare&adminToken=...` may call `/admin/state`, `/admin/open`, `/admin/close`, `/admin/start`, `/admin/reset`, and `/admin/map` against the same fixed public room. Without the token, the page may read `/rooms` but cannot mutate room state.
+- The public admin page must never join as a player, create `operator=1` links, or write public room state through localStorage/BroadcastChannel. Dev admin remains separate through `?devOnline=1`.
 - The first player who joins the public room becomes the temporary room host. The host's normal user page may send `start_request`; the Worker validates host ownership, lobby phase, and room population before starting countdown. Other players see the waiting state and cannot start the race.
+- Authenticated public admin start uses the same Worker-owned countdown validation as the user-host fallback: at least one player must be present, phase must be lobby/finished, and the client never decides the gate-open time.
 - The host start request sends a server-owned 10-second countdown. The client only requests start; it does not decide the start time.
 - During countdown/racing, new player and spectator joins are blocked with `room_join_closed`. Mid-race spectator entry is intentionally deferred until the simpler public loop is stable.
 - Durable Object storage persists countdown phase across alarm wakeups, then resets the fixed public room to lobby when the last socket leaves.

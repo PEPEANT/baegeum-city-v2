@@ -1,6 +1,7 @@
 import {
   RESTORED_MARATHON_DEFAULT_TRAIL_MAP_ID,
   calculateRestoredMarathonSpeedScale,
+  normalizeRestoredMarathonTrailMapId,
   progressToRestoredMarathonTrailPoint
 } from "../src/restored/games/marathon-trail-geometry.js";
 import {
@@ -48,6 +49,8 @@ export class SingularityRaceRoom {
     this.chatHistory = [];
     this.phase = "lobby";
     this.countdownEndsAtMs = 0;
+    this.entryOpen = true;
+    this.mapId = PUBLIC_MAP_ID;
     this.roomStateLoaded = false;
     this.storageAvailable = true;
     this.countdownTimer = null;
@@ -59,7 +62,7 @@ export class SingularityRaceRoom {
     if (this.refreshPhase(Date.now())) await this.persistRoomState();
     const url = new URL(request.url);
     if (url.pathname.endsWith("/summary")) return json(roomSummary(this));
-    if (url.pathname.startsWith("/admin/")) return disabledAdminResponse();
+    if (url.pathname.startsWith("/admin/")) return this.handleAdminRequest(request, url);
     if (request.headers.get("Upgrade") !== "websocket") {
       return json({ ok: false, reason: "websocket_upgrade_required" }, 426);
     }
@@ -176,7 +179,7 @@ export class SingularityRaceRoom {
     const now = Date.now();
     if (session.participantType !== "player") return send(socket, this.serverPacket("error", { reason: "spectator_input_blocked" }, session));
     if (!acceptInput(session, now)) return send(socket, this.serverPacket("rate_limited", { reason: "input_10hz_limit" }, session));
-    advanceSession(session, packet.payload || {}, now, this.phase);
+    advanceSession(session, packet.payload || {}, now, this.phase, this.mapId);
     session.lastSequence = Math.max(session.lastSequence, Number(packet.sequence || packet.payload?.sequence || 0));
     socket.serializeAttachment(session);
     this.sessions.set(session.clientId, session);
@@ -203,6 +206,7 @@ export class SingularityRaceRoom {
   async startCountdown(now, session) {
     this.phase = "countdown";
     this.countdownEndsAtMs = now + COUNTDOWN_MS;
+    this.entryOpen = false;
     await this.persistRoomState();
     await this.safeSetAlarm(this.countdownEndsAtMs + 25);
     this.scheduleCountdownTimer();
@@ -218,6 +222,7 @@ export class SingularityRaceRoom {
   async resetRoom(reason = "admin_reset_room") {
     this.phase = "lobby";
     this.countdownEndsAtMs = 0;
+    this.entryOpen = true;
     this.chatHistory = [];
     await this.persistRoomState();
     await this.safeDeleteAlarm();
@@ -248,7 +253,8 @@ export class SingularityRaceRoom {
       serverOwned: true,
       serverTimeMs: now,
       phase: this.phase,
-      mapId: PUBLIC_MAP_ID,
+      entryOpen: this.entryOpen,
+      mapId: this.mapId,
       countdownEndsAtMs: this.countdownEndsAtMs,
       participants: participantSnapshots(this)
     }));
@@ -314,12 +320,15 @@ export class SingularityRaceRoom {
 
   async loadRoomState() {
     if (this.roomStateLoaded) return;
-    const stored = await this.safeStorageGet(["phase", "countdownEndsAtMs"]);
+    const stored = await this.safeStorageGet(["phase", "countdownEndsAtMs", "entryOpen", "mapId"]);
     this.phase = sanitizePhase(stored.get("phase"));
     this.countdownEndsAtMs = Number(stored.get("countdownEndsAtMs") || 0);
+    this.entryOpen = stored.has("entryOpen") ? stored.get("entryOpen") !== false : true;
+    this.mapId = normalizeRestoredMarathonTrailMapId(stored.get("mapId") || PUBLIC_MAP_ID);
     if (this.sessions.size === 0 && this.phase !== "lobby") {
       this.phase = "lobby";
       this.countdownEndsAtMs = 0;
+      this.entryOpen = true;
       await this.persistRoomState();
       await this.safeDeleteAlarm();
     }
@@ -330,8 +339,66 @@ export class SingularityRaceRoom {
   async persistRoomState() {
     await this.safeStoragePut({
       phase: this.phase,
-      countdownEndsAtMs: this.countdownEndsAtMs
+      countdownEndsAtMs: this.countdownEndsAtMs,
+      entryOpen: this.entryOpen,
+      mapId: this.mapId
     });
+  }
+
+  async handleAdminRequest(request, url) {
+    const auth = verifyAdminRequest(request, this.env);
+    if (!auth.ok) return json({ ok: false, reason: auth.reason }, auth.status);
+    if (request.method === "GET" && url.pathname.endsWith("/admin/state")) {
+      return json({ ...roomSummary(this), admin: true });
+    }
+    if (request.method !== "POST") return json({ ok: false, reason: "method_not_allowed" }, 405);
+    if (url.pathname.endsWith("/admin/start")) return this.handleAdminStart();
+    if (url.pathname.endsWith("/admin/open")) return this.handleAdminEntryOpen();
+    if (url.pathname.endsWith("/admin/close")) return this.handleAdminEntryClose();
+    if (url.pathname.endsWith("/admin/reset")) return this.handleAdminReset();
+    if (url.pathname.endsWith("/admin/map")) return this.handleAdminMap(request);
+    return json({ ok: false, reason: "unknown_admin_endpoint" }, 404);
+  }
+
+  async handleAdminStart() {
+    if (this.phase !== "lobby" && this.phase !== "finished") return json({ ok: false, reason: "room_not_in_lobby", phase: this.phase }, 409);
+    if (countPlayers(this) <= 0) return json({ ...roomSummary(this), ok: false, reason: "no_players" }, 409);
+    await this.startCountdown(Date.now(), { clientId: "admin:public-console" });
+    return json({ ...roomSummary(this), ok: true, action: "start" });
+  }
+
+  async handleAdminEntryOpen() {
+    if (this.phase !== "lobby" && this.phase !== "finished") return json({ ok: false, reason: "race_active", phase: this.phase }, 409);
+    this.phase = "lobby";
+    this.countdownEndsAtMs = 0;
+    this.entryOpen = true;
+    await this.persistRoomState();
+    await this.safeDeleteAlarm();
+    this.broadcast(this.serverPacket("presence_update", { summary: roomSummary(this), serverOwned: true }));
+    return json({ ...roomSummary(this), ok: true, action: "open" });
+  }
+
+  async handleAdminEntryClose() {
+    if (this.phase !== "lobby" && this.phase !== "finished") return json({ ok: false, reason: "race_active", phase: this.phase }, 409);
+    this.entryOpen = false;
+    await this.persistRoomState();
+    this.broadcast(this.serverPacket("presence_update", { summary: roomSummary(this), serverOwned: true }));
+    return json({ ...roomSummary(this), ok: true, action: "close" });
+  }
+
+  async handleAdminReset() {
+    await this.resetRoom("admin_reset");
+    return json({ ok: true, action: "reset", ...roomSummary(this) });
+  }
+
+  async handleAdminMap(request) {
+    if (this.phase !== "lobby" && this.phase !== "finished") return json({ ok: false, reason: "race_active", phase: this.phase }, 409);
+    const body = await readJsonBody(request);
+    this.mapId = normalizeRestoredMarathonTrailMapId(body?.mapId || urlMapId(request.url) || this.mapId);
+    await this.persistRoomState();
+    this.broadcast(this.serverPacket("presence_update", { summary: roomSummary(this), serverOwned: true }));
+    this.broadcastSnapshot(true);
+    return json({ ...roomSummary(this), ok: true, action: "map" });
   }
 
   async safeStorageGet(keys) {
@@ -446,6 +513,7 @@ function createSession(room, clientId, options) {
 
 function validateParticipantJoin(room, requestedType) {
   if (room.phase !== "lobby") return { ok: false, reason: "room_join_closed" };
+  if (room.entryOpen === false) return { ok: false, reason: "entry_closed" };
   if (requestedType === "spectator") {
     if (countSpectators(room) >= MAX_SPECTATORS) return { ok: false, reason: "spectator_full" };
     return { ok: true, participantType: "spectator" };
@@ -486,7 +554,8 @@ function joinPayload(room, session) {
     skinPreset: session.skinPreset,
     host: session.host,
     phase: room.phase,
-    mapId: PUBLIC_MAP_ID,
+    entryOpen: room.entryOpen,
+    mapId: room.mapId,
     countdownEndsAtMs: room.countdownEndsAtMs,
     mapVersion: "baegeum-city-v2-map-001",
     venueSchemaVersion: "venue-schema-001",
@@ -503,6 +572,8 @@ function roomSummary(room) {
     roomId: ROOM_ID,
     displayName: ROOM_NAME,
     phase: room.phase,
+    entryOpen: room.entryOpen,
+    mapId: room.mapId,
     players: countPlayers(room),
     maxPlayers: MAX_RUNNERS,
     spectators: countSpectators(room),
@@ -514,12 +585,12 @@ function roomSummary(room) {
   };
 }
 
-function advanceSession(session, payload, now, phase) {
+function advanceSession(session, payload, now, phase, mapId = PUBLIC_MAP_ID) {
   const elapsedSeconds = Math.max(0, Math.min(0.4, (now - Number(session.lastInputAtMs || now)) / 1000));
   session.lastInputAtMs = now;
   if (phase !== "racing" || session.finishedAtMs !== null) return;
   const progressPercent = Number(session.progressPercent || START_PROGRESS);
-  const trailPoint = progressToRestoredMarathonTrailPoint(progressPercent, PUBLIC_MAP_ID);
+  const trailPoint = progressToRestoredMarathonTrailPoint(progressPercent, mapId);
   const movement = resolveSingularityRaceInputMovement(payload || {}, trailPoint);
   const forwardFactor = Math.max(0, Number(movement.forward || 0));
   const pace = payload.pace || payload.mode;
@@ -538,7 +609,7 @@ function advanceSession(session, payload, now, phase) {
     collisionAtMs: Number(session.collisionAtMs || 0),
     slowUntilMs: Number(session.slowUntilMs || 0)
   }, {
-    mapId: PUBLIC_MAP_ID,
+    mapId,
     laneHalfWidthPx: START_LANE_HALF_WIDTH_PX,
     maxProgress: 100,
     nowMs: now,
@@ -586,5 +657,27 @@ function sanitizePhase(value) { return ["lobby", "countdown", "racing", "finishe
 function parsePacket(message) { try { return JSON.parse(String(message)); } catch { return null; } }
 function send(socket, packet) { socket.send(JSON.stringify(packet)); }
 function json(payload, status = 200) { return new Response(JSON.stringify(payload), { status, headers: { "content-type": "application/json; charset=utf-8", "access-control-allow-origin": "*" } }); }
-function corsPreflight() { return new Response(null, { status: 204, headers: { "access-control-allow-origin": "*", "access-control-allow-methods": "GET, POST, OPTIONS", "access-control-allow-headers": "content-type" } }); }
-function disabledAdminResponse() { return json({ ok: false, reason: "public_admin_disabled", startMode: "first_player_host" }, 410); }
+function corsPreflight() { return new Response(null, { status: 204, headers: { "access-control-allow-origin": "*", "access-control-allow-methods": "GET, POST, OPTIONS", "access-control-allow-headers": "authorization, content-type, x-admin-token" } }); }
+function verifyAdminRequest(request, env) {
+  const expected = String(env?.ADMIN_TOKEN || "").trim();
+  if (!expected) return { ok: false, reason: "admin_token_not_configured", status: 503 };
+  const bearer = String(request.headers.get("Authorization") || "").replace(/^Bearer\s+/i, "").trim();
+  const headerToken = String(request.headers.get("X-Admin-Token") || "").trim();
+  const provided = bearer || headerToken;
+  if (!provided || provided !== expected) return { ok: false, reason: "admin_unauthorized", status: 401 };
+  return { ok: true };
+}
+async function readJsonBody(request) {
+  try {
+    return await request.json();
+  } catch {
+    return {};
+  }
+}
+function urlMapId(rawUrl) {
+  try {
+    return new URL(rawUrl).searchParams.get("mapId") || "";
+  } catch {
+    return "";
+  }
+}

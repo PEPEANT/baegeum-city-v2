@@ -994,6 +994,7 @@
     const CLOUDFLARE_PUBLIC_ROOM_ID = "room:singularity-race:public-001";
     const CLOUDFLARE_DEFAULT_HTTP_ENDPOINT = "https://singularity-race-online.rneetn.workers.dev";
     const cloudflareHttpEndpoint = resolveCloudflareAdminHttpEndpoint(queryParams.get("serverUrl") || queryParams.get("apiUrl"));
+    const cloudflareAdminToken = String(queryParams.get("adminToken") || "").trim();
     const devOnlineEnabled = !cloudflareAdminEnabled && queryParams.get("devOnline") === "1";
     const devRooms = readRestoredMarathonDevRooms(window.localStorage);
     const selectedRoomId = window.localStorage.getItem(ADMIN_SELECTED_ROOM_STORAGE_KEY) || "";
@@ -1114,6 +1115,7 @@
       roomPolicy,
       mapId: normalizeRestoredMarathonTrailMapId(roomPolicy.mapId),
       cloudflareSummary: null,
+      cloudflareAdminAuthorized: false,
       cloudflareStatus: cloudflareAdminEnabled ? "공개방 확인 중" : "",
       runners: []
     };
@@ -1326,6 +1328,10 @@
       const button = event.target.closest("[data-map-id]");
       if (!button) return;
       const mapId = normalizeRestoredMarathonTrailMapId(button.dataset.mapId);
+      if (cloudflareAdminEnabled) {
+        setCloudflarePublicMap(mapId);
+        return;
+      }
       state.mapId = mapId;
       state.roomPolicy = writeRestoredMarathonRoomPolicy(window.localStorage, {
         ...state.roomPolicy,
@@ -1713,6 +1719,36 @@
       return url.toString();
     }
 
+    function hasCloudflareAdminToken() {
+      return cloudflareAdminEnabled && cloudflareAdminToken.length > 0;
+    }
+
+    function hasCloudflareAdminControl() {
+      return hasCloudflareAdminToken() && state.cloudflareAdminAuthorized;
+    }
+
+    function createCloudflareAdminHeaders(withJson = false) {
+      const headers = {};
+      if (withJson) headers["content-type"] = "application/json";
+      if (hasCloudflareAdminToken()) headers.Authorization = `Bearer ${cloudflareAdminToken}`;
+      return headers;
+    }
+
+    async function requestCloudflareAdmin(path, options = {}) {
+      if (!hasCloudflareAdminToken()) throw new Error("admin_token_required");
+      const method = options.method || "GET";
+      const body = options.body ? JSON.stringify(options.body) : undefined;
+      const response = await fetch(cloudflareAdminUrl(path), {
+        method,
+        cache: "no-store",
+        headers: createCloudflareAdminHeaders(Boolean(body)),
+        body
+      });
+      const payload = await response.json().catch(() => null);
+      if (!response.ok || !payload?.ok) throw new Error(payload?.reason || `admin_${response.status}`);
+      return payload;
+    }
+
     function createCloudflarePlayerHref() {
       const params = new URLSearchParams({
         online: "cloudflare",
@@ -1728,10 +1764,28 @@
     async function refreshCloudflareRoomSummary() {
       if (!cloudflareAdminEnabled) return null;
       try {
+        if (hasCloudflareAdminToken()) {
+          const summary = await requestCloudflareAdmin("/admin/state");
+          state.cloudflareAdminAuthorized = true;
+          state.cloudflareSummary = summary;
+          state.mapId = normalizeRestoredMarathonTrailMapId(summary.mapId || state.mapId);
+          state.cloudflareStatus = `공개 관리자 연결 / ${summary.phase || "lobby"} / ${summary.players || 0}/${summary.maxPlayers || MAX_RUNNERS}`;
+          refreshRunners();
+          renderRooms();
+          renderGate();
+          setupMap();
+          renderMapSelection();
+          renderMapVotePolicy();
+          renderCamera();
+          renderRunnerList();
+          return summary;
+        }
+        state.cloudflareAdminAuthorized = false;
         const response = await fetch(`${cloudflareHttpEndpoint}/rooms`, { cache: "no-store" });
         const summary = await response.json();
         if (!response.ok || !summary?.ok) throw new Error(summary?.reason || "room_summary_failed");
         state.cloudflareSummary = summary;
+        state.mapId = normalizeRestoredMarathonTrailMapId(summary.mapId || state.mapId);
         state.cloudflareStatus = `공개방 ${summary.phase || "lobby"} / ${summary.players || 0}/${summary.maxPlayers || MAX_RUNNERS}`;
         refreshRunners();
         renderRooms();
@@ -1740,34 +1794,61 @@
         renderRunnerList();
         return summary;
       } catch (error) {
+        state.cloudflareAdminAuthorized = false;
         state.cloudflareStatus = "공개방 연결 실패";
         return null;
       }
     }
 
     async function startCloudflarePublicRoom() {
-      state.cloudflareStatus = "공개 관리자 비활성화: 첫 입장 유저가 방장으로 시작합니다.";
+      try {
+        const summary = await requestCloudflareAdmin("/admin/start", { method: "POST" });
+        state.cloudflareSummary = summary;
+        state.cloudflareStatus = "Worker \uce74\uc6b4\ud2b8\ub2e4\uc6b4 \uc2dc\uc791";
+      } catch (error) {
+        state.cloudflareStatus = `\uc2dc\uc791 \uc2e4\ud328: ${error?.message || "admin_start_failed"}`;
+      }
       elements.startStatus.textContent = state.cloudflareStatus;
       await refreshCloudflareRoomSummary();
       render();
     }
 
     async function openCloudflarePublicEntry() {
-      const summary = await refreshCloudflareRoomSummary();
-      const phase = summary?.phase || state.cloudflareSummary?.phase || "lobby";
-      if (phase !== "lobby") {
-        state.cloudflareStatus = "경기 중에는 새 입장 불가";
-        elements.startStatus.textContent = "경기 중 입장 불가";
-        render();
-        return;
+      try {
+        const summary = await requestCloudflareAdmin("/admin/open", { method: "POST" });
+        state.cloudflareSummary = summary;
+        state.cloudflareStatus = "\uacf5\uac1c\ubc29 \uc785\uc7a5 \uc5f4\ub9bc";
+      } catch (error) {
+        state.cloudflareStatus = `\uc785\uc7a5 \uc5f4\uae30 \uc2e4\ud328: ${error?.message || "admin_open_failed"}`;
       }
-      state.cloudflareStatus = "공개방 입장 가능";
-      elements.startStatus.textContent = "공개방 입장 가능";
+      elements.startStatus.textContent = state.cloudflareStatus;
+      await refreshCloudflareRoomSummary();
       render();
     }
 
     async function resetCloudflarePublicRoom(mode = "reset") {
-      state.cloudflareStatus = "공개 관리자 비활성화: 공개방 초기화와 시작은 유저 페이지에서 처리합니다.";
+      const path = mode === "close" ? "/admin/close" : mode === "open" ? "/admin/open" : "/admin/reset";
+      try {
+        const summary = await requestCloudflareAdmin(path, { method: "POST" });
+        state.cloudflareSummary = summary;
+        state.cloudflareStatus = mode === "close" ? "\uacf5\uac1c\ubc29 \uc785\uc7a5 \ub2eb\ud798" : mode === "open" ? "\uacf5\uac1c\ubc29 \uc785\uc7a5 \uc5f4\ub9bc" : "\uacf5\uac1c\ubc29 \ub9ac\uc14b \uc644\ub8cc";
+      } catch (error) {
+        state.cloudflareStatus = `\uad00\ub9ac \uba85\ub839 \uc2e4\ud328: ${error?.message || "admin_command_failed"}`;
+      }
+      elements.startStatus.textContent = state.cloudflareStatus;
+      await refreshCloudflareRoomSummary();
+      render();
+    }
+
+    async function setCloudflarePublicMap(mapId) {
+      try {
+        const summary = await requestCloudflareAdmin("/admin/map", { method: "POST", body: { mapId } });
+        state.cloudflareSummary = summary;
+        state.mapId = normalizeRestoredMarathonTrailMapId(summary.mapId || mapId);
+        state.cloudflareStatus = `MAP ${getRestoredMarathonTrailMap(state.mapId).shortLabel}`;
+      } catch (error) {
+        state.cloudflareStatus = `맵 변경 실패: ${error?.message || "admin_map_failed"}`;
+      }
       elements.startStatus.textContent = state.cloudflareStatus;
       await refreshCloudflareRoomSummary();
       render();
@@ -1789,25 +1870,26 @@
 
     function renderGate() {
       if (cloudflareAdminEnabled) {
-        const summary = state.cloudflareSummary || getAdminRoomSummaries()[0];
-        const phase = summary.phase || "lobby";
-        elements.gate.textContent = `공개 관리자 비활성화 / ${phase}`;
-        elements.startStatus.textContent = "공개 관리자 비활성화: 첫 입장 유저가 방장으로 시작합니다.";
-        elements.gate.classList.toggle("is-open", false);
-        elements.createRoomButton.disabled = true;
+        const publicSummary = state.cloudflareSummary || getAdminRoomSummaries()[0];
+        const publicPhase = publicSummary.phase || "lobby";
+        const hasControl = hasCloudflareAdminControl();
+        elements.gate.textContent = `${hasControl ? "\uacf5\uac1c \uad00\ub9ac\uc790 \uc5f0\uacb0" : "\uad00\ub9ac\uc790 \ud1a0\ud070 \ud544\uc694"} / ${publicPhase}`;
+        elements.startStatus.textContent = state.cloudflareStatus || (hasCloudflareAdminToken() ? "Worker \uc778\uc99d \ud655\uc778 \uc911" : "URL\uc5d0 adminToken\uc774 \ud544\uc694\ud569\ub2c8\ub2e4.");
+        elements.gate.classList.toggle("is-open", hasControl);
+        elements.createRoomButton.disabled = !hasControl;
         elements.directGameLink.setAttribute("aria-disabled", "true");
         elements.directGameLink.href = "#";
-        elements.lobbyLink.setAttribute("aria-disabled", "true");
-        elements.lobbyLink.href = "#";
-        elements.enterButton.disabled = true;
-        elements.enterButton.textContent = "공개 관리자 비활성화";
-        elements.startButton.disabled = true;
+        elements.lobbyLink.setAttribute("aria-disabled", "false");
+        elements.lobbyLink.href = createCloudflarePlayerHref();
+        elements.enterButton.disabled = !hasControl;
+        elements.enterButton.textContent = publicSummary.entryOpen === false ? "\uc785\uc7a5 \uc5f4\uae30" : "\uc785\uc7a5 \uc5f4\ub9bc";
+        elements.startButton.disabled = !canStartRaceControl();
         elements.refreshButton.disabled = false;
         elements.addBotsButton.disabled = true;
         elements.clearBotsButton.disabled = true;
         elements.roomSettingsButton.disabled = true;
-        elements.deleteRoomButton.disabled = true;
-        elements.removeRoomButton.disabled = true;
+        elements.deleteRoomButton.disabled = !hasControl;
+        elements.removeRoomButton.disabled = !hasControl;
         elements.cameraAll.disabled = true;
         elements.observerButton.disabled = true;
         elements.mapVoteButton.disabled = true;
@@ -1819,9 +1901,9 @@
       }
       const entryGate = getRestoredMarathonEntryGateStatus(state.roomPolicy, Date.now());
       elements.gate.textContent = connected
-        ? "방 열림"
-        : (devOnlineEnabled ? "생성된 방 없음" : "개발 모드 꺼짐");
-      if (activeRoomClosed) elements.gate.textContent = "방 종료됨";
+        ? "? ??"
+        : (devOnlineEnabled ? "\uc0dd\uc131\ub41c \ubc29 \uc5c6\uc74c" : "\uac1c\ubc1c \ubaa8\ub4dc \uaebc\uc9d0");
+      if (activeRoomClosed) elements.gate.textContent = "\ubc29 \uc885\ub8cc\ub428";
       elements.gate.classList.toggle("is-open", connected && !activeRoomClosed);
       elements.createRoomButton.disabled = !devOnlineEnabled;
       elements.directGameLink.setAttribute("aria-disabled", String(!connected || activeRoomClosed));
@@ -1829,7 +1911,7 @@
       elements.lobbyLink.setAttribute("aria-disabled", String(!connected || activeRoomClosed || !entryGate.open));
       elements.lobbyLink.href = connected && !activeRoomClosed && entryGate.open ? createPlayerRoomHref(activeRoomId) : "./singularity-race.html?devOnline=1";
       elements.enterButton.disabled = !connected || activeRoomClosed;
-      elements.enterButton.textContent = connected && !activeRoomClosed && entryGate.open ? "입장 열림" : "입장";
+      elements.enterButton.textContent = connected && !activeRoomClosed && entryGate.open ? "?? ??" : "??";
       elements.startButton.disabled = !canStartRaceControl();
       elements.refreshButton.disabled = !devOnlineEnabled;
       elements.addBotsButton.disabled = !connected;
@@ -1850,7 +1932,7 @@
       if (cloudflareAdminEnabled) {
         const summary = state.cloudflareSummary || getAdminRoomSummaries()[0];
         const phase = summary.phase || "lobby";
-        return Number(summary.players || 0) > 0 && (phase === "lobby" || phase === "finished");
+        return hasCloudflareAdminControl() && Number(summary.players || 0) > 0 && (phase === "lobby" || phase === "finished");
       }
       const voteStatus = getRestoredMarathonMapVoteStatus(state.roomPolicy, Date.now());
       return connected && !activeRoomClosed && state.runners.length > 0 && (!voteStatus.active || voteStatus.ended);
@@ -1963,7 +2045,7 @@
       const room = cloudflareAdminEnabled ? (state.cloudflareSummary || getAdminRoomSummaries()[0] || {}) : (rooms[0] || {});
       const spectatorCount = room.spectators || 0;
       elements.spectatorCapacityLabel.textContent = `${spectatorCount} / ${state.roomPolicy.maxSpectators}명`;
-      elements.spectatorPolicyNote.textContent = cloudflareAdminEnabled ? "공개 관리자 비활성화" : (connected ? "" : "방을 먼저 만들어야 합니다.");
+      elements.spectatorPolicyNote.textContent = cloudflareAdminEnabled ? "공개 1차 콘솔에서는 관전자 정원 변경 보류" : (connected ? "" : "방을 먼저 만들어야 합니다.");
       elements.spectatorCapacityOptions.replaceChildren(...listRestoredMarathonSpectatorCapOptions().map((cap) => {
         const button = document.createElement("button");
         button.className = `capacity-option${cap === state.roomPolicy.maxSpectators ? " is-active" : ""}`;
@@ -1980,15 +2062,20 @@
       const voteStatus = getRestoredMarathonMapVoteStatus(state.roomPolicy, Date.now());
       elements.mapSelectionLabel.textContent = selectedMap.shortLabel;
       elements.mapSelectionNote.textContent = cloudflareAdminEnabled
-        ? "공개 관리자 비활성화"
+        ? "공개 맵 선택 연결됨"
         : connected
         ? (voteStatus.active ? `맵 투표 진행 중 ${voteStatus.remainingSeconds}초` : selectedMap.description)
         : "방을 먼저 만들어야 합니다.";
+      if (cloudflareAdminEnabled) {
+        elements.mapSelectionNote.textContent = hasCloudflareAdminToken()
+          ? selectedMap.description
+          : "adminToken이 있어야 공개방 맵을 바꿀 수 있습니다.";
+      }
       elements.mapOptions.replaceChildren(...listRestoredMarathonTrailMaps().map((map) => {
         const button = document.createElement("button");
         button.className = `capacity-option${map.id === selectedMap.id ? " is-active" : ""}`;
         button.type = "button";
-        button.disabled = cloudflareAdminEnabled || !connected || (voteStatus.active && !voteStatus.ended);
+        button.disabled = cloudflareAdminEnabled ? (!hasCloudflareAdminControl() || (state.cloudflareSummary?.phase !== "lobby" && state.cloudflareSummary?.phase !== "finished")) : (!connected || (voteStatus.active && !voteStatus.ended));
         button.dataset.mapId = map.id;
         button.title = map.description;
         button.textContent = map.shortLabel;
@@ -1999,9 +2086,14 @@
     function renderMapVotePolicy() {
       const status = getRestoredMarathonMapVoteStatus(state.roomPolicy, Date.now());
       const mapLabel = (mapId) => getRestoredMarathonTrailMap(mapId).shortLabel;
+      if (cloudflareAdminEnabled) {
+        elements.mapVoteButton.textContent = "맵 투표 보류";
+        elements.mapVoteStatus.textContent = "공개 맵 투표는 다음 단계";
+        return;
+      }
       elements.mapVoteButton.textContent = status.active && !status.ended ? "투표 진행 중" : "맵 투표하기";
       if (cloudflareAdminEnabled) {
-        elements.mapVoteStatus.textContent = "공개 관리자 비활성화";
+        elements.mapVoteStatus.textContent = "공개 맵 투표는 다음 단계";
         return;
       }
       if (!connected) {
@@ -2024,7 +2116,7 @@
       const gate = getRestoredMarathonEntryGateStatus(state.roomPolicy, Date.now());
       elements.entryDelayLabel.textContent = gate.open ? "즉시" : `${gate.remainingMinutes}분 후`;
       elements.entryDelayNote.textContent = cloudflareAdminEnabled
-        ? "공개 관리자 비활성화"
+        ? "공개 1차 콘솔에서는 입장 예약 보류"
         : connected
         ? (gate.open ? "대기열방 입장 가능" : `${gate.remainingMinutes}분 후 대기열방 입장 가능`)
         : "방을 먼저 만들어야 합니다.";
