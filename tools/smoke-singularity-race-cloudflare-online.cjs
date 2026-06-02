@@ -57,6 +57,13 @@ const merge = read("src/restored/games/singularity-race-dev-online.js");
   "lastInputPayload",
   "lastInputReceivedAtMs",
   "lastMovementTickAtMs",
+  "handleAttack",
+  "createServerBasicAttackAction",
+  "findServerBasicAttackTarget",
+  "BASIC_ATTACK_STUN_MS",
+  "BASIC_ATTACK_COOLDOWN_MS",
+  "stunnedUntilMs",
+  "attackCooldownUntilMs",
   "storage_write_unavailable",
   'url.pathname.startsWith("/admin/")',
   "verifyAdminRequest",
@@ -116,6 +123,8 @@ const merge = read("src/restored/games/singularity-race-dev-online.js");
   "abort.abort()",
   "entryOpen: payload.entryOpen !== false",
   "getCloudflareEntryGateStatus",
+  "isCloudflareConnectedSession",
+  "&& !isCloudflareConnectedSession()",
   "공개방 상태 확인 실패",
   "서버 재시도 필요",
   "handleCloudflareRoomPacket",
@@ -153,6 +162,7 @@ assert.ok(!worker.includes('if (room.entryOpen === false) return { ok: false, re
 assert.ok(!worker.includes("advanceSession(session, packet.payload || {}, now"), "Worker must not advance movement directly when input packets arrive");
 assert.ok(!worker.includes("handlePlayerStartRequest"), "Worker must not allow player-owned public starts");
 assert.ok(!worker.includes('const host = type === "player" && countPlayers(room) === 0'), "Worker must not assign first-player host authority");
+assert.ok(!worker.includes('if (packet.type === "attack_action" || packet.type === "skill_use") return this.relayClientAction'), "Worker must not leave public attacks as client-relayed packets");
 assert.ok(!client.includes("sendHostStart"), "Cloudflare client must not expose the old host-start helper");
 assert.ok(!client.includes("sendStartRequest"), "Cloudflare client must not expose a player start helper");
 assert.ok(!race.includes("requestCloudflareRaceStart"), "Race page must not expose a Cloudflare player start helper");
@@ -173,6 +183,7 @@ assertIncludes(merge, "participant.skinPreset", "server snapshots should preserv
   "snapshotCorrectionProgress",
   "snapshotSnapped"
 ].forEach((token) => assertIncludes(merge, token, `server snapshot merge should keep jitter smoothing token ${token}`));
+assertIncludes(race, "canRequestConnectedAttack", "race page should send connected attacks whenever public race input is open");
 assert.ok(!/api[-_]?key|secret|password|private[-_]?key/i.test(worker), "worker source must not embed secret-like config keys");
 
 execFileSync(process.execPath, [path.join(root, "tools/smoke-singularity-race-cloudflare-worker-contract.cjs")], { stdio: "inherit" });

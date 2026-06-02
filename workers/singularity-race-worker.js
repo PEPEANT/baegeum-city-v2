@@ -11,6 +11,10 @@ import {
 import {
   resolveSingularityRaceObstacleCollision
 } from "../src/restored/games/singularity-race-obstacle-contract.js";
+import {
+  createRestoredMarathonAttackAction,
+  resolveRestoredMarathonAttackHit
+} from "../src/restored/games/marathon-combat-contract.js";
 
 const WORKER_VERSION = "singularity-race-cloudflare-online-001";
 const ROOM_ID = "room:singularity-race:public-001";
@@ -29,6 +33,12 @@ const CHAT_BURST_LIMIT = 5;
 const COUNTDOWN_MS = 10000;
 const COURSE_DISTANCE_METERS = 42195;
 const ENTRY_OPEN_DEFAULT = false;
+const BASIC_ATTACK_RANGE_PROGRESS = 4.2;
+const BASIC_ATTACK_LANE_TO_PROGRESS = 42;
+const BASIC_ATTACK_ARC_DEGREES = 70;
+const BASIC_ATTACK_STALL_MS = 180;
+const BASIC_ATTACK_COOLDOWN_MS = 1150;
+const BASIC_ATTACK_STUN_MS = 680;
 const START_PROGRESS = 4;
 const RAIL_MIN_PROGRESS = 2.5;
 const START_PADDOCK_MIN_PROGRESS = 2.8;
@@ -89,7 +99,8 @@ export class SingularityRaceRoom {
     if (!packet || !session) return send(socket, this.serverPacket("error", { reason: "bad_packet" }));
     if (packet.type === "chat_send") return this.handleChat(socket, session, packet);
     if (packet.type === "input_update") return this.handleInput(socket, session, packet);
-    if (packet.type === "attack_action" || packet.type === "skill_use") return this.relayClientAction(session, packet);
+    if (packet.type === "attack_action") return this.handleAttack(socket, session, packet);
+    if (packet.type === "skill_use") return this.relayClientAction(session, packet);
     if (packet.type === "start_request" || packet.type === "start_race") {
       return send(socket, this.serverPacket("error", { reason: "admin_start_required" }, session));
     }
@@ -212,6 +223,44 @@ export class SingularityRaceRoom {
       participantId: session.participantId,
       attackerId: packet.payload?.attackerId || session.participantId
     }, session));
+  }
+
+  handleAttack(socket, session, packet) {
+    const now = Date.now();
+    if (session.participantType !== "player") return send(socket, this.serverPacket("error", { reason: "participant_cannot_attack" }, session));
+    if (!canAttackInPhase(this.phase, this.entryOpen)) return send(socket, this.serverPacket("error", { reason: "race_not_attackable" }, session));
+    const sequence = Math.max(1, Number(packet.sequence || packet.payload?.sequence || 1));
+    if (sequence <= Number(session.lastAttackSequence || 0)) return send(socket, this.serverPacket("error", { reason: "stale_attack" }, session));
+    if (now < Number(session.attackCooldownUntilMs || 0)) {
+      return send(socket, this.serverPacket("rate_limited", {
+        reason: "attack_cooldown",
+        cooldownRemainingMs: Math.max(0, Math.round(Number(session.attackCooldownUntilMs || 0) - now))
+      }, session));
+    }
+    const action = createServerBasicAttackAction(session, packet, sequence);
+    const target = findServerBasicAttackTarget(this, action, session.participantId);
+    session.lastAttackSequence = sequence;
+    session.attackCooldownUntilMs = now + BASIC_ATTACK_COOLDOWN_MS;
+    session.actionLockedUntilMs = Math.max(Number(session.actionLockedUntilMs || 0), now + BASIC_ATTACK_STALL_MS);
+    this.sessions.set(session.clientId, session);
+    if (target) {
+      target.session.stunnedUntilMs = Math.max(Number(target.session.stunnedUntilMs || 0), now + BASIC_ATTACK_STUN_MS);
+      target.session.slowUntilMs = Math.max(Number(target.session.slowUntilMs || 0), now + BASIC_ATTACK_STUN_MS);
+      target.session.collisionAtMs = now;
+      this.sessions.set(target.session.clientId, target.session);
+    }
+    this.serializeAttachedSessions();
+    this.broadcast(this.serverPacket("attack_action", {
+      serverOwned: true,
+      serverResolved: true,
+      participantId: session.participantId,
+      attackerId: session.participantId,
+      targetId: target?.session.participantId || "",
+      hit: Boolean(target),
+      stunMs: target ? BASIC_ATTACK_STUN_MS : 0,
+      cooldownMs: BASIC_ATTACK_COOLDOWN_MS
+    }, session));
+    this.broadcastSnapshot(true);
   }
 
   async startCountdown(now, session) {
@@ -581,6 +630,10 @@ function createSession(room, clientId, options) {
     collisionAtMs: 0,
     obstacleCollisionId: "",
     slowUntilMs: 0,
+    stunnedUntilMs: 0,
+    actionLockedUntilMs: 0,
+    attackCooldownUntilMs: 0,
+    lastAttackSequence: 0,
     effectKind: "",
     sizeScale: 1,
     lastInputAtMs: options.now,
@@ -625,6 +678,10 @@ function participantSnapshots(room, now = Date.now()) {
       collisionAtMs: session.collisionAtMs || 0,
       obstacleCollisionId: session.obstacleCollisionId || "",
       slowUntilMs: session.slowUntilMs || 0,
+      stunnedUntilMs: session.stunnedUntilMs || 0,
+      actionLockedUntilMs: session.actionLockedUntilMs || 0,
+      attackCooldownUntilMs: session.attackCooldownUntilMs || 0,
+      lastAttackSequence: session.lastAttackSequence || 0,
       effectKind: effectFresh ? (session.effectKind || "") : "",
       sizeScale: effectFresh && Number(session.sizeScale) > 0 ? round3(session.sizeScale) : 1,
       finishedAtMs: session.finishedAtMs,
@@ -724,6 +781,59 @@ function normalizeInputEffect(effect) {
   return { speedMultiplier: round3(speedMultiplier), knockbackImmune, sizeScale: round3(sizeScale), kind };
 }
 
+function createServerBasicAttackAction(session, packet, sequence) {
+  return createRestoredMarathonAttackAction({
+    attackerId: session.participantId,
+    sequence,
+    origin: serverAttackPosition(session),
+    aim: normalizeAttackAim(packet.payload?.aim, session.lastInputPayload),
+    rangeMeters: BASIC_ATTACK_RANGE_PROGRESS,
+    arcDegrees: BASIC_ATTACK_ARC_DEGREES,
+    selfStallMs: BASIC_ATTACK_STALL_MS,
+    cooldownMs: BASIC_ATTACK_COOLDOWN_MS,
+    stunMs: BASIC_ATTACK_STUN_MS,
+    damage: 0
+  });
+}
+
+function findServerBasicAttackTarget(room, action, attackerId) {
+  return playerSessions(room)
+    .filter((session) => session.participantId !== attackerId && session.finishedAtMs === null)
+    .map((session) => ({
+      session,
+      hit: resolveRestoredMarathonAttackHit(action, {
+        runnerId: session.participantId,
+        position: serverAttackPosition(session),
+        hp: 100,
+        maxHp: 100
+      })
+    }))
+    .filter((entry) => entry.hit.hit)
+    .sort((left, right) => left.hit.distanceMeters - right.hit.distanceMeters)[0] || null;
+}
+
+function serverAttackPosition(session) {
+  return {
+    x: round2(Number(session.progressPercent || START_PROGRESS)),
+    y: round2(Number(session.laneOffsetPx || 0) / BASIC_ATTACK_LANE_TO_PROGRESS)
+  };
+}
+
+function normalizeAttackAim(aimInput = {}, lastInputPayload = null) {
+  const aim = safeObject(aimInput);
+  const x = clampNumber(aim.x ?? fallbackAimX(lastInputPayload), -1, 1);
+  const y = clampNumber(aim.y ?? 0, -1, 1);
+  if (Math.hypot(x, y) > 0.001) return { x, y };
+  return { x: fallbackAimX(lastInputPayload), y: 0 };
+}
+
+function fallbackAimX(lastInputPayload = null) {
+  const directionX = Number(lastInputPayload?.direction?.x || 0);
+  const forward = Number(lastInputPayload?.intent?.forward || 0);
+  if (Math.abs(directionX) > 0.001) return directionX < 0 ? -1 : 1;
+  return forward < 0 ? -1 : 1;
+}
+
 function advanceSession(session, now, phase, mapId = PUBLIC_MAP_ID, options = {}) {
   const racing = phase === "racing";
   const staging = isPaddockMovementOpen(phase, options.entryOpen);
@@ -736,6 +846,11 @@ function advanceSession(session, now, phase, mapId = PUBLIC_MAP_ID, options = {}
   const previousCollisionAtMs = Number(session.collisionAtMs || 0);
   const elapsedSeconds = Math.max(0, Math.min(0.25, (now - Number(session.lastMovementTickAtMs || now)) / 1000));
   session.lastMovementTickAtMs = now;
+  if (Number(session.stunnedUntilMs || 0) > now) {
+    session.effectKind = "";
+    session.sizeScale = 1;
+    return false;
+  }
   const inputReceivedAtMs = Number(session.lastInputReceivedAtMs || 0);
   const payload = inputReceivedAtMs > 0 && now - inputReceivedAtMs <= INPUT_STALE_MS ? session.lastInputPayload : null;
   if (!payload || elapsedSeconds <= 0) return false;
@@ -820,6 +935,7 @@ function acceptChat(session, now) {
 }
 
 function canAdvancePlayerMovement(room) { return room.phase === "racing" || isPaddockMovementOpen(room.phase, room.entryOpen); }
+function canAttackInPhase(phase, entryOpen) { return phase === "racing" || isPaddockMovementOpen(phase, entryOpen); }
 function isPaddockMovementOpen(phase, entryOpen) { return phase === "countdown" || (phase === "lobby" && entryOpen !== false); }
 function playerSessions(room) { return [...room.sessions.values()].filter((item) => item.participantType === "player"); }
 function countPlayers(room) { return playerSessions(room).length; }

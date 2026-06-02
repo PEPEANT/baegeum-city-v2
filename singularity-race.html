@@ -3610,8 +3610,8 @@
 
     .start-gate {
       position: absolute;
-      --gate-open-x: 0px;
-      --gate-open-rotate: 0deg;
+      --gate-open-y: 0px;
+      --gate-open-scale: 1;
       --gate-open-opacity: 1;
       width: 18px;
       height: 460px;
@@ -3621,15 +3621,15 @@
         repeating-linear-gradient(45deg, #4a5b54 0 12px, #ffd86c 12px 24px);
       box-shadow: 0 16px 34px rgba(46, 59, 53, 0.2);
       opacity: var(--gate-open-opacity);
-      transform: translate(calc(-50% + var(--gate-open-x)), -50%) rotate(var(--gate-open-rotate));
-      transform-origin: 50% 94%;
+      transform: translate(-50%, calc(-50% + var(--gate-open-y))) scaleY(var(--gate-open-scale));
+      transform-origin: 50% 100%;
       transition: transform 720ms cubic-bezier(0.18, 0.82, 0.22, 1), opacity 720ms ease, filter 720ms ease;
       will-change: transform, opacity;
     }
 
     .start-gate.is-opening,
     .start-gate.is-open {
-      filter: drop-shadow(18px 14px 18px rgba(46, 59, 53, 0.18));
+      filter: drop-shadow(0 12px 14px rgba(46, 59, 53, 0.16));
     }
 
     .start-gate::after {
@@ -5187,7 +5187,8 @@
       createSingularityStartGateNode,
       createSingularityTrackCountdownNode,
       createSingularityTrackCueNode,
-      createSingularityTrackProgressPillNode
+      createSingularityTrackProgressPillNode,
+      getSingularityTrackProgressDetail
     } from "./src/restored/games/singularity-race-track.js";
     import {
       advanceSingularityLocalBotPack,
@@ -5535,6 +5536,11 @@
     const RACE_RANKING_RENDER_INTERVAL_MS = 420;
     const RACE_SLOT_RENDER_INTERVAL_MS = 700;
     const CONNECTED_INPUT_PUMP_INTERVAL_MS = 100;
+    const CONNECTED_REMOTE_INTERPOLATION_HISTORY_MS = 1200;
+    const CONNECTED_REMOTE_INTERPOLATION_FALLBACK_MS = 160;
+    const CONNECTED_REMOTE_EXTRAPOLATION_LIMIT_MS = 180;
+    const CLOUDFLARE_PING_PROBE_INTERVAL_MS = 2000;
+    const CLOUDFLARE_PING_PROBE_TIMEOUT_MS = 5000;
     const CLOUDFLARE_ROOM_FETCH_TIMEOUT_MS = 8000;
     const RACE_MAP_DRAFT_CACHE_MS = 650;
     const RACE_REWARD_SKIN_VISUAL_MS = 6500;
@@ -5780,6 +5786,13 @@
       connectedInputSequence: 0,
       testBotTargetCount: getStoredTestBotCount(),
       netcodePressure: null,
+      cloudflarePing: {
+        pendingClientSentAtMs: 0,
+        lastSentAtMs: 0,
+        lastPongAtMs: 0,
+        sampleCount: 0,
+        sample: null
+      },
       trackCamera: { x: 0, y: 0 },
       cameraZoom: shouldOpenAdminObserverShell ? ADMIN_OBSERVER_CAMERA_ZOOM : TRACK_CAMERA_DEFAULT_ZOOM,
       raceQueueOpen: false,
@@ -5797,6 +5810,7 @@
       adminObserverCamera: { x: TRACK_WORLD_WIDTH / 2, y: TRACK_WORLD_HEIGHT / 2 },
       runnerVisuals: new Map(),
       runnerMotion: new Map(),
+      connectedRemoteSnapshots: new Map(),
       runnerChatBubbles: new Map(),
       recentChatSentAtMs: [],
       lastChatSentAtMs: 0,
@@ -5821,6 +5835,7 @@
         lastRankingMs: 0,
         lastSlotsMs: 0,
         minimapPlayerNode: null,
+        itemRoulettePanel: null,
         runnerRankEntries: [],
         runnerRankLabels: new Map(),
         lastRunnerRankMs: 0,
@@ -5839,6 +5854,7 @@
     let raceAudioContext = null;
     let roomPacketTransport = null;
     let cloudflareRoomClient = null;
+    let cloudflarePingTimer = null;
     let connectedDevServer = null;
     let connectedDevLoopState = null;
     let connectedDevClients = [];
@@ -6172,6 +6188,7 @@
       setScreen(spectator ? SINGULARITY_RACE_SCREENS.RACE : SINGULARITY_RACE_SCREENS.QUEUE);
       pushSystem("Cloudflare 공개방에 연결하는 중입니다.");
       renderAll();
+      resetCloudflarePingProbe();
       cloudflareRoomClient = createSingularityRaceCloudflareRoomClient({
         endpoint: CLOUDFLARE_WS_ENDPOINT,
         roomId: CLOUDFLARE_ROOM_ID,
@@ -6187,7 +6204,9 @@
           clientId: createCloudflareClientId()
         });
         applyCloudflareJoinPacket(joinPacket, source, spectator, options);
+        startCloudflarePingProbe();
       } catch (error) {
+        stopCloudflarePingProbe();
         cloudflareRoomClient = null;
         pushSystem(`Cloudflare 공개방 연결 실패: ${error.message || "unknown_error"}`);
         setScreen(savedProfile ? SINGULARITY_RACE_SCREENS.LOBBY : SINGULARITY_RACE_SCREENS.PROFILE);
@@ -6252,6 +6271,7 @@
       if (devSnapshot) state.connectedPackets.push(devSnapshot);
       state.runners = createRunners(spectator ? 0 : 1, state.selectedSkin, false);
       state.lastConnectedSnapshotSequence = 0;
+      state.connectedRemoteSnapshots.clear();
       applyConnectedStateSnapshot(snapshot);
       if (devSnapshot) applyConnectedStateSnapshot(devSnapshot);
       openConnectedRoomPacketRelay(result.session.roomId, state.connectedPackets);
@@ -6316,6 +6336,7 @@
     function applyCloudflareJoinPacket(packet, source, spectator) {
       const payload = packet?.payload || {};
       if (!payload.ok) {
+        stopCloudflarePingProbe();
         if (cloudflareRoomClient) {
           cloudflareRoomClient.close();
           cloudflareRoomClient = null;
@@ -6340,6 +6361,8 @@
       state.participantType = state.connectedSession.participantType;
       state.cloudflareHost = false;
       state.connectedPackets = [packet];
+      state.lastConnectedSnapshotSequence = 0;
+      state.connectedRemoteSnapshots.clear();
       state.activeChannel = findChannelIdByType("room");
       const summary = updateCloudflareRoomSummary(payload, { silent: true });
       if (state.participantType === "spectator") setScreen(SINGULARITY_RACE_SCREENS.RACE);
@@ -6376,6 +6399,10 @@
         const summary = updateCloudflareRoomSummary(packet.payload?.summary || packet.payload);
         enterCloudflareRaceStagingIfOpen(summary);
         renderAll();
+        return;
+      }
+      if (packet.type === "pong") {
+        handleCloudflarePongPacket(packet);
         return;
       }
       if (packet.type === "state_snapshot") {
@@ -6417,9 +6444,11 @@
 
     function handleCloudflareRoomStatus(status) {
       if (status.status === "closed" && state.connectedSession?.provider === "cloudflare") {
+        stopCloudflarePingProbe();
         pushSystem("Cloudflare 공개방 연결이 종료되었습니다.");
         state.connectedSession = null;
         state.cloudflareHost = false;
+        state.connectedRemoteSnapshots.clear();
         cloudflareRoomClient = null;
         renderAll();
       }
@@ -6708,6 +6737,7 @@
       state.renderCache.minimapPlayerNode = null;
       state.runnerVisuals.clear();
       state.runnerMotion.clear();
+      state.connectedRemoteSnapshots.clear();
       elements.raceMinimap?.replaceChildren();
     }
 
@@ -7064,6 +7094,73 @@
       }));
     }
 
+    function resetCloudflarePingProbe() {
+      state.cloudflarePing = {
+        pendingClientSentAtMs: 0,
+        lastSentAtMs: 0,
+        lastPongAtMs: 0,
+        sampleCount: 0,
+        sample: null
+      };
+    }
+
+    function startCloudflarePingProbe() {
+      if (!cloudflareOnlineEnabled || !cloudflareRoomClient || state.connectedSession?.provider !== "cloudflare") return;
+      stopCloudflarePingProbe({ keepSample: true });
+      sendCloudflarePingProbe();
+      cloudflarePingTimer = window.setInterval(sendCloudflarePingProbe, CLOUDFLARE_PING_PROBE_INTERVAL_MS);
+    }
+
+    function stopCloudflarePingProbe(options = {}) {
+      if (cloudflarePingTimer) {
+        window.clearInterval(cloudflarePingTimer);
+        cloudflarePingTimer = null;
+      }
+      state.cloudflarePing.pendingClientSentAtMs = 0;
+      if (!options.keepSample) resetCloudflarePingProbe();
+    }
+
+    function sendCloudflarePingProbe(now = Date.now()) {
+      if (!cloudflareRoomClient?.isOpen?.() || state.connectedSession?.provider !== "cloudflare") return false;
+      const pendingAtMs = Number(state.cloudflarePing.pendingClientSentAtMs || 0);
+      if (pendingAtMs > 0 && now - pendingAtMs < CLOUDFLARE_PING_PROBE_TIMEOUT_MS) return false;
+      const sent = cloudflareRoomClient.sendEnvelope({
+        transportVersion: "restored-marathon-server-transport-001",
+        type: "ping",
+        clientId: state.connectedSession.clientId,
+        roomId: state.connectedSession.roomId,
+        sequence: ++state.connectedInputSequence,
+        serverTimeMs: now,
+        payload: { roomId: state.connectedSession.roomId, clientTimeMs: now }
+      });
+      if (!sent) return false;
+      state.cloudflarePing.pendingClientSentAtMs = now;
+      state.cloudflarePing.lastSentAtMs = now;
+      renderNetcodeBudget();
+      return true;
+    }
+
+    function handleCloudflarePongPacket(packet) {
+      const now = Date.now();
+      const sentAtMs = Number(state.cloudflarePing.pendingClientSentAtMs || state.cloudflarePing.lastSentAtMs || 0);
+      if (!sentAtMs) return;
+      const serverTimeMs = Number(packet?.payload?.serverTimeMs || packet?.serverTimeMs || now);
+      const sample = createRestoredMarathonPingSample({
+        clientSentAtMs: sentAtMs,
+        serverReceivedAtMs: serverTimeMs,
+        serverSentAtMs: serverTimeMs,
+        clientReceivedAtMs: now
+      }, state.cloudflarePing.sample, netcodeProfile);
+      state.cloudflarePing = {
+        ...state.cloudflarePing,
+        pendingClientSentAtMs: 0,
+        lastPongAtMs: now,
+        sampleCount: Number(state.cloudflarePing.sampleCount || 0) + 1,
+        sample
+      };
+      renderNetcodeBudget();
+    }
+
     function showChatBlockedNotice(text, now) {
       if (now - state.lastChatBlockedNoticeAtMs < 1600) return;
       state.lastChatBlockedNoticeAtMs = now;
@@ -7282,6 +7379,7 @@
       unsubscribeRoomPackets();
       unsubscribeRoomPackets = () => {};
       roomPacketTransport = null;
+      stopCloudflarePingProbe();
       cloudflareRoomClient?.close();
       cloudflareRoomClient = null;
       connectedDevServer = null;
@@ -7299,6 +7397,7 @@
       stopAllRaceAudio();
       state.runnerVisuals.clear();
       state.runnerMotion.clear();
+      state.connectedRemoteSnapshots.clear();
       state.runnerChatBubbles.clear();
       state.lastVisualFrameMs = 0;
       state.renderCache.minimapPlayerNode = null;
@@ -7319,6 +7418,7 @@
       unsubscribeRoomPackets();
       unsubscribeRoomPackets = () => {};
       roomPacketTransport = null;
+      stopCloudflarePingProbe();
       cloudflareRoomClient?.close();
       cloudflareRoomClient = null;
       connectedDevServer = null;
@@ -7331,6 +7431,7 @@
       state.lastConnectedSnapshotSequence = 0;
       state.connectedInputSequence = 0;
       state.netcodePressure = null;
+      state.connectedRemoteSnapshots.clear();
       state.adminObserverMode = false;
       releaseAdminObserverKeys();
       state.action.raceStarted = false;
@@ -7351,6 +7452,7 @@
       unsubscribeRoomPackets();
       unsubscribeRoomPackets = () => {};
       roomPacketTransport = null;
+      stopCloudflarePingProbe();
       cloudflareRoomClient?.close();
       cloudflareRoomClient = null;
       connectedDevServer = null;
@@ -7368,6 +7470,7 @@
       stopAllRaceAudio();
       state.runnerVisuals.clear();
       state.runnerMotion.clear();
+      state.connectedRemoteSnapshots.clear();
       state.runnerChatBubbles.clear();
       state.raceQueueOpen = false;
       state.raceOptionsOpen = false;
@@ -7509,7 +7612,7 @@
       state.action.countdownEndsAtMs = gateOpensAtMs;
       state.action.countdownAnnounced = false;
       state.action.gateOpenedAtMs = 0;
-      setRaceCue("countdown", createCountdownLabel(now), state.runners[0]?.progress || START_LINE_PROGRESS, "you");
+      setRaceCue("countdown", createCountdownLabel(now), getLocalRunner()?.progress || START_LINE_PROGRESS, "you");
       stopMenuBgm();
       stopEntryGateMusic();
       playCountdownBellSfx(createCountdownBellOffsetSeconds(now, gateOpensAtMs));
@@ -7538,7 +7641,7 @@
       requestRaceMusicStart("gate_open");
       if (state.connectedSession) startConnectedDevServerRace(now);
       setScreen("race");
-      setRaceCue("start", "GO", state.runners[0]?.progress || START_LINE_PROGRESS, "you");
+      setRaceCue("start", "GO", getLocalRunner()?.progress || START_LINE_PROGRESS, "you");
         pushSystem("출발 게이트가 열렸습니다.");
       return true;
     }
@@ -7724,13 +7827,14 @@
         Number(connectedDevLoopState?.snapshotIndex || 0) + 1,
         state.connectedPackets.length + 1
       );
+      const localRunner = getLocalRunner() || {};
       const snapshot = connectedDevServer.createStateSnapshot(state.connectedSession.roomId, {
         sequence,
         elapsedMs: 50,
-        localRunner: state.runners[0] || {},
+        localRunner,
         serverRunner: {
-          progress: state.runners[0]?.serverProgress ?? state.runners[0]?.progress,
-          y: state.runners[0]?.serverLaneOffsetPx ?? state.runners[0]?.laneOffsetPx
+          progress: localRunner.serverProgress ?? localRunner.progress,
+          y: localRunner.serverLaneOffsetPx ?? localRunner.laneOffsetPx
         }
       });
       if (!snapshot.ok) return false;
@@ -7756,6 +7860,41 @@
       const id = String(participantId || "");
       if (id === "runner:you") return "you";
       return id.startsWith("runner:") ? id.slice("runner:".length) : id;
+    }
+
+    function getLocalRunnerIndex() {
+      const youIndex = state.runners.findIndex((runner) => runner?.id === "you");
+      if (youIndex >= 0) return youIndex;
+      return state.participantType === "spectator" ? -1 : (state.runners.length ? 0 : -1);
+    }
+
+    function getLocalRunner() {
+      const index = getLocalRunnerIndex();
+      return index >= 0 ? state.runners[index] : null;
+    }
+
+    function getTrackAnchorRunner() {
+      return getLocalRunner() || state.runners.find((runner) => runner) || null;
+    }
+
+    function setLocalRunner(runner) {
+      const index = getLocalRunnerIndex();
+      if (index < 0 || !runner) return false;
+      state.runners[index] = runner;
+      return true;
+    }
+
+    function patchLocalRunner(patch) {
+      const player = getLocalRunner();
+      if (!player) return false;
+      return setLocalRunner({ ...player, ...patch });
+    }
+
+    function getRemoteRunnerEntries() {
+      const localIndex = getLocalRunnerIndex();
+      return state.runners
+        .map((runner, index) => ({ runner, index }))
+        .filter((entry) => entry.index !== localIndex && entry.runner?.id !== "you");
     }
 
     function createActionRaceState() {
@@ -7962,7 +8101,7 @@
 
     function performBasicAttack(event = null) {
       const now = Date.now();
-      const player = state.runners[0];
+      const player = getLocalRunner();
       if (state.roomClosed) return false;
       if (!player) return false;
       if (now < state.action.attackCooldownUntilMs) {
@@ -7970,7 +8109,7 @@
         return false;
       }
       const aim = resolveBasicAttackAim(event, player);
-      const damageEnabled = state.action.raceStarted && !isCountdownActive(now);
+      const damageEnabled = state.action.raceStarted && !isCountdownActive(now) && !isCloudflareConnectedSession();
       const target = findBasicAttackTarget(player, aim.direction) || (event ? null : findNearestBasicAttackTarget(player));
       const attackDirection = target
         ? (Number(target.progress) >= Number(player.progress) ? 1 : -1)
@@ -8005,7 +8144,7 @@
           target ? `basic ${target.name}` : "basic miss"
         );
       }
-      if (state.connectedSession && state.action.raceStarted) requestConnectedAttack(event, action);
+      if (canRequestConnectedAttack()) requestConnectedAttack(event, action);
       if (!target) {
         renderAll();
         return false;
@@ -8110,7 +8249,8 @@
     }
 
     function findBasicAttackTarget(player, direction) {
-      const candidates = state.runners.slice(1)
+      const candidates = getRemoteRunnerEntries()
+        .map((entry) => entry.runner)
         .filter((runner) => !runner.finishedAtMs && runner.hp !== 0)
         .map((runner) => ({
           runner,
@@ -8126,7 +8266,8 @@
     }
 
     function findNearestBasicAttackTarget(player) {
-      const candidates = state.runners.slice(1)
+      const candidates = getRemoteRunnerEntries()
+        .map((entry) => entry.runner)
         .filter((runner) => !runner.finishedAtMs && runner.hp !== 0)
         .map((runner) => ({
           runner,
@@ -8146,9 +8287,18 @@
       return Number(runner?.stunnedUntilMs || 0) > now;
     }
 
+    function canRequestConnectedAttack() {
+      return Boolean(state.connectedSession && canPublishConnectedInputRequest());
+    }
+
+    function isCloudflareConnectedSession() {
+      return state.connectedSession?.provider === "cloudflare";
+    }
+
     function requestConnectedAttack(event, existingAction = null) {
-      if (state.participantType === "spectator" || !state.action.raceStarted) return;
-      const player = state.runners[0];
+      if (!canRequestConnectedAttack()) return;
+      const player = getLocalRunner();
+      if (!player) return;
       const aim = resolveBasicAttackAim(event, player);
       const action = existingAction || createRestoredMarathonAttackAction({
         attackerId: "runner:you",
@@ -8296,12 +8446,13 @@
     }
 
     function advanceLocalBotPack(elapsedSeconds) {
+      const player = getLocalRunner();
       const result = advanceSingularityLocalBotPack(state.runners, {
         elapsedSeconds,
         nowMs: Date.now(),
         mapId: selectedRaceMapId(),
         mapDraft: readCurrentRaceMapDraft(),
-        playerProgress: state.runners[0]?.progress || 0,
+        playerProgress: player?.progress || 0,
         roadLaneHalfWidthPx: ROAD_LANE_HALF_WIDTH_PX,
         railMaxProgress: RAIL_MAX_PROGRESS
       });
@@ -8351,7 +8502,8 @@
         currentItemId: state.action.currentItemId
       })) return false;
       if (state.action.itemRoulette) return false;
-      const player = state.runners[0];
+      const player = getLocalRunner();
+      if (!player) return false;
       const box = state.action.itemBoxes.find((itemBox) => (
         isSingularityRaceItemBoxActive(itemBox, now)
         && isRaceItemBoxWithinPickup(itemBox, player, now)
@@ -8423,7 +8575,7 @@
         finalized: true,
         visibleUntilMs: now + ITEM_ROULETTE_RESULT_VISIBLE_MS
       });
-      setRaceCue("item", item.label, roulette.progress || state.runners[0]?.progress || START_LINE_PROGRESS, "you", { durationMs: 1200 });
+      setRaceCue("item", item.label, roulette.progress || getLocalRunner()?.progress || START_LINE_PROGRESS, "you", { durationMs: 1200 });
       pushSystem(`아이템 획득: ${item.label}`);
       renderAll();
       window.setTimeout(() => clearRaceItemRoulette(sequence), ITEM_ROULETTE_RESULT_VISIBLE_MS + 40);
@@ -8478,14 +8630,14 @@
     function useBoosterItem(item) {
       const now = Date.now();
       state.action.itemBoostUntilMs = Math.max(Number(state.action.itemBoostUntilMs || 0), now + SINGULARITY_RACE_BOOSTER_DURATION_MS);
-      setRaceCue("item", item.label, state.runners[0]?.progress || START_LINE_PROGRESS, "you", { durationMs: 1300 });
+      setRaceCue("item", item.label, getLocalRunner()?.progress || START_LINE_PROGRESS, "you", { durationMs: 1300 });
       pushSystem("부스터 사용: 잠깐 더 빠르게 달립니다.");
     }
 
     function useRedPillItem(item) {
       const now = Date.now();
       state.action.itemGrowUntilMs = Math.max(Number(state.action.itemGrowUntilMs || 0), now + SINGULARITY_RACE_RED_PILL_DURATION_MS);
-      setRaceCue("item", item.label, state.runners[0]?.progress || START_LINE_PROGRESS, "you", { durationMs: 1400 });
+      setRaceCue("item", item.label, getLocalRunner()?.progress || START_LINE_PROGRESS, "you", { durationMs: 1400 });
       pushSystem("빨간약: 잠깐 거대해집니다. 부딪혀도 밀리지 않고 작은 러너를 밀쳐냅니다.");
     }
 
@@ -8498,7 +8650,7 @@
       const now = Date.now();
       state.action.itemCarUntilMs = Math.max(Number(state.action.itemCarUntilMs || 0), now + SINGULARITY_RACE_TURBO_CAR_DURATION_MS);
       void playRaceSfx("sfx-item-use");
-      setRaceCue("item", label, state.runners[0]?.progress || START_LINE_PROGRESS, "you", { durationMs: 1500 });
+      setRaceCue("item", label, getLocalRunner()?.progress || START_LINE_PROGRESS, "you", { durationMs: 1500 });
       pushSystem("자동차 탑승! 몇 초간 충돌 무시하고 크게 가속합니다.");
     }
 
@@ -8522,7 +8674,7 @@
       if (obstacle.kind === "energy") {
         state.action.itemBoostUntilMs = Math.max(Number(state.action.itemBoostUntilMs || 0), now + SINGULARITY_RACE_BOOSTER_DURATION_MS);
         void playRaceSfx("sfx-item-pickup");
-        setRaceCue("item", "에너지 드링크", state.runners[0]?.progress || START_LINE_PROGRESS, "you", { durationMs: 1200 });
+        setRaceCue("item", "에너지 드링크", getLocalRunner()?.progress || START_LINE_PROGRESS, "you", { durationMs: 1200 });
         pushSystem("에너지 드링크! 즉시 가속합니다.");
       } else {
         grantTurboCar("상자→자동차");
@@ -8576,7 +8728,8 @@
     }
 
     function useBananaItem(item) {
-      const player = state.runners[0];
+      const player = getLocalRunner();
+      if (!player) return;
       const progress = clampNumber((Number(player.progress) || START_LINE_PROGRESS) - 0.7, RAIL_MIN_PROGRESS, RAIL_MAX_PROGRESS);
       const laneOffsetPx = clampNumber(player.laneOffsetPx || 0, -ROAD_LANE_HALF_WIDTH_PX, ROAD_LANE_HALF_WIDTH_PX);
       state.action.itemHazards.push(Object.freeze({
@@ -8609,7 +8762,7 @@
     }
 
     function startRaceItemAim(item, source = "auto", now = Date.now()) {
-      const player = state.runners[0];
+      const player = getLocalRunner();
       if (!player) return false;
       const targetEntry = findAutoRaceItemTarget(item.itemId, player);
       if (!targetEntry) {
@@ -8633,7 +8786,8 @@
     function fireAimedRaceItem(item) {
       const aim = state.action.itemAim;
       if (!isRaceItemAimReady(item.itemId)) return startRaceItemAim(item, "auto");
-      const player = state.runners[0];
+      const player = getLocalRunner();
+      if (!player) return false;
       // 발사 직전 대상 재검증: 락 중 대상이 사라지면 가장 가까운 러너로 자동 재조준, 그래도 없으면 보존.
       let targetEntry = findAimedRunnerEntry(aim);
       let resolvedAim = aim;
@@ -8687,7 +8841,7 @@
     function findAimedRunnerEntry(aim) {
       if (!aim?.targetRunnerId) return null;
       const index = state.runners.findIndex((runner) => runner.id === aim.targetRunnerId);
-      if (index <= 0) return null;
+      if (index < 0 || state.runners[index]?.id === "you") return null;
       const runner = state.runners[index];
       if (!runner || runner.finishedAtMs || runner.hp === 0) return null;
       if (aim.itemId === SINGULARITY_RACE_ITEM_IDS.STUN_SHOT && isRunnerStunned(runner)) return null;
@@ -8695,7 +8849,8 @@
     }
 
     function useStunShotItem(item, aim = null) {
-      const player = state.runners[0];
+      const player = getLocalRunner();
+      if (!player) return;
       const targetEntry = findAimedRunnerEntry(aim) || (aim ? null : findStunShotTarget(player));
       const endProgress = targetEntry
         ? targetEntry.runner.progress
@@ -8727,7 +8882,7 @@
     }
 
     function useInkCloudItem(item, aim = null) {
-      const player = state.runners[0];
+      const player = getLocalRunner();
       if (!player) return;
       const targetEntry = findAimedRunnerEntry(aim) || (aim ? null : findInkCloudTarget(player));
       const now = Date.now();
@@ -8758,7 +8913,7 @@
       const playerLane = Number(player?.laneOffsetPx || 0);
       return state.runners
         .map((runner, index) => ({ runner, index }))
-        .filter((entry) => entry.index > 0 && !isRunnerStunned(entry.runner))
+        .filter((entry) => entry.runner?.id !== "you" && !isRunnerStunned(entry.runner))
         .map((entry) => ({
           ...entry,
           progressGap: (Number(entry.runner.progress) || 0) - playerProgress,
@@ -8773,7 +8928,7 @@
       const playerLane = Number(player?.laneOffsetPx || 0);
       return state.runners
         .map((runner, index) => ({ runner, index }))
-        .filter((entry) => entry.index > 0 && !isRunnerStunned(entry.runner))
+        .filter((entry) => entry.runner?.id !== "you" && !isRunnerStunned(entry.runner))
         .map((entry) => ({
           ...entry,
           progressGap: (Number(entry.runner.progress) || 0) - playerProgress,
@@ -8787,7 +8942,7 @@
       const aim = state.action.itemAim;
       if (!aim || !isRaceItemAimReady(aim.itemId)) return false;
       const item = getSingularityRaceItemDefinition(aim.itemId);
-      const player = state.runners[0];
+      const player = getLocalRunner();
       if (!item || !player) return false;
       const worldPoint = eventToTrackWorldPercent(event);
       const progress = estimateRestoredMarathonTrailProgressFromPoint(worldPoint.x, worldPoint.y, selectedRaceMapId());
@@ -8821,7 +8976,7 @@
       const playerProgress = Number(player?.progress || 0);
       return state.runners
         .map((runner, index) => ({ runner, index }))
-        .filter((entry) => entry.index > 0 && !entry.runner.finishedAtMs && entry.runner.hp !== 0)
+        .filter((entry) => entry.runner?.id !== "you" && !entry.runner.finishedAtMs && entry.runner.hp !== 0)
         .filter((entry) => itemId !== SINGULARITY_RACE_ITEM_IDS.STUN_SHOT || !isRunnerStunned(entry.runner))
         .map((entry) => {
           const runnerProgress = Number(entry.runner.progress) || 0;
@@ -8935,7 +9090,7 @@
       let collision = Object.freeze({ blockedPlayer: false });
       if (use.payload.target === "self") collision = advanceLocalPlayerProgress(resolveRewardSkillAdvanceAmount(use), "skill");
       if (use.payload.target !== "self") slowNearbyRunners();
-      if (!collision.blockedPlayer) setRaceCue("skill", getSingularitySkillDisplayName(use.skillId), state.runners[0].progress, "you");
+      if (!collision.blockedPlayer) setRaceCue("skill", getSingularitySkillDisplayName(use.skillId), getLocalRunner()?.progress || START_LINE_PROGRESS, "you");
       pushActionPacket(
         createRestoredMarathonSkillEnvelope({
           participantId: "runner:you",
@@ -8988,8 +9143,9 @@
 
     function updateActionCheckpoint() {
       while (true) {
+        const player = getLocalRunner();
         const nextCheckpoint = ACTION_CHECKPOINTS[state.action.checkpointIndex];
-        if (!nextCheckpoint || state.runners[0].progress < nextCheckpoint) return;
+        if (!player || !nextCheckpoint || player.progress < nextCheckpoint) return;
         state.action.checkpointIndex += 1;
         const reward = assignRestoredMarathonCheckpointCharacter({
           participantId: "runner:you",
@@ -9006,8 +9162,8 @@
         state.action.skillMaxCharges = reward.skill.maxCharges;
         state.action.skillChargesRemaining = reward.skill.maxCharges;
         state.action.lastSafeCheckpointIndex = state.action.checkpointIndex;
-        state.runners[0] = {
-          ...state.runners[0],
+        const updatedPlayer = {
+          ...player,
           lastSafeCheckpointIndex: state.action.checkpointIndex,
           rewardSkinId: reward.placeholderSkin.skinId,
           rewardSkinLabel: reward.placeholderSkin.label,
@@ -9015,7 +9171,8 @@
           rewardGrade: reward.placeholderSkin.grade,
           rewardSkinUntilMs: Date.now() + RACE_REWARD_SKIN_VISUAL_MS
         };
-        setRaceCue("checkpoint", reward.placeholderSkin.label, state.runners[0].progress, "you", {
+        setLocalRunner(updatedPlayer);
+        setRaceCue("checkpoint", reward.placeholderSkin.label, updatedPlayer.progress, "you", {
           rewardGrade: reward.placeholderSkin.grade,
           rewardLabel: reward.placeholderSkin.label,
           rewardDetail: `${reward.character.label} / ${getSingularitySkillDisplayName(reward.skill.skillId)}`,
@@ -9041,19 +9198,20 @@
     }
 
     function maybeMarkLocalFinish() {
-      const player = state.runners[0];
+      const player = getLocalRunner();
       if (!player || player.progress < LOCAL_FINISH_PROGRESS || state.action.finishedLocalPreview) return;
-      state.runners[0] = {
+      const updatedPlayer = {
         ...player,
         progress: Math.max(player.progress, LOCAL_FINISH_PROGRESS)
       };
+      setLocalRunner(updatedPlayer);
       finalizeRaceResult({
         source: "local",
         title: "완주 완료",
         copy: "완주했습니다. 관전 계속을 누르면 남은 러너를 볼 수 있습니다.",
         ranking: createLocalFinishRanking(),
         finishedParticipantId: "runner:you",
-        progressPercent: Math.round(state.runners[0].progress * 10) / 10,
+        progressPercent: Math.round(updatedPlayer.progress * 10) / 10,
         raceFinished: false,
         playerFinished: true,
         publishPacket: true
@@ -9113,7 +9271,7 @@
         ceremonyAwardAtMs,
         finalizedAtMs: now
       });
-      const player = state.runners[0];
+      const player = getLocalRunner();
       if (player) setRaceCue("finish", "완주", player.progress, "you");
       playWinnerFinishSfx();
       if (state.action.raceFinished && state.action.ceremonyEnteredAtMs) schedulePodiumApplauseSfx();
@@ -9507,7 +9665,8 @@
         localPredictionSnapshotCorrection: hasRecentMovementInput() ? 0.04 : 0.12
       });
       if (!merged.applied) return false;
-      state.runners = [...merged.runners];
+      state.runners = orderLocalRunnerFirst([...merged.runners]);
+      syncConnectedRemoteInterpolationBuffer(packet, state.runners);
       state.lastConnectedSnapshotSequence = Math.max(state.lastConnectedSnapshotSequence, sequence, merged.sequence);
       if (payload.phase === "racing" || payload.phase === "finished") {
         const wasRaceStarted = state.action.raceStarted;
@@ -9515,7 +9674,9 @@
         state.action.raceStarted = true;
         if (!wasRaceStarted) requestRaceMusicStart("server_snapshot");
       }
-      const localParticipantId = state.connectedSession?.playerId || "runner:you";
+      const localParticipantId = payload.participants.some((participant) => participant.participantId === "runner:you")
+        ? "runner:you"
+        : (state.connectedSession?.playerId || "runner:you");
       const localSnapshot = payload.participants.find((participant) => participant.participantId === localParticipantId);
       syncActionRewardFromServerSnapshot(localSnapshot);
       const localFinished = localSnapshot?.finishedAtMs !== null && localSnapshot?.finishedAtMs !== undefined;
@@ -9536,6 +9697,94 @@
       return true;
     }
 
+    function orderLocalRunnerFirst(runners) {
+      if (!Array.isArray(runners) || runners.length < 2) return runners;
+      const localIndex = runners.findIndex((runner) => runner?.id === "you");
+      if (localIndex <= 0) return runners;
+      return [
+        runners[localIndex],
+        ...runners.slice(0, localIndex),
+        ...runners.slice(localIndex + 1)
+      ];
+    }
+
+    function syncConnectedRemoteInterpolationBuffer(packet, runners = state.runners) {
+      if (!state.connectedSession || !Array.isArray(runners)) return;
+      const receivedAtMs = Date.now();
+      const sequence = Math.max(0, Number(packet?.sequence || packet?.payload?.sequence || 0));
+      const activeRunnerIds = new Set();
+      for (const runner of runners) {
+        if (!runner?.id) continue;
+        activeRunnerIds.add(runner.id);
+        if (runner.id === "you") continue;
+        const progress = Number.isFinite(Number(runner.serverProgress)) ? Number(runner.serverProgress) : Number(runner.progress);
+        const laneOffsetPx = Number.isFinite(Number(runner.serverLaneOffsetPx)) ? Number(runner.serverLaneOffsetPx) : Number(runner.laneOffsetPx);
+        if (!Number.isFinite(progress) || !Number.isFinite(laneOffsetPx)) continue;
+        const frames = state.connectedRemoteSnapshots.get(runner.id) || [];
+        const previousAtMs = Number(frames.at(-1)?.atMs || 0);
+        const atMs = Math.max(receivedAtMs, previousAtMs + 1);
+        const frame = Object.freeze({ atMs, receivedAtMs, sequence, progress, laneOffsetPx });
+        const nextFrames = ((frames.at(-1)?.sequence === sequence && sequence > 0)
+          ? [...frames.slice(0, -1), frame]
+          : [...frames, frame])
+          .filter((entry) => atMs - Number(entry.atMs || 0) <= CONNECTED_REMOTE_INTERPOLATION_HISTORY_MS)
+          .slice(-8);
+        state.connectedRemoteSnapshots.set(runner.id, Object.freeze(nextFrames));
+      }
+      for (const runnerId of state.connectedRemoteSnapshots.keys()) {
+        if (!activeRunnerIds.has(runnerId)) state.connectedRemoteSnapshots.delete(runnerId);
+      }
+    }
+
+    function resolveConnectedRemoteVisualRunner(runner, now = Date.now()) {
+      if (!runner || runner.id === "you" || !state.connectedSession) return runner;
+      const frames = state.connectedRemoteSnapshots.get(runner.id);
+      if (!frames?.length) return runner;
+      const delayMs = connectedRemoteInterpolationDelayMs();
+      const sample = sampleConnectedRemoteInterpolation(frames, now - delayMs, now);
+      if (!sample) return runner;
+      return {
+        ...runner,
+        progress: sample.progress,
+        laneOffsetPx: sample.laneOffsetPx,
+        visualInterpolationBuffered: true,
+        visualInterpolationDelayMs: delayMs
+      };
+    }
+
+    function sampleConnectedRemoteInterpolation(frames, renderAtMs, now = Date.now()) {
+      if (!frames?.length) return null;
+      if (frames.length === 1) return frames[0];
+      let previous = frames[0];
+      let next = null;
+      for (const frame of frames) {
+        if (Number(frame.atMs || 0) <= renderAtMs) previous = frame;
+        if (Number(frame.atMs || 0) >= renderAtMs) {
+          next = frame;
+          break;
+        }
+      }
+      if (!next) {
+        const latest = frames.at(-1);
+        if (now - Number(latest.receivedAtMs || 0) > CONNECTED_REMOTE_INTERPOLATION_HISTORY_MS) return null;
+        return latest;
+      }
+      if (next === previous || Number(next.atMs || 0) <= Number(previous.atMs || 0)) return next;
+      const ratio = clampNumber((renderAtMs - previous.atMs) / (next.atMs - previous.atMs), 0, 1);
+      return Object.freeze({
+        atMs: renderAtMs,
+        receivedAtMs: next.receivedAtMs,
+        sequence: next.sequence,
+        progress: previous.progress + (next.progress - previous.progress) * ratio,
+        laneOffsetPx: previous.laneOffsetPx + (next.laneOffsetPx - previous.laneOffsetPx) * ratio
+      });
+    }
+
+    function connectedRemoteInterpolationDelayMs() {
+      const profileDelayMs = Number(netcodeProfile.interpolationBaseMs || 0) + Number(netcodeProfile.jitterBufferMs || 0);
+      return clampNumber(profileDelayMs || CONNECTED_REMOTE_INTERPOLATION_FALLBACK_MS, 90, 260);
+    }
+
     function syncActionRewardFromServerSnapshot(participant) {
       if (!participant?.skillId || !participant.rewardGrade) return;
       const skill = getRestoredMarathonSkill(participant.skillId);
@@ -9552,7 +9801,7 @@
       if (state.roomClosed) return false;
       if (!state.connectedSession || !state.action.raceStarted || state.participantType === "spectator") return false;
       if (state.action.finalResult || state.action.raceFinished) return false;
-      const player = state.runners[0];
+      const player = getLocalRunner();
       if (!player) return false;
       const now = Date.now();
       if (isRunnerStunned(player, now)) return false;
@@ -9572,7 +9821,7 @@
         raceStarted: state.action.raceStarted
       });
       rememberItemPickupTrace(player.progress, player.laneOffsetPx, nextPlayer.progress, nextPlayer.laneOffsetPx, now);
-      state.runners[0] = nextPlayer;
+      setLocalRunner(nextPlayer);
       // 부서지는 보상 장애물은 넉백 대신 보상으로 처리(자동차/에너지드링크). 그 외만 충돌 표시.
       if (nextPlayer.obstacleHit) {
         const hitObstacle = findRaceObstacleById(nextPlayer.obstacleHitId);
@@ -9625,7 +9874,8 @@
     function advanceLocalPlayerMovement(frame, elapsedSeconds, reason) {
       if (state.roomClosed) return false;
       if (state.connectedSession && state.action.raceStarted) return false;
-      const player = state.runners[0];
+      const player = getLocalRunner();
+      if (!player) return false;
       if (isRunnerStunned(player, Date.now())) return false;
       if (!isRaceInputFrameActive(frame)) return false;
       const sprinting = frame.mode === "sprint";
@@ -9673,12 +9923,12 @@
         : obstacle.runner;
       const touching = (pressure.intensity > 0.08 || laneBoundary.touchedBoundary || blockingHit) && state.action.raceStarted;
       rememberItemPickupTrace(player.progress, player.laneOffsetPx, resolvedRunner.progress, resolvedRunner.laneOffsetPx);
-      state.runners[0] = {
+      setLocalRunner({
         ...resolvedRunner,
         laneBoundarySide: laneBoundary.boundarySide,
         laneBoundaryTouched: laneBoundary.touchedBoundary,
         collisionAtMs: touching ? Date.now() : player.collisionAtMs
-      };
+      });
       if (breakable) handleBreakableObstacleHit(obstacle.obstacle);
       else if (blockingHit) markPlayerObstacleCollision(obstacle.obstacle);
       else if (touching) markPlayerRailCollision(laneBoundary.touchedBoundary ? "boundary" : reason);
@@ -9687,16 +9937,17 @@
 
     function advanceLocalPlayerProgress(amount, reason) {
       if (state.connectedSession || amount <= 0) return Object.freeze({ blockedPlayer: false });
-      const player = state.runners[0];
+      const player = getLocalRunner();
+      if (!player) return Object.freeze({ blockedPlayer: false });
       const before = Math.max(RAIL_MIN_PROGRESS, Math.min(RAIL_MAX_PROGRESS, Number(player.progress) || 0));
       const pressure = calculateSoftPassPressure(player.id, before, player.laneOffsetPx || 0);
       const progress = Math.min(RAIL_MAX_PROGRESS, before + (amount * pressure.speedFactor));
       const touching = pressure.intensity > 0.08;
-      state.runners[0] = {
+      setLocalRunner({
         ...player,
         progress,
         collisionAtMs: touching ? Date.now() : player.collisionAtMs
-      };
+      });
       if (touching) markPlayerRailCollision(reason);
       const collision = resolveSingleRailCollisions(reason);
       return Object.freeze({ ...collision, blockedPlayer: false });
@@ -9791,7 +10042,7 @@
       if (now - (state.action.lastCollisionCueMs || 0) <= 900) return;
       state.action.lastCollisionCueMs = now;
       const boundary = reason === "boundary";
-      setRaceCue("collision", boundary ? "경계" : "밀림", state.runners[0].progress, "you");
+      setRaceCue("collision", boundary ? "경계" : "밀림", getLocalRunner()?.progress || START_LINE_PROGRESS, "you");
       if (boundary) pushSystem("도로 경계입니다. 안쪽으로 방향을 틀면 바로 복귀합니다.");
       else pushSystem(reason === "skill" ? "몸싸움 때문에 스킬 이동이 느려졌습니다." : "몸싸움으로 살짝 밀리며 지나갑니다.");
     }
@@ -9801,17 +10052,19 @@
       if (now - (state.action.lastCollisionCueMs || 0) <= 520) return;
       state.action.lastCollisionCueMs = now;
       const label = obstacle?.label || "장애물";
-      setRaceCue("collision", label, state.runners[0].progress, "you", { durationMs: 950 });
+      setRaceCue("collision", label, getLocalRunner()?.progress || START_LINE_PROGRESS, "you", { durationMs: 950 });
       void playRaceSfx("sfx-item-hit");
       pushSystem(`장애물 충돌: ${label}에 부딪혔습니다.`);
     }
 
     function slowNearbyRunners() {
-      const playerProgress = state.runners[0].progress;
-      const playerLane = state.runners[0].laneOffsetPx || 0;
+      const player = getLocalRunner();
+      if (!player) return;
+      const playerProgress = player.progress;
+      const playerLane = player.laneOffsetPx || 0;
       state.runners = state.runners.map((runner, index) => {
         const laneGap = Math.abs((runner.laneOffsetPx || 0) - playerLane);
-        if (index === 0 || Math.abs(runner.progress - playerProgress) > 10 || laneGap > 120) return runner;
+        if (runner.id === "you" || Math.abs(runner.progress - playerProgress) > 10 || laneGap > 120) return runner;
         const shoveDirection = (runner.laneOffsetPx || 0) >= playerLane ? 1 : -1;
         return {
           ...runner,
@@ -10173,12 +10426,11 @@
 
     function syncPlayerIdentity() {
       if (state.participantType === "spectator") return;
-      state.runners[0] = {
-        ...state.runners[0],
+      patchLocalRunner({
         name: state.nickname,
         skin: state.selectedSkin,
         ready: state.ready
-      };
+      });
     }
 
     function syncScreenState() {
@@ -10537,7 +10789,7 @@
     }
 
     function resetAdminObserverCamera() {
-      const anchorRunner = state.runners.find((runner) => runner.id === "you") || state.runners[0] || null;
+      const anchorRunner = getTrackAnchorRunner();
       const anchorPoint = anchorRunner
         ? trackPointToPixels(runnerVisualPoint(anchorRunner, 0))
         : { x: TRACK_WORLD_WIDTH / 2, y: TRACK_WORLD_HEIGHT / 2 };
@@ -10609,7 +10861,7 @@
         updateAdminObserverCamera(viewportWidth, viewportHeight);
         return;
       }
-      const player = state.runners[0];
+      const player = getTrackAnchorRunner();
       if (!player) return;
       const playerPixel = trackPointToPixels(runnerVisualPoint(player, 0));
       if (state.screen === SINGULARITY_RACE_SCREENS.RACE) {
@@ -11062,8 +11314,9 @@
       const visualTiming = createRunnerVisualTiming();
       const rankLabels = getRaceRunnerRankLabels(visualTiming.now);
       for (const [index, runner] of state.runners.entries()) {
-        const point = smoothRunnerVisualPoint(runner, index, visualTiming.elapsedMs);
-        const motion = updateRunnerMotionState(runner, point, visualTiming);
+        const visualRunner = resolveConnectedRemoteVisualRunner(runner, visualTiming.now);
+        const point = smoothRunnerVisualPoint(visualRunner, index, visualTiming.elapsedMs);
+        const motion = updateRunnerMotionState(visualRunner, point, visualTiming);
         const stunned = isRunnerStunned(runner, visualTiming.now);
         const boosted = runner.id === "you" && isItemBoostActive(visualTiming.now);
         const growing = runner.id === "you" ? isItemGrowActive(visualTiming.now) : runner.effectKind === "grow";
@@ -11114,7 +11367,7 @@
         avatar.style.left = `${point.x}%`;
         avatar.style.top = `${point.y}%`;
         avatar.style.setProperty("--runner-size-scale", String(sizeScale));
-        avatar.style.zIndex = String(4 + Math.round(runner.progress * 10));
+        avatar.style.zIndex = String(4 + Math.round(visualRunner.progress * 10));
         updateSingularityRunnerAvatarNode(avatar, runner, getSingularityRaceSkinDataUrl(runner.skin, "side"), {
           chatBubbleText: getRunnerChatBubbleText(runner.id, visualTiming.now),
           rankLabel: rankLabels.get(runner.id) || ""
@@ -11231,57 +11484,117 @@
 
     function renderTrackEffects() {
       if (state.screen === SINGULARITY_RACE_SCREENS.MAP_PREVIEW) {
-        elements.trackEffects.replaceChildren(...createRaceObstacleEffectNodes());
+        syncKeyedChildren(elements.trackEffects, createRaceObstacleEffectEntries(), "effectKey");
         elements.trackHud.replaceChildren();
         return;
       }
-      const player = state.runners[0];
-      if (!player) return;
+      const player = getTrackAnchorRunner();
+      if (!player) {
+        syncKeyedChildren(elements.trackEffects, [], "effectKey");
+        elements.trackHud.replaceChildren();
+        return;
+      }
       const cue = state.action.raceCue;
-      const progressPill = createSingularityTrackProgressPillNode({
+      const now = Date.now();
+      const entries = [
+        ...createRaceObstacleEffectEntries(),
+        ...createRaceItemEffectEntries(now)
+      ];
+      if (shouldRenderStartGate(now)) {
+        entries.push(createStartGateEffectEntry(now));
+      }
+      if (cue && now - cue.createdAtMs < (cue.durationMs || 1800)) entries.push(createTrackCueEffectEntry(cue));
+      syncKeyedChildren(elements.trackEffects, entries, "effectKey");
+      renderTrackHudNodes(player);
+    }
+
+    function createRaceItemEffectEntries(now = Date.now()) {
+      if (state.action.finalResult) return [];
+      const boxes = state.action.itemBoxes
+        .filter((box) => isSingularityRaceItemBoxActive(box, now))
+        .map(createRaceItemBoxEntry);
+      const traps = state.action.itemHazards
+        .map((hazard) => createRaceItemMarkerEntry(`hazard:${hazard.id}`, getRaceItemHazardClass(hazard), getRaceItemMarkerLabel(hazard), hazard));
+      const projectiles = state.action.itemProjectiles
+        .map((projectile) => createRaceItemMarkerEntry(`projectile:${projectile.id}`, "race-item-projectile", getRaceItemMarkerLabel(projectile), projectile));
+      const aim = isRaceItemAimReady(state.action.itemAim?.itemId, now)
+        ? [createRaceItemAimEntry(state.action.itemAim)]
+        : [];
+      return [...boxes, ...traps, ...projectiles, ...aim];
+    }
+
+    function createRaceObstacleEffectEntries() {
+      if (state.action.finalResult) return [];
+      return currentRaceMapObstacles().map(createRaceObstacleEntry);
+    }
+
+    function syncKeyedChildren(container, entries, keyName) {
+      if (!container) return;
+      const keyAttr = `data-${keyName.replace(/[A-Z]/g, (letter) => `-${letter.toLowerCase()}`)}`;
+      const existing = new Map([...container.children].map((node) => [node.getAttribute(keyAttr), node]));
+      const activeKeys = new Set();
+      const orderedNodes = [];
+      for (const entry of entries) {
+        if (!entry?.key) continue;
+        activeKeys.add(entry.key);
+        let node = existing.get(entry.key) || null;
+        if (!node) {
+          node = entry.create();
+          node.setAttribute(keyAttr, entry.key);
+        }
+        if (entry.update) entry.update(node);
+        orderedNodes.push(node);
+      }
+      for (const [key, node] of existing) {
+        if (!activeKeys.has(key)) node.remove();
+      }
+      orderedNodes.forEach((node, index) => {
+        if (container.children[index] !== node) container.insertBefore(node, container.children[index] || null);
+      });
+    }
+
+    function renderTrackHudNodes(player) {
+      const progressOptions = {
         nickname: state.nickname,
         progress: player.progress,
         raceStarted: state.action.raceStarted,
         countdownActive: isCountdownActive(),
         checkpointIndex: state.action.checkpointIndex,
         checkpoints: ACTION_CHECKPOINTS
-      });
-      const now = Date.now();
-      const nodes = [
-        ...createRaceObstacleEffectNodes(),
-        ...createRaceItemEffectNodes(now)
-      ];
-      if (shouldRenderStartGate(now)) {
-        nodes.push(createSingularityStartGateNode(runnerTrailPoint(START_GATE_PROGRESS), {
-          openProgress: getStartGateOpenProgress(now)
-        }));
+      };
+      const entries = [{
+        key: "progress-pill",
+        create: () => createSingularityTrackProgressPillNode(progressOptions),
+        update: (node) => updateTrackProgressPillNode(node, progressOptions)
+      }];
+      const countdownLabel = createCountdownLabel();
+      if (countdownLabel) {
+        entries.push({
+          key: "countdown",
+          create: () => createSingularityTrackCountdownNode(countdownLabel),
+          update: (node) => {
+            if (node.textContent !== countdownLabel) node.textContent = countdownLabel;
+          }
+        });
       }
-      if (cue && now - cue.createdAtMs < (cue.durationMs || 1800)) nodes.push(createSingularityTrackCueNode(cue, trackCuePoint(cue)));
-      elements.trackEffects.replaceChildren(...nodes);
-      const hudNodes = [progressPill];
-      const countdown = createSingularityTrackCountdownNode(createCountdownLabel());
-      if (countdown) hudNodes.push(countdown);
-      elements.trackHud.replaceChildren(...hudNodes);
+      syncKeyedChildren(elements.trackHud, entries, "hudKey");
     }
 
-    function createRaceItemEffectNodes(now = Date.now()) {
-      if (state.action.finalResult) return [];
-      const boxes = state.action.itemBoxes
-        .filter((box) => isSingularityRaceItemBoxActive(box, now))
-        .map(createRaceItemBoxNode);
-      const traps = state.action.itemHazards
-        .map((hazard) => createRaceItemMarkerNode(getRaceItemHazardClass(hazard), getRaceItemMarkerLabel(hazard), hazard));
-      const projectiles = state.action.itemProjectiles
-        .map((projectile) => createRaceItemMarkerNode("race-item-projectile", getRaceItemMarkerLabel(projectile), projectile));
-      const aim = isRaceItemAimReady(state.action.itemAim?.itemId, now)
-        ? [createRaceItemAimNode(state.action.itemAim)]
-        : [];
-      return [...boxes, ...traps, ...projectiles, ...aim];
+    function updateTrackProgressPillNode(node, options) {
+      const title = node.querySelector("b");
+      const detail = node.querySelector("span");
+      const titleText = `${options.nickname} ${Math.round(options.progress)}%`;
+      const detailText = getSingularityTrackProgressDetail(options);
+      if (title && title.textContent !== titleText) title.textContent = titleText;
+      if (detail && detail.textContent !== detailText) detail.textContent = detailText;
     }
 
-    function createRaceObstacleEffectNodes() {
-      if (state.action.finalResult) return [];
-      return currentRaceMapObstacles().map(createRaceObstacleNode);
+    function createRaceObstacleEntry(obstacle) {
+      return {
+        key: `obstacle:${obstacle.id}`,
+        create: () => createRaceObstacleNode(obstacle),
+        update: (node) => updateRaceObstacleNode(node, obstacle)
+      };
     }
 
     function createRaceObstacleNode(obstacle) {
@@ -11301,6 +11614,22 @@
       return node;
     }
 
+    function updateRaceObstacleNode(node, obstacle) {
+      const point = raceItemPoint(obstacle.progress, obstacle.laneOffsetPx);
+      const broken = isBreakableRaceObstacle(obstacle) && isBrokenObstacleOnCooldown(obstacle.id);
+      const className = [
+        "race-obstacle",
+        `is-${obstacle.kind || "barrier"}`,
+        isBreakableRaceObstacle(obstacle) ? "is-breakable" : "",
+        broken ? "is-broken" : ""
+      ].filter(Boolean).join(" ");
+      if (node.className !== className) node.className = className;
+      node.dataset.obstacleId = obstacle.id;
+      node.setAttribute("aria-label", broken ? `${obstacle.label || "Obstacle"} (?ъ깮??以?` : (obstacle.label || "Obstacle"));
+      node.style.left = `${point.x}%`;
+      node.style.top = `${point.y}%`;
+    }
+
     function findRaceObstacleById(obstacleId) {
       return currentRaceMapObstacles()
         .find((obstacle) => obstacle.id === obstacleId) || null;
@@ -11308,6 +11637,10 @@
 
     function createRaceItemBoxNode(box) {
       return createRaceItemMarkerNode("race-item-box", "Item Box", box, "box");
+    }
+
+    function createRaceItemBoxEntry(box) {
+      return createRaceItemMarkerEntry(`box:${box.boxId}`, "race-item-box", "Item Box", box, "box");
     }
 
     function getRaceItemHazardClass(item) {
@@ -11331,6 +11664,27 @@
       return node;
     }
 
+    function createRaceItemMarkerEntry(key, className, label, item, iconKind = "") {
+      return {
+        key,
+        create: () => createRaceItemMarkerNode(className, label, item, iconKind),
+        update: (node) => updateRaceItemMarkerNode(node, className, label, item, iconKind)
+      };
+    }
+
+    function updateRaceItemMarkerNode(node, className, label, item, iconKind = "") {
+      const point = raceItemPoint(item.progress, item.laneOffsetPx);
+      if (node.className !== className) node.className = className;
+      node.setAttribute("aria-label", label);
+      node.style.left = `${point.x}%`;
+      node.style.top = `${point.y}%`;
+      const kind = iconKind || getRaceItemIconKind(item);
+      if (node.dataset.iconKind !== kind || !node.firstElementChild) {
+        node.dataset.iconKind = kind;
+        node.replaceChildren(createRaceItemIconNode(item, { kind, size: "track" }));
+      }
+    }
+
     function createRaceItemAimNode(aim) {
       const point = raceItemPoint(aim.progress, aim.laneOffsetPx);
       const node = document.createElement("div");
@@ -11343,6 +11697,52 @@
       label.textContent = aim.targetName ? "LOCK" : "AIM";
       node.append(label);
       return node;
+    }
+
+    function createRaceItemAimEntry(aim) {
+      return {
+        key: `aim:${aim.itemId}`,
+        create: () => createRaceItemAimNode(aim),
+        update: (node) => updateRaceItemAimNode(node, aim)
+      };
+    }
+
+    function updateRaceItemAimNode(node, aim) {
+      const point = raceItemPoint(aim.progress, aim.laneOffsetPx);
+      node.className = "race-item-aim";
+      node.setAttribute("aria-label", aim.targetName ? `${aim.targetName} 議곗?` : "?꾩씠??議곗? ?꾩튂");
+      node.style.left = `${point.x}%`;
+      node.style.top = `${point.y}%`;
+      const label = node.querySelector(".race-item-aim-label");
+      if (label) label.textContent = aim.targetName ? "LOCK" : "AIM";
+    }
+
+    function createStartGateEffectEntry(now) {
+      const point = runnerTrailPoint(START_GATE_PROGRESS);
+      const openProgress = getStartGateOpenProgress(now);
+      return {
+        key: "start-gate",
+        create: () => createSingularityStartGateNode(point, { openProgress }),
+        update: (node) => updateStartGateNode(node, point, openProgress)
+      };
+    }
+
+    function updateStartGateNode(node, point, openProgressInput) {
+      const openProgress = clampNumber(Number(openProgressInput) || 0, 0, 1);
+      const className = `start-gate${openProgress > 0 ? " is-opening" : ""}${openProgress >= 1 ? " is-open" : ""}`;
+      if (node.className !== className) node.className = className;
+      node.style.setProperty("--gate-open-y", `${Math.round(openProgress * 84)}px`);
+      node.style.setProperty("--gate-open-scale", String(Math.max(0.08, 1 - (openProgress * 0.92))));
+      node.style.setProperty("--gate-open-opacity", String(Math.max(0.12, 1 - (openProgress * 0.82))));
+      node.style.left = `${point.x}%`;
+      node.style.top = `${point.y}%`;
+    }
+
+    function createTrackCueEffectEntry(cue) {
+      return {
+        key: `cue:${cue.type}:${cue.createdAtMs}`,
+        create: () => createSingularityTrackCueNode(cue, trackCuePoint(cue))
+      };
     }
 
     function createRaceItemIconNode(item, options = {}) {
@@ -11506,7 +11906,8 @@
       if (!roulette || state.screen !== SINGULARITY_RACE_SCREENS.RACE) {
         if (state.action.itemRoulette && !roulette) state.action.itemRoulette = null;
         elements.raceItemRoulette.className = "race-item-roulette";
-        elements.raceItemRoulette.replaceChildren();
+        if (elements.raceItemRoulette.childElementCount) elements.raceItemRoulette.replaceChildren();
+        state.renderCache.itemRoulettePanel = null;
         return;
       }
       const displayItem = getRaceItemRouletteDisplayItem(roulette, now);
@@ -11517,7 +11918,8 @@
         spinning ? "is-spinning" : "is-final",
         getRaceItemRouletteClass(displayItem)
       ].filter(Boolean).join(" ");
-      elements.raceItemRoulette.replaceChildren(createRaceItemRouletteNode(roulette, displayItem, spinning));
+      const panel = ensureRaceItemRoulettePanel(roulette, displayItem, spinning);
+      updateRaceItemRouletteNode(panel, displayItem, spinning);
     }
 
     function renderRaceVisionMask(now = Date.now()) {
@@ -11548,6 +11950,7 @@
       panel.className = "race-item-roulette-panel";
       const icon = document.createElement("div");
       icon.className = "race-item-roulette-icon";
+      icon.dataset.itemId = displayItem?.itemId || "";
       icon.append(createRaceItemIconNode(displayItem, { size: "roulette" }));
       const copy = document.createElement("div");
       copy.className = "race-item-roulette-copy";
@@ -11560,6 +11963,7 @@
       for (const item of listSingularityRaceItemDefinitions()) {
         const chip = document.createElement("span");
         chip.className = `race-item-roulette-chip${item.itemId === displayItem?.itemId ? " is-active" : ""}`;
+        chip.dataset.itemId = item.itemId;
         chip.title = item.label;
         chip.append(createRaceItemIconNode(item, { size: "mini" }));
         reel.append(chip);
@@ -11567,6 +11971,33 @@
       copy.append(status, label, reel);
       panel.append(icon, copy);
       return panel;
+    }
+
+    function ensureRaceItemRoulettePanel(roulette, displayItem, spinning) {
+      let panel = state.renderCache.itemRoulettePanel;
+      if (!panel || panel.parentNode !== elements.raceItemRoulette) {
+        panel = createRaceItemRouletteNode(roulette, displayItem, spinning);
+        elements.raceItemRoulette.replaceChildren(panel);
+        state.renderCache.itemRoulettePanel = panel;
+      }
+      return panel;
+    }
+
+    function updateRaceItemRouletteNode(panel, displayItem, spinning) {
+      const icon = panel.querySelector(".race-item-roulette-icon");
+      if (icon && icon.dataset.itemId !== (displayItem?.itemId || "")) {
+        icon.dataset.itemId = displayItem?.itemId || "";
+        icon.replaceChildren(createRaceItemIconNode(displayItem, { size: "roulette" }));
+      }
+      const status = panel.querySelector(".race-item-roulette-copy span");
+      const label = panel.querySelector(".race-item-roulette-copy strong");
+      const statusText = spinning ? "ITEM ROLL" : "ITEM GET";
+      const labelText = displayItem?.label || "?";
+      if (status && status.textContent !== statusText) status.textContent = statusText;
+      if (label && label.textContent !== labelText) label.textContent = labelText;
+      for (const chip of panel.querySelectorAll(".race-item-roulette-chip")) {
+        chip.classList.toggle("is-active", chip.dataset.itemId === displayItem?.itemId);
+      }
     }
 
     function getRaceItemShortLabel(item) {
@@ -11596,7 +12027,7 @@
         state.renderCache.minimapPlayerNode = null;
         return;
       }
-      const player = state.runners[0];
+      const player = getTrackAnchorRunner();
       if (!player) {
         elements.raceMinimap.replaceChildren();
         state.renderCache.minimapPlayerNode = null;
@@ -11944,7 +12375,15 @@
         elements.actionPackets.replaceChildren(...state.action.packetLog.slice(-5).map(createSingularityPacketRowNode));
         return;
       }
-      const player = state.runners[0];
+      const player = getLocalRunner();
+      if (!player) {
+        elements.actionCharacter.textContent = "-";
+        elements.actionSkill.textContent = "-";
+        elements.actionHp.textContent = "-";
+        elements.actionHpBar.style.width = "0%";
+        elements.actionStatus.textContent = "-";
+        return;
+      }
       const now = Date.now();
       const maxHp = player.maxHp || state.action.maxHp || 100;
       const hp = Math.max(0, Math.min(maxHp, player.hp ?? state.action.hp ?? maxHp));
@@ -12244,12 +12683,18 @@
 
     function renderNetcodeBudget() {
       const pressure = state.netcodePressure || createRoomPressureReport();
+      const livePingSample = state.cloudflarePing.sample;
+      const pingText = state.connectedSession?.provider === "cloudflare"
+        ? (livePingSample
+          ? `${livePingSample.rttMs}ms rtt / ${livePingSample.pingMs}ms one-way / ${livePingSample.jitterMs}ms jitter / ${livePingSample.lane}`
+          : (state.cloudflarePing.pendingClientSentAtMs ? "probing Cloudflare..." : "Cloudflare ping idle"))
+        : `${netcodePingSample.rttMs}ms rtt / ${netcodePingSample.pingMs}ms one-way`;
       const rows = [
         ["net_lane", `${netcodeLane.lane} / ${netcodeLane.interpolationDelayMs}ms buffer`],
         ["input_budget", `${netcodeBudget.inputHz}Hz / ${netcodeBudget.upstreamKbpsPerPlayer}kbps per player`],
         ["snapshot_budget", `${netcodeBudget.snapshotHz}Hz / ${netcodeBudget.downstreamKbpsPerPlayer}kbps per player`],
         ["server_snapshot", `${netcodeProfile.serverTickHz}Hz tick / ${netcodeBudget.snapshotHz}Hz server-owned`],
-        ["ping_sample", `${netcodePingSample.rttMs}ms rtt / ${netcodePingSample.pingMs}ms one-way`],
+        ["ping_sample", pingText],
         ["reconcile_guard", `${netcodeReconciliationHint.action} / ${netcodeReconciliationHint.correctionPx}px correction`],
         ["anti_teleport", `${netcodeProfile.visualMaxStepPxPerSecond}px/s smooth / ${netcodeProfile.visualSnapDistancePx}px snap cap`],
         ["server_egress", `${netcodeBudget.serverEgressKbps}kbps for ${MAX_RUNNERS} runners`],

@@ -9,9 +9,9 @@ export function createSingularityStartGateNode(point, options = {}) {
   const openProgress = clampUnit(options.openProgress);
   const node = document.createElement("div");
   node.className = `start-gate${openProgress > 0 ? " is-opening" : ""}${openProgress >= 1 ? " is-open" : ""}`;
-  node.style.setProperty("--gate-open-x", `${Math.round(openProgress * 96)}px`);
-  node.style.setProperty("--gate-open-rotate", `${Math.round(openProgress * -82)}deg`);
-  node.style.setProperty("--gate-open-opacity", String(Math.max(0.2, 1 - (openProgress * 0.7))));
+  node.style.setProperty("--gate-open-y", `${Math.round(openProgress * 84)}px`);
+  node.style.setProperty("--gate-open-scale", String(Math.max(0.08, 1 - (openProgress * 0.92))));
+  node.style.setProperty("--gate-open-opacity", String(Math.max(0.12, 1 - (openProgress * 0.82))));
   applyPercentPosition(node, point);
   return node;
 }

@@ -77,7 +77,7 @@ async function main() {
     "currentRaceMapObstacles",
     "mapDraft",
     "resolveSingularityRaceObstacleCollision",
-    "createRaceObstacleEffectNodes",
+    "createRaceObstacleEffectEntries",
     "createRaceObstacleNode",
     "renderTrackSpectators",
     "createTrackSpectatorGroupNode",

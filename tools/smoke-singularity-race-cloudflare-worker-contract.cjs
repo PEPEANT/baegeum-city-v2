@@ -54,10 +54,7 @@ async function assertWorkerAdminEndpointContracts() {
   await assertPaddockMovementBeforeAdminStart(room, stagingSession);
   room.sessions.delete("client:unit-player");
 
-  const map = await jsonOf(await room.fetch(adminRequest("/admin/map", {
-    method: "POST",
-    body: JSON.stringify({ mapId: "singularity-maze-run" })
-  })));
+  const map = await jsonOf(await room.fetch(adminRequest("/admin/map", { method: "POST", body: JSON.stringify({ mapId: "singularity-maze-run" }) })));
   assert.equal(map.status, 200, "admin map should succeed in lobby");
   assert.equal(map.body.mapId, "singularity-maze-run", "admin map should update room map id");
 
@@ -72,6 +69,7 @@ async function assertWorkerAdminEndpointContracts() {
   assert.equal(start.body.entryOpen, false, "admin start should close new entry");
 
   await assertLastIntentTickMovement(room, playerSession);
+  await assertServerOwnedAttackStun(room);
   assertFinishedPhaseClosesEntry(room, playerSession);
   if (room.countdownTimer) clearTimeout(room.countdownTimer);
   if (room.serverTickTimer) clearTimeout(room.serverTickTimer);
@@ -98,16 +96,7 @@ async function assertPaddockMovementBeforeAdminStart(room, playerSession) {
     inputWindowStartedAtMs: now,
     inputCount: 0
   });
-  await room.webSocketMessage(createFakeSocket(playerSession), JSON.stringify({
-    type: "input_update",
-    sequence: 6,
-    payload: {
-      intent: { forward: 1, lateral: 1 },
-      direction: { x: 1, y: 0 },
-      mode: "sprint",
-      pace: "sprint"
-    }
-  }));
+  await room.webSocketMessage(createFakeSocket(playerSession), inputPacket(6, { intent: { forward: 1, lateral: 1 }, direction: { x: 1, y: 0 }, mode: "sprint", pace: "sprint" }));
   if (room.serverTickTimer) {
     clearTimeout(room.serverTickTimer);
     room.serverTickTimer = null;
@@ -146,16 +135,7 @@ async function assertLastIntentTickMovement(room, playerSession) {
   };
   room.phase = "racing";
   room.sessions.set("client:unit-player", tickSession);
-  await room.webSocketMessage(createFakeSocket(tickSession), JSON.stringify({
-    type: "input_update",
-    sequence: 8,
-    payload: {
-      intent: { forward: 1, lateral: 0 },
-      direction: { x: 1, y: 0 },
-      mode: "run",
-      pace: "run"
-    }
-  }));
+  await room.webSocketMessage(createFakeSocket(tickSession), inputPacket(8, { intent: { forward: 1, lateral: 0 }, direction: { x: 1, y: 0 }, mode: "run", pace: "run" }));
   if (room.serverTickTimer) {
     clearTimeout(room.serverTickTimer);
     room.serverTickTimer = null;
@@ -167,15 +147,49 @@ async function assertLastIntentTickMovement(room, playerSession) {
   assert.ok(room.sessions.get("client:unit-player").progressPercent > 4, "server tick should own progress advancement");
 }
 
+async function assertServerOwnedAttackStun(room) {
+  const now = Date.now();
+  room.phase = "lobby";
+  room.entryOpen = true;
+  room.countdownEndsAtMs = 0;
+  room.sessions.clear();
+  const attacker = createPlayerSession({ clientId: "client:attacker", participantId: "runner:client:attacker", displayName: "Attacker", progressPercent: 10, laneOffsetPx: 0, lastMovementTickAtMs: now });
+  const target = createPlayerSession({ clientId: "client:target", participantId: "runner:client:target", displayName: "Target", lane: 2, progressPercent: 12, laneOffsetPx: 0, lastMovementTickAtMs: now });
+  room.sessions.set(attacker.clientId, attacker);
+  room.sessions.set(target.clientId, target);
+  await room.webSocketMessage(createFakeSocket(attacker), attackPacket(21, { attackerId: "runner:spoofed", origin: { x: 999, y: 999 }, aim: { x: 1, y: 0 } }));
+  const afterHitTarget = room.sessions.get(target.clientId);
+  const afterHitAttacker = room.sessions.get(attacker.clientId);
+  assert.ok(afterHitTarget.stunnedUntilMs > now, "server attack should stun a nearby target from authoritative positions");
+  assert.ok(afterHitTarget.slowUntilMs > now, "server attack should carry a short impact slow");
+  assert.ok(afterHitTarget.collisionAtMs >= now, "server attack should stamp target impact visuals");
+  assert.ok(afterHitAttacker.attackCooldownUntilMs > now, "server attack should apply attacker cooldown");
+  assert.equal(afterHitAttacker.lastAttackSequence, 21, "server attack should remember attack sequence");
+
+  const beforeProgress = afterHitTarget.progressPercent;
+  Object.assign(afterHitTarget, {
+    lastInputPayload: { intent: { forward: 1, lateral: 0 }, direction: { x: 1, y: 0 }, mode: "sprint", pace: "sprint" },
+    lastInputReceivedAtMs: Date.now(),
+    lastMovementTickAtMs: Date.now() - 200
+  });
+  assert.equal(room.advanceRaceTick(Date.now()), false, "stunned server runner should not advance from held input");
+  assert.equal(room.sessions.get(target.clientId).progressPercent, beforeProgress, "stunned server runner progress should remain fixed");
+
+  const cooldownSocket = createFakeSocket(afterHitAttacker);
+  await room.webSocketMessage(cooldownSocket, attackPacket(22, { aim: { x: 1, y: 0 } }));
+  assert.equal(lastPacketOfType(cooldownSocket.sent, "rate_limited")?.payload?.reason, "attack_cooldown", "server attack should reject cooldown spam");
+}
+
 function assertFinishedPhaseClosesEntry(room, playerSession) {
   room.phase = "racing";
+  room.sessions.clear();
   room.sessions.set("client:unit-player", { ...playerSession, finishedAtMs: Date.now() });
   assert.equal(room.refreshPhase(Date.now()), true, "all finished players should close the racing phase");
   assert.equal(room.phase, "finished", "all finished players should move the room to finished");
   assert.equal(room.entryOpen, false, "finished room should wait for admin to reopen entry");
 }
 
-function createPlayerSession() {
+function createPlayerSession(overrides = {}) {
   const now = Date.now();
   return {
     clientId: "client:unit-player",
@@ -187,13 +201,21 @@ function createPlayerSession() {
     progressPercent: 4,
     laneOffsetPx: 0,
     finishedAtMs: null,
+    collisionAtMs: 0,
+    obstacleCollisionId: "",
+    slowUntilMs: 0,
+    stunnedUntilMs: 0,
+    actionLockedUntilMs: 0,
+    attackCooldownUntilMs: 0,
+    lastAttackSequence: 0,
     lastInputAtMs: now,
     lastInputPayload: null,
     lastInputReceivedAtMs: 0,
     lastMovementTickAtMs: now,
     lastSequence: 0,
     inputWindowStartedAtMs: now,
-    inputCount: 0
+    inputCount: 0,
+    ...overrides
   };
 }
 
@@ -236,6 +258,9 @@ function createFakeSocket(session) {
     }
   };
 }
+
+function inputPacket(sequence, payload) { return JSON.stringify({ type: "input_update", sequence, payload }); }
+function attackPacket(sequence, payload) { return JSON.stringify({ type: "attack_action", sequence, payload }); }
 
 function lastPacketOfType(packets, type) {
   return [...packets].reverse().find((packet) => packet.type === type) || null;

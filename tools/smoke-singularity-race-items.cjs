@@ -114,7 +114,7 @@ async function main() {
     "is-ink",
     "is-boosted",
     "is-blinded",
-    "createRaceItemEffectNodes",
+    "createRaceItemEffectEntries",
     "race-item-box",
     "race-item-trap",
     "race-item-projectile",

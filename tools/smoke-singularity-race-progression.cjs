@@ -269,6 +269,10 @@ function assertConnectedStartGuards() {
     "start gate should remain briefly and animate open after countdown"
   );
   assert(
+    pageSource.includes("--gate-open-y") && pageSource.includes("--gate-open-scale") && !pageSource.includes("--gate-open-rotate"),
+    "start gate should retract downward instead of rotating toward runners"
+  );
+  assert(
     pageSource.includes("advanceConnectedLocalPrediction") && pageSource.includes("preserveLocalPrediction"),
     "connected race display must use local prediction with server reconciliation"
   );

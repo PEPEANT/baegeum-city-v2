@@ -28,7 +28,6 @@ export function createSingularityDevRoomPacketTransport(options = {}) {
     ...options
   });
 }
-
 export function mergeSingularityServerSnapshotRunners(existingRunners = [], snapshotPayload = {}, options = {}) {
   const participants = (Array.isArray(snapshotPayload.participants) ? snapshotPayload.participants : [])
     .filter((participant) => isRunnerParticipant(participant));
