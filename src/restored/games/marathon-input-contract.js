@@ -79,6 +79,12 @@ export function validateRestoredMarathonInputContract() {
   if (packet.payload.pace !== "sprint" || packet.type !== "input_update") errors.push("input packet should preserve pace");
   const mobilePacket = createRestoredMarathonInputPacket(mobile, { roomId: "room:test" });
   if (mobilePacket.payload.intent?.forward !== 1 || mobilePacket.payload.intent?.lateral !== -0.5) errors.push("input packet should preserve race intent");
+  const mobileReverse = createRestoredMarathonInputFrame({
+    participantId: "runner:mobile",
+    intent: { forward: -0.75, lateral: 0.2 },
+    sequence: 6
+  });
+  if (mobileReverse.intent?.forward !== -0.75 || mobileReverse.mode !== "run") errors.push("mobile race intent should preserve signed reverse movement");
   return Object.freeze({ ok: errors.length === 0, errors: Object.freeze(errors) });
 }
 
@@ -105,7 +111,7 @@ function normalizeDirection(direction) {
 
 function normalizeRaceIntent(intentInput = null) {
   if (!intentInput || typeof intentInput !== "object") return null;
-  const forward = round3(clamp(Number(intentInput.forward || 0), 0, 1));
+  const forward = round3(clamp(Number(intentInput.forward || 0), -1, 1));
   const lateral = round3(clamp(Number(intentInput.lateral || 0), -1, 1));
   if (Math.abs(forward) < 0.08 && Math.abs(lateral) < 0.08) return null;
   return Object.freeze({

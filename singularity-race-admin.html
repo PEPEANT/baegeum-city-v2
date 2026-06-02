@@ -1164,7 +1164,7 @@
 
     elements.createRoomButton.addEventListener("click", () => {
       if (cloudflareAdminEnabled) {
-        resetCloudflarePublicRoom("open");
+        createCloudflarePublicRoom();
         return;
       }
       openRoomDialog("create");
@@ -1223,7 +1223,7 @@
       event.preventDefault();
       if (!event.submitter) playAdminUiSfx("confirm");
       if (cloudflareAdminEnabled) {
-        resetCloudflarePublicRoom("close");
+        deactivateCloudflarePublicRoom();
         elements.roomDeleteDialog.close();
         return;
       }
@@ -1234,7 +1234,7 @@
       event.preventDefault();
       if (!event.submitter) playAdminUiSfx("confirm");
       if (cloudflareAdminEnabled) {
-        resetCloudflarePublicRoom("reset");
+        deactivateCloudflarePublicRoom();
         elements.roomRemoveDialog.close();
         return;
       }
@@ -1772,6 +1772,7 @@
           state.cloudflareSummary = summary;
           state.mapId = normalizeRestoredMarathonTrailMapId(summary.mapId || state.mapId);
           state.cloudflareStatus = `공개 관리자 연결 / ${summary.phase || "lobby"} / ${summary.players || 0}/${summary.maxPlayers || MAX_RUNNERS}`;
+          if (summary.roomActive === false) state.cloudflareStatus = "\uacf5\uac1c \uad00\ub9ac\uc790 \uc5f0\uacb0 / \ubc29 \uc5c6\uc74c";
           refreshRunners();
           renderRooms();
           renderGate();
@@ -1789,6 +1790,7 @@
         state.cloudflareSummary = summary;
         state.mapId = normalizeRestoredMarathonTrailMapId(summary.mapId || state.mapId);
         state.cloudflareStatus = `공개방 ${summary.phase || "lobby"} / ${summary.players || 0}/${summary.maxPlayers || MAX_RUNNERS}`;
+        if (summary.roomActive === false) state.cloudflareStatus = "\uacf5\uac1c\ubc29 \uc5c6\uc74c";
         refreshRunners();
         renderRooms();
         renderGate();
@@ -1815,6 +1817,32 @@
       render();
     }
 
+    async function createCloudflarePublicRoom() {
+      try {
+        const summary = await requestCloudflareAdmin("/admin/create", { method: "POST" });
+        state.cloudflareSummary = summary;
+        state.cloudflareStatus = "\uacf5\uac1c\ubc29 \uc0dd\uc131 \uc644\ub8cc / \uc720\uc800 \ub300\uae30\uc5f4 \uc785\uc7a5 \uac00\ub2a5";
+      } catch (error) {
+        state.cloudflareStatus = `\ubc29 \uc0dd\uc131 \uc2e4\ud328: ${error?.message || "admin_create_failed"}`;
+      }
+      elements.startStatus.textContent = state.cloudflareStatus;
+      await refreshCloudflareRoomSummary();
+      render();
+    }
+
+    async function deactivateCloudflarePublicRoom() {
+      try {
+        const summary = await requestCloudflareAdmin("/admin/deactivate", { method: "POST" });
+        state.cloudflareSummary = summary;
+        state.cloudflareStatus = "\uacf5\uac1c\ubc29 \uc885\ub8cc \uc644\ub8cc / \uc720\uc800 \ud398\uc774\uc9c0\uc5d0\uc11c \uc228\uae40";
+      } catch (error) {
+        state.cloudflareStatus = `\ubc29 \uc885\ub8cc \uc2e4\ud328: ${error?.message || "admin_deactivate_failed"}`;
+      }
+      elements.startStatus.textContent = state.cloudflareStatus;
+      await refreshCloudflareRoomSummary();
+      render();
+    }
+
     async function openCloudflarePublicEntry() {
       try {
         const summary = await requestCloudflareAdmin("/admin/open", { method: "POST" });
@@ -1829,7 +1857,13 @@
     }
 
     async function toggleCloudflarePublicEntry() {
-      const summary = state.cloudflareSummary || getAdminRoomSummaries()[0] || {};
+      const summary = state.cloudflareSummary || getCloudflarePublicSummaryFallback();
+      if (!isCloudflarePublicRoomActive(summary)) {
+        state.cloudflareStatus = "\ubc29\uc744 \uba3c\uc800 \ub9cc\ub4e4\uc5b4\uc57c \uc778\uac8c\uc784 \uc785\uc7a5\uc744 \uc5f4 \uc218 \uc788\uc2b5\ub2c8\ub2e4.";
+        elements.startStatus.textContent = state.cloudflareStatus;
+        render();
+        return;
+      }
       const shouldClose = summary.entryOpen !== false;
       const action = shouldClose ? "close" : "open";
       try {
@@ -1872,9 +1906,30 @@
       render();
     }
 
+    function getCloudflarePublicSummaryFallback() {
+      return {
+        roomId: CLOUDFLARE_PUBLIC_ROOM_ID,
+        displayName: "?뱀씠?먮젅?댁뒪 怨듦컻諛?001",
+        roomActive: false,
+        displayName: "\ud2b9\uc774\uc810 \ub808\uc774\uc2a4 \uacf5\uac1c\ubc29 001",
+        phase: "lobby",
+        entryOpen: false,
+        players: 0,
+        maxPlayers: MAX_RUNNERS,
+        spectators: 0,
+        maxSpectators: 32,
+        participants: []
+      };
+    }
+
+    function isCloudflarePublicRoomActive(summary = state.cloudflareSummary) {
+      return Boolean(summary && summary.roomActive !== false);
+    }
+
     function getAdminRoomSummaries() {
       if (!cloudflareAdminEnabled) return rooms;
-      return state.cloudflareSummary ? [state.cloudflareSummary] : [{
+      return isCloudflarePublicRoomActive(state.cloudflareSummary) ? [state.cloudflareSummary] : [];
+      /*
         roomId: CLOUDFLARE_PUBLIC_ROOM_ID,
         displayName: "특이점레이스 공개방 001",
         phase: "lobby",
@@ -1884,32 +1939,33 @@
         spectators: 0,
         maxSpectators: 32,
         participants: []
-      }];
+      */
     }
 
     function renderGate() {
       syncMapEditorLink();
       if (cloudflareAdminEnabled) {
-        const publicSummary = state.cloudflareSummary || getAdminRoomSummaries()[0];
+        const publicSummary = state.cloudflareSummary || getCloudflarePublicSummaryFallback();
         const publicPhase = publicSummary.phase || "lobby";
         const hasControl = hasCloudflareAdminControl();
-        elements.gate.textContent = `${hasControl ? "\uacf5\uac1c \uad00\ub9ac\uc790 \uc5f0\uacb0" : "\uad00\ub9ac\uc790 \ud1a0\ud070 \ud544\uc694"} / ${publicPhase}`;
-        elements.startStatus.textContent = state.cloudflareStatus || (hasCloudflareAdminToken() ? "Worker \uc778\uc99d \ud655\uc778 \uc911" : "URL\uc5d0 adminToken\uc774 \ud544\uc694\ud569\ub2c8\ub2e4.");
-        elements.gate.classList.toggle("is-open", hasControl);
-        elements.createRoomButton.disabled = !hasControl;
+        const roomActive = isCloudflarePublicRoomActive(publicSummary);
+        elements.gate.textContent = `${hasControl ? "\uacf5\uac1c \uad00\ub9ac\uc790 \uc5f0\uacb0" : "\uad00\ub9ac\uc790 \ud1a0\ud070 \ud544\uc694"} / ${roomActive ? publicPhase : "\ubc29 \uc5c6\uc74c"}`;
+        elements.startStatus.textContent = state.cloudflareStatus || (hasCloudflareAdminToken() ? (roomActive ? "Worker \uc778\uc99d \uc644\ub8cc" : "\ubc29 \ub9cc\ub4e4\uae30\ub97c \ub204\ub974\uba74 \uc720\uc800 \ud398\uc774\uc9c0\uc5d0 \uacf5\uac1c\ub429\ub2c8\ub2e4.") : "URL\uc5d0 adminToken\uc774 \ud544\uc694\ud569\ub2c8\ub2e4.");
+        elements.gate.classList.toggle("is-open", hasControl && roomActive);
+        elements.createRoomButton.disabled = !hasControl || roomActive;
         elements.directGameLink.setAttribute("aria-disabled", "true");
         elements.directGameLink.href = "#";
-        elements.lobbyLink.setAttribute("aria-disabled", "false");
-        elements.lobbyLink.href = createCloudflarePlayerHref();
-        elements.enterButton.disabled = !hasControl || (publicPhase !== "lobby" && publicPhase !== "finished");
+        elements.lobbyLink.setAttribute("aria-disabled", String(!roomActive));
+        elements.lobbyLink.href = roomActive ? createCloudflarePlayerHref() : "#";
+        elements.enterButton.disabled = !hasControl || !roomActive || (publicPhase !== "lobby" && publicPhase !== "finished");
         elements.enterButton.textContent = publicSummary.entryOpen === false ? "인게임 입장 시작" : "인게임 입장 닫기";
         elements.startButton.disabled = !canStartRaceControl();
         elements.refreshButton.disabled = false;
         elements.addBotsButton.disabled = true;
         elements.clearBotsButton.disabled = true;
         elements.roomSettingsButton.disabled = true;
-        elements.deleteRoomButton.disabled = !hasControl;
-        elements.removeRoomButton.disabled = !hasControl;
+        elements.deleteRoomButton.disabled = !hasControl || !roomActive;
+        elements.removeRoomButton.disabled = !hasControl || !roomActive;
         elements.cameraAll.disabled = true;
         elements.observerButton.disabled = true;
         elements.mapVoteButton.disabled = true;
@@ -1950,9 +2006,9 @@
 
     function canStartRaceControl() {
       if (cloudflareAdminEnabled) {
-        const summary = state.cloudflareSummary || getAdminRoomSummaries()[0];
+        const summary = state.cloudflareSummary || getCloudflarePublicSummaryFallback();
         const phase = summary.phase || "lobby";
-        return hasCloudflareAdminControl() && summary.entryOpen !== false && Number(summary.players || 0) > 0 && (phase === "lobby" || phase === "finished");
+        return hasCloudflareAdminControl() && isCloudflarePublicRoomActive(summary) && summary.entryOpen !== false && Number(summary.players || 0) > 0 && (phase === "lobby" || phase === "finished");
       }
       const voteStatus = getRestoredMarathonMapVoteStatus(state.roomPolicy, Date.now());
       return connected && !activeRoomClosed && state.runners.length > 0 && (!voteStatus.active || voteStatus.ended);
@@ -1984,6 +2040,13 @@
           row.append(title, meta, action);
           return row;
         });
+        if (!roomCards.length) {
+          const empty = document.createElement("div");
+          empty.className = "message is-empty";
+          empty.textContent = "\ubc29 \ub9cc\ub4e4\uae30\ub97c \ub204\ub974\uba74 \uc720\uc800 \ud398\uc774\uc9c0\uc5d0 \uacf5\uac1c\ub429\ub2c8\ub2e4.";
+          elements.roomList.replaceChildren(empty);
+          return;
+        }
         elements.roomList.replaceChildren(...roomCards);
         return;
       }

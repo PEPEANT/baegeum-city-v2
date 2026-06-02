@@ -194,6 +194,7 @@ export function validateRestoredMarathonServerTransportContract() {
   const inputEnvelope = createRestoredMarathonInputEnvelope({ participantId: "runner:test", pace: "push", raceTimeMs: 1000 },
     { clientId: connected.clientId, roomId: connected.roomId, sequence: 3 });
   if (!validateRestoredMarathonTransportEnvelope(inputEnvelope).ok) errors.push("input envelope should validate");
+  if (createRestoredMarathonInputEnvelope({ participantId: "runner:test", pace: "push", intent: { forward: -0.5, lateral: 0.2 } }, { clientId: connected.clientId, roomId: connected.roomId, sequence: 3 }).payload.intent?.forward !== -0.5) errors.push("input envelope should preserve signed reverse intent");
   const skillEnvelope = createRestoredMarathonSkillEnvelope({ participantId: "runner:test", characterId: "runner:dororong", skillId: "skill:steady-boost" },
     { clientId: connected.clientId, roomId: connected.roomId, sequence: 4 });
   if (!validateRestoredMarathonTransportEnvelope(skillEnvelope).ok) errors.push("skill envelope should validate");
@@ -238,7 +239,7 @@ function normalizeRaceEffect(effect = null) {
 
 function normalizeRaceIntent(intent = null) {
   if (!intent || typeof intent !== "object") return null;
-  const forward = Math.max(0, Math.min(1, Number.isFinite(Number(intent.forward)) ? Number(intent.forward) : 0));
+  const forward = Math.max(-1, Math.min(1, Number.isFinite(Number(intent.forward)) ? Number(intent.forward) : 0));
   const lateral = Math.max(-1, Math.min(1, Number.isFinite(Number(intent.lateral)) ? Number(intent.lateral) : 0));
   if (Math.abs(forward) < 0.08 && Math.abs(lateral) < 0.08) return null;
   return Object.freeze({

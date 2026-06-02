@@ -26,7 +26,22 @@ async function assertWorkerAdminEndpointContracts() {
   const state = await jsonOf(await room.fetch(adminRequest("/admin/state")));
   assert.equal(state.status, 200, "admin state with token should succeed");
   assert.equal(state.body.ok, true, "admin state should be ok:true");
+  assert.equal(state.body.roomActive, false, "fresh public room should not be visible until admin creates it");
   assert.equal(state.body.entryOpen, false, "fresh public room should wait for admin user-entry open");
+
+  const inactiveStart = await jsonOf(await room.fetch(adminRequest("/admin/start", { method: "POST" })));
+  assert.equal(inactiveStart.status, 409, "admin start before room create should be blocked");
+  assert.equal(inactiveStart.body.reason, "room_not_created", "admin start before room create should be explicit");
+
+  const inactiveOpen = await jsonOf(await room.fetch(adminRequest("/admin/open", { method: "POST" })));
+  assert.equal(inactiveOpen.status, 409, "admin entry open before room create should be blocked");
+  assert.equal(inactiveOpen.body.reason, "room_not_created", "admin entry open before room create should be explicit");
+
+  const create = await jsonOf(await room.fetch(adminRequest("/admin/create", { method: "POST" })));
+  assert.equal(create.status, 200, "admin create should activate the fixed public room");
+  assert.equal(create.body.ok, true, "admin create should be ok:true");
+  assert.equal(create.body.roomActive, true, "admin create should make the room visible");
+  assert.equal(create.body.entryOpen, false, "created room should still wait for in-game entry open");
 
   const emptyStart = await jsonOf(await room.fetch(adminRequest("/admin/start", { method: "POST" })));
   assert.equal(emptyStart.status, 409, "admin start with no players should be blocked");
@@ -71,6 +86,10 @@ async function assertWorkerAdminEndpointContracts() {
   await assertLastIntentTickMovement(room, playerSession);
   await assertServerOwnedAttackStun(room);
   assertFinishedPhaseClosesEntry(room, playerSession);
+  const deactivate = await jsonOf(await room.fetch(adminRequest("/admin/deactivate", { method: "POST" })));
+  assert.equal(deactivate.status, 200, "admin deactivate should hide the fixed public room");
+  assert.equal(deactivate.body.ok, true, "admin deactivate should be ok:true");
+  assert.equal(deactivate.body.roomActive, false, "admin deactivate should make the room inactive");
   if (room.countdownTimer) clearTimeout(room.countdownTimer);
   if (room.serverTickTimer) clearTimeout(room.serverTickTimer);
 }

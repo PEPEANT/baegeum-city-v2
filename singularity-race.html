@@ -57,6 +57,7 @@
 
     body[data-screen="race"] {
       overflow: hidden;
+      overscroll-behavior: none;
     }
 
     button,
@@ -306,7 +307,9 @@
     .shell[data-screen="race"] {
       width: 100vw;
       height: 100vh;
+      height: 100dvh;
       min-height: 100vh;
+      min-height: 100dvh;
       padding: 0;
       overflow: hidden;
     }
@@ -314,6 +317,7 @@
     .shell[data-screen="race"] .lobby-grid {
       grid-template-columns: minmax(0, 1fr);
       height: 100vh;
+      height: 100dvh;
       gap: 0;
     }
 
@@ -321,7 +325,9 @@
       grid-column: 1;
       grid-row: 1;
       height: 100vh;
+      height: 100dvh;
       min-height: 100vh;
+      min-height: 100dvh;
       border: 0;
       background: transparent;
       box-shadow: none;
@@ -329,7 +335,9 @@
 
     .shell[data-screen="race"] .track-scene {
       height: 100vh;
+      height: 100dvh;
       min-height: 100vh;
+      min-height: 100dvh;
       margin: 0;
       border: 0;
       border-radius: 0;
@@ -4734,12 +4742,20 @@
         font-size: 15px;
       }
 
-      #race-skill-button {
-        right: 24px;
+      #race-reward-skill-button {
+        right: 18px;
         bottom: 124px;
-        width: 66px;
-        height: 66px;
+        width: 68px;
+        height: 68px;
         font-size: 12px;
+      }
+
+      #race-skill-button {
+        right: 92px;
+        bottom: 84px;
+        width: 58px;
+        height: 58px;
+        font-size: 11px;
       }
 
       #race-chat-action-button {
@@ -4886,6 +4902,7 @@
             <a id="race-options-home" href="./index.html">홈</a>
             <a id="race-options-community" href="https://gall.dcinside.com/mgallery/board/lists?id=thesingularity" target="_blank" rel="noreferrer">커뮤니티</a>
             <button id="race-options-about" type="button">설정</button>
+            <button id="race-options-fullscreen" type="button">전체화면 고정</button>
             <button id="race-options-chat" type="button">채팅 입력</button>
             <button id="race-options-queue" type="button">대기열</button>
             <div class="race-zoom-setting" aria-label="카메라 확대">
@@ -4939,7 +4956,8 @@
           </div>
           <div class="race-action-buttons">
             <button class="race-action-button" id="race-attack-button" type="button">공격<span>기본</span></button>
-            <button class="race-action-button" id="race-skill-button" type="button">스킬<span>사용</span></button>
+            <button class="race-action-button" id="race-reward-skill-button" type="button">스킬<span>보상</span></button>
+            <button class="race-action-button" id="race-skill-button" type="button">아이템<span>사용</span></button>
             <button class="race-action-button" id="race-chat-action-button" type="button">채팅<span>입력</span></button>
           </div>
         </div>
@@ -5312,6 +5330,7 @@
     const LOCAL_STAGING_SPRINT_PROGRESS_PER_SECOND = 2.05;
     const LOCAL_RUN_PROGRESS_PER_SECOND = 0.58;
     const LOCAL_SPRINT_PROGRESS_PER_SECOND = 0.76;
+    const LOCAL_BACKWARD_PROGRESS_MULTIPLIER = 0.45;
     const CHAT_BUBBLE_MAX_LENGTH = 42;
     const CHAT_BUBBLE_VISIBLE_MS = 3600;
     const CHAT_SEND_COOLDOWN_MS = 900;
@@ -5549,6 +5568,7 @@
     const RANDOM_PLAYER_NAME_MIN = 1;
     const RANDOM_PLAYER_NAME_MAX = 99;
     const LAUNCHER_MENU_BGM_INTENT_KEY = "singularity-race:launcher-menu-bgm-intent";
+    const RACE_FULLSCREEN_LOCK_STORAGE_KEY = "singularity-race:fullscreen-lock:v1";
     const STORAGE_KEY = "singularity-race:lobby-skin";
     const PROFILE_STORAGE_KEY = "singularity-race:profile:v1";
     const MAP_VOTE_VOTER_STORAGE_KEY = "singularity-race:map-vote-voter:v1";
@@ -5661,6 +5681,7 @@
       raceOptionsChat: document.querySelector("#race-options-chat"),
       raceOptionsQueue: document.querySelector("#race-options-queue"),
       raceOptionsAbout: document.querySelector("#race-options-about"),
+      raceOptionsFullscreen: document.querySelector("#race-options-fullscreen"),
       raceAboutPanel: document.querySelector("#race-about-panel"),
       raceAboutClose: document.querySelector("#race-about-close"),
       mapVotePanel: document.querySelector("#map-vote-panel"),
@@ -5675,7 +5696,8 @@
       raceSprintButton: document.querySelector("#race-sprint-button"),
       virtualMoveButtons: Array.from(document.querySelectorAll("[data-key]")),
       raceAttackButton: document.querySelector("#race-attack-button"),
-      raceSkillButton: document.querySelector("#race-skill-button"),
+      raceRewardSkillButton: document.querySelector("#race-reward-skill-button"),
+      raceItemButton: document.querySelector("#race-skill-button"),
       raceChatActionButton: document.querySelector("#race-chat-action-button"),
       raceChatCloseButton: document.querySelector("#race-chat-close-button"),
       raceChatOpenButton: document.querySelector("#race-chat-open-button"),
@@ -5799,6 +5821,7 @@
       raceChatOpen: true,
       raceChatInputOpen: false,
       raceOptionsOpen: false,
+      raceFullscreenLockEnabled: readRaceFullscreenLockPreference(),
       roomClosed: activeDevRoomClosed,
       adminObserverMode: shouldOpenAdminObserverShell,
       adminObserverCameraMode: "free",
@@ -5948,6 +5971,7 @@
 
     elements.readyButton.addEventListener("click", () => {
       unlockRaceAudio();
+      maybeRequestRaceFullscreen();
       if (state.screen === SINGULARITY_RACE_SCREENS.LOBBY) {
         enterQueue("manual");
       return;
@@ -5962,6 +5986,7 @@
 
     elements.spectatorButton.addEventListener("click", () => {
       unlockRaceAudio();
+      maybeRequestRaceFullscreen();
       enterSpectatorMode();
     });
 
@@ -5998,6 +6023,10 @@
 
     elements.raceOptionsAbout.addEventListener("click", () => {
       openRaceAboutPanel();
+    });
+
+    elements.raceOptionsFullscreen.addEventListener("click", () => {
+      toggleRaceFullscreenLock();
     });
 
     elements.raceAboutClose.addEventListener("click", () => {
@@ -6038,8 +6067,12 @@
       triggerVirtualAttackButton();
     });
 
-    elements.raceSkillButton.addEventListener("click", () => {
+    elements.raceRewardSkillButton.addEventListener("click", () => {
       triggerVirtualSkillButton();
+    });
+
+    elements.raceItemButton.addEventListener("click", () => {
+      triggerVirtualItemButton();
     });
 
     elements.raceChatActionButton.addEventListener("click", () => {
@@ -6131,6 +6164,7 @@
 
     elements.connectedButton.addEventListener("click", () => {
       unlockRaceAudio();
+      maybeRequestRaceFullscreen();
       joinOnlineConnectedRoom("button");
     });
 
@@ -6180,6 +6214,14 @@
         return;
       }
       const spectator = participantType === "spectator";
+      const summary = state.cloudflareRoomSummary || await refreshCloudflarePublicRoomSummary("silent");
+      const gate = getCloudflareEntryGateStatus(summary);
+      const blocked = spectator ? isCloudflarePublicSpectatorBlocked(gate) : isCloudflarePublicJoinBlocked(gate);
+      if (blocked) {
+        pushSystem(`Cloudflare \uacf5\uac1c\ubc29 \uc785\uc7a5 \ubd88\uac00: ${gate?.label || "\uc0c1\ud0dc \ud655\uc778 \ud544\uc694"}`);
+        renderAll();
+        return;
+      }
       state.participantType = spectator ? "spectator" : "player";
       state.adminObserverMode = false;
       state.action = createActionRaceState();
@@ -6375,6 +6417,7 @@
     }
 
     function formatCloudflareJoinFailureReason(reason, phase) {
+      if (reason === "room_not_created") return "\uad00\ub9ac\uc790\uac00 \uc544\uc9c1 \uacf5\uac1c\ubc29\uc744 \ub9cc\ub4e4\uc9c0 \uc54a\uc558\uc2b5\ub2c8\ub2e4.";
       if (reason === "entry_closed") return "관리자가 아직 인게임 입장을 시작하지 않았습니다.";
       if (reason === "room_join_closed") {
         return phase === "countdown" ? "카운트다운 중에는 새 입장이 막혀 있습니다." : "경기 중에는 새 입장이 막혀 있습니다.";
@@ -6414,6 +6457,21 @@
         else renderConnectedGate();
         return;
       }
+      if (packet.type === "room_closed") {
+        stopCloudflarePingProbe();
+        updateCloudflareRoomSummary(packet.payload?.summary || { roomActive: false }, { silent: true });
+        const currentClient = cloudflareRoomClient;
+        cloudflareRoomClient = null;
+        currentClient?.close();
+        state.connectedSession = null;
+        state.cloudflareHost = false;
+        state.connectedRemoteSnapshots.clear();
+        state.participantType = "player";
+        setScreen(savedProfile ? SINGULARITY_RACE_SCREENS.LOBBY : SINGULARITY_RACE_SCREENS.PROFILE);
+        pushSystem("\uad00\ub9ac\uc790\uac00 \uacf5\uac1c\ubc29\uc744 \uc885\ub8cc\ud588\uc2b5\ub2c8\ub2e4.");
+        renderAll();
+        return;
+      }
       if (packet.type === "start_countdown") {
         setScreen(SINGULARITY_RACE_SCREENS.RACE);
         startLocalCountdown("admin", {
@@ -6432,12 +6490,12 @@
         return;
       }
       if (packet.type === "rate_limited" && packet.payload?.reason !== "input_10hz_limit") {
-        pushSystem(`Cloudflare 제한: ${packet.payload?.reason || "rate_limited"}`);
+        pushSystem(`Cloudflare 제한: ${labelConnectedServerReason(packet.payload?.reason || "rate_limited")}`);
         renderAll();
         return;
       }
       if (packet.type === "error") {
-        pushSystem(`Cloudflare 서버: ${packet.payload?.reason || "error"}`);
+        pushSystem(`Cloudflare 서버: ${labelConnectedServerReason(packet.payload?.reason || "error")}`);
         renderAll();
       }
     }
@@ -6551,6 +6609,7 @@
 
     function getCurrentConnectedRoomSummary() {
       const baseSummary = getConnectedMarathonRoomSummaries(roomAdapter)[0] || null;
+      if (cloudflareOnlineEnabled && !state.cloudflareRoomSummary) return null;
       if (cloudflareOnlineEnabled && state.cloudflareRoomSummary) {
         return Object.freeze({
           ...(baseSummary || {}),
@@ -6629,6 +6688,7 @@
         spectators: Math.max(0, Number(payload.spectators ?? (participants.length ? participants.filter((participant) => participant?.type === "spectator" || String(participant?.participantId || "").startsWith("spectator:")).length : fallback.spectators) ?? 0)),
         maxSpectators: Math.max(0, Number(payload.maxSpectators ?? fallback.maxSpectators ?? roomPolicy.maxSpectators)),
         entryOpen: payload.entryOpen !== false,
+        roomActive: payload.roomActive !== false,
         mapId: normalizeRestoredMarathonTrailMapId(payload.mapId || payload.course?.mapId || fallback.mapId || state.mapId),
         mapVersion: fallback.mapVersion,
         protocolVersion: fallback.protocolVersion
@@ -6639,6 +6699,8 @@
       if (!cloudflareOnlineEnabled || !payload) return state.cloudflareRoomSummary;
       const summary = normalizeCloudflareRoomSummary(payload);
       state.cloudflareRoomSummary = summary;
+      if (summary.roomActive === false && state.connectedSession?.provider === "cloudflare") state.roomClosed = true;
+      else if (summary.roomActive !== false) state.roomClosed = false;
       state.cloudflareRoomStatus = "ok";
       state.cloudflareRoomLastCheckedAtMs = Date.now();
       state.mapId = normalizeRestoredMarathonTrailMapId(payload.mapId || payload.course?.mapId || summary.mapId || state.mapId);
@@ -6647,7 +6709,11 @@
     }
 
     function isCloudflarePublicJoinBlocked(gate) {
-      return Boolean(gate && (gate.reason === "countdown" || gate.reason === "racing"));
+      return Boolean(gate && ["loading", "error", "unknown", "room_not_created", "countdown", "racing"].includes(gate.reason));
+    }
+
+    function isCloudflarePublicSpectatorBlocked(gate) {
+      return Boolean(gate && ["loading", "error", "unknown", "room_not_created"].includes(gate.reason));
     }
 
     function isCloudflareRaceStagingInputOpen(summary = getCurrentConnectedRoomSummary()) {
@@ -6756,6 +6822,7 @@
         if (state.cloudflareRoomStatus === "error") return { open: false, reason: "error", label: "서버 확인 필요" };
         return { open: false, reason: "unknown", label: "관리자 대기중" };
       }
+      if (summary.roomActive === false) return { open: false, reason: "room_not_created", label: "\ubc29 \uc5c6\uc74c" };
       const phase = summary.phase || "lobby";
       if (phase === "countdown") return { open: false, reason: "countdown", label: "카운트다운 중" };
       if (phase === "racing") return { open: false, reason: "racing", label: "경기 중" };
@@ -7927,6 +7994,7 @@
         skillId: "",
         skillMaxCharges: 0,
         skillChargesRemaining: 0,
+        skillCooldownUntilMs: 0,
         currentItemId: "",
         itemAim: null,
         itemBoxes: createSingularityRaceItemBoxState(),
@@ -8049,7 +8117,7 @@
       if (!wasPressed) recordMovementInput(event.code);
       if (state.connectedSession) {
         if (event.code === "KeyE" && !event.repeat) {
-          if (state.action.raceStarted) useRaceItem();
+          if (state.action.raceStarted) useActionSkill();
           renderAll();
           return;
         }
@@ -8062,7 +8130,7 @@
         renderAll();
         return;
       }
-      if (event.code === "KeyE" && !event.repeat) useRaceItem();
+      if (event.code === "KeyE" && !event.repeat) useActionSkill();
     }
 
     function handleActionKeyUp(event) {
@@ -8384,7 +8452,8 @@
           sequence: Math.floor(now / 180)
         });
         advanceConnectedDevSnapshotFeed(now);
-        advanceConnectedLocalPrediction(frame, elapsedSeconds);
+        const moved = advanceConnectedLocalPrediction(frame, elapsedSeconds);
+        if (moved) updateActionCheckpoint();
         updateRaceItems(now, elapsedSeconds);
         renderActionPreviewFrame(now);
         return;
@@ -9072,6 +9141,11 @@
         renderAll();
         return;
       }
+      if (isCloudflareConnectedSession()) {
+        requestConnectedSkill();
+        renderAll();
+        return;
+      }
       const use = createRestoredMarathonSkillUse({
         participantId: "runner:you",
         characterId: state.action.characterId,
@@ -9119,11 +9193,18 @@
           characterId: state.action.characterId,
           skillId: state.action.skillId,
           rewardGrade: state.action.placeholderSkinGrade,
-          skillGrade: state.action.placeholderSkinGrade
+          skillGrade: state.action.placeholderSkinGrade,
+          targetId: resolveConnectedSkillTargetId()
         }, createActionPacketOptions()),
         "서버 요청"
       );
       pushSystem("스킬 요청을 개발 방으로 보냈습니다.");
+    }
+
+    function resolveConnectedSkillTargetId() {
+      const player = getLocalRunner();
+      const target = player ? findNearestBasicAttackTarget(player) : null;
+      return target ? connectedParticipantIdForRunner(target.id) : "";
     }
 
     function hasCurrentRewardSkill() {
@@ -9132,6 +9213,7 @@
 
     function canUseCurrentRewardSkill() {
       if (!hasCurrentRewardSkill()) return false;
+      if (Date.now() < Number(state.action.skillCooldownUntilMs || 0)) return false;
       return state.action.skillMaxCharges === 0 || state.action.skillChargesRemaining > 0;
     }
 
@@ -9161,6 +9243,7 @@
         state.action.skillId = reward.skill.skillId;
         state.action.skillMaxCharges = reward.skill.maxCharges;
         state.action.skillChargesRemaining = reward.skill.maxCharges;
+        state.action.skillCooldownUntilMs = 0;
         state.action.lastSafeCheckpointIndex = state.action.checkpointIndex;
         const updatedPlayer = {
           ...player,
@@ -9178,21 +9261,23 @@
           rewardDetail: `${reward.character.label} / ${getSingularitySkillDisplayName(reward.skill.skillId)}`,
           durationMs: 2800
         });
-        pushActionPacket(
-          createRestoredMarathonTransportEnvelope("checkpoint_reward", {
-            participantId: "runner:you",
-            checkpointIndex: state.action.checkpointIndex,
-            characterId: reward.character.characterId,
-            characterGrade: reward.character.grade,
-            placeholderSkinId: reward.placeholderSkin.skinId,
-            placeholderSkinLabel: reward.placeholderSkin.label,
-            placeholderSkinGrade: reward.placeholderSkin.grade,
-            rewardGrade: reward.placeholderSkin.grade,
-            skillId: reward.skill.skillId,
-            skillGrade: reward.skill.grade
-          }, createActionPacketOptions()),
-          `${reward.placeholderSkin.label} / ${reward.character.label}`
-        );
+        if (!isCloudflareConnectedSession()) {
+          pushActionPacket(
+            createRestoredMarathonTransportEnvelope("checkpoint_reward", {
+              participantId: "runner:you",
+              checkpointIndex: state.action.checkpointIndex,
+              characterId: reward.character.characterId,
+              characterGrade: reward.character.grade,
+              placeholderSkinId: reward.placeholderSkin.skinId,
+              placeholderSkinLabel: reward.placeholderSkin.label,
+              placeholderSkinGrade: reward.placeholderSkin.grade,
+              rewardGrade: reward.placeholderSkin.grade,
+              skillId: reward.skill.skillId,
+              skillGrade: reward.skill.grade
+            }, createActionPacketOptions()),
+            `${reward.placeholderSkin.label} / ${reward.character.label}`
+          );
+        }
         pushSystem(`세이브 ${state.action.checkpointIndex}: ${reward.placeholderSkin.label} 보상.`);
       }
     }
@@ -9618,6 +9703,10 @@
         attack_cooldown: "공격 쿨타임",
         cooldown: "스킬 쿨타임",
         no_charge: "스킬 횟수 없음",
+        no_charges: "스킬 횟수 없음",
+        no_reward: "스킬 보상 없음",
+        bad_skill: "잘못된 스킬",
+        skill_grade_mismatch: "스킬 등급 불일치",
         participant_control_locked: "행동 불가",
         participant_cannot_attack: "공격 권한 없음",
         participant_cannot_skill: "스킬 권한 없음",
@@ -9795,6 +9884,7 @@
       state.action.skillId = participant.skillId;
       state.action.skillMaxCharges = skill.maxCharges;
       state.action.skillChargesRemaining = Math.max(0, Number(participant.skillChargesRemaining ?? state.action.skillChargesRemaining ?? skill.maxCharges));
+      state.action.skillCooldownUntilMs = Math.max(0, Number(participant.skillCooldownUntilMs || state.action.skillCooldownUntilMs || 0));
     }
 
     function advanceConnectedLocalPrediction(frame, elapsedSeconds) {
@@ -9817,6 +9907,7 @@
         minProgress: RAIL_MIN_PROGRESS,
         maxProgress: RAIL_MAX_PROGRESS,
         laneHalfWidthPx: ROAD_LANE_HALF_WIDTH_PX,
+        backwardProgressMultiplier: LOCAL_BACKWARD_PROGRESS_MULTIPLIER,
         nowMs: now,
         raceStarted: state.action.raceStarted
       });
@@ -9889,7 +9980,8 @@
       const speedScale = calculateRestoredMarathonSpeedScale(trailPoint.tangent);
       const speedMultiplier = state.action.raceStarted ? currentSelfSpeedMultiplier() : 1;
       const lateralMultiplier = state.action.raceStarted ? currentSelfLateralMultiplier() : 1;
-      const forwardAmount = movement.forward * forwardSpeed * speedMultiplier * speedScale * elapsedSeconds;
+      const forwardFactor = state.action.raceStarted ? scaleLocalRaceForward(movement.forward) : movement.forward;
+      const forwardAmount = forwardFactor * forwardSpeed * speedMultiplier * speedScale * elapsedSeconds;
       const lateralAmount = movement.lateral * lateralSpeed * lateralMultiplier * elapsedSeconds;
       const pressure = calculateSoftPassPressure(player.id, player.progress, player.laneOffsetPx || 0);
       const maxProgress = state.action.raceStarted ? RAIL_MAX_PROGRESS : START_PADDOCK_MAX_PROGRESS;
@@ -9933,6 +10025,12 @@
       else if (blockingHit) markPlayerObstacleCollision(obstacle.obstacle);
       else if (touching) markPlayerRailCollision(laneBoundary.touchedBoundary ? "boundary" : reason);
       return Math.abs(forwardAmount) > 0.0001 || Math.abs(lateralAmount) > 0.05;
+    }
+
+    function scaleLocalRaceForward(forward) {
+      const value = Number(forward || 0);
+      if (!Number.isFinite(value) || value >= 0) return Number.isFinite(value) ? value : 0;
+      return value * LOCAL_BACKWARD_PROGRESS_MULTIPLIER;
     }
 
     function advanceLocalPlayerProgress(amount, reason) {
@@ -10165,6 +10263,72 @@
       elements.raceAboutPanel.hidden = true;
     }
 
+    function readRaceFullscreenLockPreference() {
+      try {
+        return window.localStorage.getItem(RACE_FULLSCREEN_LOCK_STORAGE_KEY) !== "false";
+      } catch {
+        return true;
+      }
+    }
+
+    function writeRaceFullscreenLockPreference(enabled) {
+      try {
+        window.localStorage.setItem(RACE_FULLSCREEN_LOCK_STORAGE_KEY, enabled ? "true" : "false");
+      } catch {
+        // Fullscreen preference is best-effort; storage failures should not block racing.
+      }
+    }
+
+    function getRaceFullscreenElement() {
+      return document.fullscreenElement || document.webkitFullscreenElement || document.msFullscreenElement || null;
+    }
+
+    function getRaceFullscreenTarget() {
+      return elements.shell || document.documentElement;
+    }
+
+    function maybeRequestRaceFullscreen() {
+      if (!state.raceFullscreenLockEnabled || getRaceFullscreenElement()) return false;
+      const target = getRaceFullscreenTarget();
+      const requestFullscreen = target?.requestFullscreen || target?.webkitRequestFullscreen || target?.msRequestFullscreen;
+      if (!requestFullscreen) return false;
+      try {
+        const result = requestFullscreen.call(target);
+        if (result?.catch) result.catch(() => {});
+        return true;
+      } catch {
+        return false;
+      }
+    }
+
+    function exitRaceFullscreenIfActive() {
+      if (!getRaceFullscreenElement()) return false;
+      const exitFullscreen = document.exitFullscreen || document.webkitExitFullscreen || document.msExitFullscreen;
+      if (!exitFullscreen) return false;
+      try {
+        const result = exitFullscreen.call(document);
+        if (result?.catch) result.catch(() => {});
+        return true;
+      } catch {
+        return false;
+      }
+    }
+
+    function toggleRaceFullscreenLock() {
+      const enabled = !state.raceFullscreenLockEnabled;
+      state.raceFullscreenLockEnabled = enabled;
+      state.raceOptionsOpen = false;
+      writeRaceFullscreenLockPreference(enabled);
+      if (enabled) {
+        maybeRequestRaceFullscreen();
+        pushSystem("전체화면 고정을 켰습니다. 입장/관전 클릭 때 전체화면을 요청합니다.");
+      } else {
+        exitRaceFullscreenIfActive();
+        pushSystem("전체화면 고정을 껐습니다.");
+      }
+      renderAll();
+    }
+
     function startVirtualJoystick(event) {
       if (state.participantType === "spectator" || (state.action.finalResult && !canMoveInCeremonyRoom()) || state.raceQueueOpen) return;
       event.preventDefault();
@@ -10214,7 +10378,8 @@
       const y = rawY;
       const intent = createMobileRaceIntent(x, y);
       const nextKeys = new Set();
-      if (intent?.forward) nextKeys.add("KeyW");
+      if (intent?.forward > 0) nextKeys.add("KeyW");
+      if (intent?.forward < 0) nextKeys.add("KeyS");
       if (intent?.lateral) nextKeys.add(intent.lateral > 0 ? "KeyD" : "KeyA");
       state.action.mobileIntent = intent;
       updateJoystickThumb(x, y);
@@ -10230,7 +10395,7 @@
       const usable = Math.max(1, JOYSTICK_MAX_RADIUS_PX - JOYSTICK_DEADZONE_PX);
       const magnitude = Math.min(1, (distance - JOYSTICK_DEADZONE_PX) / usable);
       const scale = magnitude / distance;
-      const forward = Math.round(Math.max(0, -y * scale) * 1000) / 1000;
+      const forward = Math.round(Math.max(-1, Math.min(1, -y * scale)) * 1000) / 1000;
       const lateral = Math.round(Math.max(-1, Math.min(1, x * scale)) * 1000) / 1000;
       if (!forward && !lateral) return null;
       return Object.freeze({ forward, lateral });
@@ -10366,7 +10531,19 @@
           renderAll();
           return;
         }
-        useRaceItem();
+        useActionSkill();
+        renderAll();
+        return;
+      }
+      useActionSkill();
+    }
+
+    function triggerVirtualItemButton() {
+      if (state.screen !== SINGULARITY_RACE_SCREENS.RACE) return;
+      if (state.roomClosed) return;
+      if (state.action.finalResult) return;
+      if (state.participantType === "spectator") {
+        pushSystem("관전자는 아이템을 사용할 수 없습니다.");
         renderAll();
         return;
       }
@@ -10481,20 +10658,24 @@
         && state.connectedSession?.provider === "cloudflare"
         && summary?.entryOpen === false;
       const cloudflareEntryClosed = cloudflareOnlineEnabled && !state.connectedSession && isCloudflarePublicJoinBlocked(cloudflareEntryGate);
+      const cloudflareSpectatorClosed = cloudflareOnlineEnabled && !state.connectedSession && isCloudflarePublicSpectatorBlocked(cloudflareEntryGate);
       if (waitingForAdminRaceEntry) elements.readyButton.textContent = "관리자 입장 대기중";
       else if (waitingForOperatorStart) elements.readyButton.textContent = "관리자 시작 대기중";
       else if (cloudflareEntryClosed) elements.readyButton.textContent = cloudflareEntryGate.label;
       elements.readyButton.disabled = state.roomClosed || !entryGate.open || Boolean(state.connectedSession) || cloudflareEntryClosed || (devOnlineEnabled && !connectedLobbyOpen);
-      elements.spectatorButton.disabled = state.roomClosed || !entryGate.open || Boolean(state.connectedSession) || cloudflareEntryClosed || (devOnlineEnabled && !connectedLobbyOpen);
+      elements.spectatorButton.disabled = state.roomClosed || !entryGate.open || Boolean(state.connectedSession) || cloudflareSpectatorClosed || (devOnlineEnabled && !connectedLobbyOpen);
       if (waitingForAdminRaceEntry && !state.roomClosed) {
         elements.roomCode.textContent = "대기열 대기중";
         elements.notice.textContent = "관리자가 [인게임 입장 시작]을 누르면 출발선으로 이동합니다.";
       }
       else if (cloudflareEntryClosed && !state.roomClosed) {
-        if (cloudflareEntryGate.reason === "admin_waiting") {
+        if (cloudflareEntryGate.reason === "room_not_created") {
+          elements.roomCode.textContent = "\uc0dd\uc131\ub41c \uacf5\uac1c\ubc29 \uc5c6\uc74c";
+          elements.notice.textContent = "\uad00\ub9ac\uc790\uac00 \ubc29\uc744 \ub9cc\ub4e4\uba74 \uc785\uc7a5\ud560 \uc218 \uc788\uc2b5\ub2c8\ub2e4.";
+        } else if (cloudflareEntryGate.reason === "admin_waiting") {
           elements.roomCode.textContent = "관리자 입장 대기";
           elements.notice.textContent = "관리자가 [유저 입장]을 열면 입장할 수 있습니다.";
-        } else if (cloudflareEntryGate.reason === "loading" || cloudflareEntryGate.reason === "unknown") {
+        } else if (cloudflareEntryGate.reason === "loading" || cloudflareEntryGate.reason === "unknown" || cloudflareEntryGate.reason === "error") {
           elements.roomCode.textContent = "서버 확인 중";
           elements.notice.textContent = "Cloudflare 공개방 상태를 확인하는 중입니다.";
         } else if (cloudflareEntryGate.reason === "countdown") {
@@ -10532,13 +10713,18 @@
       elements.raceOptionsButton.setAttribute("aria-pressed", String(state.raceOptionsOpen));
       elements.raceOptionsChat.textContent = state.raceChatOpen ? "채팅 숨기기" : "채팅 보이기";
       elements.raceOptionsQueue.textContent = state.raceQueueOpen ? "대기열 닫기" : "대기열 보기";
+      elements.raceOptionsFullscreen.textContent = state.raceFullscreenLockEnabled ? "전체화면 고정 끄기" : "전체화면 고정 켜기";
       elements.raceOptionsChat.setAttribute("aria-pressed", String(state.raceChatOpen));
       elements.raceOptionsQueue.setAttribute("aria-pressed", String(state.raceQueueOpen));
+      elements.raceOptionsFullscreen.setAttribute("aria-pressed", String(state.raceFullscreenLockEnabled));
       elements.raceChatActionButton.setAttribute("aria-pressed", "false");
       const now = Date.now();
       const attackCooldownRemainingMs = Math.max(0, Number(state.action.attackCooldownUntilMs || 0) - now);
+      const skillCooldownRemainingMs = Math.max(0, Number(state.action.skillCooldownUntilMs || 0) - now);
       const skillChargeMeta = state.action.skillMaxCharges > 0 ? `${state.action.skillChargesRemaining}회` : "무제한";
-      const skillMeta = hasCurrentRewardSkill() ? `${state.action.placeholderSkinGrade || "보상"}급 ${skillChargeMeta}` : "보상 필요";
+      const skillMeta = skillCooldownRemainingMs > 0
+        ? `${Math.ceil(skillCooldownRemainingMs / 1000)}초`
+        : (hasCurrentRewardSkill() ? `${state.action.placeholderSkinGrade || "보상"}급 ${skillChargeMeta}` : "보상 필요");
       const skillReady = state.action.raceStarted && !isCountdownActive(now) && canUseCurrentRewardSkill();
       const currentItem = getSingularityRaceItemDefinition(state.action.currentItemId);
       const roulette = getActiveRaceItemRoulette(now);
@@ -10554,7 +10740,9 @@
       elements.raceAttackButton.innerHTML = attackCooldownRemainingMs > 0
         ? `대기<span>${Math.ceil(attackCooldownRemainingMs / 1000)}초</span>`
         : "공격<span>기본</span>";
-      elements.raceSkillButton.disabled = roomClosed || spectator || Boolean(state.action.finalResult) || !itemReady;
+      elements.raceRewardSkillButton.disabled = roomClosed || spectator || Boolean(state.action.finalResult) || !skillReady;
+      renderRaceRewardSkillButton(skillMeta, skillReady);
+      elements.raceItemButton.disabled = roomClosed || spectator || Boolean(state.action.finalResult) || !itemReady;
       renderRaceSkillItemButton(currentItem, rouletteItem, itemMeta, activeItemAim);
       const movementDisabled = roomClosed || spectator || (Boolean(state.action.finalResult) && !canMoveInCeremonyRoom()) || state.raceQueueOpen;
       elements.raceJoystick.setAttribute("aria-disabled", String(movementDisabled));
@@ -10566,27 +10754,37 @@
       }
       if (spectator) {
         elements.raceAttackButton.disabled = true;
-        elements.raceSkillButton.disabled = true;
+        elements.raceRewardSkillButton.disabled = true;
+        elements.raceItemButton.disabled = true;
         return;
       }
       if (state.action.finalResult) {
         elements.raceAttackButton.disabled = true;
-        elements.raceSkillButton.disabled = true;
+        elements.raceRewardSkillButton.disabled = true;
+        elements.raceItemButton.disabled = true;
         return;
       }
+    }
+
+    function renderRaceRewardSkillButton(skillMeta, skillReady) {
+      const title = document.createElement("b");
+      const meta = document.createElement("span");
+      title.textContent = hasCurrentRewardSkill() ? getSingularitySkillDisplayName(state.action.skillId) : "스킬";
+      meta.textContent = skillReady ? skillMeta : (hasCurrentRewardSkill() ? skillMeta : "보상 필요");
+      elements.raceRewardSkillButton.replaceChildren(title, meta);
     }
 
     function renderRaceSkillItemButton(currentItem, rouletteItem, itemMeta, activeItemAim = null) {
       const displayItem = currentItem || rouletteItem || null;
       const title = document.createElement("b");
       const meta = document.createElement("span");
-      title.textContent = activeItemAim ? "발사" : (displayItem && isProjectileRaceItem(displayItem.itemId) ? "조준" : (displayItem ? "아이템" : "스킬"));
+      title.textContent = activeItemAim ? "발사" : (displayItem && isProjectileRaceItem(displayItem.itemId) ? "조준" : "아이템");
       meta.textContent = itemMeta;
       if (displayItem) {
-        elements.raceSkillButton.replaceChildren(createRaceItemIconNode(displayItem, { size: "button" }), title, meta);
+        elements.raceItemButton.replaceChildren(createRaceItemIconNode(displayItem, { size: "button" }), title, meta);
         return;
       }
-      elements.raceSkillButton.replaceChildren(title, meta);
+      elements.raceItemButton.replaceChildren(title, meta);
     }
 
     function renderTrailMap() {
@@ -11187,7 +11385,7 @@
         playRaceUiSfx("confirm");
         return;
       }
-      if (["preview-button", "race-queue-toggle", "race-options-button", "race-options-chat", "race-options-queue", "race-options-about", "race-about-close", "race-zoom-reset"].includes(id)
+      if (["preview-button", "race-queue-toggle", "race-options-button", "race-options-chat", "race-options-queue", "race-options-about", "race-options-fullscreen", "race-about-close", "race-zoom-reset"].includes(id)
         || control.classList.contains("skin-card")
         || control.classList.contains("channel-tab")) {
         playRaceUiSfx("toggle");
@@ -12623,10 +12821,13 @@
         return;
       }
       if (cloudflareEntryClosed) {
-        if (cloudflareEntryGate.reason === "admin_waiting") {
+        if (cloudflareEntryGate.reason === "room_not_created") {
+          elements.connectedStatus.textContent = "\uad00\ub9ac\uc790\uac00 \ubc29\uc744 \ub9cc\ub4e4\uba74 \uc785\uc7a5\ud560 \uc218 \uc788\uc2b5\ub2c8\ub2e4.";
+          elements.roomCode.textContent = "\uc0dd\uc131\ub41c \uacf5\uac1c\ubc29 \uc5c6\uc74c";
+        } else if (cloudflareEntryGate.reason === "admin_waiting") {
           elements.connectedStatus.textContent = "관리자가 [유저 입장]을 열 때까지 대기 중입니다.";
           elements.roomCode.textContent = "관리자 대기중";
-        } else if (cloudflareEntryGate.reason === "loading" || cloudflareEntryGate.reason === "unknown") {
+        } else if (cloudflareEntryGate.reason === "loading" || cloudflareEntryGate.reason === "unknown" || cloudflareEntryGate.reason === "error") {
           elements.connectedStatus.textContent = "공개방 상태를 확인하는 중입니다.";
           elements.roomCode.textContent = "서버 확인 중";
         } else if (cloudflareEntryGate.reason === "countdown") {

@@ -4,7 +4,7 @@ const MOVEMENT_AXIS_DEADBAND = 0.08;
 
 export function normalizeSingularityRaceIntent(intentInput = null) {
   if (!intentInput || typeof intentInput !== "object") return null;
-  const forward = Math.max(0, axisValue(clamp(Number(intentInput.forward || 0), 0, 1)));
+  const forward = axisValue(clamp(Number(intentInput.forward || 0), -1, 1));
   const lateral = axisValue(clamp(Number(intentInput.lateral || 0), -1, 1));
   if (!forward && !lateral) return null;
   return Object.freeze({ forward, lateral });
@@ -71,6 +71,7 @@ export function validateSingularityRaceMovementVectorContract() {
   const diagonalUphill = resolveSingularityRaceTrackMovement({ x: 0, y: -1 }, { tangent: { x: 0.58, y: -0.82 } });
   const shallowUphill = resolveSingularityRaceTrackMovement({ x: 0, y: -1 }, { tangent: { x: 0.89, y: -0.46 } });
   const mobileIntent = resolveSingularityRaceInputMovement({ intent: { forward: 1, lateral: -0.5 } }, { tangent: { x: -0.8, y: 0.2 } });
+  const mobileReverse = resolveSingularityRaceInputMovement({ intent: { forward: -0.65, lateral: 0.25 } }, { tangent: { x: 0.2, y: -0.9 } });
   const boundary = resolveSingularityRaceLaneBoundary(230, 24, 232);
   if (horizontal.forward !== 1 || horizontal.lateral !== 0) errors.push("D should advance on a right-facing track segment");
   if (verticalUp.forward !== 1 || Math.abs(verticalUp.lateral) > 0.001) errors.push("W should advance on an upward track segment");
@@ -79,6 +80,7 @@ export function validateSingularityRaceMovementVectorContract() {
   if (diagonalUphill.forward < 0.75 || diagonalUphill.lateral > -0.5) errors.push("W should keep screen-up intent on steep diagonal track segments");
   if (shallowUphill.forward > 0.55 || shallowUphill.lateral > -0.8) errors.push("W should not be forced to follow shallow uphill centerlines");
   if (mobileIntent.forward !== 1 || mobileIntent.lateral !== -0.5) errors.push("mobile race intent should not reverse on curved track segments");
+  if (mobileReverse.forward !== -0.65 || mobileReverse.lateral !== 0.25) errors.push("mobile reverse intent should stay signed on curved track segments");
   if (!boundary.touchedBoundary || boundary.laneOffsetPx !== 232 || boundary.boundarySide !== "right") errors.push("lane boundary clamp should report wall contact");
   return Object.freeze({ ok: errors.length === 0, errors: Object.freeze(errors) });
 }

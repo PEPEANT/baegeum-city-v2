@@ -58,17 +58,24 @@ const merge = read("src/restored/games/singularity-race-dev-online.js");
   "lastInputReceivedAtMs",
   "lastMovementTickAtMs",
   "handleAttack",
+  "handleSkill",
   "createServerBasicAttackAction",
+  "createServerSkillUse",
   "findServerBasicAttackTarget",
+  "findServerSkillTargets",
   "BASIC_ATTACK_STUN_MS",
   "BASIC_ATTACK_COOLDOWN_MS",
+  "BACKWARD_PROGRESS_MULTIPLIER",
   "stunnedUntilMs",
   "attackCooldownUntilMs",
+  "skillCooldownUntilMs",
   "storage_write_unavailable",
   'url.pathname.startsWith("/admin/")',
   "verifyAdminRequest",
   "ADMIN_TOKEN",
   "/admin/state",
+  "/admin/create",
+  "/admin/deactivate",
   "/admin/start",
   "/admin/open",
   "/admin/close",
@@ -77,13 +84,16 @@ const merge = read("src/restored/games/singularity-race-dev-online.js");
   "admin_unauthorized",
   "admin_token_not_configured",
   "entryOpen",
+  "roomActive",
   "validateParticipantJoin",
+  "room_not_created",
   "room_join_closed",
   "entry_not_open",
   "admin_start_required",
   "start_request",
   "host: false",
   "ENTRY_OPEN_DEFAULT",
+  "ROOM_ACTIVE_DEFAULT",
   "race_finished",
   "async alarm()",
   "sanitizePhase",
@@ -114,6 +124,7 @@ const merge = read("src/restored/games/singularity-race-dev-online.js");
   "normalizeCloudflareRoomSummary",
   "updateCloudflareRoomSummary",
   "isCloudflarePublicJoinBlocked",
+  "isCloudflarePublicSpectatorBlocked",
   "isCloudflareRaceStagingInputOpen",
   "canPublishConnectedInputRequest",
   "enterCloudflareRaceStagingIfOpen",
@@ -122,13 +133,19 @@ const merge = read("src/restored/games/singularity-race-dev-online.js");
   "CLOUDFLARE_ROOM_FETCH_TIMEOUT_MS",
   "abort.abort()",
   "entryOpen: payload.entryOpen !== false",
+  "roomActive: payload.roomActive !== false",
   "getCloudflareEntryGateStatus",
   "isCloudflareConnectedSession",
   "&& !isCloudflareConnectedSession()",
   "공개방 상태 확인 실패",
   "서버 재시도 필요",
   "handleCloudflareRoomPacket",
+  "raceRewardSkillButton",
+  "raceItemButton",
+  "targetId: resolveConnectedSkillTargetId()",
+  "createMobileRaceIntent",
   "presence_update",
+  "room_closed",
   "localizeCloudflareSnapshot",
   "sendCloudflareChatMessage",
   "state.cloudflareHost",
@@ -139,6 +156,8 @@ const merge = read("src/restored/games/singularity-race-dev-online.js");
 [
   "cloudflareAdminEnabled",
   "refreshCloudflareRoomSummary",
+  "createCloudflarePublicRoom",
+  "deactivateCloudflarePublicRoom",
   "startCloudflarePublicRoom",
   "toggleCloudflarePublicEntry",
   "resetCloudflarePublicRoom",
@@ -146,6 +165,7 @@ const merge = read("src/restored/games/singularity-race-dev-online.js");
   "hasCloudflareAdminToken",
   "hasCloudflareAdminControl",
   "setCloudflarePublicMap",
+  "isCloudflarePublicRoomActive",
   "createCloudflarePlayerHref",
   "createCloudflareOperatorHref",
   "getAdminRoomSummaries",
@@ -163,6 +183,7 @@ assert.ok(!worker.includes("advanceSession(session, packet.payload || {}, now"),
 assert.ok(!worker.includes("handlePlayerStartRequest"), "Worker must not allow player-owned public starts");
 assert.ok(!worker.includes('const host = type === "player" && countPlayers(room) === 0'), "Worker must not assign first-player host authority");
 assert.ok(!worker.includes('if (packet.type === "attack_action" || packet.type === "skill_use") return this.relayClientAction'), "Worker must not leave public attacks as client-relayed packets");
+assert.ok(!worker.includes('if (packet.type === "skill_use") return this.relayClientAction'), "Worker must not leave public skills as client-relayed packets");
 assert.ok(!client.includes("sendHostStart"), "Cloudflare client must not expose the old host-start helper");
 assert.ok(!client.includes("sendStartRequest"), "Cloudflare client must not expose a player start helper");
 assert.ok(!race.includes("requestCloudflareRaceStart"), "Race page must not expose a Cloudflare player start helper");
@@ -187,4 +208,5 @@ assertIncludes(race, "canRequestConnectedAttack", "race page should send connect
 assert.ok(!/api[-_]?key|secret|password|private[-_]?key/i.test(worker), "worker source must not embed secret-like config keys");
 
 execFileSync(process.execPath, [path.join(root, "tools/smoke-singularity-race-cloudflare-worker-contract.cjs")], { stdio: "inherit" });
+execFileSync(process.execPath, [path.join(root, "tools/smoke-singularity-race-cloudflare-worker-skill.cjs")], { stdio: "inherit" });
 console.log("Singularity Race Cloudflare online smoke passed.");

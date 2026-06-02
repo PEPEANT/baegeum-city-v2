@@ -15,6 +15,7 @@ const DEFAULT_PROGRESS_SNAP_THRESHOLD = 3.5;
 const DEFAULT_LANE_SNAP_THRESHOLD_PX = 150;
 const DEFAULT_PROGRESS_DEADBAND = 0.035;
 const DEFAULT_LANE_DEADBAND_PX = 1.5;
+const DEFAULT_BACKWARD_PROGRESS_MULTIPLIER = 0.45;
 
 export function advanceSingularityRaceLocalPrediction(runnerInput = {}, frameInput = {}, elapsedSecondsInput = 0, options = {}) {
   const runner = { ...runnerInput };
@@ -33,7 +34,8 @@ export function advanceSingularityRaceLocalPrediction(runnerInput = {}, frameInp
   const trailPoint = progressToRestoredMarathonTrailPoint(finiteNumber(runner.progress, minProgress), options.mapId);
   const movement = resolveSingularityRaceInputMovement(frame, trailPoint);
   const speedScale = calculateRestoredMarathonSpeedScale(trailPoint.tangent);
-  const progress = clampNumber(finiteNumber(runner.progress, minProgress) + movement.forward * progressSpeed * speedScale * elapsedSeconds, minProgress, maxProgress);
+  const forwardFactor = scaleBackwardForward(movement.forward, options.backwardProgressMultiplier);
+  const progress = clampNumber(finiteNumber(runner.progress, minProgress) + forwardFactor * progressSpeed * speedScale * elapsedSeconds, minProgress, maxProgress);
   const laneBoundary = resolveSingularityRaceLaneBoundary(runner.laneOffsetPx, movement.lateral * laneSpeed * elapsedSeconds, laneHalfWidthPx);
   const predicted = {
     ...runner,
@@ -135,6 +137,15 @@ export function validateSingularityRacePredictionContract() {
     intent: { forward: 1, lateral: 0.5 }
   }, 1, { sprintProgressPerSecond: 1, correctionFactor: 0 });
   if (intent.progress <= 75 || intent.laneOffsetPx <= 0) errors.push("mobile intent should advance without track-vector reversal");
+  const reverse = advanceSingularityRaceLocalPrediction({
+    id: "you",
+    progress: 75,
+    laneOffsetPx: 0
+  }, {
+    mode: "run",
+    intent: { forward: -1, lateral: 0 }
+  }, 1, { runProgressPerSecond: 1, correctionFactor: 0 });
+  if (reverse.progress >= 75 || reverse.progress < 74.4) errors.push("mobile reverse intent should move backward slowly instead of being clamped out");
   const obstacleHit = advanceSingularityRaceLocalPrediction({
     id: "you",
     progress: 12.9,
@@ -179,6 +190,17 @@ function reconcileValue(localValue, serverValue, options) {
 function correctionFactor(options) {
   if (Number.isFinite(Number(options.correctionFactor))) return clampNumber(options.correctionFactor, 0, 1);
   return clampNumber(finiteNumber(options.elapsedSeconds, 0.06) * 1.2, 0, 0.12);
+}
+
+function scaleBackwardForward(forward, multiplierInput) {
+  const value = finiteNumber(forward, 0);
+  if (value >= 0) return value;
+  const multiplier = clampNumber(
+    Number.isFinite(Number(multiplierInput)) ? Number(multiplierInput) : DEFAULT_BACKWARD_PROGRESS_MULTIPLIER,
+    0,
+    1
+  );
+  return value * multiplier;
 }
 
 function findUphillProgress() {

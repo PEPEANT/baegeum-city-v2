@@ -21,7 +21,7 @@ export const RESTORED_MARATHON_TRAIL_MAP_DEFINITIONS = Object.freeze([
     savePoints: RESTORED_MARATHON_TRAIL_SAVE_POINTS,
     controlPoints: Object.freeze([
       point(6, 88), point(88, 88), point(96, 80), point(96, 72),
-      point(18, 72), point(8, 64), point(8, 56), point(74, 56),
+      point(22, 72), point(12, 66), point(20, 60), point(74, 56),
       point(88, 48), point(88, 40), point(24, 40), point(14, 32),
       point(14, 24), point(92, 24), point(96, 14), point(98, 10)
     ])

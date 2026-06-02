@@ -117,9 +117,12 @@ function acceptInputPacket(packet, now, state) {
 
 function inputSignature(payload = {}) {
   const direction = payload.direction || {};
+  const intent = payload.intent || {};
   return [
     payload.pace || "",
     payload.mode || "",
+    Math.round(Number(intent.forward || 0) * 10) / 10,
+    Math.round(Number(intent.lateral || 0) * 10) / 10,
     Math.round(Number(direction.x || 0) * 10) / 10,
     Math.round(Number(direction.y || 0) * 10) / 10
   ].join(":");

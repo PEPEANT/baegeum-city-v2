@@ -15,6 +15,10 @@ import {
   createRestoredMarathonAttackAction,
   resolveRestoredMarathonAttackHit
 } from "../src/restored/games/marathon-combat-contract.js";
+import {
+  createRestoredMarathonSkillUse,
+  getRestoredMarathonSkill
+} from "../src/restored/games/marathon-character-skill-contract.js";
 
 const WORKER_VERSION = "singularity-race-cloudflare-online-001";
 const ROOM_ID = "room:singularity-race:public-001";
@@ -33,12 +37,20 @@ const CHAT_BURST_LIMIT = 5;
 const COUNTDOWN_MS = 10000;
 const COURSE_DISTANCE_METERS = 42195;
 const ENTRY_OPEN_DEFAULT = false;
+const ROOM_ACTIVE_DEFAULT = false;
 const BASIC_ATTACK_RANGE_PROGRESS = 4.2;
 const BASIC_ATTACK_LANE_TO_PROGRESS = 42;
 const BASIC_ATTACK_ARC_DEGREES = 70;
 const BASIC_ATTACK_STALL_MS = 180;
 const BASIC_ATTACK_COOLDOWN_MS = 1150;
 const BASIC_ATTACK_STUN_MS = 680;
+const BACKWARD_PROGRESS_MULTIPLIER = 0.45;
+const SERVER_SKILL_LANE_PUSH_PX = 72;
+const SERVER_SKILL_SLOW_MS = 1450;
+const SERVER_SKILL_STUN_MS = 520;
+const SERVER_SKILL_SELF_BOOST_MS = 2200;
+const SERVER_SKILL_SELF_BOOST_MULTIPLIER = 1.18;
+const SERVER_SKILL_CHECKPOINT_HOP_PROGRESS = 2.4;
 const START_PROGRESS = 4;
 const RAIL_MIN_PROGRESS = 2.5;
 const START_PADDOCK_MIN_PROGRESS = 2.8;
@@ -71,6 +83,7 @@ export class SingularityRaceRoom {
     this.phase = "lobby";
     this.countdownEndsAtMs = 0;
     this.entryOpen = ENTRY_OPEN_DEFAULT;
+    this.roomActive = ROOM_ACTIVE_DEFAULT;
     this.mapId = PUBLIC_MAP_ID;
     this.roomStateLoaded = false;
     this.storageAvailable = true;
@@ -100,7 +113,7 @@ export class SingularityRaceRoom {
     if (packet.type === "chat_send") return this.handleChat(socket, session, packet);
     if (packet.type === "input_update") return this.handleInput(socket, session, packet);
     if (packet.type === "attack_action") return this.handleAttack(socket, session, packet);
-    if (packet.type === "skill_use") return this.relayClientAction(session, packet);
+    if (packet.type === "skill_use") return this.handleSkill(socket, session, packet);
     if (packet.type === "start_request" || packet.type === "start_race") {
       return send(socket, this.serverPacket("error", { reason: "admin_start_required" }, session));
     }
@@ -131,6 +144,7 @@ export class SingularityRaceRoom {
         version: WORKER_VERSION,
         clientId,
         roomId: ROOM_ID,
+        roomActive: this.roomActive !== false,
         serverTimeMs: now,
         inputHz: INPUT_LIMIT_PER_SECOND,
         snapshotHz: Math.round(1000 / SNAPSHOT_INTERVAL_MS),
@@ -139,6 +153,7 @@ export class SingularityRaceRoom {
       send(server, this.serverPacket("join_result", {
         ok: false,
         reason: joinGate.reason,
+        roomActive: this.roomActive !== false,
         phase: this.phase,
         requestedParticipantType: requestedType,
         players: countPlayers(this),
@@ -228,6 +243,7 @@ export class SingularityRaceRoom {
   handleAttack(socket, session, packet) {
     const now = Date.now();
     if (session.participantType !== "player") return send(socket, this.serverPacket("error", { reason: "participant_cannot_attack" }, session));
+    if (!this.roomActive) return send(socket, this.serverPacket("error", { reason: "room_not_created" }, session));
     if (!canAttackInPhase(this.phase, this.entryOpen)) return send(socket, this.serverPacket("error", { reason: "race_not_attackable" }, session));
     const sequence = Math.max(1, Number(packet.sequence || packet.payload?.sequence || 1));
     if (sequence <= Number(session.lastAttackSequence || 0)) return send(socket, this.serverPacket("error", { reason: "stale_attack" }, session));
@@ -259,6 +275,55 @@ export class SingularityRaceRoom {
       hit: Boolean(target),
       stunMs: target ? BASIC_ATTACK_STUN_MS : 0,
       cooldownMs: BASIC_ATTACK_COOLDOWN_MS
+    }, session));
+    this.broadcastSnapshot(true);
+  }
+
+  handleSkill(socket, session, packet) {
+    const now = Date.now();
+    if (session.participantType !== "player") return send(socket, this.serverPacket("error", { reason: "participant_cannot_skill" }, session));
+    if (!this.roomActive) return send(socket, this.serverPacket("error", { reason: "room_not_created" }, session));
+    if (this.phase !== "racing") return send(socket, this.serverPacket("error", { reason: "race_not_running" }, session));
+    if (Number(session.stunnedUntilMs || 0) > now || Number(session.actionLockedUntilMs || 0) > now) {
+      return send(socket, this.serverPacket("error", { reason: "participant_control_locked" }, session));
+    }
+    const sequence = Math.max(1, Number(packet.sequence || packet.payload?.sequence || 1));
+    if (sequence <= Number(session.lastSkillSequence || 0)) return send(socket, this.serverPacket("error", { reason: "stale_skill" }, session));
+    const use = createServerSkillUse(session, packet, now);
+    if (!use.allowed) {
+      const payload = {
+        reason: use.reason || "skill_blocked",
+        cooldownRemainingMs: Math.max(0, Math.round(Number(session.skillCooldownUntilMs || 0) - now))
+      };
+      return send(socket, this.serverPacket(use.reason === "cooldown" ? "rate_limited" : "error", payload, session));
+    }
+    const skill = getRestoredMarathonSkill(use.skillId);
+    const targets = findServerSkillTargets(this, session, cleanText(packet.payload?.targetId, 96), use);
+    session.lastSkillSequence = sequence;
+    session.characterId = use.characterId || cleanText(packet.payload?.characterId, 64) || session.characterId || "";
+    session.skillId = use.skillId;
+    session.rewardGrade = use.grade || cleanText(packet.payload?.rewardGrade || packet.payload?.skillGrade, 2).toUpperCase();
+    session.skillCooldownUntilMs = now + (Math.max(0, Number(skill.cooldownSeconds || 0)) * 1000);
+    if (skill.maxCharges > 0) session.skillChargesRemaining = Math.max(0, Number(session.skillChargesRemaining ?? skill.maxCharges) - 1);
+    else session.skillChargesRemaining = 0;
+    session.actionLockedUntilMs = Math.max(Number(session.actionLockedUntilMs || 0), now + Number(use.movementStallMs || 0));
+    const result = applyServerSkillEffects(session, targets, use, now);
+    this.sessions.set(session.clientId, session);
+    for (const target of targets) this.sessions.set(target.clientId, target);
+    this.serializeAttachedSessions();
+    this.broadcast(this.serverPacket("skill_use", {
+      serverOwned: true,
+      serverResolved: true,
+      participantId: session.participantId,
+      characterId: session.characterId || "",
+      skillId: use.skillId,
+      rewardGrade: session.rewardGrade || "",
+      skillGrade: use.grade || session.rewardGrade || "",
+      targetId: result.targetIds[0] || "",
+      targetIds: result.targetIds,
+      hit: result.hit,
+      cooldownMs: Math.max(0, Math.round(Number(skill.cooldownSeconds || 0) * 1000)),
+      chargesRemaining: session.skillChargesRemaining || 0
     }, session));
     this.broadcastSnapshot(true);
   }
@@ -297,6 +362,45 @@ export class SingularityRaceRoom {
     this.sessions.clear();
   }
 
+  async createRoom(reason = "admin_create_room") {
+    this.roomActive = true;
+    this.phase = "lobby";
+    this.countdownEndsAtMs = 0;
+    this.entryOpen = ENTRY_OPEN_DEFAULT;
+    this.chatHistory = [];
+    await this.persistRoomState();
+    await this.safeDeleteAlarm();
+    this.clearServerTick();
+    this.broadcast(this.serverPacket("presence_update", {
+      reason,
+      summary: roomSummary(this),
+      serverOwned: true
+    }));
+  }
+
+  async deactivateRoom(reason = "admin_deactivate_room") {
+    this.roomActive = ROOM_ACTIVE_DEFAULT;
+    this.phase = "lobby";
+    this.countdownEndsAtMs = 0;
+    this.entryOpen = ENTRY_OPEN_DEFAULT;
+    this.chatHistory = [];
+    await this.persistRoomState();
+    await this.safeDeleteAlarm();
+    this.clearServerTick();
+    const packet = this.serverPacket("room_closed", {
+      reason,
+      summary: roomSummary(this),
+      serverOwned: true
+    });
+    for (const socket of this.state.getWebSockets()) {
+      try {
+        socket.send(JSON.stringify(packet));
+        socket.close(4000, reason);
+      } catch {}
+    }
+    this.sessions.clear();
+  }
+
   async alarm() {
     await this.loadRoomState();
     if (this.refreshPhase(Date.now())) await this.persistRoomState();
@@ -315,6 +419,7 @@ export class SingularityRaceRoom {
       serverTimeMs: now,
       phase: this.phase,
       entryOpen: this.entryOpen,
+      roomActive: this.roomActive !== false,
       mapId: this.mapId,
       countdownEndsAtMs: this.countdownEndsAtMs,
       participants: participantSnapshots(this, now)
@@ -397,12 +502,19 @@ export class SingularityRaceRoom {
 
   async loadRoomState() {
     if (this.roomStateLoaded) return;
-    const stored = await this.safeStorageGet(["phase", "countdownEndsAtMs", "entryOpen", "mapId"]);
+    const stored = await this.safeStorageGet(["phase", "countdownEndsAtMs", "entryOpen", "roomActive", "mapId"]);
     this.phase = sanitizePhase(stored.get("phase"));
     this.countdownEndsAtMs = Number(stored.get("countdownEndsAtMs") || 0);
     this.entryOpen = stored.has("entryOpen") ? stored.get("entryOpen") !== false : ENTRY_OPEN_DEFAULT;
+    this.roomActive = stored.has("roomActive") ? stored.get("roomActive") !== false : ROOM_ACTIVE_DEFAULT;
     this.mapId = normalizeRestoredMarathonTrailMapId(stored.get("mapId") || PUBLIC_MAP_ID);
-    if (this.sessions.size === 0 && this.phase !== "lobby") {
+    if (!this.roomActive) {
+      this.phase = "lobby";
+      this.countdownEndsAtMs = 0;
+      this.entryOpen = ENTRY_OPEN_DEFAULT;
+      await this.persistRoomState();
+      await this.safeDeleteAlarm();
+    } else if (this.sessions.size === 0 && this.phase !== "lobby") {
       this.phase = "lobby";
       this.countdownEndsAtMs = 0;
       this.entryOpen = ENTRY_OPEN_DEFAULT;
@@ -419,6 +531,7 @@ export class SingularityRaceRoom {
       phase: this.phase,
       countdownEndsAtMs: this.countdownEndsAtMs,
       entryOpen: this.entryOpen,
+      roomActive: this.roomActive !== false,
       mapId: this.mapId
     });
   }
@@ -430,6 +543,8 @@ export class SingularityRaceRoom {
       return json({ ...roomSummary(this), admin: true });
     }
     if (request.method !== "POST") return json({ ok: false, reason: "method_not_allowed" }, 405);
+    if (url.pathname.endsWith("/admin/create")) return this.handleAdminCreate();
+    if (url.pathname.endsWith("/admin/deactivate")) return this.handleAdminDeactivate();
     if (url.pathname.endsWith("/admin/start")) return this.handleAdminStart();
     if (url.pathname.endsWith("/admin/open")) return this.handleAdminEntryOpen();
     if (url.pathname.endsWith("/admin/close")) return this.handleAdminEntryClose();
@@ -439,6 +554,7 @@ export class SingularityRaceRoom {
   }
 
   async handleAdminStart() {
+    if (!this.roomActive) return json({ ...roomSummary(this), ok: false, reason: "room_not_created" }, 409);
     if (this.phase !== "lobby" && this.phase !== "finished") return json({ ok: false, reason: "room_not_in_lobby", phase: this.phase }, 409);
     if (countPlayers(this) <= 0) return json({ ...roomSummary(this), ok: false, reason: "no_players" }, 409);
     if (this.entryOpen === false) return json({ ...roomSummary(this), ok: false, reason: "entry_not_open" }, 409);
@@ -446,7 +562,19 @@ export class SingularityRaceRoom {
     return json({ ...roomSummary(this), ok: true, action: "start" });
   }
 
+  async handleAdminCreate() {
+    if (this.roomActive) return json({ ...roomSummary(this), ok: true, action: "create", alreadyActive: true });
+    await this.createRoom("admin_create");
+    return json({ ...roomSummary(this), ok: true, action: "create" });
+  }
+
+  async handleAdminDeactivate() {
+    await this.deactivateRoom("admin_deactivate");
+    return json({ ...roomSummary(this), ok: true, action: "deactivate" });
+  }
+
   async handleAdminEntryOpen() {
+    if (!this.roomActive) return json({ ...roomSummary(this), ok: false, reason: "room_not_created" }, 409);
     if (this.phase !== "lobby" && this.phase !== "finished") return json({ ok: false, reason: "race_active", phase: this.phase }, 409);
     this.phase = "lobby";
     this.countdownEndsAtMs = 0;
@@ -458,6 +586,7 @@ export class SingularityRaceRoom {
   }
 
   async handleAdminEntryClose() {
+    if (!this.roomActive) return json({ ...roomSummary(this), ok: false, reason: "room_not_created" }, 409);
     if (this.phase !== "lobby" && this.phase !== "finished") return json({ ok: false, reason: "race_active", phase: this.phase }, 409);
     this.entryOpen = false;
     await this.persistRoomState();
@@ -466,6 +595,7 @@ export class SingularityRaceRoom {
   }
 
   async handleAdminReset() {
+    if (!this.roomActive) return json({ ...roomSummary(this), ok: false, reason: "room_not_created" }, 409);
     await this.resetRoom("admin_reset");
     return json({ ok: true, action: "reset", ...roomSummary(this) });
   }
@@ -634,6 +764,14 @@ function createSession(room, clientId, options) {
     actionLockedUntilMs: 0,
     attackCooldownUntilMs: 0,
     lastAttackSequence: 0,
+    characterId: "",
+    skillId: "",
+    rewardGrade: "",
+    skillChargesRemaining: 0,
+    skillCooldownUntilMs: 0,
+    lastSkillSequence: 0,
+    selfSkillBoostUntilMs: 0,
+    skillShieldUntilMs: 0,
     effectKind: "",
     sizeScale: 1,
     lastInputAtMs: options.now,
@@ -650,11 +788,12 @@ function createSession(room, clientId, options) {
 }
 
 function validateParticipantJoin(room, requestedType) {
-  if (room.phase !== "lobby") return { ok: false, reason: "room_join_closed" };
+  if (room.roomActive === false) return { ok: false, reason: "room_not_created" };
   if (requestedType === "spectator") {
     if (countSpectators(room) >= MAX_SPECTATORS) return { ok: false, reason: "spectator_full" };
     return { ok: true, participantType: "spectator" };
   }
+  if (room.phase !== "lobby") return { ok: false, reason: "room_join_closed" };
   if (countPlayers(room) >= MAX_RUNNERS) return { ok: false, reason: "room_full" };
   return { ok: true, participantType: "player" };
 }
@@ -663,8 +802,10 @@ function participantSnapshots(room, now = Date.now()) {
   return [...room.sessions.values()].map((session) => {
     // 입력이 신선할 때만 효과를 노출한다(정지/이탈 시 거대화·자동차가 고착되지 않게).
     const effectFresh = Number(session.lastInputReceivedAtMs || 0) > 0 && now - Number(session.lastInputReceivedAtMs || 0) <= INPUT_STALE_MS;
+    const skillEffectActive = Number(session.selfSkillBoostUntilMs || 0) > now || Number(session.skillShieldUntilMs || 0) > now;
     return {
       participantId: session.participantId,
+      characterId: session.characterId || "",
       displayName: session.displayName,
       type: session.participantType,
       lane: session.lane,
@@ -682,8 +823,15 @@ function participantSnapshots(room, now = Date.now()) {
       actionLockedUntilMs: session.actionLockedUntilMs || 0,
       attackCooldownUntilMs: session.attackCooldownUntilMs || 0,
       lastAttackSequence: session.lastAttackSequence || 0,
-      effectKind: effectFresh ? (session.effectKind || "") : "",
-      sizeScale: effectFresh && Number(session.sizeScale) > 0 ? round3(session.sizeScale) : 1,
+      skillId: session.skillId || "",
+      rewardGrade: session.rewardGrade || "",
+      skillChargesRemaining: session.skillChargesRemaining || 0,
+      skillCooldownUntilMs: session.skillCooldownUntilMs || 0,
+      lastSkillSequence: session.lastSkillSequence || 0,
+      selfSkillBoostUntilMs: session.selfSkillBoostUntilMs || 0,
+      skillShieldUntilMs: session.skillShieldUntilMs || 0,
+      effectKind: skillEffectActive ? (session.effectKind || "skill") : (effectFresh ? (session.effectKind || "") : ""),
+      sizeScale: (skillEffectActive || effectFresh) && Number(session.sizeScale) > 0 ? round3(session.sizeScale) : 1,
       finishedAtMs: session.finishedAtMs,
       lastSequence: session.lastSequence
     };
@@ -702,6 +850,7 @@ function joinPayload(room, session) {
     host: session.host,
     phase: room.phase,
     entryOpen: room.entryOpen,
+    roomActive: room.roomActive !== false,
     mapId: room.mapId,
     countdownEndsAtMs: room.countdownEndsAtMs,
     mapVersion: "baegeum-city-v2-map-001",
@@ -713,19 +862,21 @@ function joinPayload(room, session) {
 }
 
 function roomSummary(room) {
+  const roomActive = room.roomActive !== false;
   return {
     ok: true,
     version: WORKER_VERSION,
     roomId: ROOM_ID,
     displayName: ROOM_NAME,
+    roomActive,
     phase: room.phase,
     entryOpen: room.entryOpen,
     mapId: room.mapId,
-    players: countPlayers(room),
+    players: roomActive ? countPlayers(room) : 0,
     maxPlayers: MAX_RUNNERS,
-    spectators: countSpectators(room),
+    spectators: roomActive ? countSpectators(room) : 0,
     maxSpectators: MAX_SPECTATORS,
-    participants: participantSnapshots(room),
+    participants: roomActive ? participantSnapshots(room) : [],
     inputHz: INPUT_LIMIT_PER_SECOND,
     snapshotHz: Math.round(1000 / SNAPSHOT_INTERVAL_MS),
     minSnapshotHz: Math.round(1000 / MIN_SNAPSHOT_INTERVAL_MS)
@@ -750,7 +901,7 @@ function normalizeInputPayload(payload = {}) {
   const intentInput = safeObject(input.intent);
   const directionInput = safeObject(input.direction);
   const intent = input.intent && typeof input.intent === "object" ? {
-    forward: round3(clampNumber(intentInput.forward, 0, 1)),
+    forward: round3(clampNumber(intentInput.forward, -1, 1)),
     lateral: round3(clampNumber(intentInput.lateral, -1, 1))
   } : null;
   const direction = input.direction && typeof input.direction === "object" ? {
@@ -779,6 +930,116 @@ function normalizeInputEffect(effect) {
   const kind = cleanText(effect.kind, 16);
   if (speedMultiplier <= 1 && !knockbackImmune && sizeScale <= 1 && !kind) return null;
   return { speedMultiplier: round3(speedMultiplier), knockbackImmune, sizeScale: round3(sizeScale), kind };
+}
+
+function createServerSkillUse(session, packet, now) {
+  const payload = safeObject(packet.payload);
+  const skillId = cleanText(payload.skillId || session.skillId, 48);
+  const rewardGrade = cleanText(payload.rewardGrade || payload.skillGrade || session.rewardGrade, 2).toUpperCase();
+  const skill = getRestoredMarathonSkill(skillId);
+  if (!skillId || !rewardGrade) return blockedServerSkillUse("no_reward", session);
+  if (skill.skillId !== skillId) return blockedServerSkillUse("bad_skill", session);
+  const sameReward = session.skillId === skillId && session.rewardGrade === rewardGrade;
+  const chargesRemaining = sameReward && Number.isFinite(Number(session.skillChargesRemaining))
+    ? Number(session.skillChargesRemaining)
+    : skill.maxCharges;
+  const cooldownRemainingMs = sameReward ? Math.max(0, Number(session.skillCooldownUntilMs || 0) - now) : 0;
+  return createRestoredMarathonSkillUse({
+    participantId: session.participantId,
+    characterId: cleanText(payload.characterId || session.characterId, 64),
+    skillId,
+    grade: rewardGrade,
+    chargesRemaining,
+    cooldownRemainingMs
+  });
+}
+
+function blockedServerSkillUse(reason, session) {
+  return {
+    allowed: false,
+    reason,
+    participantId: session.participantId,
+    characterId: session.characterId || "",
+    skillId: session.skillId || "",
+    grade: session.rewardGrade || "",
+    consumesCharge: false,
+    movementStallMs: 0,
+    payload: { target: "self", radiusMeters: 0, rangeMeters: 0, durationSeconds: 0 }
+  };
+}
+
+function findServerSkillTargets(room, casterSession, requestedTargetId, use) {
+  const targetKind = use.payload?.target || "self";
+  if (targetKind === "self") return [];
+  const candidates = playerSessions(room)
+    .filter((session) => session.participantId !== casterSession.participantId && session.finishedAtMs === null)
+    .map((session) => ({
+      session,
+      distance: serverSkillDistance(casterSession, session)
+    }))
+    .sort((left, right) => left.distance - right.distance);
+  if (targetKind === "global") return candidates.map((entry) => entry.session);
+  const range = serverSkillProgressRange(use.skillId);
+  const requested = requestedTargetId
+    ? candidates.find((entry) => entry.session.participantId === requestedTargetId)
+    : null;
+  if (requested && requested.distance <= range) return [requested.session];
+  return candidates.filter((entry) => entry.distance <= range).slice(0, targetKind === "trail" ? 2 : 1).map((entry) => entry.session);
+}
+
+function applyServerSkillEffects(casterSession, targetSessions, use, now) {
+  const targetKind = use.payload?.target || "self";
+  const targetIds = [];
+  if (targetKind === "self") {
+    applyServerSelfSkillEffect(casterSession, use, now);
+    return { hit: true, targetIds };
+  }
+  if (use.skillId === "skill:stamina-sip") applyServerSelfSkillEffect(casterSession, use, now);
+  for (const target of targetSessions) {
+    applyServerTargetSkillEffect(casterSession, target, use, now);
+    targetIds.push(target.participantId);
+  }
+  return { hit: targetIds.length > 0, targetIds };
+}
+
+function applyServerSelfSkillEffect(session, use, now) {
+  session.effectKind = "skill";
+  session.sizeScale = use.skillId === "skill:guard-roll" ? 1.08 : 1.04;
+  if (use.skillId === "skill:checkpoint-hop") {
+    session.progressPercent = clampNumber(Number(session.progressPercent || START_PROGRESS) + SERVER_SKILL_CHECKPOINT_HOP_PROGRESS, RAIL_MIN_PROGRESS, 100);
+    return;
+  }
+  if (use.skillId === "skill:guard-roll") session.skillShieldUntilMs = Math.max(Number(session.skillShieldUntilMs || 0), now + SERVER_SKILL_SELF_BOOST_MS);
+  session.selfSkillBoostUntilMs = Math.max(Number(session.selfSkillBoostUntilMs || 0), now + SERVER_SKILL_SELF_BOOST_MS);
+}
+
+function applyServerTargetSkillEffect(casterSession, targetSession, use, now) {
+  const durationMs = Math.max(SERVER_SKILL_SLOW_MS, Number(use.payload?.durationSeconds || 0) * 1000);
+  const casterLane = Number(casterSession.laneOffsetPx || 0);
+  const targetLane = Number(targetSession.laneOffsetPx || 0);
+  const pushDirection = targetLane >= casterLane ? 1 : -1;
+  if (use.skillId === "skill:side-bump" || use.skillId === "skill:input-scramble" || use.skillId === "skill:noise-burst") {
+    targetSession.laneOffsetPx = clampNumber(targetLane + pushDirection * SERVER_SKILL_LANE_PUSH_PX, -START_LANE_HALF_WIDTH_PX, START_LANE_HALF_WIDTH_PX);
+    targetSession.stunnedUntilMs = Math.max(Number(targetSession.stunnedUntilMs || 0), now + SERVER_SKILL_STUN_MS);
+  }
+  targetSession.slowUntilMs = Math.max(Number(targetSession.slowUntilMs || 0), now + durationMs);
+  targetSession.collisionAtMs = now;
+  targetSession.effectKind = "skill-hit";
+  targetSession.sizeScale = 1;
+}
+
+function serverSkillDistance(casterSession, targetSession) {
+  const progressDistance = Math.abs(Number(targetSession.progressPercent || 0) - Number(casterSession.progressPercent || 0));
+  const laneDistance = Math.abs(Number(targetSession.laneOffsetPx || 0) - Number(casterSession.laneOffsetPx || 0)) / BASIC_ATTACK_LANE_TO_PROGRESS;
+  return Math.hypot(progressDistance, laneDistance);
+}
+
+function serverSkillProgressRange(skillId) {
+  if (skillId === "skill:input-scramble") return 4.5;
+  if (skillId === "skill:stamina-sip") return 3.6;
+  if (skillId === "skill:side-bump") return 3.2;
+  if (skillId === "skill:slip-trail") return 2.8;
+  return 2.4;
 }
 
 function createServerBasicAttackAction(session, packet, sequence) {
@@ -857,16 +1118,20 @@ function advanceSession(session, now, phase, mapId = PUBLIC_MAP_ID, options = {}
   const progressPercent = Number(session.progressPercent || START_PROGRESS);
   const trailPoint = progressToRestoredMarathonTrailPoint(progressPercent, mapId);
   const movement = resolveSingularityRaceInputMovement(payload, trailPoint);
-  const forwardFactor = racing ? Math.max(0, Number(movement.forward || 0)) : Number(movement.forward || 0);
+  const forwardFactor = racing ? scaleBackwardForward(movement.forward) : Number(movement.forward || 0);
   const pace = payload.pace || payload.mode;
   const speedScale = calculateRestoredMarathonSpeedScale(trailPoint.tangent);
   const slowFactor = racing && Number(session.slowUntilMs || 0) > now ? 0.48 : 1;
   // 자체 가속 효과: 경기 중에만 적용. 클램프는 normalizeInputEffect에서 이미 처리됨.
   const effect = racing ? payload.effect : null;
-  const effectMultiplier = effect ? Math.max(1, Math.min(SELF_SPEED_MULTIPLIER_CAP, Number(effect.speedMultiplier) || 1)) : 1;
-  const knockbackImmune = Boolean(effect && effect.knockbackImmune);
-  session.effectKind = effect ? (effect.kind || "") : "";
-  session.sizeScale = effect ? (Number(effect.sizeScale) || 1) : 1;
+  const skillBoostActive = racing && Number(session.selfSkillBoostUntilMs || 0) > now;
+  const skillShieldActive = racing && Number(session.skillShieldUntilMs || 0) > now;
+  const inputEffectMultiplier = effect ? Math.max(1, Math.min(SELF_SPEED_MULTIPLIER_CAP, Number(effect.speedMultiplier) || 1)) : 1;
+  const skillEffectMultiplier = skillBoostActive ? SERVER_SKILL_SELF_BOOST_MULTIPLIER : 1;
+  const effectMultiplier = Math.min(SELF_SPEED_MULTIPLIER_CAP, inputEffectMultiplier * skillEffectMultiplier);
+  const knockbackImmune = Boolean(effect && effect.knockbackImmune) || skillShieldActive;
+  session.effectKind = skillBoostActive || skillShieldActive ? "skill" : (effect ? (effect.kind || "") : "");
+  session.sizeScale = skillShieldActive ? 1.08 : (effect ? (Number(effect.sizeScale) || 1) : 1);
   const progressDelta = paceSpeed(pace, staging) * forwardFactor * speedScale * slowFactor * effectMultiplier * elapsedSeconds;
   const laneSpeed = pace === "sprint" ? LANE_SPRINT_SPEED_PX_PER_SECOND : LANE_SPEED_PX_PER_SECOND;
   const minProgress = racing ? RAIL_MIN_PROGRESS : START_PADDOCK_MIN_PROGRESS;
@@ -934,7 +1199,7 @@ function acceptChat(session, now) {
   return session.chatCount <= CHAT_BURST_LIMIT ? { ok: true } : { ok: false, reason: "chat_burst_limit" };
 }
 
-function canAdvancePlayerMovement(room) { return room.phase === "racing" || isPaddockMovementOpen(room.phase, room.entryOpen); }
+function canAdvancePlayerMovement(room) { return room.roomActive !== false && (room.phase === "racing" || isPaddockMovementOpen(room.phase, room.entryOpen)); }
 function canAttackInPhase(phase, entryOpen) { return phase === "racing" || isPaddockMovementOpen(phase, entryOpen); }
 function isPaddockMovementOpen(phase, entryOpen) { return phase === "countdown" || (phase === "lobby" && entryOpen !== false); }
 function playerSessions(room) { return [...room.sessions.values()].filter((item) => item.participantType === "player"); }
@@ -944,6 +1209,11 @@ function laneOffsetFor(lane) { return ((lane - 1) / Math.max(1, MAX_RUNNERS - 1)
 function paceSpeed(pace, staging = false) {
   if (staging) return pace === "sprint" ? STAGING_SPRINT_PROGRESS_PER_SECOND : STAGING_RUN_PROGRESS_PER_SECOND;
   return pace === "sprint" ? SPRINT_PROGRESS_PER_SECOND : RUN_PROGRESS_PER_SECOND;
+}
+function scaleBackwardForward(forward) {
+  const value = Number(forward || 0);
+  if (!Number.isFinite(value) || value >= 0) return Number.isFinite(value) ? value : 0;
+  return value * BACKWARD_PROGRESS_MULTIPLIER;
 }
 function round2(value) { return Math.round(Number(value || 0) * 100) / 100; }
 function round3(value) { return Math.round(Number(value || 0) * 1000) / 1000; }
