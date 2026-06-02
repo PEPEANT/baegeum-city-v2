@@ -1,6 +1,14 @@
 # AI Working State
 
 Date: 2026-06-02
+Observed: User identified a broader public loading issue separate from the admin transport-plane problem: public links can feel slow, delayed, or unavailable when the Worker/room summary is slow or fails, especially under free-tier/DO pressure.
+Changed: Kept the change inside Singularity Race public loading. `singularity-race.html?online=cloudflare` now renders the page shell first, refreshes the live public room summary through `/rooms` in the background, shows a visible server-check/error/retry state, and uses the room refresh button to retry `/rooms` instead of reloading the full page. Added the Cloudflare online smoke tokens and documented the public loading reliability rule.
+Verified: `node tools/smoke-singularity-race-cloudflare-online.cjs`, `npm run check:singularity-race`, `git diff --check`, and full `npm run check` passed. Browser verification on localhost with the live Worker showed the public room summary `0/50`, visible refresh, and zero current-tab console errors. Browser verification with an intentionally invalid Worker URL showed the profile shell still loaded, `공개방 상태 확인 실패`, `서버 재시도 필요`, visible refresh, and zero current-tab console errors.
+Blocked: Not committed, pushed, or deployed in this loop. A real phone/network test can still reveal external DNS/mobile latency that local browser checks cannot reproduce.
+Next: If accepted, commit/push/deploy this loading reliability patch before starting public admin revival.
+Do not: Reopen public admin `/admin/*` or add adminToken behavior in this loading-only slice.
+
+Date: 2026-06-02
 Observed: During the requested commit/push/deploy pass, live Worker `/health` succeeded but live `/rooms` returned Cloudflare 1101. Wrangler tail showed the actual cause: `Exceeded allowed rows written in Durable Objects free tier.`
 Changed: Kept the fix inside `workers/singularity-race-worker.js`. Durable Object storage reads/writes/alarm calls are now wrapped in safe helpers. If storage row writes or alarms are unavailable, the one-room public loop falls back to in-memory phase/countdown state and a local countdown timer instead of crashing `/rooms` or joins. Added a smoke guard and Cloudflare online note so storage quota cannot become a hard public-room dependency again.
 Verified: `node --check workers/singularity-race-worker.js`, `node tools/smoke-singularity-race-cloudflare-online.cjs`, `node tools/smoke-singularity-race-server-load.cjs`, and `git diff --check` passed before redeploy.

@@ -5431,6 +5431,7 @@
       queryParams.get("serverUrl") || queryParams.get("ws") || window.localStorage.getItem("singularity-race:cloudflare-worker-url") || "",
       window.location
     );
+    const CLOUDFLARE_HTTP_ENDPOINT = resolveCloudflareHttpEndpoint(CLOUDFLARE_WS_ENDPOINT);
     const cloudflareTransport = cloudflareOnlineEnabled ? createRestoredMarathonServerTransportSnapshot({
       provider: "websocket",
       mode: "cloudflare_durable_object",
@@ -5618,6 +5619,11 @@
       previewTick: 0,
       connectedSession: null,
       cloudflareHost: false,
+      cloudflareRoomSummary: null,
+      cloudflareRoomStatus: cloudflareOnlineEnabled ? "loading" : "idle",
+      cloudflareRoomError: "",
+      cloudflareRoomLastCheckedAtMs: 0,
+      cloudflareRoomFetchInFlight: false,
       connectedPackets: [],
       lastConnectedSnapshotSequence: 0,
       connectedInputSequence: 0,
@@ -5708,6 +5714,16 @@
       renderAll();
     } catch (error) {
       console.error("Singularity Race initial render failed", error);
+    }
+    if (cloudflareOnlineEnabled) {
+      window.setTimeout(() => refreshCloudflarePublicRoomSummary("initial"), 0);
+      window.setInterval(() => {
+        if (
+          state.screen === SINGULARITY_RACE_SCREENS.LOBBY
+          || state.screen === SINGULARITY_RACE_SCREENS.QUEUE
+          || state.screen === SINGULARITY_RACE_SCREENS.PROFILE
+        ) refreshCloudflarePublicRoomSummary("silent");
+      }, 12000);
     }
     setupRaceControlListener();
     const launcherMenuBgmRequested = consumeLauncherMenuBgmIntent();
@@ -5950,6 +5966,10 @@
     });
 
     elements.roomRefreshButton.addEventListener("click", () => {
+      if (cloudflareOnlineEnabled) {
+        refreshCloudflarePublicRoomSummary("manual");
+        return;
+      }
       window.location.reload();
     });
 
@@ -6333,6 +6353,85 @@
       return Object.freeze({
         players: participants.filter(isSnapshotRunnerParticipant).length,
         spectators: participants.filter((participant) => participant?.type === "spectator" || String(participant?.participantId || "").startsWith("spectator:")).length
+      });
+    }
+
+    function getCurrentConnectedRoomSummary() {
+      const baseSummary = getConnectedMarathonRoomSummaries(roomAdapter)[0] || null;
+      if (cloudflareOnlineEnabled && state.cloudflareRoomSummary) {
+        return Object.freeze({
+          ...(baseSummary || {}),
+          ...state.cloudflareRoomSummary
+        });
+      }
+      const presence = getDevRoomPresenceSummary();
+      return baseSummary && presence
+        ? Object.freeze({ ...baseSummary, players: presence.players, spectators: presence.spectators })
+        : baseSummary;
+    }
+
+    function resolveCloudflareHttpEndpoint(wsEndpoint = "") {
+      if (!wsEndpoint) return "";
+      try {
+        const url = new URL(wsEndpoint, window.location.href);
+        url.protocol = url.protocol === "wss:" ? "https:" : "http:";
+        url.pathname = "";
+        url.search = "";
+        url.hash = "";
+        return url.toString().replace(/\/$/, "");
+      } catch {
+        return "";
+      }
+    }
+
+    async function refreshCloudflarePublicRoomSummary(reason = "manual") {
+      if (!cloudflareOnlineEnabled) return null;
+      if (!CLOUDFLARE_HTTP_ENDPOINT) {
+        state.cloudflareRoomStatus = "error";
+        state.cloudflareRoomError = "cloudflare_http_endpoint_missing";
+        renderConnectedGate();
+        return null;
+      }
+      if (state.cloudflareRoomFetchInFlight) return state.cloudflareRoomSummary;
+      state.cloudflareRoomFetchInFlight = true;
+      state.cloudflareRoomStatus = "loading";
+      state.cloudflareRoomError = "";
+      renderConnectedGate();
+      try {
+        const response = await fetch(`${CLOUDFLARE_HTTP_ENDPOINT}/rooms`, { cache: "no-store" });
+        const payload = await response.json().catch(() => null);
+        if (!response.ok || !payload?.ok) throw new Error(payload?.reason || `rooms_${response.status}`);
+        state.cloudflareRoomSummary = normalizeCloudflareRoomSummary(payload);
+        state.cloudflareRoomStatus = "ok";
+        state.cloudflareRoomLastCheckedAtMs = Date.now();
+        state.mapId = normalizeRestoredMarathonTrailMapId(payload.mapId || payload.course?.mapId || state.mapId);
+        renderAll();
+        return state.cloudflareRoomSummary;
+      } catch (error) {
+        state.cloudflareRoomStatus = "error";
+        state.cloudflareRoomError = error?.message || "rooms_unavailable";
+        if (reason !== "silent") pushSystem(`Cloudflare 공개방 상태 확인 실패: ${state.cloudflareRoomError}`);
+        renderConnectedGate();
+        return null;
+      } finally {
+        state.cloudflareRoomFetchInFlight = false;
+        renderConnectedGate();
+      }
+    }
+
+    function normalizeCloudflareRoomSummary(payload = {}) {
+      const fallback = getConnectedMarathonRoomSummaries(roomAdapter)[0] || {};
+      return Object.freeze({
+        roomId: payload.roomId || fallback.roomId || CLOUDFLARE_ROOM_ID,
+        displayName: payload.displayName || fallback.displayName || "특이점레이스 공개방 001",
+        phase: payload.phase || fallback.phase || "lobby",
+        authority: fallback.authority,
+        players: Math.max(0, Number(payload.players ?? fallback.players ?? 0)),
+        maxPlayers: Math.max(1, Number(payload.maxPlayers ?? fallback.maxPlayers ?? MAX_RUNNERS)),
+        spectators: Math.max(0, Number(payload.spectators ?? fallback.spectators ?? 0)),
+        maxSpectators: Math.max(0, Number(payload.maxSpectators ?? fallback.maxSpectators ?? roomPolicy.maxSpectators)),
+        mapVersion: fallback.mapVersion,
+        protocolVersion: fallback.protocolVersion
       });
     }
 
@@ -9699,7 +9798,7 @@
       elements.trackTitle.textContent = getSingularityRaceTrackTitle(state.screen);
       elements.trackCopy.textContent = `${getSingularityRaceTrackCopy(state.screen)} / ${map.label}`;
       elements.notice.textContent = getSingularityRaceNotice(state.screen);
-      const summary = getConnectedMarathonRoomSummaries(roomAdapter)[0];
+      const summary = getCurrentConnectedRoomSummary();
       elements.roomDisplayName.textContent = summary?.displayName || activeDevRoom?.displayName || "생성된 방 없음";
       const waitingForOperatorStart = Boolean(state.connectedSession)
         && state.screen === SINGULARITY_RACE_SCREENS.QUEUE
@@ -11389,7 +11488,7 @@
       if (!force && now - Number(state.renderCache.lastObserverPanelMs || 0) < 350) return;
       state.renderCache.lastObserverPanelMs = now;
       syncAdminObserverTargetOptions();
-      const summary = getConnectedMarathonRoomSummaries(roomAdapter)[0];
+      const summary = getCurrentConnectedRoomSummary();
       const runnerCount = state.runners.length || Number(summary?.players || 0);
       const spectatorCount = Math.max(Number(summary?.spectators || 0), state.participantType === "spectator" ? 1 : 0);
       const roomStatus = state.roomClosed ? "종료됨" : (connectedLobbyOpen ? "열림" : "닫힘");
@@ -11497,18 +11596,18 @@
     }
 
     function renderConnectedGate() {
-      const summaries = getConnectedMarathonRoomSummaries(roomAdapter);
-      const baseSummary = summaries[0];
-      const presence = getDevRoomPresenceSummary();
-      const summary = baseSummary && presence
-        ? { ...baseSummary, players: presence.players, spectators: presence.spectators }
-        : baseSummary;
+      const summary = getCurrentConnectedRoomSummary();
       const connected = Boolean(state.connectedSession);
       const entryGate = getQueueEntryGateStatus();
       const cloudflareJoinClosed = cloudflareOnlineEnabled && summary && summary.phase !== "lobby";
-      elements.roomRefreshButton.hidden = !(devOnlineEnabled || adminLaunchEnabled);
+      const cloudflareUnavailable = cloudflareOnlineEnabled && state.cloudflareRoomStatus === "error" && !state.cloudflareRoomSummary;
+      elements.roomRefreshButton.hidden = !(devOnlineEnabled || adminLaunchEnabled || cloudflareOnlineEnabled);
+      if (cloudflareOnlineEnabled) {
+        elements.roomRefreshButton.disabled = state.cloudflareRoomFetchInFlight;
+        elements.roomRefreshButton.textContent = state.cloudflareRoomFetchInFlight ? "확인 중" : "새로고침";
+      }
       elements.connectedGate.classList.toggle("is-open", connectedLobbyOpen && !state.roomClosed);
-      elements.connectedButton.disabled = state.roomClosed || !entryGate.open || !connectedLobbyOpen || connected || cloudflareJoinClosed;
+      elements.connectedButton.disabled = state.roomClosed || !entryGate.open || !connectedLobbyOpen || connected || cloudflareJoinClosed || cloudflareUnavailable;
       elements.connectedButton.textContent = connected ? "개발 방 입장됨" : "개발 방 입장";
       elements.roomCode.textContent = summary
         ? `선수 ${summary.players}/${summary.maxPlayers} / 관전자 ${summary.spectators}/${summary.maxSpectators}`
@@ -11536,6 +11635,16 @@
       }
       if (!entryGate.open) {
         elements.connectedStatus.textContent = `${entryGate.remainingMinutes}분 후 대기열방 입장 가능합니다.`;
+        return;
+      }
+      if (cloudflareOnlineEnabled && state.cloudflareRoomStatus === "loading" && !state.cloudflareRoomSummary) {
+        elements.connectedStatus.textContent = "공개방 상태를 확인하는 중입니다. 화면은 먼저 열리고 서버 상태만 갱신됩니다.";
+        elements.roomCode.textContent = "서버 확인 중";
+        return;
+      }
+      if (cloudflareOnlineEnabled && state.cloudflareRoomStatus === "error" && !state.cloudflareRoomSummary) {
+        elements.connectedStatus.textContent = `공개방 상태 확인 실패: ${state.cloudflareRoomError || "서버 연결 오류"} / 새로고침을 눌러 재시도`;
+        elements.roomCode.textContent = "서버 재시도 필요";
         return;
       }
       if (cloudflareJoinClosed) {
