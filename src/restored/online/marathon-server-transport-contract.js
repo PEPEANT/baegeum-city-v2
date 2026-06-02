@@ -121,6 +121,7 @@ export function createRestoredMarathonInputEnvelope(input = {}, options = {}) {
     mode: input.mode || "",
     intent: normalizeRaceIntent(input.intent),
     direction: normalizeDirection(input.direction),
+    effect: normalizeRaceEffect(input.effect),
     raceTimeMs: Math.max(0, Number(input.raceTimeMs || 0))
   }, options);
 }
@@ -217,22 +218,23 @@ function normalizeProvider(provider) { return RESTORED_MARATHON_SERVER_TRANSPORT
 function normalizeAuthMode(mode) { return RESTORED_MARATHON_SERVER_AUTH_MODES.includes(mode) ? mode : "none"; }
 
 function defaultModeForProvider(provider) {
-  if (provider === "firebase") return "firebase_pending";
-  if (provider === "websocket") return "websocket_pending";
-  if (provider === "dev_mock") return "dev_server_mock";
-  return "unavailable";
+  return { firebase: "firebase_pending", websocket: "websocket_pending", dev_mock: "dev_server_mock" }[provider] || "unavailable";
 }
 
 function safeText(value, maxLength) { return String(value || "").replace(/\s+/g, " ").trim().slice(0, maxLength); }
 
-function normalizeDirection(direction = {}) {
-  return Object.freeze({
-    x: clampDirection(direction.x),
-    y: clampDirection(direction.y)
-  });
-}
+function normalizeDirection(direction = {}) { return Object.freeze({ x: clampDirection(direction.x), y: clampDirection(direction.y) }); }
 
 function clampDirection(value) { const number = Number(value || 0); return Math.max(-1, Math.min(1, Number.isFinite(number) ? number : 0)); }
+
+function normalizeRaceEffect(effect = null) {
+  if (!effect || typeof effect !== "object") return null;
+  const speedMultiplier = Math.round((Number.isFinite(Number(effect.speedMultiplier)) ? Math.max(1, Math.min(1.6, Number(effect.speedMultiplier))) : 1) * 1000) / 1000;
+  const sizeScale = Math.round((Number.isFinite(Number(effect.sizeScale)) ? Math.max(1, Math.min(2, Number(effect.sizeScale))) : 1) * 1000) / 1000;
+  const knockbackImmune = Boolean(effect.knockbackImmune);
+  const kind = typeof effect.kind === "string" ? effect.kind.slice(0, 16) : "";
+  return speedMultiplier <= 1 && !knockbackImmune && sizeScale <= 1 && !kind ? null : Object.freeze({ speedMultiplier, knockbackImmune, sizeScale, kind });
+}
 
 function normalizeRaceIntent(intent = null) {
   if (!intent || typeof intent !== "object") return null;

@@ -13,31 +13,48 @@ const DEFAULT_PROGRESS_BOUNCE = 0.22;
 const DEFAULT_LANE_BOUNCE_PX = 34;
 const DEFAULT_OBSTACLE_SLOW_MS = 260;
 
+// kind 안내: cone/barrier = 피해야 하는 단단한 장애물(부딪히면 튕김+감속).
+//           crate = 부수면 자동차가 나오는 보상 상자. energy = 즉시 가속 에너지 드링크.
+// crate/energy는 클라이언트가 kind로 보상 처리하므로 충돌 반경만 픽업처럼 넉넉하게 둔다.
 const OBSTACLES_BY_MAP_ID = Object.freeze({
   [RESTORED_MARATHON_TRAIL_MAP_IDS.BASIC]: freezeObstacles([
+    obstacle("basic:energy-01", "energy", 9.0, 70, "에너지 드링크", 0.6, 0.5, 60, 1),
     obstacle("basic:cone-01", "cone", 13.2, -88, "콘", 1, 0.42, 52, -1),
+    obstacle("basic:crate-01", "crate", 21.0, 150, "상자", 0.7, 0.52, 64, 1),
     obstacle("basic:barrier-01", "barrier", 24.6, 84, "방호벽", 1.08, 0.5, 66, 1),
-    obstacle("basic:crate-01", "crate", 37.8, -18, "상자", 1.12, 0.52, 68, -1),
+    obstacle("basic:crate-02", "crate", 37.8, -18, "상자", 0.7, 0.52, 64, -1),
+    obstacle("basic:energy-02", "energy", 45.4, -150, "에너지 드링크", 0.6, 0.5, 60, -1),
     obstacle("basic:cone-02", "cone", 52.4, 116, "콘", 0.96, 0.42, 54, 1),
+    obstacle("basic:crate-03", "crate", 60.2, 40, "상자", 0.7, 0.52, 64, 1),
     obstacle("basic:barrier-02", "barrier", 68.6, -126, "방호벽", 1.1, 0.5, 66, -1),
-    obstacle("basic:crate-02", "crate", 84.8, 26, "상자", 1.08, 0.52, 68, 1)
+    obstacle("basic:energy-03", "energy", 76.8, 104, "에너지 드링크", 0.6, 0.5, 60, 1),
+    obstacle("basic:crate-04", "crate", 84.8, 26, "상자", 0.7, 0.52, 64, 1)
   ]),
   [RESTORED_MARATHON_TRAIL_MAP_IDS.SQUARE]: freezeObstacles([
+    obstacle("square:energy-01", "energy", 10.4, 96, "에너지 드링크", 0.6, 0.5, 60, 1),
     obstacle("square:barrier-01", "barrier", 16.8, 0, "방호벽", 1.1, 0.5, 68, 1),
+    obstacle("square:crate-01", "crate", 24.2, -150, "상자", 0.7, 0.52, 64, -1),
     obstacle("square:cone-01", "cone", 31.6, -132, "콘", 0.96, 0.42, 52, -1),
-    obstacle("square:crate-01", "crate", 47.4, 122, "상자", 1.1, 0.52, 68, 1),
+    obstacle("square:crate-02", "crate", 47.4, 122, "상자", 0.7, 0.52, 64, 1),
+    obstacle("square:energy-02", "energy", 56.0, -60, "에너지 드링크", 0.6, 0.5, 60, -1),
     obstacle("square:cone-02", "cone", 64.2, -42, "콘", 0.98, 0.42, 54, -1),
+    obstacle("square:crate-03", "crate", 73.4, 150, "상자", 0.7, 0.52, 64, 1),
     obstacle("square:barrier-02", "barrier", 82.6, 96, "방호벽", 1.12, 0.5, 68, 1)
   ]),
   [RESTORED_MARATHON_TRAIL_MAP_IDS.MAZE]: freezeObstacles([
     obstacle("maze:cone-01", "cone", 10.8, -72, "콘", 0.94, 0.4, 50, -1),
-    obstacle("maze:crate-01", "crate", 19.4, 78, "상자", 1.05, 0.48, 64, 1),
+    obstacle("maze:energy-01", "energy", 15.0, 150, "에너지 드링크", 0.6, 0.5, 60, 1),
+    obstacle("maze:crate-01", "crate", 19.4, 78, "상자", 0.7, 0.48, 64, 1),
     obstacle("maze:barrier-01", "barrier", 30.8, -116, "방호벽", 1.1, 0.5, 66, -1),
+    obstacle("maze:crate-02", "crate", 36.6, 150, "상자", 0.7, 0.48, 64, 1),
     obstacle("maze:cone-02", "cone", 42.2, 112, "콘", 0.96, 0.42, 54, 1),
-    obstacle("maze:crate-02", "crate", 54.6, -22, "상자", 1.08, 0.5, 66, -1),
+    obstacle("maze:energy-02", "energy", 48.4, -150, "에너지 드링크", 0.6, 0.5, 60, -1),
+    obstacle("maze:crate-03", "crate", 54.6, -22, "상자", 0.7, 0.5, 64, -1),
     obstacle("maze:barrier-02", "barrier", 66.8, 132, "방호벽", 1.12, 0.5, 68, 1),
+    obstacle("maze:crate-04", "crate", 72.0, -90, "상자", 0.7, 0.48, 64, -1),
     obstacle("maze:cone-03", "cone", 78.4, -108, "콘", 0.94, 0.42, 52, -1),
-    obstacle("maze:crate-03", "crate", 90.2, 34, "상자", 1.04, 0.48, 64, 1)
+    obstacle("maze:energy-03", "energy", 84.0, 60, "에너지 드링크", 0.6, 0.5, 60, 1),
+    obstacle("maze:crate-05", "crate", 90.2, 34, "상자", 0.7, 0.48, 64, 1)
   ])
 });
 

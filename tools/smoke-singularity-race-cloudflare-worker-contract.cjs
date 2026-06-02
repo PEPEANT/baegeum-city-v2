@@ -33,6 +33,14 @@ async function assertWorkerAdminEndpointContracts() {
   assert.equal(emptyStart.body.ok, false, "admin start with no players must be ok:false");
   assert.equal(emptyStart.body.reason, "no_players", "admin start with no players should be explicit");
 
+  const queuedPlayerSession = createPlayerSession();
+  room.sessions.set("client:unit-player", queuedPlayerSession);
+  const queuedStart = await jsonOf(await room.fetch(adminRequest("/admin/start", { method: "POST" })));
+  assert.equal(queuedStart.status, 409, "admin start before in-game entry should be blocked");
+  assert.equal(queuedStart.body.ok, false, "admin start before in-game entry must be ok:false");
+  assert.equal(queuedStart.body.reason, "entry_not_open", "admin start should wait for in-game entry open after queue joins");
+  room.sessions.delete("client:unit-player");
+
   const close = await jsonOf(await room.fetch(adminRequest("/admin/close", { method: "POST" })));
   assert.equal(close.status, 200, "admin close should succeed in lobby");
   assert.equal(close.body.entryOpen, false, "admin close should close entry");
@@ -40,6 +48,11 @@ async function assertWorkerAdminEndpointContracts() {
   const open = await jsonOf(await room.fetch(adminRequest("/admin/open", { method: "POST" })));
   assert.equal(open.status, 200, "admin open should succeed in lobby");
   assert.equal(open.body.entryOpen, true, "admin open should reopen entry");
+
+  const stagingSession = createPlayerSession();
+  room.sessions.set("client:unit-player", stagingSession);
+  await assertPaddockMovementBeforeAdminStart(room, stagingSession);
+  room.sessions.delete("client:unit-player");
 
   const map = await jsonOf(await room.fetch(adminRequest("/admin/map", {
     method: "POST",
@@ -69,6 +82,54 @@ async function assertPlayerStartBlocked(room, playerSession) {
   await room.webSocketMessage(playerSocket, JSON.stringify({ type: "start_request", payload: {} }));
   assert.equal(room.phase, "lobby", "player start_request must not move the room out of lobby");
   assert.equal(lastPacketOfType(playerSocket.sent, "error")?.payload?.reason, "admin_start_required", "player start_request should be rejected explicitly");
+}
+
+async function assertPaddockMovementBeforeAdminStart(room, playerSession) {
+  const now = Date.now();
+  room.phase = "lobby";
+  room.entryOpen = true;
+  Object.assign(playerSession, {
+    progressPercent: 4,
+    laneOffsetPx: 0,
+    finishedAtMs: null,
+    lastInputPayload: null,
+    lastInputReceivedAtMs: 0,
+    lastMovementTickAtMs: now,
+    inputWindowStartedAtMs: now,
+    inputCount: 0
+  });
+  await room.webSocketMessage(createFakeSocket(playerSession), JSON.stringify({
+    type: "input_update",
+    sequence: 6,
+    payload: {
+      intent: { forward: 1, lateral: 1 },
+      direction: { x: 1, y: 0 },
+      mode: "sprint",
+      pace: "sprint"
+    }
+  }));
+  if (room.serverTickTimer) {
+    clearTimeout(room.serverTickTimer);
+    room.serverTickTimer = null;
+  }
+  const afterInputPacket = room.sessions.get("client:unit-player");
+  assert.equal(afterInputPacket.progressPercent, 4, "paddock input should update last intent without packet-arrival movement");
+  afterInputPacket.lastMovementTickAtMs = Date.now() - 250;
+  assert.equal(room.advanceRaceTick(Date.now()), true, "lobby entry-open tick should move the runner inside the start paddock");
+  const afterLobbyTick = room.sessions.get("client:unit-player");
+  assert.ok(afterLobbyTick.progressPercent > 4, "paddock tick should advance from start line");
+  assert.ok(afterLobbyTick.progressPercent <= 7.12, "paddock movement must stop before the start gate");
+
+  room.phase = "countdown";
+  room.entryOpen = false;
+  Object.assign(afterLobbyTick, {
+    progressPercent: 7.1,
+    lastMovementTickAtMs: Date.now() - 250
+  });
+  assert.equal(room.advanceRaceTick(Date.now()), true, "countdown tick should still allow bounded paddock movement");
+  assert.ok(room.sessions.get("client:unit-player").progressPercent <= 7.12, "countdown movement must remain blocked by the gate");
+  room.phase = "lobby";
+  room.entryOpen = true;
 }
 
 async function assertLastIntentTickMovement(room, playerSession) {

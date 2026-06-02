@@ -77,6 +77,8 @@ export function mergeSingularityServerSnapshotRunners(existingRunners = [], snap
       characterId: participant.characterId || existing?.characterId || "", skillId: participant.skillId || existing?.skillId || "", rewardGrade: participant.rewardGrade || existing?.rewardGrade || "", skillChargesRemaining: finiteNumber(participant.skillChargesRemaining, existing?.skillChargesRemaining ?? 0), skillCooldownUntilMs: finiteNumber(participant.skillCooldownUntilMs, existing?.skillCooldownUntilMs ?? 0),
       collisionAtMs: Math.max(finiteNumber(participant.collisionAtMs, 0), finiteNumber(existing?.collisionAtMs, 0)),
       obstacleCollisionId: participant.obstacleCollisionId || existing?.obstacleCollisionId || "",
+      effectKind: typeof participant.effectKind === "string" ? participant.effectKind : "",
+      sizeScale: finiteNumber(participant.sizeScale, 1) > 0 ? finiteNumber(participant.sizeScale, 1) : 1,
       serverOwned: true,
       serverProgress,
       serverLaneOffsetPx,

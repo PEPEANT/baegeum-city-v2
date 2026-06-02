@@ -34,6 +34,9 @@ const merge = read("src/restored/games/singularity-race-dev-online.js");
   "const SNAPSHOT_INTERVAL_MS = 200",
   "const MIN_SNAPSHOT_INTERVAL_MS = 125",
   "const CHAT_COOLDOWN_MS = 900",
+  "const START_PADDOCK_MAX_PROGRESS",
+  "const STAGING_RUN_PROGRESS_PER_SECOND = 1.0",
+  "const STAGING_SPRINT_PROGRESS_PER_SECOND = 2.05",
   "const RUN_PROGRESS_PER_SECOND = 0.58",
   "const SPRINT_PROGRESS_PER_SECOND = 0.76",
   "progressToRestoredMarathonTrailPoint",
@@ -48,6 +51,8 @@ const merge = read("src/restored/games/singularity-race-dev-online.js");
   "scheduleCountdownTimer",
   "scheduleServerTick",
   "advanceRaceTick",
+  "canAdvancePlayerMovement",
+  "isPaddockMovementOpen",
   "recordSessionInput",
   "lastInputPayload",
   "lastInputReceivedAtMs",
@@ -67,7 +72,7 @@ const merge = read("src/restored/games/singularity-race-dev-online.js");
   "entryOpen",
   "validateParticipantJoin",
   "room_join_closed",
-  "entry_closed",
+  "entry_not_open",
   "admin_start_required",
   "start_request",
   "host: false",
@@ -100,6 +105,11 @@ const merge = read("src/restored/games/singularity-race-dev-online.js");
   "CLOUDFLARE_HTTP_ENDPOINT",
   "refreshCloudflarePublicRoomSummary",
   "normalizeCloudflareRoomSummary",
+  "updateCloudflareRoomSummary",
+  "isCloudflarePublicJoinBlocked",
+  "isCloudflareRaceStagingInputOpen",
+  "canPublishConnectedInputRequest",
+  "enterCloudflareRaceStagingIfOpen",
   "getCurrentConnectedRoomSummary",
   'fetch(`${CLOUDFLARE_HTTP_ENDPOINT}/rooms`, { cache: "no-store" })',
   "entryOpen: payload.entryOpen !== false",
@@ -107,6 +117,7 @@ const merge = read("src/restored/games/singularity-race-dev-online.js");
   "공개방 상태 확인 실패",
   "서버 재시도 필요",
   "handleCloudflareRoomPacket",
+  "presence_update",
   "localizeCloudflareSnapshot",
   "sendCloudflareChatMessage",
   "state.cloudflareHost",
@@ -136,6 +147,7 @@ assert.ok(!race.includes('elements.previewButton.textContent = "10초 카운트�
 assert.ok(!race.includes('elements.readyButton.textContent = "10초 카운트다운 시작"'), "player queue primary button must wait for operator start");
 
 assert.ok(!worker.includes("host_start_countdown"), "Worker must use start_request instead of the old host countdown packet");
+assert.ok(!worker.includes('if (room.entryOpen === false) return { ok: false, reason: "entry_closed" };'), "Worker must allow players to join the waiting queue before in-game entry opens");
 assert.ok(!worker.includes("advanceSession(session, packet.payload || {}, now"), "Worker must not advance movement directly when input packets arrive");
 assert.ok(!worker.includes("handlePlayerStartRequest"), "Worker must not allow player-owned public starts");
 assert.ok(!worker.includes('const host = type === "player" && countPlayers(room) === 0'), "Worker must not assign first-player host authority");

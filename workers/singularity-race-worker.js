@@ -20,6 +20,7 @@ const MAX_SPECTATORS = 32;
 const INPUT_LIMIT_PER_SECOND = 10;
 const SERVER_TICK_INTERVAL_MS = 100;
 const INPUT_STALE_MS = 550;
+const SELF_SPEED_MULTIPLIER_CAP = 1.6;
 const SNAPSHOT_INTERVAL_MS = 200;
 const MIN_SNAPSHOT_INTERVAL_MS = 125;
 const CHAT_COOLDOWN_MS = 900;
@@ -29,7 +30,14 @@ const COUNTDOWN_MS = 10000;
 const COURSE_DISTANCE_METERS = 42195;
 const ENTRY_OPEN_DEFAULT = false;
 const START_PROGRESS = 4;
+const RAIL_MIN_PROGRESS = 2.5;
+const START_PADDOCK_MIN_PROGRESS = 2.8;
+const START_GATE_PROGRESS = 7.2;
+const START_GATE_CLEARANCE_PROGRESS = 0.08;
+const START_PADDOCK_MAX_PROGRESS = START_GATE_PROGRESS - START_GATE_CLEARANCE_PROGRESS;
 const START_LANE_HALF_WIDTH_PX = 232;
+const STAGING_RUN_PROGRESS_PER_SECOND = 1.0;
+const STAGING_SPRINT_PROGRESS_PER_SECOND = 2.05;
 const RUN_PROGRESS_PER_SECOND = 0.58;
 const SPRINT_PROGRESS_PER_SECOND = 0.76;
 const LANE_SPEED_PX_PER_SECOND = 122;
@@ -185,7 +193,7 @@ export class SingularityRaceRoom {
     const now = Date.now();
     if (session.participantType !== "player") return send(socket, this.serverPacket("error", { reason: "spectator_input_blocked" }, session));
     if (!acceptInput(session, now)) return send(socket, this.serverPacket("rate_limited", { reason: "input_10hz_limit" }, session));
-    if (this.phase !== "racing" || session.finishedAtMs !== null) {
+    if (!canAdvancePlayerMovement(this) || session.finishedAtMs !== null) {
       updateSessionSequence(session, packet.sequence || packet.payload?.sequence || 0);
       socket.serializeAttachment(session);
       this.sessions.set(session.clientId, session);
@@ -260,7 +268,7 @@ export class SingularityRaceRoom {
       entryOpen: this.entryOpen,
       mapId: this.mapId,
       countdownEndsAtMs: this.countdownEndsAtMs,
-      participants: participantSnapshots(this)
+      participants: participantSnapshots(this, now)
     }));
   }
 
@@ -384,6 +392,7 @@ export class SingularityRaceRoom {
   async handleAdminStart() {
     if (this.phase !== "lobby" && this.phase !== "finished") return json({ ok: false, reason: "room_not_in_lobby", phase: this.phase }, 409);
     if (countPlayers(this) <= 0) return json({ ...roomSummary(this), ok: false, reason: "no_players" }, 409);
+    if (this.entryOpen === false) return json({ ...roomSummary(this), ok: false, reason: "entry_not_open" }, 409);
     await this.startCountdown(Date.now(), { clientId: "admin:public-console" });
     return json({ ...roomSummary(this), ok: true, action: "start" });
   }
@@ -480,7 +489,7 @@ export class SingularityRaceRoom {
   }
 
   scheduleServerTick() {
-    if (this.serverTickTimer || this.phase !== "racing") return;
+    if (this.serverTickTimer || !canAdvancePlayerMovement(this)) return;
     this.serverTickTimer = setTimeout(async () => {
       this.serverTickTimer = null;
       try {
@@ -489,10 +498,10 @@ export class SingularityRaceRoom {
         const phaseChanged = this.refreshPhase(now);
         if (phaseChanged) await this.persistRoomState();
         this.broadcastSnapshot(Boolean(phaseChanged));
-        if (this.phase === "racing" && this.hasFreshRaceInput(Date.now())) this.scheduleServerTick();
+        if (canAdvancePlayerMovement(this) && this.hasFreshRaceInput(Date.now())) this.scheduleServerTick();
       } catch (error) {
         console.error("server_tick_failed", error?.message || error);
-        if (this.phase === "racing") this.scheduleServerTick();
+        if (canAdvancePlayerMovement(this)) this.scheduleServerTick();
       }
     }, SERVER_TICK_INTERVAL_MS);
   }
@@ -504,10 +513,10 @@ export class SingularityRaceRoom {
   }
 
   advanceRaceTick(now) {
-    if (this.phase !== "racing") return false;
+    if (!canAdvancePlayerMovement(this)) return false;
     let advanced = false;
     for (const session of playerSessions(this)) {
-      const moved = advanceSession(session, now, this.phase, this.mapId);
+      const moved = advanceSession(session, now, this.phase, this.mapId, { entryOpen: this.entryOpen });
       advanced = moved || advanced;
       this.sessions.set(session.clientId, session);
     }
@@ -572,6 +581,8 @@ function createSession(room, clientId, options) {
     collisionAtMs: 0,
     obstacleCollisionId: "",
     slowUntilMs: 0,
+    effectKind: "",
+    sizeScale: 1,
     lastInputAtMs: options.now,
     lastInputPayload: null,
     lastInputReceivedAtMs: 0,
@@ -587,7 +598,6 @@ function createSession(room, clientId, options) {
 
 function validateParticipantJoin(room, requestedType) {
   if (room.phase !== "lobby") return { ok: false, reason: "room_join_closed" };
-  if (room.entryOpen === false) return { ok: false, reason: "entry_closed" };
   if (requestedType === "spectator") {
     if (countSpectators(room) >= MAX_SPECTATORS) return { ok: false, reason: "spectator_full" };
     return { ok: true, participantType: "spectator" };
@@ -596,25 +606,31 @@ function validateParticipantJoin(room, requestedType) {
   return { ok: true, participantType: "player" };
 }
 
-function participantSnapshots(room) {
-  return [...room.sessions.values()].map((session) => ({
-    participantId: session.participantId,
-    displayName: session.displayName,
-    type: session.participantType,
-    lane: session.lane,
-    skinPreset: session.skinPreset,
-    host: session.host,
-    progressPercent: round2(session.progressPercent),
-    progressMeters: round2((session.progressPercent / 100) * COURSE_DISTANCE_METERS),
-    laneOffsetPx: round2(session.laneOffsetPx),
-    hp: 100,
-    maxHp: 100,
-    collisionAtMs: session.collisionAtMs || 0,
-    obstacleCollisionId: session.obstacleCollisionId || "",
-    slowUntilMs: session.slowUntilMs || 0,
-    finishedAtMs: session.finishedAtMs,
-    lastSequence: session.lastSequence
-  }));
+function participantSnapshots(room, now = Date.now()) {
+  return [...room.sessions.values()].map((session) => {
+    // 입력이 신선할 때만 효과를 노출한다(정지/이탈 시 거대화·자동차가 고착되지 않게).
+    const effectFresh = Number(session.lastInputReceivedAtMs || 0) > 0 && now - Number(session.lastInputReceivedAtMs || 0) <= INPUT_STALE_MS;
+    return {
+      participantId: session.participantId,
+      displayName: session.displayName,
+      type: session.participantType,
+      lane: session.lane,
+      skinPreset: session.skinPreset,
+      host: session.host,
+      progressPercent: round2(session.progressPercent),
+      progressMeters: round2((session.progressPercent / 100) * COURSE_DISTANCE_METERS),
+      laneOffsetPx: round2(session.laneOffsetPx),
+      hp: 100,
+      maxHp: 100,
+      collisionAtMs: session.collisionAtMs || 0,
+      obstacleCollisionId: session.obstacleCollisionId || "",
+      slowUntilMs: session.slowUntilMs || 0,
+      effectKind: effectFresh ? (session.effectKind || "") : "",
+      sizeScale: effectFresh && Number(session.sizeScale) > 0 ? round3(session.sizeScale) : 1,
+      finishedAtMs: session.finishedAtMs,
+      lastSequence: session.lastSequence
+    };
+  });
 }
 
 function joinPayload(room, session) {
@@ -690,12 +706,28 @@ function normalizeInputPayload(payload = {}) {
     intent: intent && (intent.forward || intent.lateral) ? intent : null,
     direction,
     mode,
-    pace: pace || mode
+    pace: pace || mode,
+    effect: normalizeInputEffect(input.effect)
   };
 }
 
-function advanceSession(session, now, phase, mapId = PUBLIC_MAP_ID) {
-  if (phase !== "racing" || session.finishedAtMs !== null) {
+// 자체 가속 효과(부스터/빨간약/터보카). 클라이언트 보고값을 서버가 안전 범위로 클램프해 권위 적용한다.
+function normalizeInputEffect(effect) {
+  if (!effect || typeof effect !== "object") return null;
+  const rawMultiplier = Number(effect.speedMultiplier);
+  const speedMultiplier = Number.isFinite(rawMultiplier) ? Math.max(1, Math.min(SELF_SPEED_MULTIPLIER_CAP, rawMultiplier)) : 1;
+  const rawScale = Number(effect.sizeScale);
+  const sizeScale = Number.isFinite(rawScale) ? Math.max(1, Math.min(2, rawScale)) : 1;
+  const knockbackImmune = Boolean(effect.knockbackImmune);
+  const kind = cleanText(effect.kind, 16);
+  if (speedMultiplier <= 1 && !knockbackImmune && sizeScale <= 1 && !kind) return null;
+  return { speedMultiplier: round3(speedMultiplier), knockbackImmune, sizeScale: round3(sizeScale), kind };
+}
+
+function advanceSession(session, now, phase, mapId = PUBLIC_MAP_ID, options = {}) {
+  const racing = phase === "racing";
+  const staging = isPaddockMovementOpen(phase, options.entryOpen);
+  if ((!racing && !staging) || session.finishedAtMs !== null) {
     session.lastMovementTickAtMs = now;
     return false;
   }
@@ -710,35 +742,53 @@ function advanceSession(session, now, phase, mapId = PUBLIC_MAP_ID) {
   const progressPercent = Number(session.progressPercent || START_PROGRESS);
   const trailPoint = progressToRestoredMarathonTrailPoint(progressPercent, mapId);
   const movement = resolveSingularityRaceInputMovement(payload, trailPoint);
-  const forwardFactor = Math.max(0, Number(movement.forward || 0));
+  const forwardFactor = racing ? Math.max(0, Number(movement.forward || 0)) : Number(movement.forward || 0);
   const pace = payload.pace || payload.mode;
   const speedScale = calculateRestoredMarathonSpeedScale(trailPoint.tangent);
-  const slowFactor = Number(session.slowUntilMs || 0) > now ? 0.48 : 1;
-  const progressDelta = paceSpeed(pace) * forwardFactor * speedScale * slowFactor * elapsedSeconds;
+  const slowFactor = racing && Number(session.slowUntilMs || 0) > now ? 0.48 : 1;
+  // 자체 가속 효과: 경기 중에만 적용. 클램프는 normalizeInputEffect에서 이미 처리됨.
+  const effect = racing ? payload.effect : null;
+  const effectMultiplier = effect ? Math.max(1, Math.min(SELF_SPEED_MULTIPLIER_CAP, Number(effect.speedMultiplier) || 1)) : 1;
+  const knockbackImmune = Boolean(effect && effect.knockbackImmune);
+  session.effectKind = effect ? (effect.kind || "") : "";
+  session.sizeScale = effect ? (Number(effect.sizeScale) || 1) : 1;
+  const progressDelta = paceSpeed(pace, staging) * forwardFactor * speedScale * slowFactor * effectMultiplier * elapsedSeconds;
   const laneSpeed = pace === "sprint" ? LANE_SPRINT_SPEED_PX_PER_SECOND : LANE_SPEED_PX_PER_SECOND;
+  const minProgress = racing ? RAIL_MIN_PROGRESS : START_PADDOCK_MIN_PROGRESS;
+  const maxProgress = racing ? 100 : START_PADDOCK_MAX_PROGRESS;
   const laneBoundary = resolveSingularityRaceLaneBoundary(
     session.laneOffsetPx,
     Number(movement.lateral || 0) * laneSpeed * elapsedSeconds,
     START_LANE_HALF_WIDTH_PX
   );
+  const intendedProgress = clampNumber(progressPercent + progressDelta, minProgress, maxProgress);
   const obstacle = resolveSingularityRaceObstacleCollision({
-    progress: Math.min(100, progressPercent + progressDelta),
+    progress: intendedProgress,
     laneOffsetPx: laneBoundary.laneOffsetPx,
     collisionAtMs: Number(session.collisionAtMs || 0),
     slowUntilMs: Number(session.slowUntilMs || 0)
   }, {
     mapId,
     laneHalfWidthPx: START_LANE_HALF_WIDTH_PX,
-    maxProgress: 100,
+    minProgress,
+    maxProgress,
     nowMs: now,
-    raceStarted: true
+    raceStarted: racing
   });
-  session.progressPercent = obstacle.runner.progress;
-  session.laneOffsetPx = obstacle.runner.laneOffsetPx;
-  if (obstacle.collided) {
-    session.collisionAtMs = now;
-    session.obstacleCollisionId = obstacle.obstacle.id;
-    session.slowUntilMs = obstacle.runner.slowUntilMs || session.slowUntilMs || 0;
+  // 거대화/자동차 중이거나 부서지는 보상 상자(crate/energy)는 넉백·감속 없이 통과시킨다.
+  // 보상(자동차/에너지) 자체는 클라이언트가 효과로 보고하므로 서버는 통행만 허용한다.
+  const passThrough = knockbackImmune || (obstacle.collided && isBreakableObstacleKind(obstacle.obstacle.kind));
+  if (passThrough) {
+    session.progressPercent = intendedProgress;
+    session.laneOffsetPx = laneBoundary.laneOffsetPx;
+  } else {
+    session.progressPercent = obstacle.runner.progress;
+    session.laneOffsetPx = obstacle.runner.laneOffsetPx;
+    if (obstacle.collided) {
+      session.collisionAtMs = now;
+      session.obstacleCollisionId = obstacle.obstacle.id;
+      session.slowUntilMs = obstacle.runner.slowUntilMs || session.slowUntilMs || 0;
+    }
   }
   if (session.progressPercent >= 100 && session.finishedAtMs === null) session.finishedAtMs = now;
   return session.finishedAtMs !== null
@@ -769,13 +819,19 @@ function acceptChat(session, now) {
   return session.chatCount <= CHAT_BURST_LIMIT ? { ok: true } : { ok: false, reason: "chat_burst_limit" };
 }
 
+function canAdvancePlayerMovement(room) { return room.phase === "racing" || isPaddockMovementOpen(room.phase, room.entryOpen); }
+function isPaddockMovementOpen(phase, entryOpen) { return phase === "countdown" || (phase === "lobby" && entryOpen !== false); }
 function playerSessions(room) { return [...room.sessions.values()].filter((item) => item.participantType === "player"); }
 function countPlayers(room) { return playerSessions(room).length; }
 function countSpectators(room) { return [...room.sessions.values()].filter((item) => item.participantType === "spectator").length; }
 function laneOffsetFor(lane) { return ((lane - 1) / Math.max(1, MAX_RUNNERS - 1) - 0.5) * START_LANE_HALF_WIDTH_PX * 1.8; }
-function paceSpeed(pace) { return pace === "sprint" ? SPRINT_PROGRESS_PER_SECOND : RUN_PROGRESS_PER_SECOND; }
+function paceSpeed(pace, staging = false) {
+  if (staging) return pace === "sprint" ? STAGING_SPRINT_PROGRESS_PER_SECOND : STAGING_RUN_PROGRESS_PER_SECOND;
+  return pace === "sprint" ? SPRINT_PROGRESS_PER_SECOND : RUN_PROGRESS_PER_SECOND;
+}
 function round2(value) { return Math.round(Number(value || 0) * 100) / 100; }
 function round3(value) { return Math.round(Number(value || 0) * 1000) / 1000; }
+function isBreakableObstacleKind(kind) { return kind === "crate" || kind === "energy"; }
 function clampNumber(value, min, max) {
   const number = Number(value);
   if (!Number.isFinite(number)) return 0;

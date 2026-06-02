@@ -33,7 +33,7 @@ Cloudflare Access can replace this later, but v0.1 should keep the token contrac
 Allowed in this first implementation:
 
 - `GET /admin/state`: detailed public room state
-- `POST /admin/open`: return the room to lobby/open-entry state
+- `POST /admin/open`: open in-game entry so queued players move to the start rail
 - `POST /admin/close`: close entry for the current round without deleting the page
 - `POST /admin/start`: request Worker-owned countdown
 - `POST /admin/reset`: reset to lobby and clear active round
@@ -46,8 +46,8 @@ Current implementation slice:
 - Public admin commands use Worker HTTP `/admin/*` endpoints and require `ADMIN_TOKEN`.
 - Public admin state is read from `/admin/state` when a token is present, otherwise from public `/rooms` only.
 - `open`, `close`, and `map` are lobby/finished-only commands. `reset` is the hard recovery command and may disconnect active sockets.
-- Public entry is closed by default and after reset/finish. Admin must click the user-entry/open control before players can join.
-- Players never receive public start authority. Player `start_request`/`start_race` packets are rejected with `admin_start_required`; only authenticated `/admin/start` begins countdown.
+- Public in-game entry is closed by default and after reset/finish. Players may still join the waiting queue while `entryOpen:false`; admin must click the in-game-entry/open control before queued players move to the start rail. Once on the rail, players may move inside the start paddock, but Worker movement remains clamped before the start gate until the admin-owned countdown finishes.
+- Players never receive public start authority. Player `start_request`/`start_race` packets are rejected with `admin_start_required`; only authenticated `/admin/start` begins countdown, and `/admin/start` requires at least one queued player plus `entryOpen:true`.
 - Cloudflare secret setup and deployment are separate from repo code changes; do not put the token in the repository or chat.
 
 Deferred:
@@ -75,9 +75,10 @@ All admin endpoints must:
 State transitions:
 
 ```text
-open/reset -> lobby
+reset -> lobby with in-game entry closed
+open -> lobby with in-game entry open for queued players
 start -> countdown -> racing
-close -> entry closed or lobby closed for joins
+close -> in-game entry closed; queued players stay queued
 map -> lobby-only map change
 ```
 
@@ -101,13 +102,15 @@ The user entry button may show or copy the public user URL, but it must not navi
 1. No token: `/admin/start` returns `401`.
 2. Wrong token: `/admin/start` returns `401`.
 3. Correct token and empty lobby: `/admin/start` returns a server-owned validation error such as `no_players`.
-4. One player joined, correct token: `/admin/start` broadcasts `start_countdown` to the user page.
-5. `/admin/reset` returns the room to lobby and user page reflects lobby.
-6. `/admin/map` changes map in lobby and user page room summary reflects it.
-7. `?devOnline=1` admin still uses the dev local room path.
-8. `?online=cloudflare` admin does not call dev localStorage command publishers.
-9. `npm run check:singularity-race` passes.
-10. Browser test: one user page plus one public admin page see the same room status.
+4. One queued player joined but entry is still closed: `/admin/start` returns `entry_not_open`.
+5. One player joined and `/admin/open` has moved them to the start rail, correct token: player movement is accepted only inside the bounded start paddock.
+6. With at least one start-rail player, correct token: `/admin/start` broadcasts `start_countdown`; after 10 seconds the Worker switches to `racing` and the gate opens from the server-owned time.
+6. `/admin/reset` returns the room to lobby and user page reflects lobby.
+7. `/admin/map` changes map in lobby and user page room summary reflects it.
+8. `?devOnline=1` admin still uses the dev local room path.
+9. `?online=cloudflare` admin does not call dev localStorage command publishers.
+10. `npm run check:singularity-race` passes.
+11. Browser test: one user page plus one public admin page see the same room status.
 
 ## Do Not
 

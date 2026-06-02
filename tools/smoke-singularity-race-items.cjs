@@ -21,12 +21,14 @@ async function main() {
 
   const definitions = itemContract.listSingularityRaceItemDefinitions();
   const boxes = itemContract.createSingularityRaceItemBoxes();
-  assert(definitions.length === 4, "0.1 item set should expose booster, banana, stun-shot, and ink-cloud");
+  assert(definitions.length === 6, "item set should expose booster, banana, stun-shot, ink-cloud, red-pill, turbo-car");
   assert(boxes.length === 15, "track should expose three rows of five item boxes");
   assert(definitions.some((item) => item.itemId === itemContract.SINGULARITY_RACE_ITEM_IDS.BOOSTER), "booster item missing");
   assert(definitions.some((item) => item.itemId === itemContract.SINGULARITY_RACE_ITEM_IDS.BANANA), "banana item missing");
   assert(definitions.some((item) => item.itemId === itemContract.SINGULARITY_RACE_ITEM_IDS.STUN_SHOT), "stun-shot item missing");
   assert(definitions.some((item) => item.itemId === itemContract.SINGULARITY_RACE_ITEM_IDS.INK_CLOUD), "ink-cloud item missing");
+  assert(definitions.some((item) => item.itemId === itemContract.SINGULARITY_RACE_ITEM_IDS.RED_PILL), "red-pill item missing");
+  assert(definitions.some((item) => item.itemId === itemContract.SINGULARITY_RACE_ITEM_IDS.TURBO_CAR), "turbo-car item missing");
   assert(
     boxes.filter((box) => box.sectionIndex === 3).every((box) => box.progress === 90),
     "final item row should stay on the late straight road"

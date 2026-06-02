@@ -1902,7 +1902,7 @@
         elements.lobbyLink.setAttribute("aria-disabled", "false");
         elements.lobbyLink.href = createCloudflarePlayerHref();
         elements.enterButton.disabled = !hasControl || (publicPhase !== "lobby" && publicPhase !== "finished");
-        elements.enterButton.textContent = publicSummary.entryOpen === false ? "유저 입장 열기" : "유저 입장 닫기";
+        elements.enterButton.textContent = publicSummary.entryOpen === false ? "인게임 입장 시작" : "인게임 입장 닫기";
         elements.startButton.disabled = !canStartRaceControl();
         elements.refreshButton.disabled = false;
         elements.addBotsButton.disabled = true;
@@ -1952,7 +1952,7 @@
       if (cloudflareAdminEnabled) {
         const summary = state.cloudflareSummary || getAdminRoomSummaries()[0];
         const phase = summary.phase || "lobby";
-        return hasCloudflareAdminControl() && Number(summary.players || 0) > 0 && (phase === "lobby" || phase === "finished");
+        return hasCloudflareAdminControl() && summary.entryOpen !== false && Number(summary.players || 0) > 0 && (phase === "lobby" || phase === "finished");
       }
       const voteStatus = getRestoredMarathonMapVoteStatus(state.roomPolicy, Date.now());
       return connected && !activeRoomClosed && state.runners.length > 0 && (!voteStatus.active || voteStatus.ended);

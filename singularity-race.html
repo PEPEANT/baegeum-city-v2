@@ -2545,6 +2545,17 @@
     }
 
     .shell[data-screen="race"].race-finished.race-watching-after-finish .race-result-panel {
+      left: 50%;
+      bottom: 18px;
+      width: auto;
+      padding: 0;
+      border: 0;
+      background: transparent;
+      box-shadow: none;
+      backdrop-filter: none;
+    }
+
+    .shell[data-screen="race"].race-finished.race-watching-after-finish .race-result-panel > :not(.race-result-actions) {
       display: none;
     }
 
@@ -3006,6 +3017,42 @@
       box-shadow: none;
     }
 
+    /* 부수면 자동차가 나오는 보상 상자 — 따뜻한 글로우로 픽업임을 알린다. */
+    .race-obstacle.is-crate.is-breakable {
+      box-shadow:
+        0 0 16px rgba(255, 196, 92, 0.55),
+        0 7px 0 rgba(58, 33, 14, 0.4),
+        0 16px 26px rgba(5, 18, 36, 0.26);
+      animation: race-item-box-scan 1.2s ease-in-out infinite alternate;
+    }
+
+    /* 에너지 드링크 — 닿으면 즉시 가속하는 캔 픽업. */
+    .race-obstacle.is-energy {
+      width: 34px;
+      height: 44px;
+      border: 2px solid rgba(140, 255, 196, 0.82);
+      border-radius: 8px;
+      background:
+        linear-gradient(180deg, transparent 0 14%, rgba(255, 255, 255, 0.5) 14% 20%, transparent 20%),
+        linear-gradient(90deg, transparent 0 42%, rgba(255, 255, 255, 0.36) 45% 55%, transparent 58%),
+        linear-gradient(180deg, #19d97f 0 46%, #0a7d4c 46% 100%);
+      box-shadow: 0 0 16px rgba(46, 235, 150, 0.55), 0 10px 18px rgba(5, 36, 22, 0.3);
+      animation: race-item-box-scan 1.05s ease-in-out infinite alternate;
+    }
+
+    .race-obstacle.is-energy::before,
+    .race-obstacle.is-energy::after {
+      content: none;
+    }
+
+    /* 부순 직후 재생성 대기 — 흐릿하게 비활성 표시. */
+    .race-obstacle.is-broken {
+      opacity: 0.28;
+      filter: grayscale(0.7);
+      box-shadow: none;
+      animation: none;
+    }
+
     .race-item-box {
       width: 50px;
       height: 50px;
@@ -3332,6 +3379,78 @@
       box-shadow: 0 0 9px rgba(86, 200, 255, 0.82);
     }
 
+    /* 빨간약(거대화) 캡슐 아이콘 */
+    .race-item-icon.is-red-pill {
+      border-radius: 999px;
+      background: linear-gradient(90deg, #ff5b5b 0 50%, #ffe1e1 50% 100%);
+      box-shadow: 0 0 16px rgba(255, 91, 91, 0.74);
+      overflow: hidden;
+    }
+
+    .race-item-icon.is-red-pill .pill-left {
+      left: 4px;
+      top: 8px;
+      width: 13px;
+      height: 18px;
+      border-radius: 999px 0 0 999px;
+      background: #e23b3b;
+    }
+
+    .race-item-icon.is-red-pill .pill-right {
+      right: 4px;
+      top: 8px;
+      width: 13px;
+      height: 18px;
+      border-radius: 0 999px 999px 0;
+      background: #fff0f0;
+    }
+
+    .race-item-icon.is-red-pill .pill-shine {
+      left: 8px;
+      top: 10px;
+      width: 6px;
+      height: 4px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.78);
+    }
+
+    /* 터보카 아이콘 */
+    .race-item-icon.is-turbo-car {
+      border-radius: 8px;
+      background: linear-gradient(180deg, #7fd2ff 0 44%, #1769c4 45% 100%);
+      box-shadow: 0 0 16px rgba(96, 196, 255, 0.78);
+      overflow: hidden;
+    }
+
+    .race-item-icon.is-turbo-car .car-body {
+      left: 4px;
+      top: 14px;
+      width: 30px;
+      height: 12px;
+      border-radius: 6px 8px 4px 4px;
+      background: #d6391f;
+      box-shadow: inset 0 -3px 0 rgba(120, 24, 10, 0.5);
+    }
+
+    .race-item-icon.is-turbo-car .car-window {
+      left: 9px;
+      top: 8px;
+      width: 16px;
+      height: 9px;
+      border-radius: 5px 7px 0 0;
+      background: #eaf7ff;
+    }
+
+    .race-item-icon.is-turbo-car .car-wheel {
+      left: 7px;
+      bottom: 3px;
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #14202c;
+      box-shadow: 16px 0 0 #14202c;
+    }
+
     .race-item-roulette {
       position: absolute;
       left: 50%;
@@ -3546,10 +3665,21 @@
       border-radius: 50%;
       background: transparent;
       box-shadow: none;
+      --runner-size-scale: 1;
       filter: drop-shadow(0 4px 4px rgba(16, 19, 27, 0.32));
-      transform: translate(-50%, -50%) rotate(var(--track-counter-rotation, 0rad));
-      transition: filter 100ms ease, opacity 120ms ease;
+      transform: translate(-50%, -50%) rotate(var(--track-counter-rotation, 0rad)) scale(var(--runner-size-scale, 1));
+      transition: filter 100ms ease, opacity 120ms ease, transform 160ms ease;
       will-change: left, top, transform;
+    }
+
+    /* 빨간약 거대화 — 붉은 오라. */
+    .runner-avatar.is-growing {
+      filter: drop-shadow(0 0 10px rgba(255, 96, 96, 0.7)) drop-shadow(0 4px 4px rgba(16, 19, 27, 0.32));
+    }
+
+    /* 터보카 탑승 — 푸른 속도 오라. */
+    .runner-avatar.is-riding {
+      filter: drop-shadow(0 0 12px rgba(96, 196, 255, 0.85)) drop-shadow(0 4px 4px rgba(16, 19, 27, 0.32));
     }
 
     .runner-avatar::before {
@@ -5099,6 +5229,14 @@
       SINGULARITY_RACE_ITEM_PICKUP_LANE_RADIUS_PX,
       SINGULARITY_RACE_ITEM_PICKUP_PROGRESS_RADIUS,
       SINGULARITY_RACE_STUN_SHOT_STUN_MS,
+      SINGULARITY_RACE_RED_PILL_DURATION_MS,
+      SINGULARITY_RACE_RED_PILL_SPEED_MULTIPLIER,
+      SINGULARITY_RACE_RED_PILL_SIZE_SCALE,
+      SINGULARITY_RACE_RED_PILL_LANE_DRAG,
+      SINGULARITY_RACE_TURBO_CAR_DURATION_MS,
+      SINGULARITY_RACE_TURBO_CAR_SPEED_MULTIPLIER,
+      SINGULARITY_RACE_TURBO_CAR_SIZE_SCALE,
+      SINGULARITY_RACE_MAX_SELF_SPEED_MULTIPLIER,
       canCollectSingularityRaceItem,
       createSingularityRaceItemBoxState,
       createSingularityRaceItemPickupTrace,
@@ -5191,10 +5329,10 @@
     const CEREMONY_GRACE_MS = 15000;
     const CEREMONY_TRANSFER_DELAY_MS = 1800;
     const CEREMONY_RUNNER_TRANSFER_STAGGER_MS = 650;
-    const CEREMONY_FREE_MOVE_MIN_X = 16;
-    const CEREMONY_FREE_MOVE_MAX_X = 84;
-    const CEREMONY_FREE_MOVE_MIN_Y = 56;
-    const CEREMONY_FREE_MOVE_MAX_Y = 88;
+    const CEREMONY_FREE_MOVE_MIN_X = 8;
+    const CEREMONY_FREE_MOVE_MAX_X = 92;
+    const CEREMONY_FREE_MOVE_MIN_Y = 30;
+    const CEREMONY_FREE_MOVE_MAX_Y = 92;
     const CEREMONY_FREE_MOVE_SPEED_PER_SECOND = 18;
     const CEREMONY_FREE_MOVE_SPRINT_SPEED_PER_SECOND = 25;
     const CEREMONY_TOP_COUNT = 5;
@@ -5210,6 +5348,8 @@
     const ITEM_ROULETTE_RESULT_VISIBLE_MS = 1150;
     const ITEM_ROULETTE_TICK_MS = 90;
     const ITEM_AIM_LOCK_MS = 4200;
+    const BREAKABLE_OBSTACLE_KINDS = new Set(["crate", "energy"]);
+    const BREAKABLE_OBSTACLE_RESPAWN_MS = 12000;
     const RACE_NARRATION_TOTAL_MS = 10400;
     const RACE_NARRATION_TYPE_MS = 42;
     const RACE_NARRATION_ASSETS = Object.freeze({
@@ -5708,6 +5848,8 @@
     let lastTestBotControlCommandId = "";
     let lastNarrationControlCommandId = "";
     let activeJoystickPointerId = null;
+    let joystickOriginX = 0;
+    let joystickOriginY = 0;
     let connectedInputPumpTimer = 0;
     let activePinchZoom = null;
     let raceNarrationFrameId = 0;
@@ -5907,7 +6049,8 @@
     });
 
     elements.raceResultWatch.addEventListener("click", () => {
-      continueWatchingAfterFinish();
+      if (state.action.watchingAfterFinish) returnToCeremonyRoom();
+      else continueWatchingAfterFinish();
     });
 
     elements.raceResultRestart.addEventListener("click", () => {
@@ -6197,14 +6340,18 @@
       state.cloudflareHost = false;
       state.connectedPackets = [packet];
       state.activeChannel = findChannelIdByType("room");
+      const summary = updateCloudflareRoomSummary(payload, { silent: true });
       if (state.participantType === "spectator") setScreen(SINGULARITY_RACE_SCREENS.RACE);
+      else if (summary?.entryOpen !== false && summary?.phase === "lobby") setScreen(SINGULARITY_RACE_SCREENS.RACE);
       else setScreen(source === "button" ? SINGULARITY_RACE_SCREENS.QUEUE : state.screen);
-      pushSystem("Cloudflare 공개방 입장 완료. 관리자 시작을 기다립니다.");
+      pushSystem(state.screen === SINGULARITY_RACE_SCREENS.RACE
+        ? "Cloudflare 공개방 출발선 입장 완료. 관리자 시작을 기다립니다."
+        : "Cloudflare 공개방 대기열 입장 완료. 관리자 입장 시작을 기다립니다.");
       renderAll();
     }
 
     function formatCloudflareJoinFailureReason(reason, phase) {
-      if (reason === "entry_closed") return "관리자가 아직 유저 입장을 열지 않았습니다.";
+      if (reason === "entry_closed") return "관리자가 아직 인게임 입장을 시작하지 않았습니다.";
       if (reason === "room_join_closed") {
         return phase === "countdown" ? "카운트다운 중에는 새 입장이 막혀 있습니다." : "경기 중에는 새 입장이 막혀 있습니다.";
       }
@@ -6224,8 +6371,16 @@
         appendCloudflareMessage(packet.payload?.message);
         return;
       }
+      if (packet.type === "presence_update") {
+        const summary = updateCloudflareRoomSummary(packet.payload?.summary || packet.payload);
+        enterCloudflareRaceStagingIfOpen(summary);
+        renderAll();
+        return;
+      }
       if (packet.type === "state_snapshot") {
+        updateCloudflareRoomSummary(packet.payload, { silent: true });
         const applied = applyConnectedStateSnapshot(localizeCloudflareSnapshot(packet));
+        enterCloudflareRaceStagingIfOpen();
         state.connectedPackets = [...state.connectedPackets, packet].slice(-12);
         if (applied) renderAll();
         else renderConnectedGate();
@@ -6409,10 +6564,7 @@
         const response = await fetch(`${CLOUDFLARE_HTTP_ENDPOINT}/rooms`, { cache: "no-store" });
         const payload = await response.json().catch(() => null);
         if (!response.ok || !payload?.ok) throw new Error(payload?.reason || `rooms_${response.status}`);
-        state.cloudflareRoomSummary = normalizeCloudflareRoomSummary(payload);
-        state.cloudflareRoomStatus = "ok";
-        state.cloudflareRoomLastCheckedAtMs = Date.now();
-        state.mapId = normalizeRestoredMarathonTrailMapId(payload.mapId || payload.course?.mapId || state.mapId);
+        updateCloudflareRoomSummary(payload, { silent: true });
         renderAll();
         return state.cloudflareRoomSummary;
       } catch (error) {
@@ -6429,19 +6581,69 @@
 
     function normalizeCloudflareRoomSummary(payload = {}) {
       const fallback = getConnectedMarathonRoomSummaries(roomAdapter)[0] || {};
+      const participants = Array.isArray(payload.participants) ? payload.participants : [];
       return Object.freeze({
         roomId: payload.roomId || fallback.roomId || CLOUDFLARE_ROOM_ID,
         displayName: payload.displayName || fallback.displayName || "특이점레이스 공개방 001",
         phase: payload.phase || fallback.phase || "lobby",
         authority: fallback.authority,
-        players: Math.max(0, Number(payload.players ?? fallback.players ?? 0)),
+        players: Math.max(0, Number(payload.players ?? (participants.length ? participants.filter(isSnapshotRunnerParticipant).length : fallback.players) ?? 0)),
         maxPlayers: Math.max(1, Number(payload.maxPlayers ?? fallback.maxPlayers ?? MAX_RUNNERS)),
-        spectators: Math.max(0, Number(payload.spectators ?? fallback.spectators ?? 0)),
+        spectators: Math.max(0, Number(payload.spectators ?? (participants.length ? participants.filter((participant) => participant?.type === "spectator" || String(participant?.participantId || "").startsWith("spectator:")).length : fallback.spectators) ?? 0)),
         maxSpectators: Math.max(0, Number(payload.maxSpectators ?? fallback.maxSpectators ?? roomPolicy.maxSpectators)),
         entryOpen: payload.entryOpen !== false,
+        mapId: normalizeRestoredMarathonTrailMapId(payload.mapId || payload.course?.mapId || fallback.mapId || state.mapId),
         mapVersion: fallback.mapVersion,
         protocolVersion: fallback.protocolVersion
       });
+    }
+
+    function updateCloudflareRoomSummary(payload = {}, options = {}) {
+      if (!cloudflareOnlineEnabled || !payload) return state.cloudflareRoomSummary;
+      const summary = normalizeCloudflareRoomSummary(payload);
+      state.cloudflareRoomSummary = summary;
+      state.cloudflareRoomStatus = "ok";
+      state.cloudflareRoomLastCheckedAtMs = Date.now();
+      state.mapId = normalizeRestoredMarathonTrailMapId(payload.mapId || payload.course?.mapId || summary.mapId || state.mapId);
+      if (!options.silent) renderConnectedGate();
+      return summary;
+    }
+
+    function isCloudflarePublicJoinBlocked(gate) {
+      return Boolean(gate && (gate.reason === "countdown" || gate.reason === "racing"));
+    }
+
+    function isCloudflareRaceStagingInputOpen(summary = getCurrentConnectedRoomSummary()) {
+      if (state.connectedSession?.provider !== "cloudflare") return false;
+      if (state.screen !== SINGULARITY_RACE_SCREENS.RACE) return false;
+      if (!summary) return false;
+      return summary.phase === "countdown" || (summary.phase === "lobby" && summary.entryOpen !== false);
+    }
+
+    function canPublishConnectedInputRequest() {
+      if (state.roomClosed || state.participantType === "spectator") return false;
+      if (!state.connectedSession || state.screen !== SINGULARITY_RACE_SCREENS.RACE) return false;
+      if (state.action.raceStarted) return true;
+      return isCloudflareRaceStagingInputOpen();
+    }
+
+    function enterCloudflareRaceStagingIfOpen(summary = getCurrentConnectedRoomSummary()) {
+      if (
+        !cloudflareOnlineEnabled
+        || state.connectedSession?.provider !== "cloudflare"
+        || state.participantType !== "player"
+        || state.screen !== SINGULARITY_RACE_SCREENS.QUEUE
+        || !summary
+        || summary.phase !== "lobby"
+        || summary.entryOpen === false
+      ) {
+        return false;
+      }
+      setScreen(SINGULARITY_RACE_SCREENS.RACE);
+      if (!state.runners.length) state.runners = createRunners(1, state.selectedSkin, false);
+      stopMenuBgm();
+      pushSystem("관리자 입장 시작으로 출발선에 입장했습니다. 관리자 시작을 기다립니다.");
+      return true;
     }
 
     function isSnapshotRunnerParticipant(participant = {}) {
@@ -7004,13 +7206,13 @@
       }
       if (cloudflareOnlineEnabled) {
         const cloudflareGate = getCloudflareEntryGateStatus();
-        if (!cloudflareGate.open) {
-          if (cloudflareGate.reason === "admin_waiting") pushSystem("관리자가 [유저 입장]을 열 때까지 대기 중입니다.");
+        if (isCloudflarePublicJoinBlocked(cloudflareGate)) {
+          if (cloudflareGate.reason === "countdown") pushSystem("카운트다운 중에는 새로 입장할 수 없습니다.");
+          else if (cloudflareGate.reason === "racing") pushSystem("경기 중에는 새로 입장할 수 없습니다.");
           else if (cloudflareGate.reason === "loading" || cloudflareGate.reason === "unknown") {
             pushSystem("Cloudflare 공개방 상태 확인 중입니다. 잠시 후 다시 입장해 주세요.");
             refreshCloudflarePublicRoomSummary("manual");
-          } else if (cloudflareGate.reason === "countdown") pushSystem("카운트다운 중에는 새로 입장할 수 없습니다.");
-          else if (cloudflareGate.reason === "racing") pushSystem("경기 중에는 새로 입장할 수 없습니다.");
+          }
           else pushSystem("Cloudflare 공개방 입장 상태를 확인할 수 없습니다.");
           renderAll();
           return;
@@ -7052,6 +7254,16 @@
       state.action.watchingAfterFinish = true;
       state.raceOptionsOpen = false;
       pushSystem("완주 후 관전 모드로 전환했습니다.");
+      renderAll();
+    }
+
+    function returnToCeremonyRoom() {
+      if (!state.action.finalResult) return;
+      releaseVirtualMoveKeys(false);
+      state.action.watchingAfterFinish = false;
+      state.raceOptionsOpen = false;
+      state.raceQueueOpen = false;
+      pushSystem("순위방으로 돌아왔습니다.");
       renderAll();
     }
 
@@ -7574,6 +7786,11 @@
         itemHazards: [],
         itemProjectiles: [],
         itemBoostUntilMs: 0,
+        itemGrowUntilMs: 0,
+        itemCarUntilMs: 0,
+        brokenObstacles: {},
+        lastBrokenObstacleId: "",
+        lastBrokenObstacleAtMs: 0,
         visionBlockedUntilMs: 0,
         itemSequence: 0,
         itemRoulette: null,
@@ -7619,16 +7836,9 @@
         && !state.roomClosed;
     }
 
-    function isCeremonyLocalPlayerOnPodium(result = state.action.finalResult) {
-      if (!result || result.ceremonyPhase !== "award") return false;
-      const playerRank = Number(result.playerRank || 0);
-      return playerRank >= 1 && playerRank <= CEREMONY_TOP_COUNT;
-    }
-
     function canMoveInCeremonyRoom() {
       return isCeremonyRoomActive()
-        && state.participantType !== "spectator"
-        && !isCeremonyLocalPlayerOnPodium();
+        && state.participantType !== "spectator";
     }
 
     function advanceCeremonyPlayerMovement(frame, elapsedSeconds) {
@@ -7691,16 +7901,12 @@
       state.action.keys[event.code] = true;
       if (!wasPressed) recordMovementInput(event.code);
       if (state.connectedSession) {
-        if (!state.action.raceStarted) {
-          if (event.code === "KeyE" && !event.repeat) renderAll();
-          return;
-        }
         if (event.code === "KeyE" && !event.repeat) {
-          useRaceItem();
+          if (state.action.raceStarted) useRaceItem();
           renderAll();
           return;
         }
-        publishConnectedInputRequest(false);
+        if (canPublishConnectedInputRequest()) publishConnectedInputRequest(false);
         renderAll();
         return;
       }
@@ -7726,7 +7932,7 @@
       const shouldStopMotion = !hasMovementKeyHeld() && (releasedMovementKey || releasedSprintKey);
       if (shouldStopMotion) stopPlayerRunAnimation(Date.now());
       if (state.connectedSession) {
-        if (state.action.raceStarted) publishConnectedInputRequest(false);
+        if (canPublishConnectedInputRequest()) publishConnectedInputRequest(false);
         renderAll();
       } else if (releasedMovementKey || releasedSprintKey) {
         renderActionPreviewFrame(Date.now());
@@ -8067,8 +8273,7 @@
       if (connectedInputPumpTimer) return;
       connectedInputPumpTimer = window.setInterval(() => {
         if (document.hidden || state.screen !== SINGULARITY_RACE_SCREENS.RACE) return;
-        if (!state.connectedSession || !state.action.raceStarted) return;
-        if (state.participantType === "spectator" || state.roomClosed) return;
+        if (!canPublishConnectedInputRequest()) return;
         publishConnectedInputRequest(false);
       }, CONNECTED_INPUT_PUMP_INTERVAL_MS);
     }
@@ -8255,6 +8460,8 @@
       void playRaceSfx("sfx-item-use");
       if (item.itemId === SINGULARITY_RACE_ITEM_IDS.BOOSTER) useBoosterItem(item);
       else if (item.itemId === SINGULARITY_RACE_ITEM_IDS.BANANA) useBananaItem(item);
+      else if (item.itemId === SINGULARITY_RACE_ITEM_IDS.RED_PILL) useRedPillItem(item);
+      else if (item.itemId === SINGULARITY_RACE_ITEM_IDS.TURBO_CAR) useTurboCarItem(item);
       pushLocalItemPacket(item);
       renderAll();
       return true;
@@ -8265,6 +8472,99 @@
       state.action.itemBoostUntilMs = Math.max(Number(state.action.itemBoostUntilMs || 0), now + SINGULARITY_RACE_BOOSTER_DURATION_MS);
       setRaceCue("item", item.label, state.runners[0]?.progress || START_LINE_PROGRESS, "you", { durationMs: 1300 });
       pushSystem("부스터 사용: 잠깐 더 빠르게 달립니다.");
+    }
+
+    function useRedPillItem(item) {
+      const now = Date.now();
+      state.action.itemGrowUntilMs = Math.max(Number(state.action.itemGrowUntilMs || 0), now + SINGULARITY_RACE_RED_PILL_DURATION_MS);
+      setRaceCue("item", item.label, state.runners[0]?.progress || START_LINE_PROGRESS, "you", { durationMs: 1400 });
+      pushSystem("빨간약: 잠깐 거대해집니다. 부딪혀도 밀리지 않고 작은 러너를 밀쳐냅니다.");
+    }
+
+    function useTurboCarItem(item) {
+      grantTurboCar(item?.label || "터보카");
+    }
+
+    // 상자 파괴 보상과 룰렛 아이템이 공유하는 자동차 탑승 효과.
+    function grantTurboCar(label = "터보카") {
+      const now = Date.now();
+      state.action.itemCarUntilMs = Math.max(Number(state.action.itemCarUntilMs || 0), now + SINGULARITY_RACE_TURBO_CAR_DURATION_MS);
+      void playRaceSfx("sfx-item-use");
+      setRaceCue("item", label, state.runners[0]?.progress || START_LINE_PROGRESS, "you", { durationMs: 1500 });
+      pushSystem("자동차 탑승! 몇 초간 충돌 무시하고 크게 가속합니다.");
+    }
+
+    // 부서지는 보상 장애물(상자→자동차, 에너지드링크) 종류 판별 및 처리.
+    function isBreakableRaceObstacle(obstacle) {
+      return Boolean(obstacle) && BREAKABLE_OBSTACLE_KINDS.has(obstacle.kind);
+    }
+
+    function isBrokenObstacleOnCooldown(obstacleId, now = Date.now()) {
+      return Number(state.action.brokenObstacles?.[obstacleId] || 0) > now;
+    }
+
+    function handleBreakableObstacleHit(obstacle) {
+      if (!obstacle) return;
+      const now = Date.now();
+      if (isBrokenObstacleOnCooldown(obstacle.id, now)) return; // 부순 직후 재획득 방지
+      if (!state.action.brokenObstacles) state.action.brokenObstacles = {};
+      state.action.brokenObstacles[obstacle.id] = now + BREAKABLE_OBSTACLE_RESPAWN_MS;
+      state.action.lastBrokenObstacleId = obstacle.id;
+      state.action.lastBrokenObstacleAtMs = now;
+      if (obstacle.kind === "energy") {
+        state.action.itemBoostUntilMs = Math.max(Number(state.action.itemBoostUntilMs || 0), now + SINGULARITY_RACE_BOOSTER_DURATION_MS);
+        void playRaceSfx("sfx-item-pickup");
+        setRaceCue("item", "에너지 드링크", state.runners[0]?.progress || START_LINE_PROGRESS, "you", { durationMs: 1200 });
+        pushSystem("에너지 드링크! 즉시 가속합니다.");
+      } else {
+        grantTurboCar("상자→자동차");
+      }
+    }
+
+    function isItemGrowActive(now = Date.now()) {
+      return Number(state.action.itemGrowUntilMs || 0) > now;
+    }
+
+    function isItemCarActive(now = Date.now()) {
+      return Number(state.action.itemCarUntilMs || 0) > now;
+    }
+
+    // 부스터/빨간약/터보카가 겹칠 때의 자체 전진 속도 배수(가장 큰 효과 채택).
+    function currentSelfSpeedMultiplier(now = Date.now()) {
+      let multiplier = 1;
+      if (Number(state.action.itemBoostUntilMs || 0) > now) multiplier = Math.max(multiplier, SINGULARITY_RACE_BOOSTER_SPEED_MULTIPLIER);
+      if (isItemGrowActive(now)) multiplier = Math.max(multiplier, SINGULARITY_RACE_RED_PILL_SPEED_MULTIPLIER);
+      if (isItemCarActive(now)) multiplier = Math.max(multiplier, SINGULARITY_RACE_TURBO_CAR_SPEED_MULTIPLIER);
+      return Math.min(multiplier, SINGULARITY_RACE_MAX_SELF_SPEED_MULTIPLIER);
+    }
+
+    // 거대화/자동차 중에는 장애물·러너 충돌에 밀리지 않는다.
+    function isSelfKnockbackImmune(now = Date.now()) {
+      return isItemGrowActive(now) || isItemCarActive(now);
+    }
+
+    // 좌우 이동 배수: 거대화 중에는 살짝 둔해진다.
+    function currentSelfLateralMultiplier(now = Date.now()) {
+      return isItemGrowActive(now) ? SINGULARITY_RACE_RED_PILL_LANE_DRAG : 1;
+    }
+
+    // 러너 표시 크기 배수(거대화 > 자동차 순으로 적용).
+    function selfSizeScale(now = Date.now()) {
+      if (isItemGrowActive(now)) return SINGULARITY_RACE_RED_PILL_SIZE_SCALE;
+      if (isItemCarActive(now)) return SINGULARITY_RACE_TURBO_CAR_SIZE_SCALE;
+      return 1;
+    }
+
+    // 서버로 보고할 자체 효과 페이로드(없으면 null → 봉투에서 정규화로 제거).
+    function currentSelfEffectPayload(now = Date.now()) {
+      const speedMultiplier = currentSelfSpeedMultiplier(now);
+      const knockbackImmune = isSelfKnockbackImmune(now);
+      const sizeScale = selfSizeScale(now);
+      const kind = isItemCarActive(now)
+        ? "car"
+        : (isItemGrowActive(now) ? "grow" : (isItemBoostActive(now) ? "boost" : ""));
+      if (speedMultiplier <= 1 && !knockbackImmune && sizeScale <= 1 && !kind) return null;
+      return { speedMultiplier, knockbackImmune, sizeScale, kind };
     }
 
     function useBananaItem(item) {
@@ -8304,13 +8604,20 @@
       const player = state.runners[0];
       if (!player) return false;
       const targetEntry = findAutoRaceItemTarget(item.itemId, player);
+      if (!targetEntry) {
+        // 자동 조준: 사거리 안에 맞출 러너가 없으면 조준 자체를 잡지 않고 아이템을 보존한다.
+        state.action.itemAim = null;
+        void playRaceSfx("sfx-ui-deny");
+        setRaceCue("item", "대상 없음", player.progress || START_LINE_PROGRESS, "you", { durationMs: 1100 });
+        pushSystem(`${item.label}: 조준할 대상이 없습니다. 가까이 붙으면 자동으로 조준됩니다.`);
+        renderAll();
+        return false;
+      }
       const aim = createRaceItemAim(item, player, targetEntry, null, now);
       state.action.itemAim = aim;
       void playRaceSfx("sfx-ui-tap");
       setRaceCue("item", "조준", aim.progress, aim.targetRunnerId || "you", { durationMs: 1400 });
-      pushSystem(aim.targetRunnerId
-        ? `${aim.targetName || "러너"} 조준 완료. 클릭/터치로 바꾸고 E/스킬을 한 번 더 누르면 발사합니다.`
-        : `${item.label} 조준 완료. 클릭/터치로 바꾸고 E/스킬을 한 번 더 누르면 전방으로 발사합니다.`);
+      pushSystem(`${aim.targetName || "러너"} 조준 완료. 클릭/터치로 대상을 바꾸고 E/스킬을 한 번 더 누르면 발사합니다.`);
       renderAll();
       return true;
     }
@@ -8318,11 +8625,27 @@
     function fireAimedRaceItem(item) {
       const aim = state.action.itemAim;
       if (!isRaceItemAimReady(item.itemId)) return startRaceItemAim(item, "auto");
+      const player = state.runners[0];
+      // 발사 직전 대상 재검증: 락 중 대상이 사라지면 가장 가까운 러너로 자동 재조준, 그래도 없으면 보존.
+      let targetEntry = findAimedRunnerEntry(aim);
+      let resolvedAim = aim;
+      if (!targetEntry) {
+        targetEntry = findAutoRaceItemTarget(item.itemId, player);
+        if (!targetEntry) {
+          state.action.itemAim = null;
+          void playRaceSfx("sfx-ui-deny");
+          setRaceCue("item", "대상 없음", player?.progress || START_LINE_PROGRESS, "you", { durationMs: 1100 });
+          pushSystem(`${item.label}: 조준 대상이 사라졌습니다. 아이템은 그대로 유지됩니다.`);
+          renderAll();
+          return false;
+        }
+        resolvedAim = createRaceItemAim(item, player, targetEntry, null, Date.now());
+      }
       state.action.currentItemId = "";
       state.action.itemAim = null;
       void playRaceSfx("sfx-item-use");
-      if (item.itemId === SINGULARITY_RACE_ITEM_IDS.STUN_SHOT) useStunShotItem(item, aim);
-      else if (item.itemId === SINGULARITY_RACE_ITEM_IDS.INK_CLOUD) useInkCloudItem(item, aim);
+      if (item.itemId === SINGULARITY_RACE_ITEM_IDS.STUN_SHOT) useStunShotItem(item, resolvedAim);
+      else if (item.itemId === SINGULARITY_RACE_ITEM_IDS.INK_CLOUD) useInkCloudItem(item, resolvedAim);
       pushLocalItemPacket(item);
       renderAll();
       return true;
@@ -8462,16 +8785,16 @@
       const progress = estimateRestoredMarathonTrailProgressFromPoint(worldPoint.x, worldPoint.y, selectedRaceMapId());
       const laneOffsetPx = estimateLaneOffsetFromTrackPoint(progress, worldPoint);
       const targetEntry = findManualRaceItemTarget(aim.itemId, player, progress, laneOffsetPx);
-      const point = {
-        progress: clampNumber(progress, Math.min(RAIL_MAX_PROGRESS, (Number(player.progress) || START_LINE_PROGRESS) + 0.35), RAIL_MAX_PROGRESS),
-        laneOffsetPx
-      };
-      state.action.itemAim = createRaceItemAim(item, player, targetEntry, point, Date.now());
-      setRaceCue("item", targetEntry ? `조준 ${targetEntry.runner.name || "러너"}` : "조준 위치", state.action.itemAim.progress, targetEntry?.runner?.id || "you", { durationMs: 1200 });
+      if (!targetEntry) {
+        // 클릭/터치 위치에 러너가 없으면 기존 락을 유지한다. 빈 공간으로는 조준하지 않는다.
+        void playRaceSfx("sfx-ui-deny");
+        pushSystem("그 위치엔 조준할 대상이 없습니다. 러너를 직접 가리켜 주세요.");
+        return false;
+      }
+      state.action.itemAim = createRaceItemAim(item, player, targetEntry, null, Date.now());
+      setRaceCue("item", `조준 ${targetEntry.runner.name || "러너"}`, state.action.itemAim.progress, targetEntry.runner.id, { durationMs: 1200 });
       void playRaceSfx("sfx-ui-toggle");
-      pushSystem(targetEntry
-        ? `${targetEntry.runner.name || "러너"}로 조준 변경. E/스킬을 한 번 더 누르면 발사합니다.`
-        : "조준 위치 변경. E/스킬을 한 번 더 누르면 그 지점으로 발사합니다.");
+      pushSystem(`${targetEntry.runner.name || "러너"}로 조준 변경. E/스킬을 한 번 더 누르면 발사합니다.`);
       renderAll();
       return true;
     }
@@ -8962,8 +9285,7 @@
     }
 
     function publishConnectedInputRequest(skillPressed, frameOverride = null) {
-      if (state.roomClosed) return;
-      if (state.participantType === "spectator" || !state.action.raceStarted) return;
+      if (!canPublishConnectedInputRequest()) return;
       const frame = frameOverride || createCurrentPlayerInputFrame({
         skillPressed,
         sequence: state.connectedInputSequence + 1
@@ -8983,6 +9305,7 @@
           mode: frame.mode,
           intent: frame.intent,
           direction: frame.direction,
+          effect: currentSelfEffectPayload(now),
           raceTimeMs: now
         }, createActionPacketOptions()),
         frame.mode
@@ -9171,7 +9494,7 @@
         startLineProgress: START_LINE_PROGRESS,
         roadLaneHalfWidthPx: ROAD_LANE_HALF_WIDTH_PX,
         maxRunners: MAX_RUNNERS,
-        preserveLocalPrediction: Boolean(state.connectedSession && state.action.raceStarted),
+        preserveLocalPrediction: Boolean(state.connectedSession && (state.action.raceStarted || isCloudflareRaceStagingInputOpen())),
         localRunnerId: state.connectedSession?.playerId || "runner:you",
         localPredictionSnapshotCorrection: hasRecentMovementInput() ? 0.04 : 0.12
       });
@@ -9225,16 +9548,15 @@
       if (!player) return false;
       const now = Date.now();
       if (isRunnerStunned(player, now)) return false;
-      const boostMultiplier = now < Number(state.action.itemBoostUntilMs || 0)
-        ? SINGULARITY_RACE_BOOSTER_SPEED_MULTIPLIER
-        : 1;
+      const speedMultiplier = currentSelfSpeedMultiplier(now);
+      const lateralMultiplier = currentSelfLateralMultiplier(now);
       const nextPlayer = advanceSingularityRaceLocalPrediction(player, frame, elapsedSeconds, {
         mapId: selectedRaceMapId(),
         mapDraft: readCurrentRaceMapDraft(),
-        runProgressPerSecond: LOCAL_RUN_PROGRESS_PER_SECOND * boostMultiplier,
-        sprintProgressPerSecond: LOCAL_SPRINT_PROGRESS_PER_SECOND * boostMultiplier,
-        laneSpeedPxPerSecond: LOCAL_LANE_SPEED_PX_PER_SECOND,
-        laneSprintSpeedPxPerSecond: LOCAL_LANE_SPRINT_SPEED_PX_PER_SECOND,
+        runProgressPerSecond: LOCAL_RUN_PROGRESS_PER_SECOND * speedMultiplier,
+        sprintProgressPerSecond: LOCAL_SPRINT_PROGRESS_PER_SECOND * speedMultiplier,
+        laneSpeedPxPerSecond: LOCAL_LANE_SPEED_PX_PER_SECOND * lateralMultiplier,
+        laneSprintSpeedPxPerSecond: LOCAL_LANE_SPRINT_SPEED_PX_PER_SECOND * lateralMultiplier,
         minProgress: RAIL_MIN_PROGRESS,
         maxProgress: RAIL_MAX_PROGRESS,
         laneHalfWidthPx: ROAD_LANE_HALF_WIDTH_PX,
@@ -9243,7 +9565,12 @@
       });
       rememberItemPickupTrace(player.progress, player.laneOffsetPx, nextPlayer.progress, nextPlayer.laneOffsetPx, now);
       state.runners[0] = nextPlayer;
-      if (nextPlayer.obstacleHit) markPlayerObstacleCollision(findRaceObstacleById(nextPlayer.obstacleHitId));
+      // 부서지는 보상 장애물은 넉백 대신 보상으로 처리(자동차/에너지드링크). 그 외만 충돌 표시.
+      if (nextPlayer.obstacleHit) {
+        const hitObstacle = findRaceObstacleById(nextPlayer.obstacleHitId);
+        if (isBreakableRaceObstacle(hitObstacle)) handleBreakableObstacleHit(hitObstacle);
+        else if (!isSelfKnockbackImmune(now)) markPlayerObstacleCollision(hitObstacle);
+      }
       return Math.abs((nextPlayer.progress || 0) - (player.progress || 0)) > 0.0001
         || Math.abs((nextPlayer.laneOffsetPx || 0) - (player.laneOffsetPx || 0)) > 0.05;
     }
@@ -9302,11 +9629,10 @@
       const trailPoint = progressToRestoredMarathonTrailPoint(Number(player.progress) || START_LINE_PROGRESS, selectedRaceMapId());
       const movement = resolveSingularityRaceInputMovement(frame, trailPoint);
       const speedScale = calculateRestoredMarathonSpeedScale(trailPoint.tangent);
-      const boostMultiplier = state.action.raceStarted && Date.now() < Number(state.action.itemBoostUntilMs || 0)
-        ? SINGULARITY_RACE_BOOSTER_SPEED_MULTIPLIER
-        : 1;
-      const forwardAmount = movement.forward * forwardSpeed * boostMultiplier * speedScale * elapsedSeconds;
-      const lateralAmount = movement.lateral * lateralSpeed * elapsedSeconds;
+      const speedMultiplier = state.action.raceStarted ? currentSelfSpeedMultiplier() : 1;
+      const lateralMultiplier = state.action.raceStarted ? currentSelfLateralMultiplier() : 1;
+      const forwardAmount = movement.forward * forwardSpeed * speedMultiplier * speedScale * elapsedSeconds;
+      const lateralAmount = movement.lateral * lateralSpeed * lateralMultiplier * elapsedSeconds;
       const pressure = calculateSoftPassPressure(player.id, player.progress, player.laneOffsetPx || 0);
       const maxProgress = state.action.raceStarted ? RAIL_MAX_PROGRESS : START_PADDOCK_MAX_PROGRESS;
       const minProgress = state.action.raceStarted ? RAIL_MIN_PROGRESS : START_PADDOCK_MIN_PROGRESS;
@@ -9330,15 +9656,23 @@
         nowMs: Date.now(),
         raceStarted: state.action.raceStarted
       });
-      const touching = (pressure.intensity > 0.08 || laneBoundary.touchedBoundary || obstacle.collided) && state.action.raceStarted;
-      rememberItemPickupTrace(player.progress, player.laneOffsetPx, obstacle.runner.progress, obstacle.runner.laneOffsetPx);
+      // 거대화/자동차 중에는 충돌 넉백을 무시한다. 단, 부서지는 상자는 보상으로 처리한다.
+      const immune = state.action.raceStarted && isSelfKnockbackImmune();
+      const breakable = obstacle.collided && isBreakableRaceObstacle(obstacle.obstacle);
+      const blockingHit = obstacle.collided && !immune && !breakable;
+      const resolvedRunner = (immune || breakable)
+        ? { ...player, progress: nextProgress, laneOffsetPx: nextLane }
+        : obstacle.runner;
+      const touching = (pressure.intensity > 0.08 || laneBoundary.touchedBoundary || blockingHit) && state.action.raceStarted;
+      rememberItemPickupTrace(player.progress, player.laneOffsetPx, resolvedRunner.progress, resolvedRunner.laneOffsetPx);
       state.runners[0] = {
-        ...obstacle.runner,
+        ...resolvedRunner,
         laneBoundarySide: laneBoundary.boundarySide,
         laneBoundaryTouched: laneBoundary.touchedBoundary,
         collisionAtMs: touching ? Date.now() : player.collisionAtMs
       };
-      if (obstacle.collided) markPlayerObstacleCollision(obstacle.obstacle);
+      if (breakable) handleBreakableObstacleHit(obstacle.obstacle);
+      else if (blockingHit) markPlayerObstacleCollision(obstacle.obstacle);
       else if (touching) markPlayerRailCollision(laneBoundary.touchedBoundary ? "boundary" : reason);
       return Math.abs(forwardAmount) > 0.0001 || Math.abs(lateralAmount) > 0.05;
     }
@@ -9574,12 +9908,16 @@
       if (state.participantType === "spectator" || (state.action.finalResult && !canMoveInCeremonyRoom()) || state.raceQueueOpen) return;
       event.preventDefault();
       activeJoystickPointerId = event.pointerId;
+      // Floating origin: the exact point the thumb lands becomes the stick center,
+      // so "press anywhere and drag" works regardless of where on the pad you touch.
+      joystickOriginX = event.clientX;
+      joystickOriginY = event.clientY;
       try {
         elements.raceJoystick.setPointerCapture?.(event.pointerId);
       } catch {
         // Synthetic pointer probes and a few desktop browsers can reject capture.
       }
-      updateVirtualJoystick(event);
+      updateJoystickThumb(0, 0);
     }
 
     function moveVirtualJoystick(event) {
@@ -9591,22 +9929,28 @@
     function stopVirtualJoystick(event) {
       if (event?.pointerId !== undefined && activeJoystickPointerId !== event.pointerId) return;
       activeJoystickPointerId = null;
+      joystickOriginX = 0;
+      joystickOriginY = 0;
       state.action.mobileIntent = null;
       setVirtualJoystickKeys(new Set());
       updateJoystickThumb(0, 0);
     }
 
     function updateVirtualJoystick(event) {
-      const rect = elements.raceJoystick.getBoundingClientRect();
-      const centerX = rect.left + (rect.width / 2);
-      const centerY = rect.top + (rect.height / 2);
-      const rawX = event.clientX - centerX;
-      const rawY = event.clientY - centerY;
+      let rawX = event.clientX - joystickOriginX;
+      let rawY = event.clientY - joystickOriginY;
       const distance = Math.hypot(rawX, rawY);
-      const limited = Math.min(JOYSTICK_MAX_RADIUS_PX, distance);
-      const ratio = distance > 0 ? limited / distance : 0;
-      const x = rawX * ratio;
-      const y = rawY * ratio;
+      // If the thumb is dragged past the max radius, slide the origin along so the
+      // stick stays pinned at full deflection and the next drag stays responsive.
+      if (distance > JOYSTICK_MAX_RADIUS_PX) {
+        const pull = (distance - JOYSTICK_MAX_RADIUS_PX) / distance;
+        joystickOriginX += rawX * pull;
+        joystickOriginY += rawY * pull;
+        rawX = event.clientX - joystickOriginX;
+        rawY = event.clientY - joystickOriginY;
+      }
+      const x = rawX;
+      const y = rawY;
       const intent = createMobileRaceIntent(x, y);
       const nextKeys = new Set();
       if (intent?.forward) nextKeys.add("KeyW");
@@ -9617,14 +9961,16 @@
     }
 
     function createMobileRaceIntent(x, y) {
-      const forwardRaw = Math.max(0, -y) / JOYSTICK_MAX_RADIUS_PX;
-      const lateralRaw = x / JOYSTICK_MAX_RADIUS_PX;
-      const forward = Math.abs(y) >= JOYSTICK_DEADZONE_PX
-        ? Math.round(Math.min(1, forwardRaw) * 1000) / 1000
-        : 0;
-      const lateral = Math.abs(x) >= JOYSTICK_DEADZONE_PX
-        ? Math.round(Math.max(-1, Math.min(1, lateralRaw)) * 1000) / 1000
-        : 0;
+      // Radial deadzone: gate on the overall stick distance, then scale the vector
+      // across the usable band. This keeps forward intent on diagonal drags instead
+      // of dropping it whenever the vertical component alone is small.
+      const distance = Math.hypot(x, y);
+      if (distance < JOYSTICK_DEADZONE_PX) return null;
+      const usable = Math.max(1, JOYSTICK_MAX_RADIUS_PX - JOYSTICK_DEADZONE_PX);
+      const magnitude = Math.min(1, (distance - JOYSTICK_DEADZONE_PX) / usable);
+      const scale = magnitude / distance;
+      const forward = Math.round(Math.max(0, -y * scale) * 1000) / 1000;
+      const lateral = Math.round(Math.max(-1, Math.min(1, x * scale)) * 1000) / 1000;
       if (!forward && !lateral) return null;
       return Object.freeze({ forward, lateral });
     }
@@ -9654,7 +10000,7 @@
       if (pressed) recordMovementInput(code);
       const button = elements.virtualMoveButtons.find((node) => node.dataset.key === code);
       button?.classList.toggle("is-held", Boolean(pressed));
-      if (state.connectedSession && state.action.raceStarted) publishConnectedInputRequest(false);
+      if (canPublishConnectedInputRequest()) publishConnectedInputRequest(false);
       if (shouldRender) renderAll();
       return true;
     }
@@ -9668,7 +10014,7 @@
       state.action.keys.ShiftLeft = nextPressed;
       if (!nextPressed && !hasMovementKeyHeld()) stopPlayerRunAnimation(Date.now());
       elements.raceSprintButton.classList.toggle("is-held", nextPressed);
-      if (state.connectedSession && state.action.raceStarted) publishConnectedInputRequest(false);
+      if (canPublishConnectedInputRequest()) publishConnectedInputRequest(false);
       if (shouldRender) renderAll();
       return true;
     }
@@ -9687,7 +10033,7 @@
       updateJoystickThumb(0, 0);
       activeJoystickPointerId = null;
       if (changed || hadMobileIntent) stopPlayerRunAnimation(Date.now());
-      if ((changed || hadMobileIntent) && state.connectedSession && state.action.raceStarted) publishConnectedInputRequest(false);
+      if ((changed || hadMobileIntent) && canPublishConnectedInputRequest()) publishConnectedInputRequest(false);
       if ((changed || hadMobileIntent) && shouldRender) renderAll();
     }
 
@@ -9871,12 +10217,20 @@
       const waitingForOperatorStart = Boolean(state.connectedSession)
         && state.screen === SINGULARITY_RACE_SCREENS.QUEUE
         && !state.action.raceStarted;
-      const cloudflareEntryClosed = cloudflareOnlineEnabled && !state.connectedSession && cloudflareEntryGate && !cloudflareEntryGate.open;
-      if (waitingForOperatorStart) elements.readyButton.textContent = "관리자 시작 대기중";
+      const waitingForAdminRaceEntry = waitingForOperatorStart
+        && state.connectedSession?.provider === "cloudflare"
+        && summary?.entryOpen === false;
+      const cloudflareEntryClosed = cloudflareOnlineEnabled && !state.connectedSession && isCloudflarePublicJoinBlocked(cloudflareEntryGate);
+      if (waitingForAdminRaceEntry) elements.readyButton.textContent = "관리자 입장 대기중";
+      else if (waitingForOperatorStart) elements.readyButton.textContent = "관리자 시작 대기중";
       else if (cloudflareEntryClosed) elements.readyButton.textContent = cloudflareEntryGate.label;
       elements.readyButton.disabled = state.roomClosed || !entryGate.open || Boolean(state.connectedSession) || cloudflareEntryClosed || (devOnlineEnabled && !connectedLobbyOpen);
       elements.spectatorButton.disabled = state.roomClosed || !entryGate.open || Boolean(state.connectedSession) || cloudflareEntryClosed || (devOnlineEnabled && !connectedLobbyOpen);
-      if (cloudflareEntryClosed && !state.roomClosed) {
+      if (waitingForAdminRaceEntry && !state.roomClosed) {
+        elements.roomCode.textContent = "대기열 대기중";
+        elements.notice.textContent = "관리자가 [인게임 입장 시작]을 누르면 출발선으로 이동합니다.";
+      }
+      else if (cloudflareEntryClosed && !state.roomClosed) {
         if (cloudflareEntryGate.reason === "admin_waiting") {
           elements.roomCode.textContent = "관리자 입장 대기";
           elements.notice.textContent = "관리자가 [유저 입장]을 열면 입장할 수 있습니다.";
@@ -10704,6 +11058,11 @@
         const motion = updateRunnerMotionState(runner, point, visualTiming);
         const stunned = isRunnerStunned(runner, visualTiming.now);
         const boosted = runner.id === "you" && isItemBoostActive(visualTiming.now);
+        const growing = runner.id === "you" ? isItemGrowActive(visualTiming.now) : runner.effectKind === "grow";
+        const riding = runner.id === "you" ? isItemCarActive(visualTiming.now) : runner.effectKind === "car";
+        const sizeScale = runner.id === "you"
+          ? selfSizeScale(visualTiming.now)
+          : (Number(runner.sizeScale) > 0 ? Number(runner.sizeScale) : 1);
         const blinded = Number(runner.blindedUntilMs || 0) > visualTiming.now;
         const attacking = runner.id === "you" && Number(state.action.attackVisualUntilMs || 0) > visualTiming.now;
         const impactHit = runner.id === state.action.attackImpactTargetId && Number(state.action.attackImpactUntilMs || 0) > visualTiming.now;
@@ -10725,6 +11084,8 @@
           impactHit ? "is-impact-hit" : "",
           stunned ? "is-stunned" : "",
           boosted ? "is-boosted" : "",
+          growing ? "is-growing" : "",
+          riding ? "is-riding" : "",
           blinded ? "is-blinded" : "",
           colliding ? "is-colliding" : "",
           rewardSkinActive ? "is-reward-skin" : "",
@@ -10744,6 +11105,7 @@
         }
         avatar.style.left = `${point.x}%`;
         avatar.style.top = `${point.y}%`;
+        avatar.style.setProperty("--runner-size-scale", String(sizeScale));
         avatar.style.zIndex = String(4 + Math.round(runner.progress * 10));
         updateSingularityRunnerAvatarNode(avatar, runner, getSingularityRaceSkinDataUrl(runner.skin, "side"), {
           chatBubbleText: getRunnerChatBubbleText(runner.id, visualTiming.now),
@@ -10917,9 +11279,15 @@
     function createRaceObstacleNode(obstacle) {
       const point = raceItemPoint(obstacle.progress, obstacle.laneOffsetPx);
       const node = document.createElement("div");
-      node.className = `race-obstacle is-${obstacle.kind || "barrier"}`;
+      const broken = isBreakableRaceObstacle(obstacle) && isBrokenObstacleOnCooldown(obstacle.id);
+      node.className = [
+        "race-obstacle",
+        `is-${obstacle.kind || "barrier"}`,
+        isBreakableRaceObstacle(obstacle) ? "is-breakable" : "",
+        broken ? "is-broken" : ""
+      ].filter(Boolean).join(" ");
       node.dataset.obstacleId = obstacle.id;
-      node.setAttribute("aria-label", obstacle.label || "Obstacle");
+      node.setAttribute("aria-label", broken ? `${obstacle.label || "Obstacle"} (재생성 중)` : (obstacle.label || "Obstacle"));
       node.style.left = `${point.x}%`;
       node.style.top = `${point.y}%`;
       return node;
@@ -10991,6 +11359,8 @@
       if (item?.itemId === SINGULARITY_RACE_ITEM_IDS.BANANA) return "banana";
       if (item?.itemId === SINGULARITY_RACE_ITEM_IDS.STUN_SHOT) return "stun-shot";
       if (item?.itemId === SINGULARITY_RACE_ITEM_IDS.INK_CLOUD) return "ink";
+      if (item?.itemId === SINGULARITY_RACE_ITEM_IDS.RED_PILL) return "red-pill";
+      if (item?.itemId === SINGULARITY_RACE_ITEM_IDS.TURBO_CAR) return "turbo-car";
       return "box";
     }
 
@@ -11000,7 +11370,9 @@
         booster: ["booster-body", "booster-window", "booster-flame"],
         banana: ["banana-curve", "banana-stem", "banana-tip"],
         "stun-shot": ["stun-core", "stun-bolt"],
-        ink: ["ink-blob-a", "ink-blob-b", "ink-spark"]
+        ink: ["ink-blob-a", "ink-blob-b", "ink-spark"],
+        "red-pill": ["pill-left", "pill-right", "pill-shine"],
+        "turbo-car": ["car-body", "car-window", "car-wheel"]
       };
       return parts[kind] || parts.box;
     }
@@ -11194,6 +11566,8 @@
       if (item?.itemId === SINGULARITY_RACE_ITEM_IDS.BANANA) return "!";
       if (item?.itemId === SINGULARITY_RACE_ITEM_IDS.STUN_SHOT) return "S";
       if (item?.itemId === SINGULARITY_RACE_ITEM_IDS.INK_CLOUD) return "I";
+      if (item?.itemId === SINGULARITY_RACE_ITEM_IDS.RED_PILL) return "R";
+      if (item?.itemId === SINGULARITY_RACE_ITEM_IDS.TURBO_CAR) return "C";
       return "?";
     }
 
@@ -11202,6 +11576,8 @@
       if (item?.itemId === SINGULARITY_RACE_ITEM_IDS.BANANA) return "is-banana";
       if (item?.itemId === SINGULARITY_RACE_ITEM_IDS.STUN_SHOT) return "is-stun-shot";
       if (item?.itemId === SINGULARITY_RACE_ITEM_IDS.INK_CLOUD) return "is-ink";
+      if (item?.itemId === SINGULARITY_RACE_ITEM_IDS.RED_PILL) return "is-red-pill";
+      if (item?.itemId === SINGULARITY_RACE_ITEM_IDS.TURBO_CAR) return "is-turbo-car";
       return "";
     }
 
@@ -11271,6 +11647,7 @@
       if (!result) {
         elements.raceResultTitle.textContent = "완주 완료";
         elements.raceResultCopy.textContent = "최종 기록을 정리하고 있습니다.";
+        elements.raceResultWatch.textContent = "관전 계속";
         elements.raceCeremonySpace.replaceChildren();
         delete elements.raceCeremonySpace.dataset.phase;
         elements.raceCeremonyStatus.textContent = "";
@@ -11281,6 +11658,9 @@
         return;
       }
       elements.raceResultTitle.textContent = result.title;
+      elements.raceResultWatch.textContent = state.action.watchingAfterFinish
+        ? "\uc21c\uc704\ubc29\uc73c\ub85c \ub3cc\uc544\uac00\uae30"
+        : "\uad00\uc804 \uacc4\uc18d";
       const transferRemainingSeconds = Math.max(0, Math.ceil((Number(result.ceremonyTransferAtMs || 0) - Date.now()) / 1000));
       const resultCopy = result.ceremonyPhase === "transfer" && !state.action.ceremonyEnteredAtMs
         ? `잠시 후 시상대 공간으로 이동합니다. ${transferRemainingSeconds > 0 ? `${transferRemainingSeconds}초` : "곧 이동"}`
@@ -11752,7 +12132,7 @@
       const entryGate = getQueueEntryGateStatus();
       const cloudflareEntryGate = getCloudflareEntryGateStatus(summary);
       const cloudflareJoinClosed = cloudflareOnlineEnabled && summary && summary.phase !== "lobby";
-      const cloudflareEntryClosed = cloudflareOnlineEnabled && cloudflareEntryGate && !cloudflareEntryGate.open;
+      const cloudflareEntryClosed = cloudflareOnlineEnabled && isCloudflarePublicJoinBlocked(cloudflareEntryGate);
       const cloudflareUnavailable = cloudflareOnlineEnabled && state.cloudflareRoomStatus === "error" && !state.cloudflareRoomSummary;
       elements.roomRefreshButton.hidden = !(devOnlineEnabled || adminLaunchEnabled || cloudflareOnlineEnabled);
       if (cloudflareOnlineEnabled) {
@@ -11788,6 +12168,11 @@
       }
       if (!entryGate.open) {
         elements.connectedStatus.textContent = `${entryGate.remainingMinutes}분 후 대기열방 입장 가능합니다.`;
+        return;
+      }
+      if (cloudflareOnlineEnabled && cloudflareEntryGate?.reason === "admin_waiting") {
+        elements.connectedStatus.textContent = "대기열 입장 가능. 관리자가 [인게임 입장 시작]을 누르면 출발선으로 이동합니다.";
+        elements.roomCode.textContent = "대기열 입장 가능";
         return;
       }
       if (cloudflareEntryClosed) {

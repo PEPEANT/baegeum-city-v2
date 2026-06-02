@@ -4,7 +4,9 @@ export const SINGULARITY_RACE_ITEM_IDS = Object.freeze({
   BOOSTER: "item:booster",
   BANANA: "item:banana",
   STUN_SHOT: "item:stun-shot",
-  INK_CLOUD: "item:ink-cloud"
+  INK_CLOUD: "item:ink-cloud",
+  RED_PILL: "item:red-pill",
+  TURBO_CAR: "item:turbo-car"
 });
 
 export const SINGULARITY_RACE_ITEM_BOX_RESPAWN_MS = 10000;
@@ -19,11 +21,25 @@ export const SINGULARITY_RACE_INK_SLOW_MS = 520;
 export const SINGULARITY_RACE_ITEM_PICKUP_PROGRESS_RADIUS = 0.72;
 export const SINGULARITY_RACE_ITEM_PICKUP_LANE_RADIUS_PX = 58;
 
+// 빨간약: 잠깐 거대화. 살짝 빨라지고 넉백 면역 + 작은 러너를 밀쳐낸다(조작은 약간 둔해진다).
+export const SINGULARITY_RACE_RED_PILL_DURATION_MS = 4200;
+export const SINGULARITY_RACE_RED_PILL_SPEED_MULTIPLIER = 1.12;
+export const SINGULARITY_RACE_RED_PILL_SIZE_SCALE = 1.55;
+export const SINGULARITY_RACE_RED_PILL_LANE_DRAG = 0.78;
+// 터보카: 상자를 부수거나 아이템으로 획득. 몇 초간 크게 가속 + 충돌/넉백 면역.
+export const SINGULARITY_RACE_TURBO_CAR_DURATION_MS = 3600;
+export const SINGULARITY_RACE_TURBO_CAR_SPEED_MULTIPLIER = 1.55;
+export const SINGULARITY_RACE_TURBO_CAR_SIZE_SCALE = 1.22;
+// 서버가 신뢰할 수 있는 자체 가속 배수 상한(클라이언트 보고값 클램프용).
+export const SINGULARITY_RACE_MAX_SELF_SPEED_MULTIPLIER = 1.6;
+
 const ITEM_DEFINITIONS = Object.freeze([
-  item(SINGULARITY_RACE_ITEM_IDS.BOOSTER, "부스터", "self", 34),
-  item(SINGULARITY_RACE_ITEM_IDS.BANANA, "바나나", "trap", 28),
-  item(SINGULARITY_RACE_ITEM_IDS.STUN_SHOT, "스턴샷", "projectile", 22),
-  item(SINGULARITY_RACE_ITEM_IDS.INK_CLOUD, "먹물탄", "blind", 16)
+  item(SINGULARITY_RACE_ITEM_IDS.BOOSTER, "부스터", "self", 30),
+  item(SINGULARITY_RACE_ITEM_IDS.BANANA, "바나나", "trap", 26),
+  item(SINGULARITY_RACE_ITEM_IDS.STUN_SHOT, "스턴샷", "projectile", 20),
+  item(SINGULARITY_RACE_ITEM_IDS.INK_CLOUD, "먹물탄", "blind", 14),
+  item(SINGULARITY_RACE_ITEM_IDS.RED_PILL, "빨간약", "grow", 14),
+  item(SINGULARITY_RACE_ITEM_IDS.TURBO_CAR, "터보카", "vehicle", 8)
 ]);
 
 const ITEM_BOX_PROGRESS = Object.freeze([18, 48, 90]);
@@ -148,17 +164,23 @@ export function validateSingularityRaceItemContract() {
     traceMaxAgeMs: 650,
     nowMs: 1000
   });
-  if (ITEM_DEFINITIONS.length !== 4) errors.push("0.1 should expose exactly four race items");
+  if (ITEM_DEFINITIONS.length !== 6) errors.push("item set should expose six race items");
   if (boxes.length !== 15) errors.push("item boxes should be 3 rows of 5 boxes");
   if (!boxes.some((box) => box.sectionIndex === 3 && box.progress === 90)) errors.push("final item row should sit on the late straight road");
   if (!picked.has(SINGULARITY_RACE_ITEM_IDS.BOOSTER)) errors.push("booster should be pickable");
   if (!picked.has(SINGULARITY_RACE_ITEM_IDS.BANANA)) errors.push("banana should be pickable");
   if (!picked.has(SINGULARITY_RACE_ITEM_IDS.STUN_SHOT)) errors.push("stun shot should be pickable");
   if (!picked.has(SINGULARITY_RACE_ITEM_IDS.INK_CLOUD)) errors.push("ink cloud should be pickable");
+  if (!picked.has(SINGULARITY_RACE_ITEM_IDS.RED_PILL)) errors.push("red pill should be pickable");
+  if (!picked.has(SINGULARITY_RACE_ITEM_IDS.TURBO_CAR)) errors.push("turbo car should be pickable");
   if (!canCollectSingularityRaceItem({ raceStarted: true, currentItemId: "", participantType: "player" })) errors.push("empty player slot should collect during race");
   if (canCollectSingularityRaceItem({ raceStarted: true, currentItemId: "item:booster", participantType: "player" })) errors.push("filled item slot should not collect another box");
   if (canCollectSingularityRaceItem({ raceStarted: true, currentItemId: "", participantType: "spectator" })) errors.push("spectators should not collect item boxes");
   if (SINGULARITY_RACE_BOOSTER_SPEED_MULTIPLIER < 1.25 || SINGULARITY_RACE_BOOSTER_SPEED_MULTIPLIER > 1.35) errors.push("booster must stay in the 0.1 safe speed range");
+  if (SINGULARITY_RACE_TURBO_CAR_SPEED_MULTIPLIER <= SINGULARITY_RACE_BOOSTER_SPEED_MULTIPLIER) errors.push("turbo car should be clearly faster than the booster");
+  if (SINGULARITY_RACE_TURBO_CAR_SPEED_MULTIPLIER > SINGULARITY_RACE_MAX_SELF_SPEED_MULTIPLIER) errors.push("turbo car must stay within the trusted self-speed cap");
+  if (SINGULARITY_RACE_RED_PILL_SIZE_SCALE <= 1) errors.push("red pill should visibly enlarge the runner");
+  if (SINGULARITY_RACE_RED_PILL_LANE_DRAG <= 0 || SINGULARITY_RACE_RED_PILL_LANE_DRAG >= 1) errors.push("red pill should trade some lateral agility for size");
   if (SINGULARITY_RACE_INK_BLIND_MS < 1200 || SINGULARITY_RACE_INK_BLIND_MS > 2400) errors.push("ink cloud should briefly block vision without lasting too long");
   if (SINGULARITY_RACE_ITEM_PICKUP_PROGRESS_RADIUS < 0.55 || SINGULARITY_RACE_ITEM_PICKUP_PROGRESS_RADIUS > 0.9) errors.push("item pickup progress radius should stay close to the visible box");
   if (SINGULARITY_RACE_ITEM_PICKUP_LANE_RADIUS_PX < 44 || SINGULARITY_RACE_ITEM_PICKUP_LANE_RADIUS_PX > 68) errors.push("item pickup lane radius should stay close to the visible box");
@@ -218,16 +240,8 @@ function hashText(text) {
   return hash >>> 0;
 }
 
-function finiteNumber(value, fallback) {
-  const number = Number(value);
-  return Number.isFinite(number) ? number : fallback;
-}
+function finiteNumber(value, fallback) { const number = Number(value); return Number.isFinite(number) ? number : fallback; }
 
-function positiveNumber(value, fallback) {
-  const number = Number(value);
-  return Number.isFinite(number) && number > 0 ? number : fallback;
-}
+function positiveNumber(value, fallback) { const number = Number(value); return Number.isFinite(number) && number > 0 ? number : fallback; }
 
-function clampNumber(value, min, max) {
-  return Math.max(min, Math.min(max, Number(value) || 0));
-}
+function clampNumber(value, min, max) { return Math.max(min, Math.min(max, Number(value) || 0)); }

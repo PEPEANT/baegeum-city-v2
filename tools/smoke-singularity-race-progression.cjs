@@ -117,8 +117,10 @@ function assertRacePageContracts() {
   assert(pageSource.includes("CEREMONY_RUNNER_TRANSFER_STAGGER_MS"), "ceremony room should move finishers in one by one");
   assert(pageSource.includes("ceremonyTransferAtMs"), "finish result should carry the pending ceremony transfer time");
   assert(pageSource.includes("ceremonyEnteredAtMs"), "finish result should record when this client enters the ceremony room");
-  assert(pageSource.includes("canMoveInCeremonyRoom"), "finishers should be able to move inside the ceremony room before podium lock");
+  assert(pageSource.includes("canMoveInCeremonyRoom"), "finishers should be able to move inside the ceremony room");
+  assert(!pageSource.includes("isCeremonyLocalPlayerOnPodium"), "top-five finishers should not be locked out of ceremony-room movement");
   assert(pageSource.includes("advanceCeremonyPlayerMovement"), "ceremony free movement should use the existing input frame path");
+  assert(pageSource.includes("CEREMONY_FREE_MOVE_MIN_Y = 30"), "ceremony free movement should reach up toward the podium area");
   assert(pageSource.includes("race-ceremony-floor-crowd"), "ceremony room should have a floor area for arrived finishers");
   assert(pageSource.includes("race-ceremony-free-player"), "local finisher should render as a movable ceremony-room runner");
   assert(pageSource.includes("잠시 후 시상대 공간으로 이동합니다"), "finish notice should tell the player they will move to the ceremony room soon");
@@ -132,6 +134,7 @@ function assertRacePageContracts() {
   assert(pageSource.includes("renderRaceCeremonySummary"), "finish result render should keep ceremony summary counts");
   assert(pageSource.includes("race-result-watch"), "finish result layer should let finishers keep watching");
   assert(pageSource.includes("continueWatchingAfterFinish"), "finishers should have a post-finish spectator path");
+  assert(pageSource.includes("returnToCeremonyRoom"), "finishers should be able to return from spectator view to the ceremony room");
   assert(pageSource.includes("race-result-restart"), "finish result layer should expose a restart/return button");
   assert(/\.shell\[data-screen="race"\]\.race-finished \.race-result-panel\s*\{[^}]*pointer-events:\s*auto/s.test(pageSource), "finish result panel must receive pointer events so restart/watch buttons can be clicked");
   assert(pageSource.includes("finalizeRaceResult"), "local and server finishes should share one result finalizer");

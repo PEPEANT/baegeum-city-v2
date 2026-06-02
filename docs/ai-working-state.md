@@ -1,6 +1,24 @@
 # AI Working State
 
 Date: 2026-06-02
+Observed: User summarized the Singularity Race ceremony-room problem: top-five finishers were locked out of movement, the room movement bounds were too narrow, and the post-finish watch button had no path back to the ranking/ceremony room.
+Changed: Updated `singularity-race.html` so all non-spectator finishers can move in the ceremony room during wait and award phases, widened ceremony free movement to `x 8-92` and `y 30-92`, and made the result watch button a two-way toggle between post-finish watching and returning to the ceremony room. The watch-state result panel now keeps only the action buttons visible instead of hiding the whole panel. Also moved breakable-obstacle constants before initial render to fix a current browser startup error, and compacted two already-modified contract files enough to satisfy the repository size gates without changing behavior.
+Verified: `node tools/smoke-singularity-race-progression.cjs`, `node tools/smoke-singularity-race-mobile-race-ui.cjs`, `node tools/smoke-singularity-race-audio.cjs`, `node tools/smoke-singularity-race-items.cjs`, `npm run check:singularity-race`, `node tools/check-restored-growth-architecture.cjs`, and full `npm run check` passed. Browser verification on `http://127.0.0.1:4173/singularity-race.html?resetProfile=1&codex=ceremony-toggle-verify-2` loaded without console errors, and a DOM state probe confirmed post-finish watching leaves the transparent result action buttons visible while hiding the rest of the panel.
+Next: Commit/push/deploy when the current accumulated Singularity Race public-flow and ceremony changes are ready to publish.
+
+Date: 2026-06-02
+Observed: User clarified the intended public start-rail flow: after admin in-game entry opens, users should move from queue into the race screen/start rail, be unable to start the race, still move freely inside the start paddock, be blocked by the front gate, then continue after the admin-owned 10-second countdown opens the gate.
+Changed: Public Cloudflare pre-race movement is now server-owned instead of local-only. The user page can publish connected input while the public room is in lobby `entryOpen:true` or countdown, and the Worker last-intent tick loop advances those players only inside the start paddock (`START_PADDOCK_MIN_PROGRESS` to `START_PADDOCK_MAX_PROGRESS`). Worker snapshots preserve the bounded pre-start position, `/admin/start` still remains the only countdown trigger, and the gate opens only when the Worker phase becomes `racing`.
+Verified: `node --check workers/singularity-race-worker.js`, `node tools/smoke-singularity-race-cloudflare-worker-contract.cjs`, `node tools/smoke-singularity-race-cloudflare-online.cjs`, `npm run check:singularity-race`, `git diff --check`, and full `npm run check` passed. The new Worker contract test verifies lobby start-paddock movement, gate clamping, and countdown clamping.
+Next: Commit/push/deploy the public Worker and Pages so the live links reflect the corrected queue -> start rail -> admin countdown flow.
+
+Date: 2026-06-02
+Observed: User clarified the public admin `입장 시작` meaning: it is not lobby-to-queue entry. It is queue-to-in-game/start-rail entry.
+Changed: Repositioned the public Cloudflare entry gate. `entryOpen:false` no longer blocks Worker WebSocket player joins or client queue entry; queued players can now appear to the admin before in-game entry opens. Admin `/admin/open` now acts as the in-game entry/start-rail signal, and connected queue clients move into the race screen/start rail when they receive `presence_update`/snapshot with `entryOpen:true`. Admin `/admin/start` now requires at least one player and `entryOpen:true`, so countdown cannot skip the in-game entry step. The public admin button label now says `인게임 입장 시작`, and smoke/docs were updated to lock this interpretation.
+Verified: `node tools/smoke-singularity-race-cloudflare-worker-contract.cjs`, `node tools/smoke-singularity-race-cloudflare-online.cjs`, `npm run check:singularity-race`, and `git diff --check` passed after the gate correction.
+Next: Run full `npm run check`, then commit/push/deploy Worker and Pages if accepted.
+
+Date: 2026-06-02
 Observed: User reviewed the deployed/editor screenshot and said the new obstacle visuals were too large.
 Changed: Reduced the race editor obstacle marker sizes and matching in-race obstacle CSS sizes while keeping the barricade, traffic-block, and crate silhouettes. The spectator final position remains `progress: 0.05` and `laneOffsetPx: 0`.
 Verified: `node tools/smoke-singularity-race-map-editor.cjs`, `node tools/smoke-singularity-race-obstacles.cjs`, `npm run check:singularity-race`, `git diff --check`, and full `npm run check` passed. Headless Chrome screenshot verification on the clean map editor profile showed the smaller obstacle markers and the same finalized spectator position.
