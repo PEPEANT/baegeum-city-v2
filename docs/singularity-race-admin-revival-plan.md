@@ -10,7 +10,7 @@ The previous failure was not mainly a UI button bug. The dev admin plane used `l
 
 ## Current Rule
 
-- User page: player entry, player chat, first-player temporary host fallback.
+- User page: player entry, player chat, admin-waiting state, and queue/start-rail waiting only.
 - Public admin page: room status and authenticated Worker commands only.
 - Worker: single authority for phase, entry state, start, reset, map, and room summary.
 - Dev admin: stays local and uses existing `?devOnline=1` localStorage/BroadcastChannel rehearsal.
@@ -46,7 +46,8 @@ Current implementation slice:
 - Public admin commands use Worker HTTP `/admin/*` endpoints and require `ADMIN_TOKEN`.
 - Public admin state is read from `/admin/state` when a token is present, otherwise from public `/rooms` only.
 - `open`, `close`, and `map` are lobby/finished-only commands. `reset` is the hard recovery command and may disconnect active sockets.
-- The first-player host fallback remains available for simple public play if no admin console is used.
+- Public entry is closed by default and after reset/finish. Admin must click the user-entry/open control before players can join.
+- Players never receive public start authority. Player `start_request`/`start_race` packets are rejected with `admin_start_required`; only authenticated `/admin/start` begins countdown.
 - Cloudflare secret setup and deployment are separate from repo code changes; do not put the token in the repository or chat.
 
 Deferred:

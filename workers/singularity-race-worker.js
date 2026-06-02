@@ -18,6 +18,8 @@ const ROOM_NAME = "특이점레이스 공개방 001";
 const MAX_RUNNERS = 50;
 const MAX_SPECTATORS = 32;
 const INPUT_LIMIT_PER_SECOND = 10;
+const SERVER_TICK_INTERVAL_MS = 100;
+const INPUT_STALE_MS = 550;
 const SNAPSHOT_INTERVAL_MS = 200;
 const MIN_SNAPSHOT_INTERVAL_MS = 125;
 const CHAT_COOLDOWN_MS = 900;
@@ -25,6 +27,7 @@ const CHAT_BURST_WINDOW_MS = 10000;
 const CHAT_BURST_LIMIT = 5;
 const COUNTDOWN_MS = 10000;
 const COURSE_DISTANCE_METERS = 42195;
+const ENTRY_OPEN_DEFAULT = false;
 const START_PROGRESS = 4;
 const START_LANE_HALF_WIDTH_PX = 232;
 const RUN_PROGRESS_PER_SECOND = 0.58;
@@ -49,11 +52,12 @@ export class SingularityRaceRoom {
     this.chatHistory = [];
     this.phase = "lobby";
     this.countdownEndsAtMs = 0;
-    this.entryOpen = true;
+    this.entryOpen = ENTRY_OPEN_DEFAULT;
     this.mapId = PUBLIC_MAP_ID;
     this.roomStateLoaded = false;
     this.storageAvailable = true;
     this.countdownTimer = null;
+    this.serverTickTimer = null;
     this.restoreSessions();
   }
 
@@ -78,7 +82,9 @@ export class SingularityRaceRoom {
     if (packet.type === "chat_send") return this.handleChat(socket, session, packet);
     if (packet.type === "input_update") return this.handleInput(socket, session, packet);
     if (packet.type === "attack_action" || packet.type === "skill_use") return this.relayClientAction(session, packet);
-    if (packet.type === "start_request" || packet.type === "start_race") return this.handlePlayerStartRequest(socket, session);
+    if (packet.type === "start_request" || packet.type === "start_race") {
+      return send(socket, this.serverPacket("error", { reason: "admin_start_required" }, session));
+    }
     if (packet.type === "ping") return send(socket, this.serverPacket("pong", { serverTimeMs: Date.now() }));
     send(socket, this.serverPacket("error", { reason: "unsupported_packet", packetType: packet.type || "" }));
   }
@@ -175,15 +181,20 @@ export class SingularityRaceRoom {
     this.broadcast(this.serverPacket("chat_delivered", { message }, session));
   }
 
-  handleInput(socket, session, packet) {
+  async handleInput(socket, session, packet) {
     const now = Date.now();
     if (session.participantType !== "player") return send(socket, this.serverPacket("error", { reason: "spectator_input_blocked" }, session));
     if (!acceptInput(session, now)) return send(socket, this.serverPacket("rate_limited", { reason: "input_10hz_limit" }, session));
-    advanceSession(session, packet.payload || {}, now, this.phase, this.mapId);
-    session.lastSequence = Math.max(session.lastSequence, Number(packet.sequence || packet.payload?.sequence || 0));
+    if (this.phase !== "racing" || session.finishedAtMs !== null) {
+      updateSessionSequence(session, packet.sequence || packet.payload?.sequence || 0);
+      socket.serializeAttachment(session);
+      this.sessions.set(session.clientId, session);
+      return;
+    }
+    recordSessionInput(session, packet.payload || {}, now, packet.sequence || packet.payload?.sequence || 0);
     socket.serializeAttachment(session);
     this.sessions.set(session.clientId, session);
-    this.broadcastSnapshot(false);
+    this.scheduleServerTick();
   }
 
   relayClientAction(session, packet) {
@@ -193,14 +204,6 @@ export class SingularityRaceRoom {
       participantId: session.participantId,
       attackerId: packet.payload?.attackerId || session.participantId
     }, session));
-  }
-
-  async handlePlayerStartRequest(socket, session) {
-    if (!session.host) return send(socket, this.serverPacket("error", { reason: "host_required" }, session));
-    if (this.phase !== "lobby" && this.phase !== "finished") return send(socket, this.serverPacket("error", { reason: "room_not_in_lobby" }, session));
-    if (countPlayers(this) <= 0) return send(socket, this.serverPacket("error", { reason: "no_players" }, session));
-    const now = Date.now();
-    await this.startCountdown(now, session);
   }
 
   async startCountdown(now, session) {
@@ -222,10 +225,11 @@ export class SingularityRaceRoom {
   async resetRoom(reason = "admin_reset_room") {
     this.phase = "lobby";
     this.countdownEndsAtMs = 0;
-    this.entryOpen = true;
+    this.entryOpen = ENTRY_OPEN_DEFAULT;
     this.chatHistory = [];
     await this.persistRoomState();
     await this.safeDeleteAlarm();
+    this.clearServerTick();
     const packet = this.serverPacket("room_reset", { reason, serverOwned: true });
     for (const socket of this.state.getWebSockets()) {
       try {
@@ -297,10 +301,13 @@ export class SingularityRaceRoom {
     if (!session) return;
     this.sessions.delete(session.clientId);
     if (this.sessions.size === 0) {
+      const wasActive = this.phase !== "lobby";
       this.phase = "lobby";
       this.countdownEndsAtMs = 0;
+      if (wasActive) this.entryOpen = ENTRY_OPEN_DEFAULT;
       await this.persistRoomState();
       await this.safeDeleteAlarm();
+      this.clearServerTick();
     }
     this.broadcast(this.serverPacket("disconnect_notice", {
       participantId: session.participantId,
@@ -312,8 +319,21 @@ export class SingularityRaceRoom {
   refreshPhase(now) {
     if (this.phase === "countdown" && this.countdownEndsAtMs > 0 && now >= this.countdownEndsAtMs) {
       this.phase = "racing";
+      for (const session of playerSessions(this)) session.lastMovementTickAtMs = now;
+      this.scheduleServerTick();
       this.broadcast(this.serverPacket("race_started", { gateOpenedAtMs: this.countdownEndsAtMs, serverOwned: true }));
       return true;
+    }
+    if (this.phase === "racing") {
+      const players = playerSessions(this);
+      if (players.length > 0 && players.every((session) => Number(session.finishedAtMs || 0) > 0)) {
+        this.phase = "finished";
+        this.countdownEndsAtMs = 0;
+        this.entryOpen = ENTRY_OPEN_DEFAULT;
+        this.clearServerTick();
+        this.broadcast(this.serverPacket("race_finished", { finishedAtMs: now, serverOwned: true }));
+        return true;
+      }
     }
     return false;
   }
@@ -323,17 +343,18 @@ export class SingularityRaceRoom {
     const stored = await this.safeStorageGet(["phase", "countdownEndsAtMs", "entryOpen", "mapId"]);
     this.phase = sanitizePhase(stored.get("phase"));
     this.countdownEndsAtMs = Number(stored.get("countdownEndsAtMs") || 0);
-    this.entryOpen = stored.has("entryOpen") ? stored.get("entryOpen") !== false : true;
+    this.entryOpen = stored.has("entryOpen") ? stored.get("entryOpen") !== false : ENTRY_OPEN_DEFAULT;
     this.mapId = normalizeRestoredMarathonTrailMapId(stored.get("mapId") || PUBLIC_MAP_ID);
     if (this.sessions.size === 0 && this.phase !== "lobby") {
       this.phase = "lobby";
       this.countdownEndsAtMs = 0;
-      this.entryOpen = true;
+      this.entryOpen = ENTRY_OPEN_DEFAULT;
       await this.persistRoomState();
       await this.safeDeleteAlarm();
     }
     this.roomStateLoaded = true;
     if (this.phase === "countdown" && this.countdownEndsAtMs > Date.now()) this.scheduleCountdownTimer();
+    if (this.phase === "racing") this.scheduleServerTick();
   }
 
   async persistRoomState() {
@@ -458,6 +479,57 @@ export class SingularityRaceRoom {
     }, delayMs);
   }
 
+  scheduleServerTick() {
+    if (this.serverTickTimer || this.phase !== "racing") return;
+    this.serverTickTimer = setTimeout(async () => {
+      this.serverTickTimer = null;
+      try {
+        const now = Date.now();
+        const advanced = this.advanceRaceTick(now);
+        const phaseChanged = this.refreshPhase(now);
+        if (phaseChanged) await this.persistRoomState();
+        this.broadcastSnapshot(Boolean(phaseChanged));
+        if (this.phase === "racing" && this.hasFreshRaceInput(Date.now())) this.scheduleServerTick();
+      } catch (error) {
+        console.error("server_tick_failed", error?.message || error);
+        if (this.phase === "racing") this.scheduleServerTick();
+      }
+    }, SERVER_TICK_INTERVAL_MS);
+  }
+
+  clearServerTick() {
+    if (!this.serverTickTimer) return;
+    clearTimeout(this.serverTickTimer);
+    this.serverTickTimer = null;
+  }
+
+  advanceRaceTick(now) {
+    if (this.phase !== "racing") return false;
+    let advanced = false;
+    for (const session of playerSessions(this)) {
+      const moved = advanceSession(session, now, this.phase, this.mapId);
+      advanced = moved || advanced;
+      this.sessions.set(session.clientId, session);
+    }
+    if (advanced) this.serializeAttachedSessions();
+    return advanced;
+  }
+
+  hasFreshRaceInput(now) {
+    return playerSessions(this).some((session) => (
+      session.finishedAtMs === null
+      && Number(session.lastInputReceivedAtMs || 0) > 0
+      && now - Number(session.lastInputReceivedAtMs || 0) <= INPUT_STALE_MS
+    ));
+  }
+
+  serializeAttachedSessions() {
+    for (const socket of this.state.getWebSockets?.() || []) {
+      const session = this.getSession(socket);
+      if (session?.clientId) socket.serializeAttachment?.(session);
+    }
+  }
+
   restoreSessions() {
     this.sessions = new Map();
     for (const socket of this.state.getWebSockets?.() || []) {
@@ -485,14 +557,13 @@ function roomStub(env) {
 function createSession(room, clientId, options) {
   const type = options.participantType;
   const lane = type === "player" ? countPlayers(room) + 1 : 1;
-  const host = type === "player" && countPlayers(room) === 0;
   return {
     clientId,
     participantId: type === "player" ? `runner:${clientId}` : `spectator:${clientId}`,
     participantType: type,
     displayName: cleanText(options.displayName, 24) || `플레이어${String(lane).padStart(2, "0")}`,
     skinPreset: cleanText(options.skinPreset, 48) || "singularity-fan",
-    host,
+    host: false,
     lane,
     joinedAtMs: options.now,
     progressPercent: START_PROGRESS,
@@ -502,6 +573,9 @@ function createSession(room, clientId, options) {
     obstacleCollisionId: "",
     slowUntilMs: 0,
     lastInputAtMs: options.now,
+    lastInputPayload: null,
+    lastInputReceivedAtMs: 0,
+    lastMovementTickAtMs: options.now,
     lastSequence: 0,
     inputWindowStartedAtMs: options.now,
     inputCount: 0,
@@ -585,13 +659,57 @@ function roomSummary(room) {
   };
 }
 
-function advanceSession(session, payload, now, phase, mapId = PUBLIC_MAP_ID) {
-  const elapsedSeconds = Math.max(0, Math.min(0.4, (now - Number(session.lastInputAtMs || now)) / 1000));
+function recordSessionInput(session, payload, now, sequence) {
+  session.lastInputPayload = normalizeInputPayload(payload);
+  session.lastInputReceivedAtMs = now;
   session.lastInputAtMs = now;
-  if (phase !== "racing" || session.finishedAtMs !== null) return;
+  updateSessionSequence(session, sequence);
+}
+
+function updateSessionSequence(session, sequence) {
+  const nextSequence = Number(sequence || 0);
+  if (!Number.isFinite(nextSequence)) return;
+  session.lastSequence = Math.max(Number(session.lastSequence || 0), nextSequence);
+}
+
+function normalizeInputPayload(payload = {}) {
+  const input = safeObject(payload);
+  const intentInput = safeObject(input.intent);
+  const directionInput = safeObject(input.direction);
+  const intent = input.intent && typeof input.intent === "object" ? {
+    forward: round3(clampNumber(intentInput.forward, 0, 1)),
+    lateral: round3(clampNumber(intentInput.lateral, -1, 1))
+  } : null;
+  const direction = input.direction && typeof input.direction === "object" ? {
+    x: round3(clampNumber(directionInput.x, -1, 1)),
+    y: round3(clampNumber(directionInput.y, -1, 1))
+  } : { x: 0, y: 0 };
+  const mode = cleanText(input.mode, 16);
+  const pace = cleanText(input.pace || mode, 16);
+  return {
+    intent: intent && (intent.forward || intent.lateral) ? intent : null,
+    direction,
+    mode,
+    pace: pace || mode
+  };
+}
+
+function advanceSession(session, now, phase, mapId = PUBLIC_MAP_ID) {
+  if (phase !== "racing" || session.finishedAtMs !== null) {
+    session.lastMovementTickAtMs = now;
+    return false;
+  }
+  const previousProgress = Number(session.progressPercent || START_PROGRESS);
+  const previousLaneOffsetPx = Number(session.laneOffsetPx || 0);
+  const previousCollisionAtMs = Number(session.collisionAtMs || 0);
+  const elapsedSeconds = Math.max(0, Math.min(0.25, (now - Number(session.lastMovementTickAtMs || now)) / 1000));
+  session.lastMovementTickAtMs = now;
+  const inputReceivedAtMs = Number(session.lastInputReceivedAtMs || 0);
+  const payload = inputReceivedAtMs > 0 && now - inputReceivedAtMs <= INPUT_STALE_MS ? session.lastInputPayload : null;
+  if (!payload || elapsedSeconds <= 0) return false;
   const progressPercent = Number(session.progressPercent || START_PROGRESS);
   const trailPoint = progressToRestoredMarathonTrailPoint(progressPercent, mapId);
-  const movement = resolveSingularityRaceInputMovement(payload || {}, trailPoint);
+  const movement = resolveSingularityRaceInputMovement(payload, trailPoint);
   const forwardFactor = Math.max(0, Number(movement.forward || 0));
   const pace = payload.pace || payload.mode;
   const speedScale = calculateRestoredMarathonSpeedScale(trailPoint.tangent);
@@ -623,9 +741,15 @@ function advanceSession(session, payload, now, phase, mapId = PUBLIC_MAP_ID) {
     session.slowUntilMs = obstacle.runner.slowUntilMs || session.slowUntilMs || 0;
   }
   if (session.progressPercent >= 100 && session.finishedAtMs === null) session.finishedAtMs = now;
+  return session.finishedAtMs !== null
+    || Math.abs(Number(session.progressPercent || START_PROGRESS) - previousProgress) > 0.0001
+    || Math.abs(Number(session.laneOffsetPx || 0) - previousLaneOffsetPx) > 0.05
+    || Number(session.collisionAtMs || 0) !== previousCollisionAtMs;
 }
 
 function acceptInput(session, now) {
+  if (!Number.isFinite(Number(session.inputWindowStartedAtMs))) session.inputWindowStartedAtMs = now;
+  if (!Number.isFinite(Number(session.inputCount))) session.inputCount = 0;
   if (now - session.inputWindowStartedAtMs >= 1000) {
     session.inputWindowStartedAtMs = now;
     session.inputCount = 0;
@@ -645,11 +769,18 @@ function acceptChat(session, now) {
   return session.chatCount <= CHAT_BURST_LIMIT ? { ok: true } : { ok: false, reason: "chat_burst_limit" };
 }
 
-function countPlayers(room) { return [...room.sessions.values()].filter((item) => item.participantType === "player").length; }
+function playerSessions(room) { return [...room.sessions.values()].filter((item) => item.participantType === "player"); }
+function countPlayers(room) { return playerSessions(room).length; }
 function countSpectators(room) { return [...room.sessions.values()].filter((item) => item.participantType === "spectator").length; }
 function laneOffsetFor(lane) { return ((lane - 1) / Math.max(1, MAX_RUNNERS - 1) - 0.5) * START_LANE_HALF_WIDTH_PX * 1.8; }
 function paceSpeed(pace) { return pace === "sprint" ? SPRINT_PROGRESS_PER_SECOND : RUN_PROGRESS_PER_SECOND; }
 function round2(value) { return Math.round(Number(value || 0) * 100) / 100; }
+function round3(value) { return Math.round(Number(value || 0) * 1000) / 1000; }
+function clampNumber(value, min, max) {
+  const number = Number(value);
+  if (!Number.isFinite(number)) return 0;
+  return Math.max(min, Math.min(max, number));
+}
 function normalizeClientId(value) { return String(value || "").replace(/[^a-zA-Z0-9:_-]/g, "").slice(0, 80); }
 function cleanText(value, max) { return String(value || "").replace(/\s+/g, " ").trim().slice(0, max); }
 function safeObject(value) { return value && typeof value === "object" ? value : {}; }

@@ -97,9 +97,13 @@ assert(pageSource.includes("--runner-facing-scale"), "runner side sprites should
 assert(pageSource.includes("scheduleActionPreviewLoop()"), "movement loop should start through a scheduler");
 assert(pageSource.includes("window.requestAnimationFrame(advanceActionPreviewLoop)"), "movement loop should use animation frames");
 assert(pageSource.includes("startActionPreviewWatchdog()"), "movement loop should have a watchdog for stalled countdown/race frames");
+assert(pageSource.includes("startConnectedInputPump()"), "connected input should start through a render-independent pump");
+assert(pageSource.includes("CONNECTED_INPUT_PUMP_INTERVAL_MS = 100"), "connected input pump should stay on the 10 Hz budget");
+assert(functionBody("startConnectedInputPump").includes("publishConnectedInputRequest(false)"), "connected input pump should publish held input outside the rAF render loop");
 assert(pageSource.includes("Singularity Race action preview loop failed"), "movement loop should report frame errors without stopping permanently");
 assert(!pageSource.includes("setInterval(advanceActionPreview, 60)"), "movement loop should not be stuck at a 60ms timer");
 assert(loopBody.includes("scheduleActionPreviewLoop()"), "animation loop should reschedule itself");
+assert(!advanceBody.includes("publishConnectedInputRequest(false, frame)"), "hot render loop should not own connected input heartbeat");
 assert(functionBody("startActionPreviewWatchdog").includes("Date.now() - state.action.lastTickMs < 500"), "watchdog should only run when the frame loop stalls");
 assert(advanceBody.includes("renderActionPreviewFrame(now)"), "hot movement loop should use lightweight frame render");
 assert(advanceBody.includes("state.screen !== SINGULARITY_RACE_SCREENS.RACE"), "animation frames should not redraw inactive screens");

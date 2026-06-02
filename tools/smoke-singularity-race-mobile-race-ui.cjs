@@ -64,7 +64,8 @@ assertIncludes("moveVirtualJoystick", "joystick move path should exist");
 assertIncludes("stopVirtualJoystick", "joystick release path should exist");
 assertIncludes("createMobileRaceIntent", "mobile joystick should produce race intent");
 assertIncludes("state.action.mobileIntent", "mobile race intent should be stored outside WASD key emulation");
-assertIncludes("publishConnectedInputRequest(false, frame)", "connected mobile input should heartbeat during held movement");
+assertIncludes("CONNECTED_INPUT_PUMP_INTERVAL_MS = 100", "connected mobile input pump should stay within the 10 Hz budget");
+assertIncludes("startConnectedInputPump", "connected mobile input should use a render-independent pump");
 assertIncludes("setVirtualSprint", "mobile sprint path should exist");
 assertIncludes("focusChatInput", "chat button should focus chat input");
 
@@ -76,7 +77,6 @@ assertExcludes(">A</button>", "mobile A label should not render");
 assertExcludes(">S</button>", "mobile S label should not render");
 assertExcludes(">D</button>", "mobile D label should not render");
 assertExcludes("채팅창 열기", "race screen should not show chat open copy");
-assertExcludes("관리자 대기중", "race screen should not show play waiting copy");
 
 const desktopInputBlock = cssBlock(".shell[data-screen=\"race\"] .race-input-controls");
 assert.ok(desktopInputBlock.includes("display: none"), "PC race input controls should be hidden by default");

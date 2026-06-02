@@ -755,7 +755,7 @@
             <p class="muted" id="entry-delay-note">대기열방 입장 시간</p>
           </div>
           <div class="quick-actions" aria-label="방장 조작">
-            <button class="button" id="admin-enter-button" type="button">입장</button>
+            <button class="button" id="admin-enter-button" type="button">유저 입장</button>
             <button class="button is-primary" id="admin-start-button" type="button">시작</button>
             <button class="button" id="admin-refresh-button" type="button">새로고침</button>
             <button class="button" id="admin-add-bots-button" type="button">봇 넣기</button>
@@ -1254,7 +1254,7 @@
 
     elements.enterButton.addEventListener("click", () => {
       if (cloudflareAdminEnabled) {
-        openCloudflarePublicEntry();
+        toggleCloudflarePublicEntry();
         return;
       }
       if (!connected || activeRoomClosed) {
@@ -1826,6 +1826,22 @@
       render();
     }
 
+    async function toggleCloudflarePublicEntry() {
+      const summary = state.cloudflareSummary || getAdminRoomSummaries()[0] || {};
+      const shouldClose = summary.entryOpen !== false;
+      const action = shouldClose ? "close" : "open";
+      try {
+        const nextSummary = await requestCloudflareAdmin(shouldClose ? "/admin/close" : "/admin/open", { method: "POST" });
+        state.cloudflareSummary = nextSummary;
+        state.cloudflareStatus = action === "close" ? "공개방 유저 입장 닫힘" : "공개방 유저 입장 열림";
+      } catch (error) {
+        state.cloudflareStatus = `${action === "close" ? "입장 닫기" : "입장 열기"} 실패: ${error?.message || "admin_entry_failed"}`;
+      }
+      elements.startStatus.textContent = state.cloudflareStatus;
+      await refreshCloudflareRoomSummary();
+      render();
+    }
+
     async function resetCloudflarePublicRoom(mode = "reset") {
       const path = mode === "close" ? "/admin/close" : mode === "open" ? "/admin/open" : "/admin/reset";
       try {
@@ -1860,6 +1876,7 @@
         roomId: CLOUDFLARE_PUBLIC_ROOM_ID,
         displayName: "특이점레이스 공개방 001",
         phase: "lobby",
+        entryOpen: false,
         players: 0,
         maxPlayers: MAX_RUNNERS,
         spectators: 0,
@@ -1881,8 +1898,8 @@
         elements.directGameLink.href = "#";
         elements.lobbyLink.setAttribute("aria-disabled", "false");
         elements.lobbyLink.href = createCloudflarePlayerHref();
-        elements.enterButton.disabled = !hasControl;
-        elements.enterButton.textContent = publicSummary.entryOpen === false ? "\uc785\uc7a5 \uc5f4\uae30" : "\uc785\uc7a5 \uc5f4\ub9bc";
+        elements.enterButton.disabled = !hasControl || (publicPhase !== "lobby" && publicPhase !== "finished");
+        elements.enterButton.textContent = publicSummary.entryOpen === false ? "유저 입장 열기" : "유저 입장 닫기";
         elements.startButton.disabled = !canStartRaceControl();
         elements.refreshButton.disabled = false;
         elements.addBotsButton.disabled = true;
@@ -1960,7 +1977,7 @@
           action.href = createCloudflarePlayerHref();
           action.target = "_blank";
           action.rel = "noreferrer";
-          action.textContent = "유저 입장";
+          action.textContent = "유저 페이지";
           row.append(title, meta, action);
           return row;
         });

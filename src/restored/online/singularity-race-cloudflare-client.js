@@ -43,11 +43,6 @@ export function createSingularityRaceCloudflareRoomClient(options = {}) {
       })) return false;
       socket.send(JSON.stringify(packet));
       return true;
-    },
-    sendStartRequest() {
-      if (socket?.readyState !== WebSocket.OPEN) return false;
-      socket.send(JSON.stringify({ type: "start_request", roomId: context.roomId, sequence: ++sequence, payload: { roomId: context.roomId } }));
-      return true;
     }
   });
 }
