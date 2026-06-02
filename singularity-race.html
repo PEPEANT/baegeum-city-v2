@@ -5535,6 +5535,7 @@
     const RACE_RANKING_RENDER_INTERVAL_MS = 420;
     const RACE_SLOT_RENDER_INTERVAL_MS = 700;
     const CONNECTED_INPUT_PUMP_INTERVAL_MS = 100;
+    const CLOUDFLARE_ROOM_FETCH_TIMEOUT_MS = 8000;
     const RACE_MAP_DRAFT_CACHE_MS = 650;
     const RACE_REWARD_SKIN_VISUAL_MS = 6500;
     const PLAYER_LATE_START_GRACE_MS = 15000;
@@ -6560,8 +6561,14 @@
       state.cloudflareRoomStatus = "loading";
       state.cloudflareRoomError = "";
       renderConnectedGate();
+      // Abort a hung /rooms request so a cold-starting Worker or a stalled network
+      // turns into a recoverable error instead of pinning the lobby in "loading"
+      // forever (a hung await never reaches finally, so the in-flight guard would
+      // otherwise lock out every later retry).
+      const abort = typeof AbortController === "function" ? new AbortController() : null;
+      const timeoutId = abort ? window.setTimeout(() => abort.abort(), CLOUDFLARE_ROOM_FETCH_TIMEOUT_MS) : 0;
       try {
-        const response = await fetch(`${CLOUDFLARE_HTTP_ENDPOINT}/rooms`, { cache: "no-store" });
+        const response = await fetch(`${CLOUDFLARE_HTTP_ENDPOINT}/rooms`, { cache: "no-store", signal: abort?.signal });
         const payload = await response.json().catch(() => null);
         if (!response.ok || !payload?.ok) throw new Error(payload?.reason || `rooms_${response.status}`);
         updateCloudflareRoomSummary(payload, { silent: true });
@@ -6569,11 +6576,12 @@
         return state.cloudflareRoomSummary;
       } catch (error) {
         state.cloudflareRoomStatus = "error";
-        state.cloudflareRoomError = error?.message || "rooms_unavailable";
+        state.cloudflareRoomError = error?.name === "AbortError" ? "rooms_timeout" : (error?.message || "rooms_unavailable");
         if (reason !== "silent") pushSystem(`Cloudflare 공개방 상태 확인 실패: ${state.cloudflareRoomError}`);
         renderConnectedGate();
         return null;
       } finally {
+        if (timeoutId) window.clearTimeout(timeoutId);
         state.cloudflareRoomFetchInFlight = false;
         renderConnectedGate();
       }
