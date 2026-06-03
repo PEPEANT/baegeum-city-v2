@@ -1,4 +1,5 @@
 import { sampleSmoothTrailPoints } from "./marathon-trail-smoothing.js";
+import { createVisibleMarathonTrailWallPath } from "./marathon-trail-wall-clip.js";
 import { validateRestoredMarathonTrailGeometryContractWith } from "./marathon-trail-geometry-validation.js";
 import {
   RESTORED_MARATHON_DEFAULT_TRAIL_MAP_ID,
@@ -157,10 +158,16 @@ function createRestoredMarathonTrailOffsetSvgPath(offsetPx, steps = 92, mapId = 
   const count = Math.max(36, steps) + 1;
   const normalizedMapId = normalizeRestoredMarathonTrailMapId(mapId);
   const points = Array.from({ length: count }, (_, index) => {
-    const point = progressToRestoredMarathonTrailPoint((index / (count - 1)) * 100, normalizedMapId);
-    return offsetTrailPoint(point, offsetPx);
+    const progress = (index / (count - 1)) * 100;
+    return Object.freeze({ ...offsetTrailPoint(progressToRestoredMarathonTrailPoint(progress, normalizedMapId), offsetPx), progress });
   });
-  return points.map((point, index) => `${index === 0 ? "M" : "L"}${round2(point.x)} ${round2(point.y)}`).join(" ");
+  return createVisibleMarathonTrailWallPath(points, {
+    mapId: normalizedMapId,
+    progressToPoint: (progress) => progressToRestoredMarathonTrailPoint(progress, normalizedMapId),
+    worldWidth: RESTORED_MARATHON_WORLD_WIDTH,
+    worldHeight: RESTORED_MARATHON_WORLD_HEIGHT,
+    round: round2
+  });
 }
 
 function offsetTrailPoint(point, offsetPx) {

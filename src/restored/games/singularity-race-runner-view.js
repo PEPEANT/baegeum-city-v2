@@ -95,15 +95,15 @@ export function updateSingularityRunnerAvatarNode(avatar, runner, skinSrc, optio
     chatBubble.classList.toggle("has-text", Boolean(bubbleText));
   }
   if (rankBadge) {
-    const rankLabel = String(options.rankLabel || "").trim();
-    rankBadge.textContent = rankLabel;
-    rankBadge.title = rankLabel;
-    rankBadge.hidden = !rankLabel;
+    rankBadge.textContent = "";
+    rankBadge.title = "";
+    rankBadge.hidden = true;
   }
   if (health) health.title = `Health ${Math.round(hp)} / ${Math.round(maxHp)}`;
   if (nameplate) {
-    nameplate.textContent = runner.name;
-    nameplate.title = runner.name;
+    const nameLabel = String(options.nameLabel || runner.name || "").trim();
+    nameplate.textContent = nameLabel;
+    nameplate.title = nameLabel;
   }
 }
 
@@ -193,6 +193,9 @@ export function validateSingularityRaceRunnerViewContract() {
     updateSingularityRunnerAvatarNode(avatar, { id: "runner:test", name: "Test", hp: 25, maxHp: 100 }, "");
     if (!avatar.querySelector(".runner-health-bar")) errors.push("runner avatar should expose an overhead health bar");
     if (!avatar.querySelector(".runner-ride-vehicle")) errors.push("runner avatar should expose a turbo-car riding layer");
+    if (avatar.querySelector(".runner-rank-badge")?.hidden !== true) errors.push("runner rank badge should stay hidden; rank belongs in the nameplate");
+    updateSingularityRunnerAvatarNode(avatar, { id: "runner:test", name: "Test", hp: 25, maxHp: 100 }, "", { nameLabel: "Test #1" });
+    if (avatar.querySelector(".runner-nameplate")?.textContent !== "Test #1") errors.push("runner nameplate should accept rank-decorated labels");
     if (!avatar.classList.contains("is-low-health")) errors.push("low-health runners should get a visible health class");
   }
   return Object.freeze({ ok: errors.length === 0, errors: Object.freeze(errors) });

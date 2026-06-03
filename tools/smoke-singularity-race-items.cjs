@@ -82,6 +82,9 @@ async function main() {
     "raceItemSlots",
     "addRaceItemSlot",
     "consumeRaceItemId",
+    "peekRaceUtilityItemId",
+    "hasHeldRaceUtilityItem",
+    "hasHeldSwordItem",
     "currentItemCount",
     "itemSlotLimit",
     "itemRoulette",
@@ -107,6 +110,10 @@ async function main() {
     "useStunShotItem",
     "useInkCloudItem",
     "useSwordItem",
+    "useSwordItem(swordItem, { consume: true, pushPacket: true })",
+    "Sword pickup: basic attack is now a sword slash.",
+    "Sword is used with the basic attack button.",
+    "공격<span>SWORD</span>",
     "SWORD_PICKUP_POINTS",
     "SWORD_PICKUP_RESPAWN_MS",
     "SWORD_ATTACK_RANGE_PROGRESS",
@@ -169,6 +176,17 @@ async function main() {
   ]) {
     assert(html.includes(token), `singularity-race.html missing item token: ${token}`);
   }
+
+  assert(!html.includes("E로 칼 베기"), "sword pickup must not tell players to use E");
+  assert(!html.includes("else if (item.itemId === SINGULARITY_RACE_ITEM_IDS.SWORD) useSwordItem(item);"), "sword should not be routed through the E/item-use path");
+  assert(
+    html.includes("if (hasHeldRaceUtilityItem()) return useRaceItem();"),
+    "E should prefer non-sword utility items before reward skills"
+  );
+  assert(
+    html.includes("const currentItem = getSingularityRaceItemDefinition(peekRaceUtilityItemId());"),
+    "mobile item button should ignore sword so basic attack owns sword use"
+  );
 
   assert(packageJson.scripts.check.includes("smoke-singularity-race-items.cjs"), "npm run check should include the item smoke");
   console.log("singularity race item smoke passed");

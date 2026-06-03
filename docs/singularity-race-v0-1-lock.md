@@ -56,6 +56,10 @@ The minimum complete loop is:
 
 ## Future Expansion Protection
 
+Movement authority decision: the current mobile joystick symptom, where upward input can still follow the race direction or stick to the dotted lane wall, is structural evidence of the live `progress + laneOffsetPx` authority model. It is not only a mobile-control bug. In v0.1, tune it as corridor-race comfort. For the reusable Baegeum City PvP/arena engine, `{ x, y, vx, vy }` must be authoritative and `progress` must be derived for ranking, destination, finish, and spectator UI only.
+
+Implementation gate: this decision is recorded, but the live game is not migrated yet. Do not start a client-only x/y patch. A real migration must move the client, Worker session authority, snapshots, prediction/reconciliation, combat, pickups, checkpoints, finish logic, and ranking together. Until that staged migration exists, v0.1 remains corridor-race tuning.
+
 This lock does not reject future expansion. It keeps the path open by avoiding premature abstraction.
 
 Important naming decision: `특이점레이스` is the public/event title, not the reusable engine definition. The future reusable combat/race engine should be treated as a destination-based 2D PvP arena: free top-view `{ x, y, vx, vy }` is authority, while `progress`, destination distance, finish rate, and ranking are derived from position. Do not extract the current progress/lane rail coordinate system as the Baegeum City reusable PvP engine.

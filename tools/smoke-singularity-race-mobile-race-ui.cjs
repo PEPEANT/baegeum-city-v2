@@ -59,6 +59,11 @@ assertIncludes("id=\"race-options-fullscreen\"", "gear panel should expose fulls
 assertIncludes("id=\"race-options-chat\"", "gear panel should expose chat focus");
 assertIncludes("id=\"race-options-queue\"", "gear panel should expose queue");
 assertIncludes("id=\"race-about-panel\"", "settings/about panel should exist");
+assertIncludes("id=\"race-watch-controls\"", "spectator watch camera controls should exist");
+assertIncludes("id=\"race-watch-prev\"", "spectator watch camera should expose previous runner");
+assertIncludes("id=\"race-watch-next\"", "spectator watch camera should expose next runner");
+assertIncludes("watchTargetRunnerId", "spectators and finishers should share a selected watch target");
+assertIncludes("cycleWatchTargetRunner", "watch camera controls should cycle runner targets");
 assertIncludes("RACE_FULLSCREEN_LOCK_STORAGE_KEY", "fullscreen lock preference should be persisted");
 assertIncludes("maybeRequestRaceFullscreen", "fullscreen lock should request fullscreen from user gestures");
 assertIncludes("toggleRaceFullscreenLock", "fullscreen lock should be user-toggleable");
@@ -69,7 +74,10 @@ assertIncludes("startVirtualJoystick", "joystick pointer path should exist");
 assertIncludes("moveVirtualJoystick", "joystick move path should exist");
 assertIncludes("stopVirtualJoystick", "joystick release path should exist");
 assertIncludes("createMobileRaceIntent", "mobile joystick should produce race intent");
+assertIncludes("createMobileRaceDirection", "mobile joystick should produce screen-direction movement");
 assertIncludes("state.action.mobileIntent", "mobile race intent should be stored outside WASD key emulation");
+assertIncludes("state.action.mobileDirection", "mobile race direction should avoid direct progress/lane intent");
+assertIncludes("direction: state.action.mobileDirection || undefined", "mobile input frame should prefer screen direction over race intent");
 assertIncludes("CONNECTED_INPUT_PUMP_INTERVAL_MS = 100", "connected mobile input pump should stay within the 10 Hz budget");
 assertIncludes("startConnectedInputPump", "connected mobile input should use a render-independent pump");
 assertIncludes("setVirtualSprint", "mobile sprint path should exist");
@@ -96,9 +104,30 @@ assert.ok(
 assert.ok(mobileBlock.includes(".race-sprint-button"), "mobile media query should size sprint button");
 assert.ok(mobileBlock.includes(".shell[data-screen=\"race\"] .chat-panel"), "mobile media query should protect chat position");
 assert.ok(
-  mobileBlock.includes("top: 10px")
-    && mobileBlock.includes("width: min(258px, calc(100vw - 138px))"),
-  "mobile chat log should move to the upper-left without covering the right controls"
+  mobileBlock.includes(".shell[data-screen=\"queue\"] .chat-panel")
+    && mobileBlock.includes("height: clamp(184px, calc(100dvh - 176px), 360px)")
+    && mobileBlock.includes("min-height: 0"),
+  "mobile queue chat should fit portrait and landscape without bottom clipping"
+);
+assertIncludes("queue-skin-toggle", "queue room should expose a skin collapse toggle");
+assertIncludes("queueSkinPanelOpen: false", "queue skin panel should start collapsed");
+assert.ok(
+  mobileBlock.includes("top: 8px")
+    && mobileBlock.includes("width: min(196px, calc(100vw - 108px))")
+    && mobileBlock.includes("height: 78px"),
+  "mobile chat log should be compact in the upper-left without covering the field"
+);
+assert.ok(
+  mobileBlock.includes(".shell[data-screen=\"race\"].race-chat-closed .race-chat-open-button")
+    && mobileBlock.includes("display: inline-grid !important")
+    && source.includes(">CHAT</button>"),
+  "mobile closed chat should leave only a small CHAT chip"
+);
+assert.ok(
+  mobileBlock.includes(".shell[data-screen=\"race\"] .race-chat-close-button")
+    && mobileBlock.includes("display: inline-grid !important")
+    && mobileBlock.includes("width: 22px"),
+  "mobile open chat should expose a tiny close button"
 );
 assert.ok(
   mobileBlock.includes(".shell[data-screen=\"race\"] .race-standings")
@@ -113,29 +142,29 @@ assert.ok(
   "mobile race should keep a compact minimap visible without covering controls"
 );
 assert.ok(
-  mobileBlock.includes(".shell[data-screen=\"race\"] .runner-rank-badge:not([hidden])")
-    && mobileBlock.includes("display: grid"),
-  "mobile race should show rank badges over runners"
+  !mobileBlock.includes(".shell[data-screen=\"race\"] .runner-rank-badge:not([hidden])"),
+  "mobile race should not stack rank badges above runner health/name UI"
 );
 assert.ok(
   mobileBlock.includes("#race-chat-action-button")
-    && mobileBlock.includes("top: 12px")
-    && mobileBlock.includes("right: 12px"),
+    && mobileBlock.includes("top: 8px")
+    && mobileBlock.includes("right: 8px")
+    && mobileBlock.includes("width: 40px"),
   "mobile chat input button should sit at the top-right"
 );
 assert.ok(
   mobileBlock.includes("#race-attack-button")
-    && mobileBlock.includes("width: 86px")
-    && mobileBlock.includes("height: 86px")
-    && mobileBlock.includes("bottom: 24px"),
-  "mobile attack button should be larger and lower"
+    && mobileBlock.includes("width: 70px")
+    && mobileBlock.includes("height: 70px")
+    && mobileBlock.includes("bottom: 18px"),
+  "mobile attack button should be compact and low"
 );
 assert.ok(
   mobileBlock.includes(".race-sprint-button")
-    && mobileBlock.includes("width: 78px")
-    && mobileBlock.includes("height: 78px")
+    && mobileBlock.includes("width: 58px")
+    && mobileBlock.includes("height: 58px")
     && mobileBlock.includes("border-radius: 50%"),
-  "mobile sprint should be a larger circular button"
+  "mobile sprint should be a compact circular button"
 );
 
 const chatBlock = cssBlock(".shell[data-screen=\"race\"] .chat-panel");
@@ -143,9 +172,16 @@ assert.ok(chatBlock.includes("position: fixed"), "race chat should be a fixed ov
 assert.ok(chatBlock.includes("bottom: 16px"), "desktop race chat should stay near the lower-left");
 assertIncludes("race-chat-composing", "race chat composer should only open on demand");
 assertIncludes(":not(.race-chat-composing) .chat-panel .chat-form", "race chat form should stay hidden until T/chat click");
-assertIncludes("runner-rank-badge", "runner avatars should expose mobile rank badges");
+assertIncludes("createRunnerNameplateLabel", "runner rank should be folded into the nameplate label");
+assertIncludes("has-visible-health", "runner health bars should stay hidden until damage makes them relevant");
 assertIncludes("race-ceremony-free", "mobile controls should be able to reappear for ceremony-room free movement");
 assertIncludes("race-finished:not(.race-ceremony-free) .race-input-controls", "finish should hide mobile movement controls except in the ceremony room free-move phase");
+assertIncludes("race-finished.race-watching-after-finish .race-input-controls", "post-finish watching should keep the mobile control layer available for chat");
+assertIncludes("race-finished.race-watching-after-finish #race-chat-action-button", "post-finish watching should keep the mobile chat action visible");
+assertIncludes(".shell[data-screen=\"race\"].is-spectator #race-chat-action-button", "spectator mode should keep the chat action visible");
+assertIncludes(".shell[data-screen=\"race\"].race-watch-camera .race-watch-controls:not([hidden])", "watch camera mode should show previous/next controls");
+assertIncludes(".shell.is-spectator .race-joystick-stack", "spectator mode should hide movement controls without hiding chat");
+assertExcludes(".shell.is-spectator .race-input-controls {\n      display: none;", "spectator mode should not hide the whole input layer");
 assertIncludes("race-finished.race-ceremony-free:not(.race-watching-after-finish) .race-result-panel", "mobile watch/restart actions should move above ceremony free-move controls");
 assertIncludes("canMoveInCeremonyRoom", "mobile joystick should share the ceremony-room movement gate");
 

@@ -151,12 +151,12 @@ assert.ok(!/location\.(href|assign|replace)\s*=/.test(indexSource), "launcher sh
   '.profile-hero .scene-layer[data-layer="podium"]',
   'id="nickname-input"',
   'id="profile-start-button"',
-  'id="race-loading-overlay"',
+  'id="race-loading-overlay" role="status" aria-live="polite">',
   'url("./assets/singularity-race/loading.png")',
   "race-loading-bar-fill",
   "withRaceLoadingOverlay", "RACE_LAUNCHER_LOADING_MIN_MS",
   ".shell[data-screen=\"queue\"] .track-panel .panel-header",
-  ".shell[data-screen=\"queue\"] .skin-panel",
+  ".shell[data-screen=\"queue\"] .skin-panel", "queue-skin-toggle", "queueSkinPanelOpen: false", "toggleQueueSkinPanel", "queue-skin-expanded",
   "대기열방 스킨 변경",
   "대기열방에서도 출발 전 스킨을 바꿀 수 있습니다.",
   "getVisibleQueueRunners",
@@ -172,7 +172,7 @@ assert.ok(!/location\.(href|assign|replace)\s*=/.test(indexSource), "launcher sh
   "--accent-strong: #168dff",
   "@keyframes ui-press-pop",
   "특별출연: 지피쨩",
-  "race-mobile-controls"
+  "race-mobile-controls", "race-watch-controls", "watchTargetRunnerId", "cycleWatchTargetRunner"
 ].forEach((token) => assertIncludes(raceSource, token, `race page should keep ${token}`));
 
 [

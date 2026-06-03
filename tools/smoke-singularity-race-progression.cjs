@@ -134,6 +134,9 @@ function assertRacePageContracts() {
   assert(pageSource.includes("renderRaceCeremonySummary"), "finish result render should keep ceremony summary counts");
   assert(pageSource.includes("race-result-watch"), "finish result layer should let finishers keep watching");
   assert(pageSource.includes("continueWatchingAfterFinish"), "finishers should have a post-finish spectator path");
+  ["watchTargetRunnerId", "listWatchableRunners", "cycleWatchTargetRunner", "race-watch-prev", "race-watch-next", "getWatchAfterFinishRunner"]
+    .forEach((token) => assert(pageSource.includes(token), `watch camera should keep ${token}`));
+  assert(pageSource.includes("state.action.watchingAfterFinish = playerFinished && !raceFinished && !previousResult"), "first local/server finish should auto-enter post-finish watching while the finish window is active");
   assert(pageSource.includes("returnToCeremonyRoom"), "finishers should be able to return from spectator view to the ceremony room");
   assert(pageSource.includes("race-result-restart"), "finish result layer should expose a restart/return button");
   assert(/\.shell\[data-screen="race"\]\.race-finished \.race-result-panel\s*\{[^}]*pointer-events:\s*auto/s.test(pageSource), "finish result panel must receive pointer events so restart/watch buttons can be clicked");

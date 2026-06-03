@@ -165,6 +165,32 @@
       min-height: 0;
     }
 
+    .shell[data-screen="queue"]:not(.queue-skin-expanded) .skin-panel .panel-body {
+      display: none;
+    }
+
+    .shell[data-screen="queue"]:not(.queue-skin-expanded) .skin-panel {
+      min-height: 0;
+    }
+
+    .queue-skin-toggle {
+      min-height: 34px;
+      padding: 0 12px;
+      border: 1px solid rgba(86, 200, 255, 0.4);
+      border-radius: 8px;
+      background: rgba(86, 200, 255, 0.13);
+      color: var(--cyan);
+      font-size: 12px;
+      font-weight: 900;
+      white-space: nowrap;
+    }
+
+    .queue-skin-toggle[aria-expanded="true"] {
+      border-color: rgba(52, 232, 122, 0.6);
+      background: rgba(52, 232, 122, 0.16);
+      color: #9fffc2;
+    }
+
     .shell[data-screen="queue"] .skin-grid {
       grid-template-columns: repeat(6, minmax(0, 1fr));
       max-height: 326px;
@@ -535,7 +561,11 @@
       display: none;
     }
 
-    .shell.is-spectator .race-input-controls {
+    .shell.is-spectator .race-joystick-stack,
+    .shell.is-spectator .race-sprint-button,
+    .shell.is-spectator #race-attack-button,
+    .shell.is-spectator #race-reward-skill-button,
+    .shell.is-spectator #race-skill-button {
       display: none;
     }
 
@@ -1557,6 +1587,8 @@
     }
 
     .connected-gate button:disabled,
+    .primary:disabled,
+    .secondary:disabled,
     .ghost:disabled {
       cursor: not-allowed;
       opacity: 0.45;
@@ -2844,6 +2876,29 @@
       display: none;
     }
 
+    .shell[data-screen="race"]:not(.race-room-closed).is-spectator .race-input-controls,
+    .shell[data-screen="race"]:not(.race-room-closed).race-finished.race-watching-after-finish .race-input-controls {
+      position: fixed;
+      inset: auto 0 22px 0;
+      z-index: 250;
+      display: block;
+      pointer-events: none;
+    }
+
+    .shell[data-screen="race"].race-finished.race-watching-after-finish .race-joystick-stack,
+    .shell[data-screen="race"].race-finished.race-watching-after-finish .race-sprint-button,
+    .shell[data-screen="race"].race-finished.race-watching-after-finish #race-attack-button,
+    .shell[data-screen="race"].race-finished.race-watching-after-finish #race-reward-skill-button,
+    .shell[data-screen="race"].race-finished.race-watching-after-finish #race-skill-button {
+      display: none;
+    }
+
+    .shell[data-screen="race"].is-spectator #race-chat-action-button,
+    .shell[data-screen="race"].race-finished.race-watching-after-finish #race-chat-action-button {
+      display: grid;
+      pointer-events: auto;
+    }
+
     .race-result-panel strong,
     .race-result-panel span,
     .race-room-closed-panel strong,
@@ -3011,6 +3066,69 @@
       font-weight: 950;
       cursor: pointer;
       box-shadow: 0 8px 16px rgba(16, 19, 27, 0.18);
+    }
+
+    .race-watch-controls {
+      position: fixed;
+      left: 50%;
+      bottom: 18px;
+      z-index: 255;
+      display: none;
+      align-items: center;
+      max-width: min(460px, calc(100vw - 24px));
+      gap: 6px;
+      transform: translateX(-50%);
+      pointer-events: auto;
+    }
+
+    .shell[data-screen="race"].race-watch-camera .race-watch-controls:not([hidden]) {
+      display: flex;
+    }
+
+    .shell[data-screen="race"].race-finished.race-watching-after-finish .race-watch-controls {
+      bottom: 62px;
+    }
+
+    .shell[data-screen="race"].race-room-closed .race-watch-controls,
+    .shell.is-admin-observer .race-watch-controls {
+      display: none !important;
+    }
+
+    .race-watch-controls button {
+      min-width: 74px;
+      min-height: 34px;
+      border: 1px solid rgba(74, 91, 84, 0.16);
+      border-radius: 8px;
+      padding: 0 10px;
+      background: rgba(255, 255, 252, 0.96);
+      color: #17231e;
+      font-size: 11px;
+      font-weight: 950;
+      cursor: pointer;
+      box-shadow: 0 10px 24px rgba(16, 19, 27, 0.16);
+    }
+
+    .race-watch-controls button:disabled {
+      cursor: not-allowed;
+      opacity: 0.5;
+    }
+
+    .race-watch-label {
+      overflow: hidden;
+      min-width: 128px;
+      max-width: min(220px, 42vw);
+      border: 1px solid rgba(74, 91, 84, 0.14);
+      border-radius: 8px;
+      padding: 8px 10px;
+      background: rgba(29, 43, 37, 0.88);
+      color: #f8fff9;
+      font-size: 11px;
+      font-weight: 950;
+      text-align: center;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      box-shadow: 0 10px 24px rgba(16, 19, 27, 0.18);
+      backdrop-filter: blur(10px);
     }
 
     .race-minimap {
@@ -4612,7 +4730,16 @@
       background: rgba(16, 19, 27, 0.68);
       transform: translateX(-50%);
       pointer-events: none;
+      opacity: 0;
+      visibility: hidden;
       z-index: 4;
+      transition: opacity 140ms ease, visibility 140ms ease;
+    }
+
+    .runner-avatar.has-visible-health .runner-health,
+    .runner-avatar.is-downed .runner-health {
+      opacity: 1;
+      visibility: visible;
     }
 
     .runner-health-bar {
@@ -5225,7 +5352,8 @@
       .shell[data-screen="queue"] .chat-panel {
         grid-column: 1;
         grid-row: 2;
-        min-height: 360px;
+        height: clamp(184px, calc(100dvh - 176px), 360px);
+        min-height: 0;
       }
 
       .shell[data-screen="queue"] .skin-panel {
@@ -5234,9 +5362,57 @@
         min-height: 0;
       }
 
+      .shell[data-screen="queue"] .skin-panel .panel-header {
+        align-items: center;
+        padding: 7px 9px;
+      }
+
+      .shell[data-screen="queue"] .skin-panel .panel-header p {
+        display: none;
+      }
+
+      .shell[data-screen="queue"] .skin-panel .panel-header h2 {
+        font-size: 13px;
+      }
+
+      .shell[data-screen="queue"] .queue-skin-toggle {
+        min-height: 26px;
+        padding: 0 8px;
+        font-size: 10px;
+      }
+
+      .shell[data-screen="queue"] .chat-panel .messages {
+        min-height: 0;
+        max-height: none;
+      }
+
       .shell[data-screen="queue"] .skin-grid {
         grid-template-columns: repeat(4, minmax(0, 1fr));
-        max-height: 300px;
+        max-height: 244px;
+        gap: 4px;
+      }
+
+      .shell[data-screen="queue"] .skin-card {
+        min-height: 42px;
+        padding: 4px 4px;
+      }
+
+      .shell[data-screen="queue"] .skin-card img {
+        width: 28px;
+        height: 28px;
+        margin-bottom: 2px;
+      }
+
+      .shell[data-screen="queue"] .skin-card b {
+        font-size: 10px;
+        line-height: 1.08;
+      }
+
+      .shell[data-screen="queue"] .skin-card[aria-pressed="true"]::after {
+        top: 3px;
+        right: 3px;
+        padding: 2px 4px;
+        font-size: 8px;
       }
 
       .shell[data-screen="queue"] .track-panel {
@@ -5308,19 +5484,64 @@
       }
 
       .shell[data-screen="race"] .chat-panel {
-        left: 10px;
-        top: 10px;
+        left: 8px;
+        top: 8px;
         bottom: auto;
-        width: min(258px, calc(100vw - 138px));
-        height: 126px;
+        width: min(196px, calc(100vw - 108px));
+        height: 78px;
       }
 
       .shell[data-screen="race"].race-chat-composing .chat-panel {
-        height: 168px;
+        height: 118px;
       }
 
       .shell[data-screen="race"] .chat-panel .messages {
-        font-size: 12px;
+        gap: 3px;
+        padding: 1px 2px 3px 0;
+        font-size: 10px;
+        line-height: 1.18;
+      }
+
+      .shell[data-screen="race"] .message {
+        min-width: 62px;
+        max-width: calc(100% - 10px);
+        padding: 5px 6px;
+        font-size: 10px;
+        line-height: 1.18;
+      }
+
+      .shell[data-screen="race"] .race-chat-close-button {
+        top: 3px;
+        right: 3px;
+        display: inline-grid !important;
+        width: 22px;
+        height: 22px;
+        place-items: center;
+        font-size: 14px;
+      }
+
+      .shell[data-screen="race"].race-chat-closed .race-chat-open-button {
+        left: 8px;
+        top: 8px;
+        bottom: auto;
+        display: inline-grid !important;
+        min-height: 26px;
+        padding: 0 8px;
+        font-size: 10px;
+        place-items: center;
+        box-shadow: 0 6px 16px rgba(16, 19, 27, 0.14);
+      }
+
+      .shell[data-screen="race"] .chat-panel .chat-form {
+        grid-template-columns: 1fr 42px;
+        gap: 4px;
+        padding-left: 5px;
+      }
+
+      .shell[data-screen="race"] .chat-form input,
+      .shell[data-screen="race"] .chat-form button {
+        min-height: 28px;
+        font-size: 11px;
       }
 
       .shell[data-screen="race"] .race-standings {
@@ -5339,35 +5560,31 @@
         box-shadow: 0 10px 24px rgba(0, 9, 22, 0.28);
       }
 
-      .shell[data-screen="race"] .runner-rank-badge:not([hidden]) {
-        display: grid;
-      }
-
       .shell[data-screen="race"] .runner-chat-bubble {
         bottom: calc(100% + 26px);
       }
 
       .shell[data-screen="race"] .race-options-button {
-        top: 12px;
-        right: 72px;
-        width: 48px;
-        height: 48px;
+        top: 8px;
+        right: 54px;
+        width: 40px;
+        height: 40px;
       }
 
       .race-options-panel {
-        top: 66px;
-        right: 72px;
+        top: 52px;
+        right: 54px;
       }
 
       .shell[data-screen="race"] .race-mobile-controls {
-        left: 10px;
-        top: 238px;
-        width: 112px;
+        left: 8px;
+        top: 176px;
+        width: 88px;
       }
 
       .shell[data-screen="race"] .race-item-roulette {
-        bottom: 226px;
-        width: min(238px, calc(100vw - 144px));
+        bottom: 178px;
+        width: min(210px, calc(100vw - 112px));
       }
 
       .shell[data-screen="race"] .race-narration {
@@ -5398,31 +5615,77 @@
         pointer-events: none;
       }
 
+      .shell[data-screen="race"].race-finished.race-watching-after-finish .race-input-controls {
+        display: block;
+      }
+
+      .shell[data-screen="race"].race-finished.race-watching-after-finish .race-joystick-stack,
+      .shell[data-screen="race"].race-finished.race-watching-after-finish .race-sprint-button,
+      .shell[data-screen="race"].race-finished.race-watching-after-finish #race-attack-button,
+      .shell[data-screen="race"].race-finished.race-watching-after-finish #race-reward-skill-button,
+      .shell[data-screen="race"].race-finished.race-watching-after-finish #race-skill-button {
+        display: none;
+      }
+
+      .shell[data-screen="race"].race-finished.race-watching-after-finish #race-chat-action-button {
+        display: grid;
+        pointer-events: auto;
+      }
+
+      .shell[data-screen="race"].is-spectator #race-chat-action-button {
+        display: grid;
+        pointer-events: auto;
+      }
+
+      .shell[data-screen="race"].race-finished.race-watching-after-finish .race-watch-controls {
+        bottom: 70px;
+      }
+
+      .race-watch-controls {
+        bottom: 18px;
+        max-width: calc(100vw - 16px);
+        gap: 4px;
+      }
+
+      .race-watch-controls button {
+        min-width: 62px;
+        min-height: 32px;
+        padding: 0 8px;
+        font-size: 10px;
+      }
+
+      .race-watch-label {
+        min-width: 104px;
+        max-width: 38vw;
+        padding: 7px 8px;
+        font-size: 10px;
+      }
+
       .shell[data-screen="race"].race-finished.race-ceremony-free:not(.race-watching-after-finish) .race-result-panel {
         bottom: 252px;
       }
 
       .race-dpad {
-        left: 12px;
-        width: 124px;
-        height: 124px;
+        left: 8px;
+        width: 102px;
+        height: 102px;
       }
 
       .race-dpad-core {
-        width: 42px;
-        height: 42px;
+        width: 34px;
+        height: 34px;
       }
 
       .race-sprint-button {
-        left: 22px;
-        bottom: 138px;
+        left: 18px;
+        bottom: 112px;
         display: grid;
-        width: 78px;
-        height: 78px;
-        min-height: 78px;
+        width: 58px;
+        height: 58px;
+        min-height: 58px;
         place-items: center;
         border-radius: 50%;
-        font-size: 13px;
+        font-size: 10px;
         line-height: 1.05;
       }
 
@@ -5440,35 +5703,40 @@
       }
 
       #race-attack-button {
-        right: 14px;
-        bottom: 24px;
-        width: 86px;
-        height: 86px;
-        font-size: 15px;
+        right: 10px;
+        bottom: 18px;
+        width: 70px;
+        height: 70px;
+        font-size: 13px;
       }
 
       #race-reward-skill-button {
-        right: 18px;
-        bottom: 124px;
-        width: 68px;
-        height: 68px;
-        font-size: 12px;
+        right: 14px;
+        bottom: 96px;
+        width: 54px;
+        height: 54px;
+        font-size: 10px;
       }
 
       #race-skill-button {
-        right: 92px;
-        bottom: 84px;
-        width: 58px;
-        height: 58px;
-        font-size: 11px;
+        right: 72px;
+        bottom: 66px;
+        width: 48px;
+        height: 48px;
+        font-size: 9px;
       }
 
       #race-chat-action-button {
-        top: 12px;
-        right: 12px;
-        width: 50px;
-        height: 50px;
-        font-size: 11px;
+        top: 8px;
+        right: 8px;
+        width: 40px;
+        height: 40px;
+        font-size: 10px;
+      }
+
+      .race-action-button span {
+        margin-top: 1px;
+        font-size: 8px;
       }
     }
 
@@ -5793,7 +6061,7 @@
       </form>
     </section>
 
-    <div class="race-loading-overlay" id="race-loading-overlay" role="status" aria-live="polite" hidden>
+    <div class="race-loading-overlay" id="race-loading-overlay" role="status" aria-live="polite">
       <div class="race-loading-panel">
         <div class="race-loading-copy-row">
           <strong id="race-loading-title">입장 준비 중</strong>
@@ -5927,6 +6195,11 @@
             </div>
           </div>
         </div>
+        <div class="race-watch-controls" id="race-watch-controls" aria-label="관전 카메라" hidden>
+          <button id="race-watch-prev" type="button">이전 러너</button>
+          <span class="race-watch-label" id="race-watch-label">관전 대기</span>
+          <button id="race-watch-next" type="button">다음 러너</button>
+        </div>
         <div class="race-mobile-controls" id="race-mobile-controls" aria-label="모바일 경기 조작">
           <button class="race-control-button" id="race-queue-toggle" type="button">대기열 보기</button>
         </div>
@@ -6011,7 +6284,7 @@
         </div>
       </section>
 
-      <button class="race-chat-open-button" id="race-chat-open-button" type="button">채팅 열기</button>
+      <button class="race-chat-open-button" id="race-chat-open-button" type="button">CHAT</button>
       <aside class="panel chat-panel">
         <button class="race-chat-close-button" id="race-chat-close-button" type="button" aria-label="채팅 닫기">×</button>
         <div class="panel-header">
@@ -6034,7 +6307,7 @@
             <h2>스킨 변경</h2>
             <p>대기열방에서도 출발 전 스킨을 바꿀 수 있습니다.</p>
           </div>
-          <span class="badge">스킨</span>
+          <button class="queue-skin-toggle" id="queue-skin-toggle" type="button" aria-controls="skin-grid" aria-expanded="false">스킨 펼치기</button>
         </div>
         <div class="panel-body">
           <div class="skin-grid" id="skin-grid" aria-label="대기열방 스킨 변경"></div>
@@ -6065,6 +6338,7 @@
     } from "./src/restored/assets/asset-manifest.js";
     import {
       buildLayeredScene,
+      getLayeredScene,
       LAYERED_SCENE_CSS
     } from "./src/restored/ui/layered-scene.js";
     import {
@@ -6553,7 +6827,10 @@
     const MENU_AUDIO_TRACK_KEYS = Object.freeze(["menu-modern-future-world", "menu-atlas-futuristic"]);
     const RACE_SFX_TRACK_KEYS = Object.freeze(["sfx-countdown-bell", "sfx-attack-swipe", "sfx-item-pickup", "sfx-item-use", "sfx-item-hit", "sfx-skill-use", "sfx-winner-finish", "sfx-podium-applause", "sfx-ui-tap", "sfx-ui-confirm", "sfx-ui-toggle", "sfx-ui-deny"]);
     const RACE_ENTRY_LOADING_MIN_MS = 0;
-    const RACE_LAUNCHER_LOADING_MIN_MS = 2400;
+    const RACE_LAUNCHER_LOADING_MIN_MS = 0;
+    const INITIAL_LAUNCHER_LOADING_MIN_MS = 1400;
+    const INITIAL_LAUNCHER_LOADING_TIMEOUT_MS = 3200;
+    const PROFILE_PREP_IMAGE_TIMEOUT_MS = 1400;
     const RACE_AUDIO_METADATA_TIMEOUT_MS = 1200;
     const UI_SFX_KEYS = Object.freeze({
       tap: "sfx-ui-tap",
@@ -6634,6 +6911,8 @@
       roomId: CLOUDFLARE_ROOM_ID,
       displayName: "특이점레이스 공개방 001",
       phase: "lobby",
+      entryOpen: false,
+      roomActive: false,
       maxRunners: MAX_RUNNERS,
       maxSpectators: roomPolicy.maxSpectators,
       course: { mapId: initialRaceMapId }
@@ -6736,6 +7015,7 @@
       trackRunners: document.querySelector("#track-runners"),
       runnerSlots: document.querySelector("#runner-slots"),
       skinGrid: document.querySelector("#skin-grid"),
+      queueSkinToggle: document.querySelector("#queue-skin-toggle"),
       channelTabs: document.querySelector("#channel-tabs"),
       messages: document.querySelector("#messages"),
       chatForm: document.querySelector("#chat-form"),
@@ -6762,6 +7042,10 @@
       raceResultList: document.querySelector("#race-result-list"),
       raceResultWatch: document.querySelector("#race-result-watch"),
       raceResultRestart: document.querySelector("#race-result-restart"),
+      raceWatchControls: document.querySelector("#race-watch-controls"),
+      raceWatchPrev: document.querySelector("#race-watch-prev"),
+      raceWatchNext: document.querySelector("#race-watch-next"),
+      raceWatchLabel: document.querySelector("#race-watch-label"),
       raceRoomClosedPanel: document.querySelector("#race-room-closed-panel"),
       raceRoomClosedExit: document.querySelector("#race-room-closed-exit"),
       adminObserverPanel: document.querySelector("#admin-observer-panel"),
@@ -6837,6 +7121,7 @@
       trackCamera: { x: 0, y: 0 },
       cameraZoom: shouldOpenAdminObserverShell ? ADMIN_OBSERVER_CAMERA_ZOOM : TRACK_CAMERA_DEFAULT_ZOOM,
       raceQueueOpen: false,
+      queueSkinPanelOpen: false,
       raceChatOpen: true,
       raceChatInputOpen: false,
       raceOptionsOpen: false,
@@ -6914,6 +7199,7 @@
     let activePinchZoom = null;
     let raceNarrationFrameId = 0;
     let profilePrepSceneStyleInjected = false;
+    let initialLauncherLoadingSettled = false;
     let suppressNextTrackClick = false;
     let raceMapDraftCache = { mapId: "", key: "", raw: "", draft: null, checkedAtMs: 0 };
 
@@ -6931,6 +7217,7 @@
     } catch (error) {
       console.error("Singularity Race initial render failed", error);
     }
+    void settleInitialLauncherLoading();
     if (cloudflareOnlineEnabled) {
       window.setTimeout(() => refreshCloudflarePublicRoomSummary("initial"), 0);
       window.setInterval(() => {
@@ -7010,6 +7297,10 @@
         return;
       }
       if (state.screen === SINGULARITY_RACE_SCREENS.MAP_PREVIEW) enterQueue("map_return");
+    });
+
+    elements.queueSkinToggle.addEventListener("click", () => {
+      toggleQueueSkinPanel();
     });
 
     elements.raceQueueToggle.addEventListener("click", () => {
@@ -7110,6 +7401,14 @@
     elements.raceResultWatch.addEventListener("click", () => {
       if (state.action.watchingAfterFinish) returnToCeremonyRoom();
       else continueWatchingAfterFinish();
+    });
+
+    elements.raceWatchPrev.addEventListener("click", () => {
+      cycleWatchTargetRunner(-1);
+    });
+
+    elements.raceWatchNext.addEventListener("click", () => {
+      cycleWatchTargetRunner(1);
     });
 
     elements.raceResultRestart.addEventListener("click", () => {
@@ -7698,6 +7997,9 @@
     function normalizeCloudflareRoomSummary(payload = {}) {
       const fallback = getConnectedMarathonRoomSummaries(roomAdapter)[0] || {};
       const participants = Array.isArray(payload.participants) ? payload.participants : [];
+      const hasRoomActive = Object.prototype.hasOwnProperty.call(payload, "roomActive");
+      const hasEntryOpen = Object.prototype.hasOwnProperty.call(payload, "entryOpen");
+      const roomActive = hasRoomActive ? payload.roomActive !== false : fallback.roomActive === true;
       return Object.freeze({
         roomId: payload.roomId || fallback.roomId || CLOUDFLARE_ROOM_ID,
         displayName: payload.displayName || fallback.displayName || "특이점레이스 공개방 001",
@@ -7707,8 +8009,8 @@
         maxPlayers: Math.max(1, Number(payload.maxPlayers ?? fallback.maxPlayers ?? MAX_RUNNERS)),
         spectators: Math.max(0, Number(payload.spectators ?? (participants.length ? participants.filter((participant) => participant?.type === "spectator" || String(participant?.participantId || "").startsWith("spectator:")).length : fallback.spectators) ?? 0)),
         maxSpectators: Math.max(0, Number(payload.maxSpectators ?? fallback.maxSpectators ?? roomPolicy.maxSpectators)),
-        entryOpen: payload.entryOpen !== false,
-        roomActive: payload.roomActive !== false,
+        entryOpen: roomActive && (hasEntryOpen ? payload.entryOpen !== false : fallback.entryOpen === true),
+        roomActive,
         mapId: normalizeRestoredMarathonTrailMapId(payload.mapId || payload.course?.mapId || fallback.mapId || state.mapId),
         countdownEndsAtMs: Math.max(0, Number(payload.countdownEndsAtMs || 0)),
         raceStartedAtMs: Math.max(0, Number(payload.raceStartedAtMs || 0)),
@@ -7740,14 +8042,20 @@
 
     function syncActionFinishWindowFromPayload(payload = {}) {
       if (!state.action || !payload) return;
+      const hasRaceStartedAtMs = Object.prototype.hasOwnProperty.call(payload, "raceStartedAtMs");
+      const hasStartedAtMs = Object.prototype.hasOwnProperty.call(payload, "finishWindowStartedAtMs")
+        || Object.prototype.hasOwnProperty.call(payload, "firstFinishAtMs");
+      const hasEndsAtMs = Object.prototype.hasOwnProperty.call(payload, "finishWindowEndsAtMs");
+      const hasDurationMs = Object.prototype.hasOwnProperty.call(payload, "finishWindowDurationMs")
+        || Object.prototype.hasOwnProperty.call(payload, "finishWindowMs");
       const raceStartedAtMs = Math.max(0, Number(payload.raceStartedAtMs || 0));
-      const startedAtMs = Math.max(0, Number(payload.finishWindowStartedAtMs || 0));
+      const startedAtMs = Math.max(0, Number(payload.finishWindowStartedAtMs || payload.firstFinishAtMs || 0));
       const endsAtMs = Math.max(0, Number(payload.finishWindowEndsAtMs || 0));
-      const durationMs = Math.max(0, Number(payload.finishWindowDurationMs || (endsAtMs && startedAtMs ? endsAtMs - startedAtMs : 0)));
-      state.action.raceStartedAtMs = raceStartedAtMs || state.action.raceStartedAtMs || state.action.gateOpenedAtMs || 0;
-      state.action.finishWindowStartedAtMs = startedAtMs || state.action.finishWindowStartedAtMs || 0;
-      state.action.finishWindowEndsAtMs = endsAtMs || state.action.finishWindowEndsAtMs || 0;
-      state.action.finishWindowDurationMs = durationMs || state.action.finishWindowDurationMs || 0;
+      const durationMs = Math.max(0, Number(payload.finishWindowDurationMs || payload.finishWindowMs || (endsAtMs && startedAtMs ? endsAtMs - startedAtMs : 0)));
+      if (hasRaceStartedAtMs || raceStartedAtMs) state.action.raceStartedAtMs = raceStartedAtMs || state.action.raceStartedAtMs || state.action.gateOpenedAtMs || 0;
+      if (hasStartedAtMs || startedAtMs) state.action.finishWindowStartedAtMs = startedAtMs;
+      if (hasEndsAtMs || endsAtMs) state.action.finishWindowEndsAtMs = endsAtMs;
+      if (hasDurationMs || durationMs) state.action.finishWindowDurationMs = durationMs;
       state.action.finishWindowFinishedCount = Math.max(0, Number(payload.finishedCount ?? state.action.finishWindowFinishedCount ?? 0));
       state.action.finishWindowPlayerCount = Math.max(0, Number(payload.playerCount ?? payload.players ?? state.action.finishWindowPlayerCount ?? 0));
     }
@@ -8380,6 +8688,85 @@
       return new Promise((resolve) => window.setTimeout(resolve, Math.max(0, ms)));
     }
 
+    function waitForRaceFrame(count = 1) {
+      return new Promise((resolve) => {
+        let remaining = Math.max(1, Math.floor(count));
+        const tick = () => {
+          remaining -= 1;
+          if (remaining <= 0) {
+            resolve();
+            return;
+          }
+          window.requestAnimationFrame(tick);
+        };
+        window.requestAnimationFrame(tick);
+      });
+    }
+
+    function waitWithRaceTimeout(promise, timeoutMs) {
+      return Promise.race([
+        promise,
+        delayRaceEntryLoading(timeoutMs)
+      ]);
+    }
+
+    function waitForImageElementReady(image, timeoutMs = PROFILE_PREP_IMAGE_TIMEOUT_MS) {
+      if (!image || !image.src || image.complete) return Promise.resolve();
+      if (typeof image.decode === "function") {
+        return waitWithRaceTimeout(image.decode().catch(() => {}), timeoutMs);
+      }
+      return waitWithRaceTimeout(new Promise((resolve) => {
+        image.addEventListener("load", resolve, { once: true });
+        image.addEventListener("error", resolve, { once: true });
+      }), timeoutMs);
+    }
+
+    function preloadRaceImageUrl(url, timeoutMs = PROFILE_PREP_IMAGE_TIMEOUT_MS) {
+      if (!url) return Promise.resolve();
+      const image = new Image();
+      const loaded = new Promise((resolve) => {
+        image.onload = resolve;
+        image.onerror = resolve;
+      });
+      image.src = url;
+      if (image.complete) return Promise.resolve();
+      return waitWithRaceTimeout(loaded, timeoutMs);
+    }
+
+    function getProfilePrepSceneImageUrls() {
+      const scene = getLayeredScene("race-prep");
+      return Object.values(scene?.layers || {})
+        .map((layer) => resolveRestoredAssetPath(layer.assetId, layer.fallback))
+        .filter(Boolean);
+    }
+
+    async function waitForProfileLauncherReady() {
+      const skinImages = Array.from(elements.profileSkinGrid?.querySelectorAll("img") || []);
+      await Promise.all([
+        ...getProfilePrepSceneImageUrls().map((url) => preloadRaceImageUrl(url)),
+        waitForImageElementReady(elements.profileSkinPreview),
+        ...skinImages.map((image) => waitForImageElementReady(image)),
+        waitForRaceFrame(2)
+      ]);
+    }
+
+    async function settleInitialLauncherLoading() {
+      if (initialLauncherLoadingSettled) return;
+      initialLauncherLoadingSettled = true;
+      const startedAtMs = Date.now();
+      setRaceLoadingOverlay(true, {
+        title: "런처 준비 중",
+        copy: "스킨과 무대를 불러오고 있습니다."
+      });
+      try {
+        await waitWithRaceTimeout(waitForProfileLauncherReady(), INITIAL_LAUNCHER_LOADING_TIMEOUT_MS);
+      } finally {
+        const remainingMs = INITIAL_LAUNCHER_LOADING_MIN_MS - (Date.now() - startedAtMs);
+        if (remainingMs > 0) await delayRaceEntryLoading(remainingMs);
+        setRaceLoadingOverlay(false);
+      }
+    }
+
     function setRaceLoadingOverlay(active, options = {}) {
       state.raceLoadingActive = Boolean(active);
       if (elements.raceLoadingOverlay) {
@@ -8475,6 +8862,7 @@
         state.raceChatOpen = true;
         state.raceChatInputOpen = false;
       }
+      if (screen === SINGULARITY_RACE_SCREENS.QUEUE) state.queueSkinPanelOpen = false;
       elements.shell.dataset.screen = screen;
     }
 
@@ -8538,6 +8926,7 @@
       if (!state.action.finalResult) return;
       releaseVirtualMoveKeys(false);
       state.action.watchingAfterFinish = true;
+      state.action.watchTargetRunnerId = getDefaultWatchTargetRunner()?.id || "";
       state.raceOptionsOpen = false;
       pushSystem("완주 후 관전 모드로 전환했습니다.");
       renderAll();
@@ -8547,6 +8936,7 @@
       if (!state.action.finalResult) return;
       releaseVirtualMoveKeys(false);
       state.action.watchingAfterFinish = false;
+      state.action.watchTargetRunnerId = "";
       state.raceOptionsOpen = false;
       state.raceQueueOpen = false;
       pushSystem("순위방으로 돌아왔습니다.");
@@ -8618,6 +9008,7 @@
       state.action.raceStarted = false;
       state.action.raceFinished = true;
       state.action.watchingAfterFinish = false;
+      state.action.watchTargetRunnerId = "";
       stopAllRaceAudio();
       state.raceQueueOpen = false;
       state.raceOptionsOpen = false;
@@ -9099,8 +9490,60 @@
       return index >= 0 ? state.runners[index] : null;
     }
 
+    function isRaceWatchCameraMode() {
+      return state.screen === SINGULARITY_RACE_SCREENS.RACE
+        && !state.adminObserverMode
+        && (state.participantType === "spectator" || Boolean(state.action.watchingAfterFinish));
+    }
+
+    function listWatchableRunners() {
+      const excludeLocalRunner = state.participantType !== "spectator";
+      return state.runners
+        .filter((runner) => runner && (!excludeLocalRunner || runner.id !== "you"))
+        .filter((runner) => !runner.finishedAtMs && Number(runner.progress || 0) < LOCAL_FINISH_PROGRESS)
+        .sort((left, right) => (Number(right.progress) || 0) - (Number(left.progress) || 0));
+    }
+
+    function getSelectedWatchTargetRunner() {
+      const targetId = String(state.action.watchTargetRunnerId || "");
+      if (!targetId) return null;
+      return listWatchableRunners().find((runner) => runner.id === targetId) || null;
+    }
+
+    function getDefaultWatchTargetRunner() {
+      return listWatchableRunners()[0] || null;
+    }
+
+    function resolveWatchTargetRunner() {
+      return getSelectedWatchTargetRunner() || getDefaultWatchTargetRunner();
+    }
+
     function getTrackAnchorRunner() {
+      if (isRaceWatchCameraMode()) {
+        return resolveWatchTargetRunner() || getLocalRunner() || state.runners.find((runner) => runner) || null;
+      }
       return getLocalRunner() || state.runners.find((runner) => runner) || null;
+    }
+
+    function getWatchAfterFinishRunner() {
+      return resolveWatchTargetRunner();
+    }
+
+    function cycleWatchTargetRunner(direction = 1) {
+      if (!isRaceWatchCameraMode()) return;
+      const runners = listWatchableRunners();
+      if (!runners.length) {
+        state.action.watchTargetRunnerId = "";
+        renderAll();
+        return;
+      }
+      const selected = getSelectedWatchTargetRunner() || getDefaultWatchTargetRunner() || runners[0];
+      const currentIndex = Math.max(0, runners.findIndex((runner) => runner.id === selected.id));
+      const offset = direction < 0 ? -1 : 1;
+      const nextRunner = runners[(currentIndex + offset + runners.length) % runners.length];
+      state.action.watchTargetRunnerId = nextRunner.id;
+      pushSystem(`\uad00\uc804 \uce74\uba54\ub77c: ${nextRunner.name || nextRunner.id}`);
+      renderAll();
     }
 
     function setLocalRunner(runner) {
@@ -9132,6 +9575,7 @@
         lastConnectedInputSignature: "",
         lastConnectedInputActive: false,
         mobileIntent: null,
+        mobileDirection: null,
         lastFacingDirection: "right",
         lastAttackProgressDirection: 1,
         lastAttackProgressDirectionAtMs: 0,
@@ -9192,6 +9636,7 @@
         raceFinished: false,
         playerFinished: false,
         watchingAfterFinish: false,
+        watchTargetRunnerId: "",
         finalResult: null,
         ceremonyStartedAtMs: 0,
         ceremonyTransferAtMs: 0,
@@ -9346,6 +9791,10 @@
       if (now < state.action.attackCooldownUntilMs) {
         renderRaceMobileControls();
         return false;
+      }
+      if (hasHeldSwordItem()) {
+        const swordItem = getSingularityRaceItemDefinition(SINGULARITY_RACE_ITEM_IDS.SWORD);
+        return swordItem ? useSwordItem(swordItem, { consume: true, pushPacket: true }) : false;
       }
       const aim = resolveBasicAttackAim(event, player, now);
       const damageEnabled = state.action.raceStarted && !isCountdownActive(now) && !isCloudflareConnectedSession();
@@ -9800,6 +10249,18 @@
       return Boolean(peekRaceItemId());
     }
 
+    function peekRaceUtilityItemId() {
+      return raceItemSlots().find((itemId) => itemId !== SINGULARITY_RACE_ITEM_IDS.SWORD) || "";
+    }
+
+    function hasHeldRaceUtilityItem() {
+      return Boolean(peekRaceUtilityItemId());
+    }
+
+    function hasHeldSwordItem() {
+      return raceItemSlots().includes(SINGULARITY_RACE_ITEM_IDS.SWORD);
+    }
+
     function addRaceItemSlot(itemId) {
       const slots = raceItemSlots();
       if (!itemId || slots.length >= RACE_ITEM_SLOT_LIMIT) return false;
@@ -9873,7 +10334,7 @@
       ));
       void playRaceSfx("sfx-item-pickup");
       setRaceCue("item", "SWORD", pickup.progress, "you", { durationMs: 1100 });
-      pushSystem("Sword pickup: E로 칼 베기를 사용할 수 있습니다.");
+      pushSystem("Sword pickup: basic attack is now a sword slash.");
       return true;
     }
 
@@ -9976,7 +10437,7 @@
     }
 
     function useRaceItemOrRewardSkill() {
-      if (hasHeldRaceItem()) return useRaceItem();
+      if (hasHeldRaceUtilityItem()) return useRaceItem();
       return useActionSkill();
     }
 
@@ -9995,9 +10456,13 @@
         pushSystem("아이템이 선택되는 중입니다.");
         return false;
       }
-      const item = getSingularityRaceItemDefinition(peekRaceItemId());
+      const item = getSingularityRaceItemDefinition(peekRaceUtilityItemId());
       if (!item) {
         state.action.itemAim = null;
+        if (hasHeldSwordItem()) {
+          pushSystem("Sword is used with the basic attack button.");
+          return false;
+        }
         pushSystem("보유한 아이템이 없습니다.");
         return false;
       }
@@ -10012,7 +10477,6 @@
       else if (item.itemId === SINGULARITY_RACE_ITEM_IDS.BANANA) useBananaItem(item);
       else if (item.itemId === SINGULARITY_RACE_ITEM_IDS.RED_PILL) useRedPillItem(item);
       else if (item.itemId === SINGULARITY_RACE_ITEM_IDS.TURBO_CAR) useTurboCarItem(item);
-      else if (item.itemId === SINGULARITY_RACE_ITEM_IDS.SWORD) useSwordItem(item);
       pushLocalItemPacket(item);
       renderAll();
       return true;
@@ -10046,10 +10510,11 @@
     }
 
     // 부서지는 보상 장애물(상자→자동차, 에너지드링크) 종류 판별 및 처리.
-    function useSwordItem(item) {
+    function useSwordItem(item, options = {}) {
       const now = Date.now();
       const player = getLocalRunner();
       if (!player) return false;
+      if (options.consume !== false && !consumeRaceItemId(SINGULARITY_RACE_ITEM_IDS.SWORD)) return false;
       const aim = resolveBasicAttackAim(null, player, now);
       const target = findSwordAttackTarget(player, aim.direction) || (aim.allowNearestFallback ? findNearestSwordAttackTarget(player) : null);
       const attackDirection = target
@@ -10081,9 +10546,14 @@
       state.action.stallUntilMs = Math.max(Number(state.action.stallUntilMs || 0), now + SWORD_ATTACK_STALL_MS);
       scheduleSwordVisualCleanup(state.action.swordVisualId);
       void playRaceSfx("sfx-attack-swipe");
+      if (!state.connectedSession && options.pushPacket !== false) {
+        pushLocalItemPacket(item);
+      }
+      if (canRequestConnectedAttack()) requestConnectedAttack(null, action);
       if (!target) {
         setRaceCue("item", item.label || "SWORD", player.progress, "you", { durationMs: 950 });
         pushSystem("Sword slash: no nearby target.");
+        renderAll();
         return true;
       }
       const hit = resolveRestoredMarathonAttackHit(action, {
@@ -10095,6 +10565,7 @@
       if (!hit.hit) {
         setRaceCue("item", item.label || "SWORD", player.progress, "you", { durationMs: 950 });
         pushSystem("Sword slash: target just out of reach.");
+        renderAll();
         return true;
       }
       const effectiveHit = {
@@ -10136,6 +10607,7 @@
       if (targetIndex >= 0) state.runners[targetIndex] = updatedTarget;
       resolveSingleRailCollisions("sword");
       pushSystem(`Sword slash: ${target.name || "runner"} hit.`);
+      renderAll();
       return true;
     }
 
@@ -10749,7 +11221,7 @@
       finalizeRaceResult({
         source: "local",
         title: "완주 완료",
-        copy: "완주했습니다. 관전 계속을 누르면 남은 러너를 볼 수 있습니다.",
+        copy: "완주했습니다. 남은 러너를 관전하며 마감 타이머를 기다립니다.",
         ranking: createLocalFinishRanking(),
         finishedParticipantId: "runner:you",
         progressPercent: Math.round(updatedPlayer.progress * 10) / 10,
@@ -10791,7 +11263,12 @@
       state.action.ceremonyEnteredAtMs = ceremonyEnteredAtMs;
       state.action.ceremonyAwardAtMs = ceremonyAwardAtMs;
       stopRaceMusic();
-      state.action.watchingAfterFinish = false;
+      state.action.watchingAfterFinish = playerFinished && !raceFinished && !previousResult
+        ? true
+        : Boolean(state.action.watchingAfterFinish && !raceFinished);
+      state.action.watchTargetRunnerId = state.action.watchingAfterFinish
+        ? (getSelectedWatchTargetRunner()?.id || getDefaultWatchTargetRunner()?.id || "")
+        : "";
       state.action.keys = {};
       for (const button of elements.virtualMoveButtons) button.classList.remove("is-held");
       elements.raceSprintButton.classList.remove("is-held");
@@ -10960,6 +11437,7 @@
         participantId: "runner:you",
         keys: state.action.keys,
         intent: state.action.mobileIntent,
+        direction: state.action.mobileDirection || undefined,
         skillPressed: Boolean(options.skillPressed),
         sequence: options.sequence || Math.floor(Date.now() / 180)
       });
@@ -11679,6 +12157,12 @@
       renderAll();
     }
 
+    function toggleQueueSkinPanel() {
+      if (state.screen !== SINGULARITY_RACE_SCREENS.QUEUE) return;
+      state.queueSkinPanelOpen = !state.queueSkinPanelOpen;
+      renderAll();
+    }
+
     function toggleRaceChatOverlay(focusInput = false) {
       if (state.screen !== SINGULARITY_RACE_SCREENS.RACE) return;
       state.raceChatOpen = !state.raceChatOpen;
@@ -11823,6 +12307,7 @@
       joystickOriginX = 0;
       joystickOriginY = 0;
       state.action.mobileIntent = null;
+      state.action.mobileDirection = null;
       setVirtualJoystickKeys(new Set());
       updateJoystickThumb(0, 0);
     }
@@ -11842,32 +12327,47 @@
       }
       const x = rawX;
       const y = rawY;
-      const intent = createMobileRaceIntent(x, y);
+      const direction = createMobileRaceDirection(x, y);
       const nextKeys = new Set();
-      if (intent?.forward > 0) nextKeys.add("KeyW");
-      if (intent?.forward < 0) nextKeys.add("KeyS");
-      if (intent?.lateral) nextKeys.add(intent.lateral > 0 ? "KeyD" : "KeyA");
-      state.action.mobileIntent = intent;
-      if (Math.abs(Number(intent?.forward || 0)) > 0.001) {
-        rememberAttackProgressDirection(Number(intent.forward) < 0 ? -1 : 1);
+      if (direction?.y < 0) nextKeys.add("KeyW");
+      if (direction?.y > 0) nextKeys.add("KeyS");
+      if (direction?.x) nextKeys.add(direction.x > 0 ? "KeyD" : "KeyA");
+      state.action.mobileIntent = null;
+      state.action.mobileDirection = direction;
+      const player = getLocalRunner();
+      if (direction && player) {
+        const trailPoint = progressToRestoredMarathonTrailPoint(player.progress || START_LINE_PROGRESS, selectedRaceMapId());
+        const movement = resolveSingularityRaceInputMovement({ direction }, trailPoint);
+        if (Math.abs(Number(movement?.forward || 0)) > 0.001) {
+          rememberAttackProgressDirection(Number(movement.forward) < 0 ? -1 : 1);
+        }
       }
       updateJoystickThumb(x, y);
       setVirtualJoystickKeys(nextKeys);
     }
 
     function createMobileRaceIntent(x, y) {
+      const direction = createMobileRaceDirection(x, y);
+      if (!direction) return null;
+      return Object.freeze({
+        forward: Math.round(Math.max(-1, Math.min(1, -direction.y)) * 1000) / 1000,
+        lateral: Math.round(Math.max(-1, Math.min(1, direction.x)) * 1000) / 1000
+      });
+    }
+
+    function createMobileRaceDirection(x, y) {
       // Radial deadzone: gate on the overall stick distance, then scale the vector
-      // across the usable band. This keeps forward intent on diagonal drags instead
-      // of dropping it whenever the vertical component alone is small.
+      // across the usable band. The returned vector is screen/world direction, not
+      // race progress/lane intent; the corridor projection happens later.
       const distance = Math.hypot(x, y);
       if (distance < JOYSTICK_DEADZONE_PX) return null;
       const usable = Math.max(1, JOYSTICK_MAX_RADIUS_PX - JOYSTICK_DEADZONE_PX);
       const magnitude = Math.min(1, (distance - JOYSTICK_DEADZONE_PX) / usable);
       const scale = magnitude / distance;
-      const forward = Math.round(Math.max(-1, Math.min(1, -y * scale)) * 1000) / 1000;
-      const lateral = Math.round(Math.max(-1, Math.min(1, x * scale)) * 1000) / 1000;
-      if (!forward && !lateral) return null;
-      return Object.freeze({ forward, lateral });
+      const directionX = Math.round(Math.max(-1, Math.min(1, x * scale)) * 1000) / 1000;
+      const directionY = Math.round(Math.max(-1, Math.min(1, y * scale)) * 1000) / 1000;
+      if (!directionX && !directionY) return null;
+      return Object.freeze({ x: directionX, y: directionY });
     }
 
     function updateJoystickThumb(x, y) {
@@ -11916,8 +12416,9 @@
 
     function releaseVirtualMoveKeys(shouldRender = true) {
       let changed = false;
-      const hadMobileIntent = Boolean(state.action.mobileIntent);
+      const hadMobileControl = Boolean(state.action.mobileIntent || state.action.mobileDirection);
       state.action.mobileIntent = null;
+      state.action.mobileDirection = null;
       for (const code of VIRTUAL_RELEASE_KEYS) {
         if (!state.action.keys[code]) continue;
         state.action.keys[code] = false;
@@ -11927,9 +12428,9 @@
       elements.raceSprintButton.classList.remove("is-held");
       updateJoystickThumb(0, 0);
       activeJoystickPointerId = null;
-      if (changed || hadMobileIntent) stopPlayerRunAnimation(Date.now());
-      if ((changed || hadMobileIntent) && canPublishConnectedInputRequest()) publishConnectedInputRequest(false);
-      if ((changed || hadMobileIntent) && shouldRender) renderAll();
+      if (changed || hadMobileControl) stopPlayerRunAnimation(Date.now());
+      if ((changed || hadMobileControl) && canPublishConnectedInputRequest()) publishConnectedInputRequest(false);
+      if ((changed || hadMobileControl) && shouldRender) renderAll();
     }
 
     function releaseStaleMovementKeys(now = Date.now()) {
@@ -11942,7 +12443,7 @@
 
     function preservePlayerMovementForAttack(now = Date.now(), facing = state.action.lastFacingDirection || "right") {
       state.action.lastFacingDirection = facing;
-      if (hasMovementKeyHeld() || state.action.mobileIntent) state.action.lastMovementInputAtMs = now;
+      if (hasMovementKeyHeld() || state.action.mobileIntent || state.action.mobileDirection) state.action.lastMovementInputAtMs = now;
       const previous = state.runnerMotion.get("you");
       if (!previous) return;
       state.runnerMotion.set("you", Object.freeze({
@@ -12030,11 +12531,13 @@
       renderProfileSkins();
       renderTrack();
       renderRaceResultPanel();
+      renderRaceWatchControls();
       renderSlots();
       renderActionHud();
       renderRaceStandings();
       renderAdminObserverPanel(now, true);
       renderSkins();
+      renderQueueSkinPanel();
       renderChannelTabs();
       renderMessages();
       renderMapVoteModal();
@@ -12056,6 +12559,7 @@
       renderRaceMobileControls();
       renderTrack();
       renderRaceResultPanel();
+      renderRaceWatchControls();
       if (now - state.renderCache.lastHudMs >= RACE_HUD_RENDER_INTERVAL_MS || isCountdownActive(now)) {
         renderFlowMetrics();
         renderActionHud();
@@ -12086,6 +12590,7 @@
       document.body.dataset.screen = state.screen;
       elements.shell.classList.toggle("is-spectator", state.participantType === "spectator");
       elements.shell.classList.toggle("is-admin-observer", state.screen === SINGULARITY_RACE_SCREENS.RACE && state.adminObserverMode);
+      elements.shell.classList.toggle("queue-skin-expanded", state.screen === SINGULARITY_RACE_SCREENS.QUEUE && state.queueSkinPanelOpen);
       elements.shell.classList.toggle("race-queue-open", state.screen === SINGULARITY_RACE_SCREENS.RACE && state.raceQueueOpen);
       elements.shell.classList.toggle("race-chat-closed", state.screen === SINGULARITY_RACE_SCREENS.RACE && !state.raceChatOpen);
       elements.shell.classList.toggle("race-chat-composing", state.screen === SINGULARITY_RACE_SCREENS.RACE && state.raceChatOpen && state.raceChatInputOpen);
@@ -12094,6 +12599,7 @@
       elements.shell.classList.toggle("race-ceremony-entered", state.screen === SINGULARITY_RACE_SCREENS.RACE && isCeremonyRoomActive());
       elements.shell.classList.toggle("race-ceremony-free", state.screen === SINGULARITY_RACE_SCREENS.RACE && canMoveInCeremonyRoom());
       elements.shell.classList.toggle("race-watching-after-finish", state.screen === SINGULARITY_RACE_SCREENS.RACE && Boolean(state.action.watchingAfterFinish));
+      elements.shell.classList.toggle("race-watch-camera", isRaceWatchCameraMode());
       elements.shell.classList.toggle("race-room-closed", state.screen === SINGULARITY_RACE_SCREENS.RACE && state.roomClosed);
     }
 
@@ -12121,7 +12627,10 @@
       elements.notice.textContent = getSingularityRaceNotice(state.screen);
       const summary = getCurrentConnectedRoomSummary();
       const cloudflareEntryGate = getCloudflareEntryGateStatus(summary);
-      elements.roomDisplayName.textContent = summary?.displayName || activeDevRoom?.displayName || "생성된 방 없음";
+      const fallbackRoomDisplayName = (cloudflareOnlineEnabled || devOnlineEnabled || adminLaunchEnabled)
+        ? "생성된 방 없음"
+        : "로컬 테스트방";
+      elements.roomDisplayName.textContent = summary?.displayName || activeDevRoom?.displayName || fallbackRoomDisplayName;
       const waitingForOperatorStart = Boolean(state.connectedSession)
         && state.screen === SINGULARITY_RACE_SCREENS.QUEUE
         && !state.action.raceStarted;
@@ -12133,6 +12642,12 @@
       if (waitingForAdminRaceEntry) elements.readyButton.textContent = "관리자 입장 대기중";
       else if (waitingForOperatorStart) elements.readyButton.textContent = "관리자 시작 대기중";
       else if (cloudflareEntryClosed) elements.readyButton.textContent = cloudflareEntryGate.label;
+      if (cloudflareEntryGate?.reason === "room_not_created") {
+        elements.readyButton.textContent = "방 없음";
+        elements.spectatorButton.textContent = "관전 불가";
+      } else if (cloudflareSpectatorClosed) {
+        elements.spectatorButton.textContent = "관전 불가";
+      }
       elements.readyButton.disabled = state.roomClosed || !entryGate.open || Boolean(state.connectedSession) || cloudflareEntryClosed || (devOnlineEnabled && !connectedLobbyOpen);
       elements.spectatorButton.disabled = state.roomClosed || !entryGate.open || Boolean(state.connectedSession) || cloudflareSpectatorClosed || (devOnlineEnabled && !connectedLobbyOpen);
       if (waitingForAdminRaceEntry && !state.roomClosed) {
@@ -12197,7 +12712,8 @@
         ? `${Math.ceil(skillCooldownRemainingMs / 1000)}초`
         : (hasCurrentRewardSkill() ? `${state.action.placeholderSkinGrade || "보상"}급 ${skillChargeMeta}` : "보상 필요");
       const skillReady = state.action.raceStarted && !isCountdownActive(now) && canUseCurrentRewardSkill();
-      const currentItem = getSingularityRaceItemDefinition(peekRaceItemId());
+      const currentItem = getSingularityRaceItemDefinition(peekRaceUtilityItemId());
+      const swordReady = hasHeldSwordItem();
       const roulette = getActiveRaceItemRoulette(now);
       const rouletteItem = roulette ? getRaceItemRouletteDisplayItem(roulette, now) : null;
       const activeItemAim = currentItem && isRaceItemAimReady(currentItem.itemId, now) ? state.action.itemAim : null;
@@ -12211,6 +12727,9 @@
       elements.raceAttackButton.innerHTML = attackCooldownRemainingMs > 0
         ? `대기<span>${Math.ceil(attackCooldownRemainingMs / 1000)}초</span>`
         : "공격<span>기본</span>";
+      if (!attackCooldownRemainingMs && swordReady) {
+        elements.raceAttackButton.innerHTML = "공격<span>SWORD</span>";
+      }
       elements.raceRewardSkillButton.disabled = roomClosed || spectator || Boolean(state.action.finalResult) || !skillReady;
       renderRaceRewardSkillButton(skillMeta, skillReady);
       elements.raceItemButton.disabled = roomClosed || spectator || Boolean(state.action.finalResult) || !itemReady;
@@ -12477,8 +12996,9 @@
 
     function resetAdminObserverCamera() {
       const anchorRunner = getTrackAnchorRunner();
+      const anchorIndex = anchorRunner ? Math.max(0, state.runners.findIndex((runner) => runner.id === anchorRunner.id)) : 0;
       const anchorPoint = anchorRunner
-        ? trackPointToPixels(runnerVisualPoint(anchorRunner, 0))
+        ? trackPointToPixels(runnerVisualPoint(anchorRunner, anchorIndex))
         : { x: TRACK_WORLD_WIDTH / 2, y: TRACK_WORLD_HEIGHT / 2 };
       state.adminObserverCamera = {
         x: clampNumber(anchorPoint.x, 0, TRACK_WORLD_WIDTH),
@@ -12550,7 +13070,8 @@
       }
       const player = getTrackAnchorRunner();
       if (!player) return;
-      const playerPixel = trackPointToPixels(runnerVisualPoint(player, 0));
+      const playerIndex = Math.max(0, state.runners.findIndex((runner) => runner.id === player.id));
+      const playerPixel = trackPointToPixels(runnerVisualPoint(player, playerIndex));
       if (state.screen === SINGULARITY_RACE_SCREENS.RACE) {
         updateRaceFollowCamera(player, playerPixel, viewportWidth, viewportHeight);
         return;
@@ -13116,6 +13637,7 @@
           swordAttacking ? "is-sword-attacking" : "",
           impactHit ? "is-impact-hit" : "",
           stunned ? "is-stunned" : "",
+          hp < maxHp ? "has-visible-health" : "",
           hpRatio > 0 && hpRatio <= 0.34 ? "is-low-health" : "",
           downed ? "is-downed" : "",
           boosted ? "is-boosted" : "",
@@ -13144,7 +13666,7 @@
         avatar.style.zIndex = String(4 + Math.round(visualRunner.progress * 10));
         updateSingularityRunnerAvatarNode(avatar, runner, getSingularityRaceSkinDataUrl(runner.skin, "side"), {
           chatBubbleText: getRunnerChatBubbleText(runner.id, visualTiming.now),
-          rankLabel: rankLabels.get(runner.id) || ""
+          nameLabel: createRunnerNameplateLabel(runner, rankLabels.get(runner.id))
         });
         if (!avatar.parentNode) elements.trackRunners.append(avatar);
       }
@@ -13929,6 +14451,23 @@
       return `${Math.round(x * 100) / 100} ${Math.round(y * 100) / 100} ${size} ${size}`;
     }
 
+    function renderRaceWatchControls() {
+      if (!elements.raceWatchControls) return;
+      const active = isRaceWatchCameraMode() && !state.roomClosed;
+      const runners = active ? listWatchableRunners() : [];
+      const target = active ? (getSelectedWatchTargetRunner() || runners[0] || null) : null;
+      elements.raceWatchControls.hidden = !active;
+      if (elements.raceWatchPrev) elements.raceWatchPrev.disabled = runners.length <= 1;
+      if (elements.raceWatchNext) elements.raceWatchNext.disabled = runners.length <= 1;
+      if (!elements.raceWatchLabel) return;
+      if (!target) {
+        elements.raceWatchLabel.textContent = "\uad00\uc804 \ub300\uc0c1 \uc5c6\uc74c";
+        return;
+      }
+      const progress = Math.round(Number(target.progress || 0));
+      elements.raceWatchLabel.textContent = `${target.name || target.id} ${progress}%`;
+    }
+
     function renderRaceResultPanel() {
       const result = state.action.finalResult;
       if (!result) {
@@ -14242,7 +14781,7 @@
       const maxHp = player.maxHp || state.action.maxHp || 100;
       const hp = Math.max(0, Math.min(maxHp, player.hp ?? state.action.hp ?? maxHp));
       const hasRewardSkill = hasCurrentRewardSkill();
-      const currentItem = getSingularityRaceItemDefinition(peekRaceItemId());
+      const currentItem = getSingularityRaceItemDefinition(peekRaceUtilityItemId());
       const activeItemAim = currentItem && isRaceItemAimReady(currentItem.itemId, now) ? state.action.itemAim : null;
       const chargeText = state.action.skillMaxCharges === 0 ? "무제한" : `${state.action.skillChargesRemaining}회`;
       elements.actionCharacter.textContent = state.action.placeholderSkinLabel
@@ -14297,7 +14836,7 @@
       ) {
         const ranked = rankSingularityRunnerEntries(state.runners);
         state.renderCache.runnerRankEntries = ranked;
-        state.renderCache.runnerRankLabels = new Map(ranked.map((entry) => [entry.runner.id, `${entry.rank}위`]));
+        state.renderCache.runnerRankLabels = new Map(ranked.map((entry) => [entry.runner.id, `#${entry.rank}`]));
         state.renderCache.lastRunnerRankMs = now;
       }
       return state.renderCache.runnerRankEntries;
@@ -14306,6 +14845,12 @@
     function getRaceRunnerRankLabels(now = Date.now()) {
       getRaceRunnerRankEntries(now);
       return state.renderCache.runnerRankLabels || new Map();
+    }
+
+    function createRunnerNameplateLabel(runner, rankLabel = "") {
+      const name = String(runner?.name || runner?.id || "").trim();
+      const rank = String(rankLabel || "").trim();
+      return rank ? `${name} ${rank}` : name;
     }
 
     function renderAdminObserverPanel(now = Date.now(), force = false) {
@@ -14374,6 +14919,10 @@
     }
 
     function renderSkins() {
+      if (state.screen !== SINGULARITY_RACE_SCREENS.QUEUE || !state.queueSkinPanelOpen) {
+        elements.skinGrid.replaceChildren();
+        return;
+      }
       const cards = presets.map((preset) => {
         const button = document.createElement("button");
         button.className = "skin-card";
@@ -14397,6 +14946,12 @@
         return button;
       });
       elements.skinGrid.replaceChildren(...cards);
+    }
+
+    function renderQueueSkinPanel() {
+      const expanded = state.screen === SINGULARITY_RACE_SCREENS.QUEUE && state.queueSkinPanelOpen;
+      elements.queueSkinToggle.textContent = expanded ? "스킨 접기" : "스킨 펼치기";
+      elements.queueSkinToggle.setAttribute("aria-expanded", String(expanded));
     }
 
     function renderProfileSkins() {

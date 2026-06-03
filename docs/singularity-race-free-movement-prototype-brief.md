@@ -22,6 +22,33 @@ Non-negotiable direction:
 
 Short handoff phrase: **the name is Singularity Race, but the reusable engine identity is goal-race PvP arena; position is x/y, progress is derived.**
 
+Mobile joystick symptom note: if a user pulls the virtual stick upward and the runner still follows the race direction or slides along the dotted lane wall, that is the live `progress + laneOffsetPx` authority model showing through. Do not treat that as a final mobile joystick fix. The durable fix is to make `{ x, y, vx, vy }` the authority and compute `progress` from position for ranking/destination/finish only.
+
+## Live Game Migration Gate (Do Not Skip)
+
+Status as of 2026-06-03:
+
+- Done: the product/engine decision is recorded. `특이점레이스` can remain the public event name, but the reusable Baegeum City PvP/arena engine must be free-position authority.
+- Not done: the live game client and Worker still use `progress + laneOffsetPx` as movement authority.
+- v0.1 rule: keep tuning the current live game as a corridor combat race. Do not promise that mobile joystick wall-sticking is fully fixable inside the current authority model.
+- Migration rule: do not patch only the client. The Worker, snapshots, prediction, finish logic, checkpoints, attacks, and ranking must move together or the game will rubber-band back to rail authority.
+
+Staged order for a real migration:
+
+1. Add a pure `deriveProgressFromXY(position, course)` contract and tests. It returns route progress, signed lane offset, nearest segment, and distance from route without mutating movement state.
+2. Add a local/dev-only free-position runner model `{ x, y, vx, vy, maxReachedProgress }` behind an explicit flag. Keep snapshots and public online unchanged.
+3. Route mobile joystick and keyboard input into 2D acceleration/velocity in that flagged model. Upward stick input must change `y`, not track tangent progress.
+4. Convert combat, pickups, checkpoints, and finish zones to read the authoritative `x/y` position. Use derived `progress` only for ranking, destination UI, finish percent, and spectator labels.
+5. Convert the Worker session state to own `{ x, y, vx, vy }` and emit snapshots containing both authoritative position and derived progress. Reject client-supplied progress as authority.
+6. Rebuild prediction/reconciliation around server-owned `x/y/vx/vy`. Only after this passes should the live public mode leave corridor authority.
+
+Acceptance signal:
+
+- Mobile joystick up/down/left/right moves the runner in screen/world 2D directions.
+- The runner no longer snaps to the dotted lane wall unless a real collision shape says so.
+- Ranking and finish UI still work because `progress` is derived from position.
+- Connected online does not rubber-band back to progress/lane snapshots.
+
 ---
 
 ## Current Prototype Tuning Note (2026-06-03)

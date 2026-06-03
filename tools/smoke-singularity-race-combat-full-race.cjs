@@ -113,6 +113,7 @@ function assertCombatUiExposure() {
   [
     "runner-health",
     "runner-health-bar",
+    "has-visible-health",
     "is-low-health",
     "is-downed",
     "race-save-marker",
