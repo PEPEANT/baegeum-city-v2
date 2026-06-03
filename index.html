@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-    <title>시뮬라크 월드</title>
+    <title>특이점레이스</title>
     <link rel="icon" href="data:,">
     <style>
       :root {
@@ -126,38 +126,6 @@
         line-height: 1.6;
       }
 
-      .hub-strip {
-        display: grid;
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-        gap: 8px;
-        max-width: 460px;
-      }
-
-      .hub-chip {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        min-height: 42px;
-        padding: 0 12px;
-        border: 1px solid rgba(103, 196, 255, 0.2);
-        border-radius: 8px;
-        background: rgba(6, 18, 35, 0.54);
-        color: var(--ink);
-        font: inherit;
-        font-size: 13px;
-        font-weight: 900;
-        cursor: pointer;
-      }
-
-      .hub-chip span {
-        color: var(--muted);
-        font-size: 11px;
-      }
-
-      .hub-chip:hover {
-        border-color: rgba(255, 198, 109, 0.56);
-      }
-
       .actions {
         display: grid;
         gap: 10px;
@@ -204,6 +172,59 @@
       .secondary-action span {
         color: var(--muted);
         font-size: 12px;
+      }
+
+      .category-menu {
+        position: relative;
+        z-index: 12;
+      }
+
+      .category-menu-button {
+        width: 42px;
+        min-width: 42px;
+        padding: 0;
+        color: var(--ink);
+        font-size: 20px;
+        line-height: 1;
+      }
+
+      .category-menu-panel[hidden] {
+        display: none;
+      }
+
+      .category-menu-panel {
+        position: absolute;
+        top: calc(100% + 8px);
+        right: 0;
+        z-index: 20;
+        display: grid;
+        gap: 7px;
+        width: min(260px, calc(100vw - 36px));
+        padding: 10px;
+        border: 1px solid rgba(103, 196, 255, 0.28);
+        border-radius: 8px;
+        background: rgba(5, 16, 31, 0.96);
+        box-shadow: 0 18px 54px rgba(0, 0, 0, 0.38);
+      }
+
+      .category-menu-panel a,
+      .category-menu-panel button {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        min-height: 38px;
+        padding: 0 10px;
+        border: 1px solid rgba(103, 196, 255, 0.18);
+        border-radius: 8px;
+        background: rgba(255, 255, 255, 0.045);
+        color: var(--ink);
+        font-size: 12px;
+        font-weight: 900;
+      }
+
+      .category-menu-panel span {
+        color: var(--muted);
+        font-size: 11px;
       }
 
       .mode-list {
@@ -355,7 +376,11 @@
         }
 
         .launcher-nav {
-          position: static;
+          position: relative;
+          top: auto;
+          left: auto;
+          right: auto;
+          z-index: 14;
           padding: 14px 18px 0;
         }
 
@@ -390,42 +415,37 @@
           grid-template-columns: 1fr;
         }
 
-        .hub-strip {
-          grid-template-columns: 1fr;
+        .category-menu-panel {
+          right: 0;
         }
       }
     </style>
   </head>
   <body data-primary-mode="singularity-race">
-    <nav class="launcher-nav" aria-label="시뮬라크월드 링크">
+    <nav class="launcher-nav" aria-label="특이점레이스 링크">
       <a class="nav-logo" href="./index.html">SIMULACRA WORLD</a>
       <div class="nav-links">
-        <a href="./index.html">홈</a>
-        <a href="https://gall.dcinside.com/mgallery/board/lists?id=thesingularity" rel="noreferrer">커뮤니티</a>
-        <button type="button" data-hub-panel="login">로그인</button>
-        <button type="button" data-hub-panel="skins">스킨</button>
-        <button type="button" data-hub-panel="shop">상점</button>
-        <button type="button" data-hub-panel="archive">아카이브</button>
-        <button type="button" id="aboutOpenButton" data-hub-panel="about">설정</button>
+        <div class="category-menu">
+          <button class="category-menu-button" id="categoryMenuButton" type="button" aria-expanded="false" aria-controls="categoryMenuPanel" aria-label="카테고리 열람">...</button>
+          <div class="category-menu-panel" id="categoryMenuPanel" hidden>
+            <a href="./index.html">홈 <span>대문</span></a>
+            <button type="button" data-hub-panel="login">로그인 <span>게스트</span></button>
+            <button type="button" data-hub-panel="skins">스킨 <span>보관함</span></button>
+            <button type="button" data-hub-panel="shop">상점 <span>준비중</span></button>
+            <button type="button" data-hub-panel="archive">아카이브 <span>월드</span></button>
+            <a href="https://gall.dcinside.com/mgallery/board/lists?id=thesingularity" rel="noreferrer">커뮤니티 <span>디시</span></a>
+            <button type="button" id="aboutOpenButton" data-hub-panel="about">설정 <span>정보</span></button>
+          </div>
+        </div>
       </div>
     </nav>
     <main>
       <section class="launch-panel" aria-labelledby="mainTitle">
-        <h1 id="mainTitle">시뮬라크 월드</h1>
-        <p class="status">시뮬라크 월드에서 시작되는 특이점이 온다 픽셀 레이스. 디시인사이드 특이점 여러분을 이 작은 세계로 초대합니다.</p>
-        <div class="hub-strip" aria-label="시뮬라크 월드 허브">
-          <button class="hub-chip" type="button" data-hub-panel="login">로그인 <span>게스트</span></button>
-          <button class="hub-chip" type="button" data-hub-panel="skins">스킨 <span>보관함</span></button>
-          <button class="hub-chip" type="button" data-hub-panel="shop">상점 <span>준비중</span></button>
-          <button class="hub-chip" type="button" data-hub-panel="archive">아카이브 <span>월드</span></button>
-        </div>
+        <h1 id="mainTitle">특이점레이스</h1>
+        <p class="status">시뮬라크 월드에서 여는 이벤트형 픽셀 레이스. 디시인사이드 특이점 여러분을 이 작은 세계의 공개방으로 초대합니다.</p>
         <div class="actions">
-          <a id="primaryRaceLink" class="primary-action race-entry-link" href="./singularity-race.html">
-            바로 플레이
-            <span>로컬</span>
-          </a>
-          <a id="onlineRaceLink" class="secondary-action is-compact race-entry-link" href="./singularity-race.html?online=cloudflare&amp;serverUrl=wss%3A%2F%2Fsingularity-race-online.rneetn.workers.dev%2Fws">
-            온라인 참가
+          <a id="primaryRaceLink" class="primary-action race-entry-link" href="./singularity-race.html?online=cloudflare&amp;serverUrl=wss%3A%2F%2Fsingularity-race-online.rneetn.workers.dev%2Fws">
+            이벤트 참가
             <span>공개방</span>
           </a>
         </div>
@@ -588,9 +608,17 @@
       const hubModalTitle = document.querySelector("#hubModalTitle");
       const hubModalCopy = document.querySelector("#hubModalCopy");
       const hubModalList = document.querySelector("#hubModalList");
+      const categoryMenu = document.querySelector("#categoryMenuPanel");
+      const categoryMenuButton = document.querySelector("#categoryMenuButton");
+
+      function setCategoryMenuOpen(open) {
+        categoryMenu.hidden = !open;
+        categoryMenuButton.setAttribute("aria-expanded", open ? "true" : "false");
+      }
 
       function openHubPanel(panelId) {
         const panel = hubPanels[panelId] || hubPanels.about;
+        setCategoryMenuOpen(false);
         hubModalTitle.textContent = panel.title;
         hubModalCopy.textContent = panel.copy;
         hubModalList.replaceChildren(...panel.items.map((item) => {
@@ -608,6 +636,11 @@
       for (const button of document.querySelectorAll("[data-hub-panel]")) {
         button.addEventListener("click", () => openHubPanel(button.dataset.hubPanel));
       }
+      categoryMenuButton.addEventListener("click", () => setCategoryMenuOpen(categoryMenu.hidden));
+      document.addEventListener("click", (event) => {
+        if (categoryMenu.hidden || event.target.closest(".category-menu")) return;
+        setCategoryMenuOpen(false);
+      });
       document.querySelector("#hubModalCloseButton").addEventListener("click", closeHubPanel);
       hubModal.addEventListener("click", (event) => {
         if (event.target === hubModal) closeHubPanel();

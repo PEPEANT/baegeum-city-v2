@@ -6,8 +6,8 @@ Conclusion: the current repository focus is to finish `특이점레이스` as th
 
 `Baegeum-City_v3` is a workshop, experiment bench, and storage space. It is not yet a finished integrated platform.
 
-- `index.html` is the Simulacra World launcher that presents `특이점레이스` as the main mode while keeping login, skin, shop, archive, community, and preserved-mode entry slots visible.
-- The launcher's primary `바로 플레이` action opens the local/guest Singularity Race flow; public Cloudflare entry remains a separate online action because public rooms can be admin-gated.
+- `index.html` is the Simulacra World launcher that presents `특이점레이스` as the main event-mode door while keeping login, skin, shop, archive, community, and preserved-mode entry slots available from the compact category menu.
+- The launcher's primary `이벤트 참가` action opens the public Cloudflare Singularity Race entry. The old visible `바로 플레이` local action and separate `온라인 참가` button are intentionally removed from the root launcher.
 - `singularity-race.html` is the current release-target game.
 - `singularity-race-admin.html` is the host, operator, observer, and test-bot surface.
 - Baegeum City, Dice City, casino, life, Drawing World, editor, skin lab, and related files remain preserved sub-systems.
@@ -19,7 +19,7 @@ The v0.1 work should stay inside the Singularity Race flow:
 
 ```text
 index.html
--> singularity-race.html local/guest entry
+-> singularity-race.html public event entry
 -> profile
 -> lobby
 -> queue

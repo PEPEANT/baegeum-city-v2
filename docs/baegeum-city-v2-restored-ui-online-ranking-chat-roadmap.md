@@ -27,9 +27,9 @@ Related source documents:
 Current root launcher behavior:
 
 - `index.html` is the first visible Simulacra World hub, not a redirect or a public-room-only gate.
-- The primary `바로 플레이` action opens local/guest `singularity-race.html` so the first click always reaches the playable profile flow.
-- Public Cloudflare online entry is a separate `온라인 참가` action and may still show room creation/admin-gate state.
-- Login, skin, shop, archive, and community are launcher shell slots. They may open small local panels now, but real account, store, inventory, payment, or cross-game entitlement behavior must wait for separate contracts.
+- The primary `이벤트 참가` action opens the public Cloudflare `singularity-race.html` event entry so the first click reaches the public-room flow.
+- The old visible `바로 플레이` local action and separate `온라인 참가` action are intentionally removed from the root launcher.
+- Login, skin, shop, archive, and community are launcher shell slots tucked into the top-right category menu. They may open small local panels now, but real account, store, inventory, payment, or cross-game entitlement behavior must wait for separate contracts.
 - Preserved mode cards for Baegeum City v2, Dice City v1, Drawing World, and Baegeum City v1 remain visible from the root launcher.
 
 ## Current Restored Baseline

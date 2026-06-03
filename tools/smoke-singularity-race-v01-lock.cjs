@@ -34,8 +34,7 @@ const packageJson = JSON.parse(readProjectFile("package.json"));
 
 [
   'data-primary-mode="singularity-race"',
-  'id="primaryRaceLink" class="primary-action race-entry-link" href="./singularity-race.html"',
-  'id="onlineRaceLink"',
+  'id="primaryRaceLink" class="primary-action race-entry-link" href="./singularity-race.html?online=cloudflare&amp;serverUrl=wss%3A%2F%2Fsingularity-race-online.rneetn.workers.dev%2Fws"',
   'href="./singularity-race.html?online=cloudflare&amp;serverUrl=wss%3A%2F%2Fsingularity-race-online.rneetn.workers.dev%2Fws"',
   'href="./baegeum-city-v2.html"',
   'href="./baegeum-city-v2-dice.html?map=dice-city&spawn=dice-blackjack-casino-01"',
@@ -45,7 +44,12 @@ const packageJson = JSON.parse(readProjectFile("package.json"));
   "https://gall.dcinside.com/mgallery/board/lists?id=thesingularity",
   "SIMULACRA WORLD",
   "시뮬라크 월드",
-  "시뮬라크 월드에서 시작되는 특이점이 온다 픽셀 레이스",
+  "<title>특이점레이스</title>",
+  '<h1 id="mainTitle">특이점레이스</h1>',
+  "시뮬라크 월드에서 여는 이벤트형 픽셀 레이스",
+  'id="categoryMenuButton"',
+  'aria-label="카테고리 열람"',
+  'id="categoryMenuPanel"',
   "배금도시 v2",
   "다이스시티 v1",
   "드로잉월드",
@@ -57,11 +61,16 @@ const packageJson = JSON.parse(readProjectFile("package.json"));
   "hubModal",
   "aboutOpenButton",
   "제작자: 훈서기",
-  "플레이",
-  "온라인 참가",
+  "이벤트 참가",
 ].forEach((token) => assertIncludes(indexSource, token, `index should keep ${token}`));
 
 assertExcludes(indexSource, 'href="./singularity-race-admin.html?devOnline=1"', "launcher should not expose the dev host page as a user button");
+assertExcludes(indexSource, 'id="onlineRaceLink"', "launcher should not keep the old separate online action");
+assertExcludes(indexSource, "바로 플레이", "launcher should not keep the old local play label");
+assertExcludes(indexSource, "<span>로컬</span>", "launcher should not keep the old local badge");
+assertExcludes(indexSource, "온라인 참가", "launcher should not keep the old separate online label");
+assertExcludes(indexSource, "hub-strip", "launcher should not render the old visible hub strip");
+assertExcludes(indexSource, "hub-chip", "launcher should not render the old visible hub chip buttons");
 assertExcludes(indexSource, "운영 화면", "launcher should not expose the old host button label");
 assertExcludes(indexSource, "대표 모드", "launcher should not show the representative-mode eyebrow");
 assertExcludes(indexSource, "특이점레이스 시작", "launcher should not keep the old primary start label");
