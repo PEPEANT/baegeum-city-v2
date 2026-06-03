@@ -120,6 +120,8 @@ export const RESTORED_ASSET_MANIFEST = Object.freeze([
     status: "legacy-reference"
   },
   { id: "image:race:singularity-race:launcher-banner", type: "image", role: "race", path: "assets/singularity-race/banner-qorud.png", source: "user-provided desktop banner for Singularity Race launcher", status: "active", collection: "singularity-race" },
+  { id: "image:race:singularity-race:loading-background", type: "image", role: "background", path: "assets/singularity-race/loading.png", source: "user-provided pixel city loading background for Singularity Race transitions", status: "active", collection: "singularity-race" },
+  { id: "image:race:singularity-race:lobby-simple-archive", type: "image", role: "reference", path: "assets/singularity-race/archive/lobby-simple.png", source: "archived local Singularity Race lobby reference image", status: "legacy-reference", collection: "singularity-race" },
   {
     id: "image:race:singularity-race:narration-intro-1",
     type: "image",
@@ -151,7 +153,10 @@ export const RESTORED_ASSET_MANIFEST = Object.freeze([
     path: "assets/singularity-race/narration/intro-4.png",
     source: "user-provided chroma-key frame, locally processed", status: "active",
     collection: "singularity-race"
-  }
+  },
+  { id: "image:race:singularity-race:scene-race-prep-background", type: "image", role: "background", path: "assets/singularity-race/scenes/race-prep/background.png", source: "user-provided pixel sky for Singularity Race profile prep scene", status: "active", collection: "singularity-race" },
+  { id: "image:race:singularity-race:scene-race-prep-title", type: "image", role: "ui", path: "assets/singularity-race/scenes/race-prep/title.png", source: "user-provided 2027 AGI banner art for Singularity Race profile prep scene", status: "active", collection: "singularity-race" },
+  { id: "image:race:singularity-race:scene-race-prep-podium", type: "image", role: "stadium", path: "assets/singularity-race/scenes/race-prep/podium.png", source: "user-provided podium/stage art for Singularity Race profile prep scene", status: "active", collection: "singularity-race" }
 ]);
 
 function getExtension(assetPath) {

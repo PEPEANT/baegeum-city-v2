@@ -75,7 +75,7 @@ Iron Line은 통째로 이식하지 않는다. 배금도시에 필요한 도시 
 - 월드 확인용 `src/systems/renderer-minimap.js`
 - `src/data/scenery-catalog.js`
 - `src/data/map01-custom-layout.js`
-- `editor.html`
+- `archive/tools/editor.html`
 - `src/tools/map-editor.js`
 
 ### 나중에 수입

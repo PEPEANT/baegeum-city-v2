@@ -1,8 +1,8 @@
 export const SINGULARITY_RACE_CLOUDFLARE_CLIENT_VERSION = "singularity-race-cloudflare-client-001";
 export const SINGULARITY_RACE_CLOUDFLARE_ROOM_ID = "room:singularity-race:public-001";
 export const SINGULARITY_RACE_CLOUDFLARE_INPUT_MIN_INTERVAL_MS = 100;
-export const SINGULARITY_RACE_CLOUDFLARE_SNAPSHOT_HZ = 5;
-export const SINGULARITY_RACE_CLOUDFLARE_SNAPSHOT_MAX_HZ = 8;
+export const SINGULARITY_RACE_CLOUDFLARE_SNAPSHOT_HZ = 10;
+export const SINGULARITY_RACE_CLOUDFLARE_SNAPSHOT_MAX_HZ = 10;
 
 export function resolveSingularityRaceCloudflareWsUrl(rawEndpoint = "", locationLike = globalThis.location) {
   const endpoint = String(rawEndpoint || "").trim();

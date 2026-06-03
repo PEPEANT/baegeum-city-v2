@@ -78,7 +78,7 @@ Status: `reference`
 
 - `src/restored/engine/simulacra-world-game-module-contract.js`를 만든다.
 - `src/restored/engine/simulacra-world-shell.js`가 registry를 읽어 작은 shell snapshot과 launch guard를 만든다.
-- `simulacra-world.html`은 shell snapshot만 읽는 작은 진단 화면이다.
+- `archive/diagnostics/simulacra-world.html`은 shell snapshot만 읽는 작은 진단 화면이다.
 - 공통 모듈 id 목록을 고정한다.
 - Singularity Race를 첫 active 파생 게임으로 등록한다.
 - Drawing World를 candidate로 등록한다.
@@ -95,4 +95,4 @@ Status: `reference`
 
 ## Next Safe Slice
 
-다음 구현은 아직 대규모 분리가 아니다. 현재 `simulacra-world.html`은 `createSimulacraWorldShellSnapshot()`을 읽어서 등록된 파생 게임 목록만 보여준다. 다음 안전 단계는 Singularity Race의 프로필/채팅/스킨/방장 기능 중 하나만 골라 공통 엔진 모듈로 옮기는 것이다.
+다음 구현은 아직 대규모 분리가 아니다. 현재 `archive/diagnostics/simulacra-world.html`은 `createSimulacraWorldShellSnapshot()`을 읽어서 등록된 파생 게임 목록만 보여준다. 다음 안전 단계는 Singularity Race의 프로필/채팅/스킨/방장 기능 중 하나만 골라 공통 엔진 모듈로 옮기는 것이다.

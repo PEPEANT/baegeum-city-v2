@@ -13,7 +13,7 @@
 - 모든 도박장 실내에는 `환전 ATM`을 기본 배치한다. 근처에서 `E` 또는 모바일 `ACTION`을 누르면 바로 교환하지 않고 ATM 패널만 연다.
 - ATM 패널은 DiceLand 환전 규칙처럼 10/50/100칩 단위로 `cash -> chips`, `chips -> cash`를 선택하고, 버튼을 누를 때만 ledger를 기록한다.
 - 실제 온라인 서버는 아직 붙이지 않았지만, 각 건물은 `onlineRoomId`를 미리 가진다.
-- `editor.html`의 배금도시 확장 패널에서 간판, 입구, 실내 씬, 온라인 채널을 편집할 수 있다.
+- `archive/tools/editor.html`의 배금도시 확장 패널에서 간판, 입구, 실내 씬, 온라인 채널을 편집할 수 있다.
 
 ## Restored gambling replacement rule
 
@@ -66,7 +66,7 @@ Current guard: `tools/check-restored-game-contract-purity.cjs`.
 
 ## Blackjack design prototype handoff
 
-Current standalone prototype: `blackjack-design-test.html`.
+Current standalone prototype: `archive/prototypes/blackjack-design-test.html`.
 
 Future integration target: `다이스시티 -> 카지노거리 -> 블랙잭카지노`.
 
@@ -88,7 +88,7 @@ Current pure round module: `src/restored/games/blackjack-round-contract.js`.
 Version: `restored-blackjack-001`.
 Round version: `restored-blackjack-round-001`.
 
-This module is the first replacement-game layer on top of the restored gambling event contract. It is not wired to `blackjack-design-test.html` or `baegeum-city-v2-dice.html` yet.
+This module is the first replacement-game layer on top of the restored gambling event contract. It is not wired to `archive/prototypes/blackjack-design-test.html` or `baegeum-city-v2-dice.html` yet.
 
 Current scope:
 

@@ -4,7 +4,7 @@ const fs = require("fs");
 const path = require("path");
 
 const root = path.resolve(__dirname, "..");
-const blackjackPath = path.join(root, "blackjack-design-test.html");
+const blackjackPath = path.join(root, "archive", "prototypes", "blackjack-design-test.html");
 const gamblingDocPath = path.join(root, "docs", "baegeum-city-v2-gambling-venues.md");
 const workingStatePath = path.join(root, "docs", "ai-working-state.md");
 
@@ -82,14 +82,14 @@ function assertPrototypeHtml(html) {
 
 function assertHandoffDocs(gamblingDoc, workingState) {
   assertRequiredTexts(gamblingDoc, [
-    "blackjack-design-test.html",
+    "archive/prototypes/blackjack-design-test.html",
     "다이스시티 -> 카지노거리 -> 블랙잭카지노",
     "Do not connect it to the live restored game yet",
     "Clicking a chip should animate a chip flying onto the table"
   ], "docs/baegeum-city-v2-gambling-venues.md");
 
   assertRequiredTexts(workingState, [
-    "blackjack-design-test.html",
+    "archive/prototypes/blackjack-design-test.html",
     "chip-click flight animation",
     "Do not: Wire this prototype into `baegeum-city-v2-dice.html`"
   ], "docs/ai-working-state.md");

@@ -265,7 +265,7 @@
     import {
       createSimulacraWorldShellSnapshot,
       createSimulacraWorldGameLaunch
-    } from "./src/restored/engine/simulacra-world-shell.js";
+    } from "../../src/restored/engine/simulacra-world-shell.js";
 
     const snapshot = createSimulacraWorldShellSnapshot();
     const gameList = document.getElementById("game-list");
@@ -302,7 +302,8 @@
       button.disabled = !launch.ok;
       if (launch.ok) {
         button.addEventListener("click", () => {
-          window.location.href = launch.href;
+          const href = /^(https?:)?\/\//.test(launch.href) ? launch.href : `../../${launch.href.replace(/^\.\//, "")}`;
+          window.location.href = href;
         });
       }
 

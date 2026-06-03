@@ -15,7 +15,7 @@
 - NPC 10명이 NavGraph 경로를 따라 도시를 배회한다.
 - Iron Line 건물 13개는 블랙잭카지노, 홀짝카지노, 경마장 같은 도박장 종류로 분류했다.
 - 각 건물 위에는 한국어 간판을 표시하고, `E`로 전용 실내 씬에 입장/퇴장할 수 있다.
-- `editor.html`에는 배금도시 도박장 메타데이터 확장 패널을 붙였다.
+- `archive/tools/editor.html`에는 배금도시 도박장 메타데이터 확장 패널을 붙였다.
 - 도박장마다 `world`, `venue`, `table`, `spectator`, `admin`, `chat` 채널 ID를 예약했다.
 - 도박장 실내 씬은 `src/data/interiors.js`에서 생성한다.
 - 개발자 HUD는 현재 씬, 좌표, 가까운 문을 표시한다.

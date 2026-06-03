@@ -67,7 +67,7 @@ Planning docs:
 
 Dev surfaces:
 
-- `simulacra-world.html`: small diagnostic surface that reads `createSimulacraWorldShellSnapshot()` and exposes only launchable active derived games.
+- `archive/diagnostics/simulacra-world.html`: small diagnostic surface that reads `createSimulacraWorldShellSnapshot()` and exposes only launchable active derived games.
 
 Phone direction:
 

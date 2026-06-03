@@ -1,6 +1,7 @@
 "use strict";
 
 const assert = require("node:assert/strict");
+const fs = require("node:fs");
 const path = require("node:path");
 const { pathToFileURL } = require("node:url");
 
@@ -14,6 +15,7 @@ async function main() {
 
   assertCharacterGradePlan(skills);
   assertBasicAttackStaging(combat);
+  assertCombatUiExposure();
 
   const runners = Array.from({ length: 30 }, (_, index) => ({
     id: `runner:${index + 1}`,
@@ -103,6 +105,22 @@ async function main() {
 
   console.log("Singularity Race combat full-race smoke passed.");
   console.log(JSON.stringify({ finished: runners.length, attackHits, downs, respawns, skillUses, grades: [...seenGrades].sort(), placeholderSkinGrades: [...seenPlaceholderSkinGrades].sort() }, null, 2));
+}
+
+function assertCombatUiExposure() {
+  const html = fs.readFileSync(path.join(root, "singularity-race.html"), "utf8");
+  const runnerView = fs.readFileSync(path.join(root, "src/restored/games/singularity-race-runner-view.js"), "utf8");
+  [
+    "runner-health",
+    "runner-health-bar",
+    "is-low-health",
+    "is-downed",
+    "race-save-marker",
+    "race-save-marker-index",
+    "--runner-health-ratio"
+  ].forEach((token) => assert(html.includes(token) || runnerView.includes(token), `combat UI should keep ${token}`));
+  assert(html.includes("action-hp-bar"), "race HUD should keep the player HP meter");
+  assert(html.includes("createRaceSavePointEffectEntries"), "race track should expose save checkpoint markers");
 }
 
 function assertCharacterGradePlan(skills) {

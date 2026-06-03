@@ -6,6 +6,24 @@
 
 ---
 
+## Product Name vs Engine Identity Decision (2026-06-03)
+
+Public players and most AI sessions may call the mode `특이점레이스` / Singularity Race, but the reusable future engine must not be designed as a rail-only race engine.
+
+The reusable target is a **destination-based 2D PvP arena**: players fight, body-block, use skills, and move freely in top-view 2D while also trying to reach a destination or finish zone.
+
+Non-negotiable direction:
+
+- The future reusable authority state is `{ x, y, vx, vy }`.
+- `progress`, `destinationDistance`, finish rate, ranking, and route percent are derived outputs from position.
+- Do not make `progress` the movement authority again in the reusable PvP/arena core.
+- The current live v0.1 can remain a progress/lane event race, but it is not the reusable movement engine.
+- Baegeum City reuse should depend on the future free-position arena core, not on the current rail/lane coordinate authority.
+
+Short handoff phrase: **the name is Singularity Race, but the reusable engine identity is goal-race PvP arena; position is x/y, progress is derived.**
+
+---
+
 ## Current Prototype Tuning Note (2026-06-03)
 
 `free-race-prototype.html`은 현재 v2.1 탑뷰 손맛 검증장이다. 여전히 단독 실행 파일이며, 본게임/Worker와 연결하지 않는다.

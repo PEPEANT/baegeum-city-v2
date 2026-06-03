@@ -3,14 +3,15 @@ const path = require("path");
 const assert = require("assert");
 
 const root = path.resolve(__dirname, "..");
-const html = fs.readFileSync(path.join(root, "editor.html"), "utf8");
+const editorPath = path.join(root, "archive", "tools", "editor.html");
+const html = fs.readFileSync(editorPath, "utf8");
 const scripts = [...html.matchAll(/<script[^>]+src="([^"]+)"/g)].map((match) => match[1]);
 
-assert.ok(scripts.includes("src/tools/baegeum-world-editor.js"), "editor.html must load the world editor entry");
+assert.ok(scripts.includes("../../src/tools/baegeum-world-editor.js"), "archive/tools/editor.html must load the world editor entry");
 
 for (const source of scripts) {
   if (/^(https?:)?\/\//.test(source)) continue;
-  const localPath = path.join(root, source);
+  const localPath = path.resolve(path.dirname(editorPath), source);
   assert.ok(fs.existsSync(localPath), `Missing editor script: ${source}`);
 }
 

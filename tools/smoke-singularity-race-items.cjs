@@ -21,7 +21,7 @@ async function main() {
 
   const definitions = itemContract.listSingularityRaceItemDefinitions();
   const boxes = itemContract.createSingularityRaceItemBoxes();
-  assert(definitions.length === 6, "item set should expose booster, banana, stun-shot, ink-cloud, red-pill, turbo-car");
+  assert(definitions.length === 7, "item set should expose booster, banana, stun-shot, ink-cloud, red-pill, turbo-car, sword");
   assert(boxes.length === 15, "track should expose three rows of five item boxes");
   assert(definitions.some((item) => item.itemId === itemContract.SINGULARITY_RACE_ITEM_IDS.BOOSTER), "booster item missing");
   assert(definitions.some((item) => item.itemId === itemContract.SINGULARITY_RACE_ITEM_IDS.BANANA), "banana item missing");
@@ -29,12 +29,15 @@ async function main() {
   assert(definitions.some((item) => item.itemId === itemContract.SINGULARITY_RACE_ITEM_IDS.INK_CLOUD), "ink-cloud item missing");
   assert(definitions.some((item) => item.itemId === itemContract.SINGULARITY_RACE_ITEM_IDS.RED_PILL), "red-pill item missing");
   assert(definitions.some((item) => item.itemId === itemContract.SINGULARITY_RACE_ITEM_IDS.TURBO_CAR), "turbo-car item missing");
+  assert(definitions.some((item) => item.itemId === itemContract.SINGULARITY_RACE_ITEM_IDS.SWORD), "sword item missing");
   assert(
     boxes.filter((box) => box.sectionIndex === 3).every((box) => box.progress === 90),
     "final item row should stay on the late straight road"
   );
   assert(itemContract.SINGULARITY_RACE_BOOSTER_SPEED_MULTIPLIER >= 1.25, "booster should be visibly faster");
   assert(itemContract.SINGULARITY_RACE_BOOSTER_SPEED_MULTIPLIER <= 1.35, "booster should stay collision-safe");
+  assert(itemContract.SINGULARITY_RACE_RED_PILL_SIZE_SCALE >= 1.65, "red pill should read as a visible giant-state item");
+  assert(itemContract.SINGULARITY_RACE_RED_PILL_SIZE_SCALE <= 1.8, "red pill should stay readable inside the race lane");
   const centerBox = boxes.find((box) => box.progress === 18 && box.laneOffsetPx === 0);
   const crossedBox = itemContract.isSingularityRaceItemBoxInPickupRange(centerBox, { progress: 20, laneOffsetPx: 0 }, {
     progressRadius: itemContract.SINGULARITY_RACE_ITEM_PICKUP_PROGRESS_RADIUS,
@@ -74,10 +77,19 @@ async function main() {
   for (const token of [
     "singularity-race-item-contract.js",
     "currentItemId",
+    "currentItemIds",
+    "RACE_ITEM_SLOT_LIMIT",
+    "raceItemSlots",
+    "addRaceItemSlot",
+    "consumeRaceItemId",
+    "currentItemCount",
+    "itemSlotLimit",
     "itemRoulette",
     "createSingularityRaceItemBoxState",
     "updateRaceItems",
     "useRaceItem",
+    "useRaceItemOrRewardSkill",
+    "hasHeldRaceItem",
     "itemAim",
     "ITEM_AIM_LOCK_MS",
     "isProjectileRaceItem",
@@ -94,12 +106,28 @@ async function main() {
     "useBananaItem",
     "useStunShotItem",
     "useInkCloudItem",
+    "useSwordItem",
+    "SWORD_PICKUP_POINTS",
+    "SWORD_PICKUP_RESPAWN_MS",
+    "SWORD_ATTACK_RANGE_PROGRESS",
+    "SWORD_ATTACK_LANE_RANGE_PX",
+    "createRaceSwordPickupState",
+    "collectRaceSwordPickup",
+    "createRaceSwordPickupEntry",
+    "swordPickups",
+    "race-sword-pickup",
+    "is-sword",
+    "is-sword-attacking",
+    "runner-sword-slash",
+    "runner-sword-lunge",
     "findInkCloudTarget",
     "applyRaceItemBlind",
     "createRaceItemIconNode",
     "getRaceItemIconKind",
     "getRaceItemIconParts",
     "renderRaceSkillItemButton",
+    "createRaceItemSlotStripNode",
+    "race-item-slot-strip",
     "race-vision-mask",
     "renderRaceVisionMask",
     "visionBlockedUntilMs",

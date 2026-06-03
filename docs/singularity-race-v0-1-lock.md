@@ -10,6 +10,7 @@ Conclusion: the current repository focus is to finish `특이점레이스` as th
 - The launcher's primary `이벤트 참가` action opens the public Cloudflare Singularity Race entry. The old visible `바로 플레이` local action and separate `온라인 참가` button are intentionally removed from the root launcher.
 - `singularity-race.html` is the current release-target game.
 - `singularity-race-admin.html` is the host, operator, observer, and test-bot surface.
+- Gameplay identity for this pass is corridor combat race: reach the destination while fighting, losing HP, being downed, and respawning from safe checkpoints. Do not frame it as a car-style fixed-track speed race.
 - Baegeum City, Dice City, casino, life, Drawing World, editor, skin lab, and related files remain preserved sub-systems.
 - The Simulacra World common engine is a future idea, not current implementation work.
 
@@ -56,6 +57,8 @@ The minimum complete loop is:
 ## Future Expansion Protection
 
 This lock does not reject future expansion. It keeps the path open by avoiding premature abstraction.
+
+Important naming decision: `특이점레이스` is the public/event title, not the reusable engine definition. The future reusable combat/race engine should be treated as a destination-based 2D PvP arena: free top-view `{ x, y, vx, vy }` is authority, while `progress`, destination distance, finish rate, and ranking are derived from position. Do not extract the current progress/lane rail coordinate system as the Baegeum City reusable PvP engine.
 
 Future shared candidates may include:
 

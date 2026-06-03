@@ -35,6 +35,30 @@ export function createSingularityTrackProgressPillNode(options) {
   return pill;
 }
 
+export function createSingularityTrackFinishWindowNode(options) {
+  const node = document.createElement("div");
+  node.className = finishWindowClassName(options);
+  const label = document.createElement("span");
+  const clock = document.createElement("b");
+  const count = document.createElement("span");
+  label.dataset.role = "label";
+  clock.dataset.role = "clock";
+  count.dataset.role = "count";
+  node.append(label, clock, count);
+  updateSingularityTrackFinishWindowNode(node, options);
+  return node;
+}
+
+export function updateSingularityTrackFinishWindowNode(node, options) {
+  node.className = finishWindowClassName(options);
+  const label = node.querySelector('[data-role="label"]');
+  const clock = node.querySelector('[data-role="clock"]');
+  const count = node.querySelector('[data-role="count"]');
+  if (label) label.textContent = options.label || "완주 마감";
+  if (clock) clock.textContent = options.clock || "00:00";
+  if (count) count.textContent = `${Math.max(0, Number(options.finishedCount) || 0)} / ${Math.max(0, Number(options.playerCount) || 0)} 완주`;
+}
+
 export function createSingularityTrackCueNode(cue, point) {
   const node = document.createElement("div");
   node.className = `track-cue is-${cue.type}${cue.rewardGrade ? ` is-grade-${String(cue.rewardGrade).toLowerCase()} has-reward` : ""}`;
@@ -98,4 +122,9 @@ function clampUnit(value) {
   const number = Number(value);
   if (!Number.isFinite(number)) return 0;
   return Math.max(0, Math.min(1, number));
+}
+
+function finishWindowClassName(options = {}) {
+  const remainingMs = Math.max(0, Number(options.remainingMs) || 0);
+  return `track-finish-window${remainingMs <= 10000 ? " is-danger" : ""}${remainingMs > 10000 && remainingMs <= 30000 ? " is-warning" : ""}${remainingMs <= 5000 ? " is-final" : ""}`;
 }

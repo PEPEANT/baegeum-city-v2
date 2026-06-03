@@ -78,6 +78,11 @@ function assertPlayerAudioWiring(byId) {
   assert(pageSource.includes("audio:bgm:singularity-race:dont-stop-me"), "race start should use the primary race track id");
   assert(pageSource.includes("audio:bgm:singularity-race:tjie-she-pen"), "race extension should use the follow-up track id");
   assert(pageSource.includes("race-audio-root"), "race page should mount hidden audio elements for browser verification");
+  assert(pageSource.includes('audio.preload = "none"'), "race audio elements should not preload every track on initial page load");
+  assert(pageSource.includes("audio.dataset.src = track.src"), "race audio should keep source URLs lazy until playback");
+  assert(pageSource.includes("attachRaceAudioSource"), "race audio should attach src only when a track is played");
+  assert(pageSource.includes("waitForRaceAudioMetadata"), "race audio should still support start offsets after lazy source attachment");
+  assert(!pageSource.includes('audio.preload = "auto";\n        audio.loop = Boolean(track.loop);\n        audio.volume = track.volume;\n        audio.src = track.src;'), "race page should not eagerly preload all audio tracks at setup");
   assert(pageSource.includes("unlockRaceAudio"), "audio playback should be unlocked from a user gesture");
   assert(pageSource.includes("LAUNCHER_MENU_BGM_INTENT_KEY"), "race page should consume launcher BGM start intent");
   assert(pageSource.includes("consumeLauncherMenuBgmIntent"), "race page should try lobby music after launcher entry");

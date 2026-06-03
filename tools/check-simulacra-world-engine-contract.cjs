@@ -8,7 +8,7 @@ const { pathToFileURL } = require("url");
 const root = path.resolve(__dirname, "..");
 const contractPath = path.join(root, "src", "restored", "engine", "simulacra-world-game-module-contract.js");
 const shellPath = path.join(root, "src", "restored", "engine", "simulacra-world-shell.js");
-const pagePath = path.join(root, "simulacra-world.html");
+const pagePath = path.join(root, "archive", "diagnostics", "simulacra-world.html");
 const planPath = path.join(root, "docs", "plans", "simulacra-world-engine.md");
 const indexPath = path.join(root, "docs", "INDEX.md");
 const plansReadmePath = path.join(root, "docs", "plans", "README.md");
@@ -66,7 +66,7 @@ function read(filePath) {
     "시뮬라크월드",
     "createSimulacraWorldShellSnapshot",
     "createSimulacraWorldGameLaunch",
-    "./src/restored/engine/simulacra-world-shell.js",
+    "../../src/restored/engine/simulacra-world-shell.js",
     "data-game-list",
     "후보와 참고 항목은 실행되지 않습니다"
   ].forEach((token) => assert(page.includes(token), `page must include ${token}`));
@@ -87,6 +87,7 @@ function read(filePath) {
   assert(read(plansReadmePath).includes("simulacra-world-engine.md"), "plans README must list the Simulacra World plan.");
   assert(read(restoredReadmePath).includes("engine/simulacra-world-game-module-contract.js"), "restored README must list the engine module contract.");
   assert(read(restoredReadmePath).includes("engine/simulacra-world-shell.js"), "restored README must list the engine shell snapshot.");
+  assert(read(restoredReadmePath).includes("archive/diagnostics/simulacra-world.html"), "restored README must record the archived diagnostic page.");
   assert(JSON.parse(read(packagePath)).scripts.check.includes("check-simulacra-world-engine-contract.cjs"), "npm run check must include this contract check.");
 
   console.log("Simulacra World engine contract check passed.");

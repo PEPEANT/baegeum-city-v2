@@ -92,6 +92,14 @@ export function validateRestoredMarathonCombatContract() {
   const hit = resolveRestoredMarathonAttackHit(attack, { runnerId: "runner:b", position: { x: 2, y: 0 }, hp: 30 });
   if (!hit.hit || hit.attackerStallMs <= 0) errors.push("mouse attack should hit in range and stall attacker");
   if (hit.attackCooldownMs <= 0 || hit.stunMs <= 0) errors.push("basic attack should expose cooldown and stun");
+  const reverseAttack = createRestoredMarathonAttackAction({
+    attackerId: "runner:a",
+    origin: { x: 0, y: 0 },
+    aim: { x: -1, y: 0 }
+  });
+  const reverseHit = resolveRestoredMarathonAttackHit(reverseAttack, { runnerId: "runner:back", position: { x: -2, y: 0 }, hp: 30 });
+  const reverseMiss = resolveRestoredMarathonAttackHit(reverseAttack, { runnerId: "runner:front", position: { x: 2, y: 0 }, hp: 30 });
+  if (!reverseHit.hit || reverseMiss.hit) errors.push("reverse basic attack should hit behind and miss in front");
   const damaged = applyRestoredMarathonRunnerDamage({ runnerId: "runner:b", hp: 30, lastSafeCheckpointIndex: 2 }, hit);
   if (!damaged.down || damaged.pendingRespawnCheckpointIndex !== 2) errors.push("downed runner should return to saved checkpoint");
   const staged = resolveRestoredMarathonAttackHit(createRestoredMarathonAttackAction({ damage: 0 }), { runnerId: "runner:c", position: { x: 1, y: 0 }, hp: 100 });

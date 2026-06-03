@@ -17,6 +17,7 @@ function assertIncludes(source, token, message) {
 
 execFileSync(process.execPath, ["--check", path.join(root, "workers/singularity-race-worker.js")], { stdio: "pipe" });
 execFileSync(process.execPath, ["--check", path.join(root, "src/restored/online/singularity-race-cloudflare-client.js")], { stdio: "pipe" });
+execFileSync(process.execPath, ["--check", path.join(root, "src/restored/games/singularity-race-finish-window.js")], { stdio: "pipe" });
 
 const worker = read("workers/singularity-race-worker.js");
 const wrangler = read("wrangler.toml");
@@ -24,6 +25,7 @@ const client = read("src/restored/online/singularity-race-cloudflare-client.js")
 const race = read("singularity-race.html");
 const admin = read("singularity-race-admin.html");
 const merge = read("src/restored/games/singularity-race-dev-online.js");
+const finishWindowContract = read("src/restored/games/singularity-race-finish-window.js");
 
 [
   'const ROOM_ID = "room:singularity-race:public-001"',
@@ -31,8 +33,8 @@ const merge = read("src/restored/games/singularity-race-dev-online.js");
   "const INPUT_LIMIT_PER_SECOND = 10",
   "const SERVER_TICK_INTERVAL_MS = 100",
   "const INPUT_STALE_MS = 550",
-  "const SNAPSHOT_INTERVAL_MS = 200",
-  "const MIN_SNAPSHOT_INTERVAL_MS = 125",
+  "const SNAPSHOT_INTERVAL_MS = 100",
+  "const MIN_SNAPSHOT_INTERVAL_MS = 100",
   "const CHAT_COOLDOWN_MS = 900",
   "const START_PADDOCK_MAX_PROGRESS",
   "const STAGING_RUN_PROGRESS_PER_SECOND = 1.0",
@@ -95,6 +97,13 @@ const merge = read("src/restored/games/singularity-race-dev-online.js");
   "ENTRY_OPEN_DEFAULT",
   "ROOM_ACTIVE_DEFAULT",
   "race_finished",
+  "finish_window_started",
+  "finish_window_expired",
+  "finishWindowEndsAtMs",
+  "finishWindowRemainingMs",
+  "resolveSingularityRaceFinishWindowMs",
+  "createSingularityRaceFinishWindowState",
+  "safeSetAlarm(this.finishWindowEndsAtMs + 25)",
   "async alarm()",
   "sanitizePhase",
   "chat_burst_limit"
@@ -108,8 +117,8 @@ const merge = read("src/restored/games/singularity-race-dev-online.js");
 
 [
   "SINGULARITY_RACE_CLOUDFLARE_INPUT_MIN_INTERVAL_MS = 100",
-  "SINGULARITY_RACE_CLOUDFLARE_SNAPSHOT_HZ = 5",
-  "SINGULARITY_RACE_CLOUDFLARE_SNAPSHOT_MAX_HZ = 8",
+  "SINGULARITY_RACE_CLOUDFLARE_SNAPSHOT_HZ = 10",
+  "SINGULARITY_RACE_CLOUDFLARE_SNAPSHOT_MAX_HZ = 10",
   "resolveSingularityRaceCloudflareWsUrl",
   "createSingularityRaceCloudflareRoomClient"
 ].forEach((token) => assertIncludes(client, token, `client should keep ${token}`));
@@ -149,6 +158,13 @@ const merge = read("src/restored/games/singularity-race-dev-online.js");
   "localizeCloudflareSnapshot",
   "sendCloudflareChatMessage",
   "state.cloudflareHost",
+  "syncActionFinishWindowFromPayload",
+  "getActiveRaceFinishWindow",
+  "track-finish-window",
+  "formatSingularityRaceFinishWindowClock",
+  "createSingularityTrackFinishWindowNode",
+  "finish_window_started",
+  "DNF",
   "관리자 시작 대기중",
   "관리자 대기중"
 ].forEach((token) => assertIncludes(race, token, `race page should keep ${token}`));
@@ -203,6 +219,8 @@ assert.ok(!admin.includes('localStorage.setItem("adminToken"'), "Public admin pa
 assert.ok(!admin.includes("ADMIN_TOKEN_STORAGE_KEY"), "Public admin page must not use persistent token storage naming");
 assert.ok(!/window\.localStorage\.(getItem|setItem|removeItem)\([^)]*admin-token/i.test(admin), "Public admin page must not persist admin token in localStorage");
 assertIncludes(merge, "participant.skinPreset", "server snapshots should preserve remote participant skins");
+assertIncludes(race, "const BASIC_ATTACK_RANGE_PROGRESS = 4.8", "client basic attack range should stay tuned to 4.8 progress");
+assertIncludes(worker, "const BASIC_ATTACK_RANGE_PROGRESS = 4.8", "worker basic attack range should stay tuned to 4.8 progress");
 [
   "preserveLocalPrediction",
   "smoothServerCorrection",
@@ -211,8 +229,26 @@ assertIncludes(merge, "participant.skinPreset", "server snapshots should preserv
   "snapshotSnapped"
 ].forEach((token) => assertIncludes(merge, token, `server snapshot merge should keep jitter smoothing token ${token}`));
 assertIncludes(race, "canRequestConnectedAttack", "race page should send connected attacks whenever public race input is open");
+[
+  "lastAttackProgressDirection",
+  "resolveBasicAttackDirectionFromInput",
+  "rememberAttackProgressDirection",
+  "aim.allowNearestFallback"
+].forEach((token) => assertIncludes(race, token, `race page should keep progress-axis basic attack token ${token}`));
+assert.ok(!race.includes("findBasicAttackTarget(player, aim.direction) || (event ? null : findNearestBasicAttackTarget(player))"), "basic attack button must not auto-flip explicit reverse attacks to the nearest target");
+assertIncludes(worker, "normalizeAttackAim(packet.payload?.aim, session, mapId)", "worker attack aim fallback should have session and map context");
+assertIncludes(worker, "resolveSingularityRaceInputMovement(lastInputPayload || {}, trailPoint)", "worker attack fallback should project last input onto the track axis");
 assert.ok(!/api[-_]?key|secret|password|private[-_]?key/i.test(worker), "worker source must not embed secret-like config keys");
+[
+  "SINGULARITY_RACE_FINISH_WINDOW_RATIO = 0.45",
+  "SINGULARITY_RACE_FINISH_WINDOW_MIN_MS = 45000",
+  "SINGULARITY_RACE_FINISH_WINDOW_MAX_MS = 90000",
+  "resolveSingularityRaceFinishWindowMs",
+  "validateSingularityRaceFinishWindowContract"
+].forEach((token) => assertIncludes(finishWindowContract, token, `finish window contract should keep ${token}`));
 
+execFileSync(process.execPath, [path.join(root, "tools/smoke-singularity-race-finish-window.cjs")], { stdio: "inherit" });
 execFileSync(process.execPath, [path.join(root, "tools/smoke-singularity-race-cloudflare-worker-contract.cjs")], { stdio: "inherit" });
+execFileSync(process.execPath, [path.join(root, "tools/smoke-singularity-race-reverse-attack.cjs")], { stdio: "inherit" });
 execFileSync(process.execPath, [path.join(root, "tools/smoke-singularity-race-cloudflare-worker-skill.cjs")], { stdio: "inherit" });
 console.log("Singularity Race Cloudflare online smoke passed.");

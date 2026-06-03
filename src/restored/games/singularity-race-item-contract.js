@@ -6,7 +6,8 @@ export const SINGULARITY_RACE_ITEM_IDS = Object.freeze({
   STUN_SHOT: "item:stun-shot",
   INK_CLOUD: "item:ink-cloud",
   RED_PILL: "item:red-pill",
-  TURBO_CAR: "item:turbo-car"
+  TURBO_CAR: "item:turbo-car",
+  SWORD: "item:sword"
 });
 
 export const SINGULARITY_RACE_ITEM_BOX_RESPAWN_MS = 10000;
@@ -24,7 +25,7 @@ export const SINGULARITY_RACE_ITEM_PICKUP_LANE_RADIUS_PX = 58;
 // 빨간약: 잠깐 거대화. 살짝 빨라지고 넉백 면역 + 작은 러너를 밀쳐낸다(조작은 약간 둔해진다).
 export const SINGULARITY_RACE_RED_PILL_DURATION_MS = 4200;
 export const SINGULARITY_RACE_RED_PILL_SPEED_MULTIPLIER = 1.12;
-export const SINGULARITY_RACE_RED_PILL_SIZE_SCALE = 1.55;
+export const SINGULARITY_RACE_RED_PILL_SIZE_SCALE = 1.7;
 export const SINGULARITY_RACE_RED_PILL_LANE_DRAG = 0.78;
 // 터보카: 상자를 부수거나 아이템으로 획득. 몇 초간 크게 가속 + 충돌/넉백 면역.
 export const SINGULARITY_RACE_TURBO_CAR_DURATION_MS = 3600;
@@ -39,19 +40,16 @@ const ITEM_DEFINITIONS = Object.freeze([
   item(SINGULARITY_RACE_ITEM_IDS.STUN_SHOT, "스턴샷", "projectile", 20),
   item(SINGULARITY_RACE_ITEM_IDS.INK_CLOUD, "먹물탄", "blind", 14),
   item(SINGULARITY_RACE_ITEM_IDS.RED_PILL, "빨간약", "grow", 14),
-  item(SINGULARITY_RACE_ITEM_IDS.TURBO_CAR, "터보카", "vehicle", 8)
+  item(SINGULARITY_RACE_ITEM_IDS.TURBO_CAR, "터보카", "vehicle", 8),
+  item(SINGULARITY_RACE_ITEM_IDS.SWORD, "칼", "melee", 12)
 ]);
 
 const ITEM_BOX_PROGRESS = Object.freeze([18, 48, 90]);
 const ITEM_BOX_LANES = Object.freeze([-184, -92, 0, 92, 184]);
 
-export function listSingularityRaceItemDefinitions() {
-  return ITEM_DEFINITIONS;
-}
+export function listSingularityRaceItemDefinitions() { return ITEM_DEFINITIONS; }
 
-export function getSingularityRaceItemDefinition(itemId) {
-  return ITEM_DEFINITIONS.find((item) => item.itemId === itemId) || null;
-}
+export function getSingularityRaceItemDefinition(itemId) { return ITEM_DEFINITIONS.find((item) => item.itemId === itemId) || null; }
 
 export function createSingularityRaceItemBoxes(options = {}) {
   const progressRows = Array.isArray(options.progressRows) ? options.progressRows : ITEM_BOX_PROGRESS;
@@ -78,7 +76,10 @@ export function pickSingularityRaceItem(seed = "") {
 export function canCollectSingularityRaceItem(options = {}) {
   if (options.participantType === "spectator") return false;
   if (!options.raceStarted || options.finalResult) return false;
-  return !options.currentItemId;
+  const slotLimit = Math.max(1, Math.floor(finiteNumber(options.itemSlotLimit, 1)));
+  const fallbackCount = options.currentItemId ? 1 : 0;
+  const currentItemCount = Math.max(0, Math.floor(finiteNumber(options.currentItemCount, fallbackCount)));
+  return currentItemCount < slotLimit;
 }
 
 export function isSingularityRaceItemBoxActive(box = {}, nowMs = 0) {
@@ -164,22 +165,21 @@ export function validateSingularityRaceItemContract() {
     traceMaxAgeMs: 650,
     nowMs: 1000
   });
-  if (ITEM_DEFINITIONS.length !== 6) errors.push("item set should expose six race items");
+  if (ITEM_DEFINITIONS.length !== 7) errors.push("item set should expose seven race items");
   if (boxes.length !== 15) errors.push("item boxes should be 3 rows of 5 boxes");
   if (!boxes.some((box) => box.sectionIndex === 3 && box.progress === 90)) errors.push("final item row should sit on the late straight road");
-  if (!picked.has(SINGULARITY_RACE_ITEM_IDS.BOOSTER)) errors.push("booster should be pickable");
-  if (!picked.has(SINGULARITY_RACE_ITEM_IDS.BANANA)) errors.push("banana should be pickable");
-  if (!picked.has(SINGULARITY_RACE_ITEM_IDS.STUN_SHOT)) errors.push("stun shot should be pickable");
-  if (!picked.has(SINGULARITY_RACE_ITEM_IDS.INK_CLOUD)) errors.push("ink cloud should be pickable");
-  if (!picked.has(SINGULARITY_RACE_ITEM_IDS.RED_PILL)) errors.push("red pill should be pickable");
-  if (!picked.has(SINGULARITY_RACE_ITEM_IDS.TURBO_CAR)) errors.push("turbo car should be pickable");
+  for (const [itemId, label] of [[SINGULARITY_RACE_ITEM_IDS.BOOSTER, "booster"], [SINGULARITY_RACE_ITEM_IDS.BANANA, "banana"], [SINGULARITY_RACE_ITEM_IDS.STUN_SHOT, "stun shot"], [SINGULARITY_RACE_ITEM_IDS.INK_CLOUD, "ink cloud"], [SINGULARITY_RACE_ITEM_IDS.RED_PILL, "red pill"], [SINGULARITY_RACE_ITEM_IDS.TURBO_CAR, "turbo car"], [SINGULARITY_RACE_ITEM_IDS.SWORD, "sword"]]) {
+    if (!picked.has(itemId)) errors.push(`${label} should be pickable`);
+  }
   if (!canCollectSingularityRaceItem({ raceStarted: true, currentItemId: "", participantType: "player" })) errors.push("empty player slot should collect during race");
-  if (canCollectSingularityRaceItem({ raceStarted: true, currentItemId: "item:booster", participantType: "player" })) errors.push("filled item slot should not collect another box");
+  if (canCollectSingularityRaceItem({ raceStarted: true, currentItemId: "item:booster", participantType: "player" })) errors.push("default single filled item slot should not collect another box");
+  if (!canCollectSingularityRaceItem({ raceStarted: true, currentItemId: "item:booster", currentItemCount: 1, itemSlotLimit: 2, participantType: "player" })) errors.push("two-slot inventory should collect when one slot is still open");
+  if (canCollectSingularityRaceItem({ raceStarted: true, currentItemCount: 2, itemSlotLimit: 2, participantType: "player" })) errors.push("two-slot inventory should stop collecting when both slots are full");
   if (canCollectSingularityRaceItem({ raceStarted: true, currentItemId: "", participantType: "spectator" })) errors.push("spectators should not collect item boxes");
   if (SINGULARITY_RACE_BOOSTER_SPEED_MULTIPLIER < 1.25 || SINGULARITY_RACE_BOOSTER_SPEED_MULTIPLIER > 1.35) errors.push("booster must stay in the 0.1 safe speed range");
   if (SINGULARITY_RACE_TURBO_CAR_SPEED_MULTIPLIER <= SINGULARITY_RACE_BOOSTER_SPEED_MULTIPLIER) errors.push("turbo car should be clearly faster than the booster");
   if (SINGULARITY_RACE_TURBO_CAR_SPEED_MULTIPLIER > SINGULARITY_RACE_MAX_SELF_SPEED_MULTIPLIER) errors.push("turbo car must stay within the trusted self-speed cap");
-  if (SINGULARITY_RACE_RED_PILL_SIZE_SCALE <= 1) errors.push("red pill should visibly enlarge the runner");
+  if (SINGULARITY_RACE_RED_PILL_SIZE_SCALE < 1.65 || SINGULARITY_RACE_RED_PILL_SIZE_SCALE > 1.8) errors.push("red pill should stay in the larger but readable size band");
   if (SINGULARITY_RACE_RED_PILL_LANE_DRAG <= 0 || SINGULARITY_RACE_RED_PILL_LANE_DRAG >= 1) errors.push("red pill should trade some lateral agility for size");
   if (SINGULARITY_RACE_INK_BLIND_MS < 1200 || SINGULARITY_RACE_INK_BLIND_MS > 2400) errors.push("ink cloud should briefly block vision without lasting too long");
   if (SINGULARITY_RACE_ITEM_PICKUP_PROGRESS_RADIUS < 0.55 || SINGULARITY_RACE_ITEM_PICKUP_PROGRESS_RADIUS > 0.9) errors.push("item pickup progress radius should stay close to the visible box");

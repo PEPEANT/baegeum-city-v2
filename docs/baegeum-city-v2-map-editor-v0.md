@@ -5,7 +5,7 @@
 ## 현재 구현
 
 - `vendor/iron-line/`에 원본 Iron Line 에디터/맵 파일을 고정했다.
-- `editor.html`은 배금도시 월드 에디터 화면으로 교체했다.
+- `archive/tools/editor.html`은 배금도시 월드 에디터 화면으로 교체했다.
 - 에디터는 `IronLine.Renderer`를 사용해 게임과 같은 도로, 장식물, 건물 렌더링을 보여준다.
 - `장식물`, `건설`, `건물`, `도로`, `보기` 모드를 제공한다.
 - `장식물` 모드에서는 `world.scenery` 항목을 선택하고 드래그해 옮긴다.
@@ -106,7 +106,7 @@ npm start
 브라우저:
 
 ```text
-http://127.0.0.1:4173/editor.html
+http://127.0.0.1:4173/archive/tools/editor.html
 ```
 
 ## 현재 한계

@@ -79,7 +79,7 @@ assertExcludes(indexSource, "SINGULARITY RACE", "launcher shell brand should not
 assertExcludes(indexSource, "Pixel City Race", "launcher banner should use Korean copy");
 assertIncludes(indexSource, 'class="secondary-action is-muted" href="./baegeum-city-v2.html"', "Baegeum City v2 should remain a muted preserved mode");
 assert.ok(fs.existsSync(path.join(root, "baegeum-city-v2.html")), "Baegeum City v2 city-core entry should remain preserved");
-assert.ok(fs.existsSync(path.join(root, "editor.html")), "world editor file should remain preserved even if it is not a launcher card");
+assert.ok(fs.existsSync(path.join(root, "archive", "tools", "editor.html")), "world editor file should remain preserved in archive/tools even if it is not a launcher card");
 assert.ok(fs.existsSync(path.join(root, "skin-lab.html")), "skin lab file should remain preserved even if it is not a launcher card");
 assertIncludes(indexSource, "<main>", "launcher should remain a visible page, not a redirect-only shim");
 assertExcludes(indexSource, 'http-equiv="refresh"', "launcher should not become a meta redirect");
@@ -88,6 +88,8 @@ assert.ok(!/location\.(href|assign|replace)\s*=/.test(indexSource), "launcher sh
 [
   'data-screen="profile"',
   'id="main-title"',
+  "resolveInitialRaceScreen",
+  "return SINGULARITY_RACE_SCREENS.PROFILE",
   "특이점레이스 대기열방",
   "SINGULARITY_RACE_SCREENS.LOBBY",
   "SINGULARITY_RACE_SCREENS.QUEUE",
@@ -139,8 +141,20 @@ assert.ok(!/location\.(href|assign|replace)\s*=/.test(indexSource), "launcher sh
   'id="race-options-about"',
   "race-about-panel",
   "profile-heading",
+  "profile-title-swoosh",
+  "profile-title-text",
+  "2026 AGI",
+  "profile-avatar-rig", ".profile-avatar-rig::before",
+  ".profile-avatar-rig::after",
+  "스킨명 :",
+  '.profile-hero .scene-layer[data-layer="title"]',
+  '.profile-hero .scene-layer[data-layer="podium"]',
   'id="nickname-input"',
   'id="profile-start-button"',
+  'id="race-loading-overlay"',
+  'url("./assets/singularity-race/loading.png")',
+  "race-loading-bar-fill",
+  "withRaceLoadingOverlay", "RACE_LAUNCHER_LOADING_MIN_MS",
   ".shell[data-screen=\"queue\"] .track-panel .panel-header",
   ".shell[data-screen=\"queue\"] .skin-panel",
   "대기열방 스킨 변경",
@@ -182,9 +196,14 @@ assert.ok(!/location\.(href|assign|replace)\s*=/.test(indexSource), "launcher sh
 
 assertIncludes(raceSource, 'href="https://gall.dcinside.com/mgallery/board/lists?id=thesingularity"', "race page should link the community gallery");
 assertExcludes(raceSource, "닉네임과 스킨을 먼저 고른 뒤 로비에 입장합니다.", "profile intro copy should be replaced by direct nickname/start controls");
+assertExcludes(raceSource, "screen: savedProfile ||", "saved profiles should no longer skip the first launcher/profile screen");
 assertIncludes(raceSource, "overflow-y: auto;", "profile skin picker should keep its own scroll area");
-assertIncludes(raceSource, "grid-auto-rows: 64px;", "profile skin picker should reserve compact stable full-row card height");
+assertIncludes(raceSource, "grid-auto-rows: 56px;", "profile skin picker should reserve smaller stable full-row card height");
 assertExcludes(raceSource, "caption.textContent = preset.id", "queue skin cards should not show the English/id caption below the Korean name");
+assertExcludes(raceSource, "slot.appendChild(elements.profileSkinName)", "profile prep scene should not put the skin name label above the character");
+assertIncludes(raceSource, "avatarRig.appendChild(elements.profileSkinPreview)", "profile prep character should move inside the coded stage rig");
+assertIncludes(raceSource, "elements.profileSkinName.hidden = false", "profile prep selected skin label should stay visible under the title");
+assertIncludes(raceSource, 'titleText.textContent = "2026 AGI"', "profile prep title should be rendered as controllable pixel text");
 assertIncludes(raceSource, "--selected-green: #34e87a", "selected skin should use a green highlight token");
 assertIncludes(raceSource, 'content: "선택";', "selected skin should show an explicit selected badge");
 assert.ok(

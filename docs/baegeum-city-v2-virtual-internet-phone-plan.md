@@ -228,7 +228,7 @@ src/apps/
 
 - 게임 시작 전 화면이 뜬다.
 - 게스트로 시작하면 기존 도시맵으로 진입한다.
-- 기존 `skin-lab.html`, `editor.html` 이동은 깨지지 않는다.
+- 기존 `skin-lab.html`, `archive/tools/editor.html` 이동은 깨지지 않는다.
 
 ### 3단계: 폰 셸 테스트
 

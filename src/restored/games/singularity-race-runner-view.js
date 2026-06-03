@@ -48,12 +48,21 @@ export function createSingularityRunnerAvatarNode(runner) {
   const hitBurst = document.createElement("span");
   hitBurst.className = "runner-hit-burst";
   hitBurst.setAttribute("aria-hidden", "true");
+  const rideVehicle = document.createElement("span");
+  rideVehicle.className = "runner-ride-vehicle";
+  rideVehicle.setAttribute("aria-hidden", "true");
   const rankBadge = document.createElement("span");
   rankBadge.className = "runner-rank-badge";
   rankBadge.hidden = true;
+  const health = document.createElement("span");
+  health.className = "runner-health";
+  health.setAttribute("aria-hidden", "true");
+  const healthBar = document.createElement("i");
+  healthBar.className = "runner-health-bar";
+  health.append(healthBar);
   const nameplate = document.createElement("span");
   nameplate.className = "runner-nameplate";
-  avatar.append(chatBubble, rankBadge, image, attackSwipe, hitBurst, nameplate);
+  avatar.append(chatBubble, rankBadge, health, rideVehicle, image, attackSwipe, hitBurst, nameplate);
   return avatar;
 }
 
@@ -61,9 +70,19 @@ export function updateSingularityRunnerAvatarNode(avatar, runner, skinSrc, optio
   const image = avatar.querySelector("img");
   const chatBubble = avatar.querySelector(".runner-chat-bubble");
   const rankBadge = avatar.querySelector(".runner-rank-badge");
+  const health = avatar.querySelector(".runner-health");
   const nameplate = avatar.querySelector(".runner-nameplate");
+  const maxHp = Math.max(1, Number(runner.maxHp || 100));
+  const hp = Math.max(0, Math.min(maxHp, Number(runner.hp ?? maxHp)));
+  const hpRatio = hp / maxHp;
   avatar.dataset.skinId = String(runner.skin || "");
   avatar.dataset.runStyle = String(options.runStyle || resolveSingularityRunnerRunStyle(runner.skin));
+  avatar.dataset.hp = String(Math.round(hp));
+  avatar.dataset.maxHp = String(Math.round(maxHp));
+  avatar.classList.toggle("is-low-health", hpRatio > 0 && hpRatio <= 0.34);
+  avatar.classList.toggle("is-downed", hp <= 0);
+  avatar.style.setProperty("--runner-health-ratio", String(hpRatio));
+  avatar.style.setProperty("--runner-health-width", `${Math.round(hpRatio * 100)}%`);
   if (image) {
     image.alt = `${runner.name} skin`;
     if (image.src !== skinSrc) image.src = skinSrc;
@@ -81,6 +100,7 @@ export function updateSingularityRunnerAvatarNode(avatar, runner, skinSrc, optio
     rankBadge.title = rankLabel;
     rankBadge.hidden = !rankLabel;
   }
+  if (health) health.title = `Health ${Math.round(hp)} / ${Math.round(maxHp)}`;
   if (nameplate) {
     nameplate.textContent = runner.name;
     nameplate.title = runner.name;
@@ -168,6 +188,13 @@ export function validateSingularityRaceRunnerViewContract() {
   if (resolveSingularityRunnerRunStyle("ai-believer") !== "robot") errors.push("특궁 should keep a mechanical Robocop-style run");
   if (resolveSingularityRunnerRunStyle("server-crash") !== "quick") errors.push("역류기 should keep a quick hacker run");
   if (resolveSingularityRunnerRunStyle("gpichan") !== "bounce") errors.push("gpichan needs a bouncy run style");
+  if (typeof document !== "undefined") {
+    const avatar = createSingularityRunnerAvatarNode({ id: "runner:test" });
+    updateSingularityRunnerAvatarNode(avatar, { id: "runner:test", name: "Test", hp: 25, maxHp: 100 }, "");
+    if (!avatar.querySelector(".runner-health-bar")) errors.push("runner avatar should expose an overhead health bar");
+    if (!avatar.querySelector(".runner-ride-vehicle")) errors.push("runner avatar should expose a turbo-car riding layer");
+    if (!avatar.classList.contains("is-low-health")) errors.push("low-health runners should get a visible health class");
+  }
   return Object.freeze({ ok: errors.length === 0, errors: Object.freeze(errors) });
 }
 

@@ -623,6 +623,7 @@
     }
 
     .race-action-button {
+      position: relative;
       width: 68px;
       height: 68px;
       border-radius: 50%;
@@ -958,51 +959,175 @@
       margin: auto;
       display: grid;
       gap: 14px;
-    }
-
-    .profile-hero {
+      min-height: 0;
       max-height: calc(100dvh - 36px);
-      overflow: hidden;
-      padding: 18px 22px;
-      border: 1px solid var(--line);
-      border-radius: 8px;
-      background:
-        linear-gradient(180deg, rgba(11, 35, 66, 0.84), rgba(5, 16, 32, 0.9)),
-        var(--panel);
-      box-shadow: var(--shadow);
-      display: grid;
-      gap: 14px;
-      backdrop-filter: blur(14px);
-    }
-
-    .profile-hero h1 {
-      margin: 0;
-      font-size: 38px;
-      line-height: 1;
-      letter-spacing: 0;
-      text-shadow: 0 0 28px rgba(86, 200, 255, 0.24);
     }
 
     .profile-form {
       display: grid;
       min-height: 0;
-      gap: 12px;
-      grid-template-rows: auto auto minmax(0, 1fr);
+      gap: 10px;
+      grid-template-rows: auto minmax(0, 1fr);
+      max-height: calc(100dvh - 36px);
     }
 
-    .profile-heading {
-      display: grid;
-      gap: 12px;
+    /* 레이스 준비장. 레이어 합성은 layered-scene.js("race-prep")가 담당.
+       .profile-hero는 .scene-stack이 되어 비율/배경/단상을 받는다. */
+    .profile-hero {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      box-shadow: var(--shadow);
+    }
+
+    .profile-hero.scene-stack {
+      height: clamp(292px, 44dvh, 430px);
+      aspect-ratio: auto;
+      background: #2da8ff;
+      --profile-avatar-size: clamp(88px, 13vw, 132px);
+      --profile-stage-width: clamp(172px, 30vw, 260px);
+      --profile-stage-height: clamp(28px, 4.6vw, 44px);
+      --profile-stage-stairs-width: clamp(78px, 13vw, 120px);
+      --profile-stage-stairs-height: clamp(18px, 3.3vw, 30px);
+    }
+
+    .profile-hero .scene-layer[data-layer="background"] {
+      z-index: 0;
+    }
+
+    .profile-title-swoosh {
+      position: absolute;
+      top: 6.2%;
+      left: 50%;
+      z-index: 1;
+      width: min(54%, 340px);
+      height: clamp(30px, 5.4vw, 48px);
+      transform: translateX(-50%) rotate(-2deg);
+      display: none;
+      pointer-events: none;
+    }
+
+    .profile-title-swoosh::before,
+    .profile-title-swoosh::after {
+      content: "";
+      position: absolute;
+      inset: 28% 0 20%;
+      border-radius: 999px;
+      background:
+        linear-gradient(90deg, transparent 0%, rgba(0, 0, 0, 0.84) 14%, rgba(0, 0, 0, 0.9) 72%, transparent 100%);
+      clip-path: polygon(0 58%, 11% 30%, 77% 18%, 100% 42%, 89% 68%, 15% 88%);
+      filter: blur(0.5px);
+      opacity: 0.74;
+    }
+
+    .profile-title-swoosh::after {
+      inset: 44% 10% 22% 12%;
+      transform: rotate(5deg);
+      opacity: 0.32;
+    }
+
+    .profile-title-text {
+      position: absolute;
+      top: 6.4%;
+      left: 50%;
+      z-index: 2;
+      transform: translateX(-50%);
+      color: #ecf8ff;
+      font-family: "Courier New", Consolas, "Malgun Gothic", monospace;
+      font-size: clamp(34px, 5.5vw, 58px);
+      font-weight: 900;
+      letter-spacing: 0;
+      line-height: 0.95;
+      white-space: nowrap;
+      text-shadow:
+        2px 0 0 rgba(20, 42, 68, 0.5),
+        0 2px 0 rgba(20, 42, 68, 0.5),
+        2px 3px 0 rgba(28, 67, 104, 0.36);
+      pointer-events: none;
+    }
+
+    .profile-hero .scene-layer[data-layer="title"] {
+      z-index: 2;
+      display: none;
+    }
+
+    .profile-hero .scene-layer[data-layer="podium"] {
+      z-index: 2;
+      display: none;
+      filter: drop-shadow(0 8px 8px rgba(0, 0, 0, 0.3));
+    }
+
+    .profile-hero .scene-content {
+      z-index: 5;
+      bottom: 31% !important;
+      width: var(--profile-stage-width);
+      height: calc(var(--profile-avatar-size) + var(--profile-stage-height) + var(--profile-stage-stairs-height) + 10px);
+      gap: 0;
+    }
+
+    .profile-avatar-rig {
+      position: relative;
+      width: 100%;
+      height: 100%;
+    }
+
+    .profile-avatar-rig::before {
+      content: "";
+      position: absolute;
+      left: 50%;
+      bottom: var(--profile-stage-stairs-height);
+      z-index: 0;
+      width: 100%;
+      height: var(--profile-stage-height);
+      border: 1px solid rgba(1, 7, 12, 0.82);
+      border-radius: 50% 50% 9px 9px / 58% 58% 11px 11px;
+      transform: translateX(-50%);
+      background:
+        radial-gradient(ellipse at 50% 9%, rgba(0, 0, 0, 0.92) 0 31%, rgba(0, 0, 0, 0.42) 47%, transparent 54%),
+        linear-gradient(90deg, rgba(9, 13, 17, 0.88), rgba(58, 66, 70, 0.98) 22%, rgba(74, 84, 88, 0.98) 50%, rgba(36, 43, 48, 0.98) 76%, rgba(8, 12, 16, 0.9)),
+        linear-gradient(180deg, #3d464b 0%, #1b2228 55%, #090e13 100%);
+      box-shadow:
+        inset 0 8px 12px rgba(255, 255, 255, 0.08),
+        inset 0 -10px 13px rgba(0, 0, 0, 0.56),
+        0 13px 15px rgba(0, 0, 0, 0.28);
+      pointer-events: none;
+    }
+
+    .profile-avatar-rig::after {
+      content: "";
+      position: absolute;
+      left: 50%;
+      bottom: 0;
+      z-index: 0;
+      width: var(--profile-stage-stairs-width);
+      height: var(--profile-stage-stairs-height);
+      border: 1px solid rgba(1, 7, 12, 0.78);
+      transform: translateX(-50%);
+      background:
+        repeating-linear-gradient(180deg, rgba(255, 255, 255, 0.16) 0 1px, transparent 1px 5px),
+        linear-gradient(90deg, #0a0f14, #3b454c 18%, #171f27 50%, #3b454c 82%, #080d12);
+      clip-path: polygon(12% 0, 88% 0, 100% 100%, 0 100%);
+      box-shadow:
+        inset 0 5px 8px rgba(255, 255, 255, 0.08),
+        0 8px 10px rgba(0, 0, 0, 0.24);
+      pointer-events: none;
     }
 
     .profile-name-row {
       display: grid;
-      grid-template-columns: minmax(0, 1fr) auto;
-      gap: 10px;
+      grid-template-columns: minmax(0, 1fr);
+      gap: 6px;
+    }
+
+    .profile-hero .profile-name-row {
+      position: absolute;
+      left: clamp(12px, 4vw, 24px);
+      right: clamp(12px, 4vw, 24px);
+      bottom: clamp(12px, 3.2vw, 22px);
+      z-index: 6;
     }
 
     .profile-name-row input {
-      min-height: 46px;
+      min-height: 38px;
       width: 100%;
       border: 1px solid var(--line);
       border-radius: 8px;
@@ -1013,6 +1138,31 @@
       box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.03);
     }
 
+    .profile-hero .profile-name-row input {
+      border-color: rgba(255, 255, 255, 0.86);
+      background: rgba(255, 255, 255, 0.94);
+      color: #07121f;
+      box-shadow:
+        inset 0 0 0 1px rgba(255, 255, 255, 0.05),
+        0 8px 20px rgba(0, 0, 0, 0.18);
+    }
+
+    .profile-hero .profile-name-row input::placeholder {
+      color: rgba(7, 18, 31, 0.64);
+    }
+
+    .profile-hero .profile-name-row .primary {
+      width: 100%;
+      min-height: 38px;
+      border-color: rgba(164, 234, 255, 0.94);
+      background: linear-gradient(180deg, #9ff0ff, #38bdf8);
+      color: #07121f;
+      font-weight: 1000;
+      box-shadow:
+        inset 0 0 0 1px rgba(255, 255, 255, 0.5),
+        0 10px 22px rgba(14, 165, 233, 0.32);
+    }
+
     .profile-name-row input:focus {
       border-color: rgba(86, 200, 255, 0.74);
       box-shadow:
@@ -1020,41 +1170,59 @@
         inset 0 0 0 1px rgba(255, 255, 255, 0.05);
     }
 
-    .profile-preview {
-      display: flex;
-      gap: 12px;
-      align-items: center;
-      min-height: 68px;
-      padding: 9px 12px;
-      border: 1px solid var(--line);
-      border-radius: 8px;
-      background: rgba(255, 255, 252, 0.94);
-      color: #17231e;
-    }
-
-    .profile-preview img {
-      width: 46px;
-      height: 46px;
+    #profile-skin-preview {
+      position: absolute;
+      left: 50%;
+      bottom: calc(var(--profile-stage-height) + var(--profile-stage-stairs-height) - 13px);
+      z-index: 1;
+      --profile-avatar-drop: 0px;
+      width: var(--profile-avatar-size);
+      aspect-ratio: 1;
+      height: auto;
       object-fit: contain;
+      image-rendering: pixelated;
+      filter: drop-shadow(0 14px 18px rgba(0, 0, 0, 0.5));
+      transform: translateX(-50%) translateY(var(--profile-avatar-drop));
+      animation: profile-idle 2.4s ease-in-out infinite;
     }
 
-    .profile-preview b,
-    .profile-preview span {
+    @keyframes profile-idle {
+      0%, 100% { transform: translateX(-50%) translateY(var(--profile-avatar-drop)); }
+      50% { transform: translateX(-50%) translateY(calc(var(--profile-avatar-drop) - 7px)); }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      #profile-skin-preview { animation: none; }
+    }
+
+    #profile-skin-name {
+      position: absolute;
+      top: 15.2%;
+      left: 50%;
+      z-index: 3;
       display: block;
-    }
-
-    .profile-preview span {
-      margin-top: 3px;
-      color: #52656f;
-      font-size: 12px;
+      max-width: min(82%, 360px);
+      padding: 3px 10px;
+      overflow: hidden;
+      border: 1px solid rgba(198, 238, 255, 0.48);
+      border-radius: 999px;
+      background: rgba(5, 22, 39, 0.42);
+      color: #f2fbff;
+      font-size: clamp(10px, 1.7vw, 13px);
+      font-weight: 900;
+      letter-spacing: -0.01em;
+      text-overflow: ellipsis;
+      text-shadow: 0 1px 5px rgba(0, 0, 0, 0.64);
+      transform: translateX(-50%);
+      white-space: nowrap;
     }
 
     .profile-skin-grid {
       display: grid;
       grid-template-columns: repeat(4, minmax(0, 1fr));
-      grid-auto-rows: 64px;
-      gap: 6px;
-      max-height: min(430px, calc(100dvh - 220px));
+      grid-auto-rows: 56px;
+      gap: 5px;
+      max-height: min(360px, calc(100dvh - 410px));
       min-height: 0;
       overflow-y: auto;
       overscroll-behavior: contain;
@@ -1063,14 +1231,115 @@
     }
 
     .profile-skin-grid .skin-card {
-      min-height: 64px;
-      padding: 6px 8px;
+      min-height: 56px;
+      padding: 5px 6px;
     }
 
     .profile-skin-grid .skin-card img {
-      width: 34px;
-      height: 34px;
-      margin-bottom: 3px;
+      width: 28px;
+      height: 28px;
+      margin-bottom: 2px;
+    }
+
+    .profile-skin-grid .skin-card b {
+      font-size: 11px;
+      line-height: 1.15;
+    }
+
+    .race-loading-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 120;
+      display: block;
+      overflow: hidden;
+      background:
+        linear-gradient(180deg, rgba(7, 14, 36, 0.06) 0%, rgba(4, 10, 25, 0.28) 58%, rgba(4, 9, 20, 0.86) 100%),
+        url("./assets/singularity-race/loading.png") center / cover no-repeat,
+        #09152c;
+    }
+
+    .race-loading-overlay[hidden] {
+      display: none;
+    }
+
+    .race-loading-overlay::after {
+      position: absolute;
+      inset: 0;
+      background:
+        linear-gradient(90deg, rgba(78, 210, 255, 0.08), transparent 22%, transparent 78%, rgba(255, 132, 216, 0.08)),
+        linear-gradient(180deg, transparent 0 66%, rgba(2, 6, 16, 0.28) 100%);
+      content: "";
+      pointer-events: none;
+    }
+
+    .race-loading-panel {
+      position: absolute;
+      left: 50%;
+      bottom: max(28px, env(safe-area-inset-bottom));
+      z-index: 1;
+      display: grid;
+      width: min(560px, calc(100% - 32px));
+      gap: 9px;
+      padding: 14px 16px 16px;
+      border: 1px solid rgba(184, 228, 255, 0.28);
+      border-radius: 8px;
+      color: #f5fbff;
+      background: rgba(5, 12, 28, 0.72);
+      box-shadow: 0 18px 48px rgba(0, 0, 0, 0.38);
+      backdrop-filter: blur(14px);
+      text-align: left;
+      transform: translateX(-50%);
+    }
+
+    .race-loading-copy-row {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .race-loading-panel strong {
+      font-size: clamp(17px, 3.4vw, 22px);
+      font-weight: 900;
+      line-height: 1.15;
+      text-shadow: 0 2px 12px rgba(0, 0, 0, 0.62);
+    }
+
+    .race-loading-panel span {
+      color: #d0e8f5;
+      font-size: clamp(12px, 2vw, 14px);
+      line-height: 1.45;
+      text-shadow: 0 1px 8px rgba(0, 0, 0, 0.58);
+    }
+
+    .race-loading-bar {
+      position: relative;
+      height: 9px;
+      overflow: hidden;
+      border: 1px solid rgba(207, 241, 255, 0.3);
+      border-radius: 999px;
+      background: rgba(2, 8, 20, 0.68);
+      box-shadow: inset 0 0 12px rgba(0, 0, 0, 0.38);
+    }
+
+    .race-loading-bar-fill {
+      position: absolute;
+      inset: 1px auto 1px 1px;
+      width: 42%;
+      border-radius: inherit;
+      background: linear-gradient(90deg, #69d9ff, #ffe184 48%, #ff88db);
+      box-shadow: 0 0 18px rgba(105, 217, 255, 0.58);
+      animation: race-loading-bar-sweep 1.08s ease-in-out infinite;
+    }
+
+    @keyframes race-loading-bar-sweep {
+      0% { transform: translateX(-104%); }
+      42% { transform: translateX(34%); }
+      100% { transform: translateX(252%); }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .race-loading-bar-fill { animation: none; transform: translateX(68%); }
     }
 
     .topbar {
@@ -2843,6 +3112,51 @@
       font-weight: 800;
     }
 
+    .track-finish-window {
+      position: absolute;
+      top: 12px;
+      left: 50%;
+      display: grid;
+      min-width: 142px;
+      gap: 2px;
+      padding: 8px 12px;
+      border: 1px solid rgba(78, 43, 31, 0.2);
+      border-radius: 8px;
+      color: #241713;
+      background: rgba(255, 247, 220, 0.94);
+      box-shadow: 0 8px 24px rgba(16, 19, 27, 0.18);
+      text-align: center;
+      transform: translateX(-50%);
+    }
+
+    .track-finish-window span {
+      font-size: 11px;
+      font-weight: 900;
+      line-height: 1.2;
+      white-space: nowrap;
+    }
+
+    .track-finish-window b {
+      font-size: 19px;
+      font-weight: 950;
+      line-height: 1.05;
+      white-space: nowrap;
+    }
+
+    .track-finish-window.is-warning {
+      background: rgba(255, 234, 166, 0.96);
+    }
+
+    .track-finish-window.is-danger {
+      color: #ffffff;
+      background: rgba(194, 43, 43, 0.96);
+      border-color: rgba(255, 255, 255, 0.2);
+    }
+
+    .track-finish-window.is-final {
+      animation: finish-window-pulse 0.72s ease-in-out infinite;
+    }
+
     .player-focus-ring {
       display: none;
       position: absolute;
@@ -2853,6 +3167,16 @@
       box-shadow: 0 0 0 8px rgba(120, 219, 147, 0.1), 0 0 22px rgba(120, 219, 147, 0.3);
       transform: translate(-50%, -50%);
       opacity: 0.82;
+    }
+
+    @keyframes finish-window-pulse {
+      0%,
+      100% {
+        transform: translateX(-50%) scale(1);
+      }
+      50% {
+        transform: translateX(-50%) scale(1.06);
+      }
     }
 
     .player-focus-ring.is-checkpoint {
@@ -2931,9 +3255,11 @@
     }
 
     .race-item-box,
+    .race-sword-pickup,
     .race-item-trap,
     .race-item-projectile,
     .race-item-ink,
+    .race-save-marker,
     .race-obstacle {
       position: absolute;
       display: grid;
@@ -2941,6 +3267,74 @@
       border-radius: 8px;
       transform: translate(-50%, -50%);
       pointer-events: none;
+    }
+
+    .race-save-marker {
+      width: 36px;
+      height: 36px;
+      z-index: 1;
+      border: 2px solid rgba(80, 214, 143, 0.82);
+      color: #073321;
+      background:
+        linear-gradient(135deg, transparent 0 40%, rgba(255, 255, 255, 0.48) 40% 54%, transparent 54% 100%),
+        linear-gradient(180deg, #8cf2b0 0%, #20a86f 100%);
+      box-shadow:
+        0 0 0 5px rgba(80, 214, 143, 0.12),
+        0 8px 18px rgba(6, 50, 34, 0.28);
+      font-size: 11px;
+      font-weight: 1000;
+    }
+
+    .race-save-marker::before {
+      content: "";
+      position: absolute;
+      inset: 6px;
+      border: 2px solid rgba(7, 51, 33, 0.28);
+      border-radius: 6px;
+      transform: rotate(45deg);
+    }
+
+    .race-save-marker-label {
+      position: relative;
+      z-index: 1;
+      line-height: 1;
+    }
+
+    .race-save-marker-index {
+      position: absolute;
+      left: 50%;
+      bottom: -18px;
+      min-width: 42px;
+      padding: 2px 5px;
+      border: 1px solid rgba(80, 214, 143, 0.32);
+      border-radius: 8px;
+      color: #113725;
+      background: rgba(248, 255, 249, 0.9);
+      font-size: 9px;
+      font-weight: 1000;
+      line-height: 1;
+      text-align: center;
+      transform: translateX(-50%);
+    }
+
+    .race-save-marker.is-next {
+      border-color: rgba(255, 224, 138, 0.96);
+      background:
+        linear-gradient(135deg, transparent 0 40%, rgba(255, 255, 255, 0.5) 40% 54%, transparent 54% 100%),
+        linear-gradient(180deg, #ffe58d 0%, #e4a51f 100%);
+      box-shadow:
+        0 0 0 6px rgba(255, 224, 138, 0.16),
+        0 0 20px rgba(255, 224, 138, 0.4),
+        0 8px 18px rgba(75, 48, 6, 0.28);
+    }
+
+    .race-save-marker.is-cleared {
+      opacity: 0.64;
+      filter: grayscale(0.12);
+    }
+
+    .race-save-marker.is-cleared .race-save-marker-label {
+      color: #16412a;
     }
 
     .race-obstacle {
@@ -3075,6 +3469,21 @@
       animation: race-item-box-scan 1.15s ease-in-out infinite alternate;
     }
 
+    .race-sword-pickup {
+      width: 46px;
+      height: 46px;
+      border: 2px solid rgba(236, 243, 255, 0.82);
+      border-radius: 50%;
+      background:
+        radial-gradient(circle at 50% 50%, rgba(255, 255, 255, 0.88) 0 13%, rgba(103, 187, 255, 0.28) 14% 42%, transparent 43%),
+        rgba(12, 31, 48, 0.28);
+      box-shadow:
+        0 0 0 6px rgba(103, 187, 255, 0.08),
+        0 0 18px rgba(224, 241, 255, 0.62),
+        0 10px 22px rgba(5, 18, 36, 0.28);
+      animation: race-sword-pickup-float 1.05s ease-in-out infinite alternate;
+    }
+
     .race-item-trap {
       width: 42px;
       height: 34px;
@@ -3198,6 +3607,44 @@
       height: 22px;
       margin: 0 auto 2px;
       border-radius: 6px;
+    }
+
+    .race-item-slot-strip {
+      position: absolute;
+      left: 50%;
+      bottom: 3px;
+      display: flex;
+      gap: 2px;
+      margin-top: 0;
+      transform: translateX(-50%);
+      pointer-events: none;
+    }
+
+    .race-item-slot {
+      display: grid;
+      place-items: center;
+      width: 15px;
+      height: 15px;
+      border: 1px solid rgba(23, 35, 30, 0.3);
+      border-radius: 5px;
+      background: rgba(255, 255, 252, 0.76);
+      overflow: hidden;
+      margin-top: 0;
+    }
+
+    .race-item-slot .race-item-icon {
+      width: 13px;
+      height: 13px;
+      margin: 0;
+      border-radius: 4px;
+    }
+
+    .race-item-slot.is-empty::after {
+      width: 5px;
+      height: 5px;
+      border-radius: 50%;
+      background: rgba(23, 35, 30, 0.24);
+      content: "";
     }
 
     .race-item-icon-part,
@@ -3459,6 +3906,49 @@
       box-shadow: 16px 0 0 #14202c;
     }
 
+    .race-item-icon.is-sword {
+      overflow: visible;
+      border-radius: 8px;
+      background:
+        radial-gradient(circle at 50% 50%, rgba(235, 247, 255, 0.5) 0 24%, transparent 25%),
+        linear-gradient(135deg, rgba(57, 122, 170, 0.28), rgba(9, 20, 36, 0.08));
+      box-shadow: 0 0 16px rgba(220, 242, 255, 0.72);
+    }
+
+    .race-item-icon.is-sword .sword-blade {
+      left: 16px;
+      top: 1px;
+      width: 7px;
+      height: 26px;
+      border-radius: 6px 6px 2px 2px;
+      background: linear-gradient(90deg, #d3e8f5 0 22%, #ffffff 23% 56%, #8fb5cf 57% 100%);
+      box-shadow: 0 0 9px rgba(235, 247, 255, 0.82);
+      transform: rotate(42deg);
+      transform-origin: 50% 92%;
+    }
+
+    .race-item-icon.is-sword .sword-guard {
+      left: 9px;
+      top: 22px;
+      width: 21px;
+      height: 5px;
+      border-radius: 999px;
+      background: #ffd76e;
+      box-shadow: 0 0 8px rgba(255, 215, 110, 0.66);
+      transform: rotate(42deg);
+    }
+
+    .race-item-icon.is-sword .sword-hilt {
+      left: 11px;
+      top: 25px;
+      width: 8px;
+      height: 12px;
+      border-radius: 4px;
+      background: linear-gradient(180deg, #293547, #0f1826);
+      box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.18);
+      transform: rotate(42deg);
+    }
+
     .race-item-roulette {
       position: absolute;
       left: 50%;
@@ -3538,6 +4028,11 @@
     .race-item-roulette.is-ink .race-item-roulette-icon {
       color: #e9fbff;
       background: #07111f;
+    }
+
+    .race-item-roulette.is-sword .race-item-roulette-icon {
+      color: #e9fbff;
+      background: #243346;
     }
 
     .race-item-roulette-copy {
@@ -3690,6 +4185,53 @@
       filter: drop-shadow(0 0 12px rgba(96, 196, 255, 0.85)) drop-shadow(0 4px 4px rgba(16, 19, 27, 0.32));
     }
 
+    .runner-ride-vehicle {
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      z-index: -1;
+      width: 54px;
+      height: 24px;
+      border: 2px solid rgba(9, 45, 67, 0.78);
+      border-radius: 14px 17px 10px 10px;
+      background:
+        linear-gradient(90deg, rgba(255, 255, 252, 0.92) 0 18%, rgba(78, 210, 255, 0.96) 18% 78%, rgba(28, 113, 182, 0.96) 78% 100%);
+      box-shadow: inset 0 -5px 0 rgba(4, 38, 58, 0.2), 0 8px 12px rgba(16, 19, 27, 0.24);
+      opacity: 0;
+      pointer-events: none;
+      transform: translate(-50%, -44%) scaleX(var(--runner-facing-scale, 1));
+      transition: opacity 120ms ease;
+    }
+
+    .runner-ride-vehicle::before {
+      content: "";
+      position: absolute;
+      left: 19px;
+      top: 4px;
+      width: 18px;
+      height: 8px;
+      border-radius: 7px 7px 3px 3px;
+      background: rgba(229, 251, 255, 0.95);
+      box-shadow: 10px 2px 0 rgba(229, 251, 255, 0.68);
+    }
+
+    .runner-ride-vehicle::after {
+      content: "";
+      position: absolute;
+      left: 8px;
+      bottom: -6px;
+      width: 9px;
+      height: 9px;
+      border: 2px solid rgba(233, 251, 255, 0.86);
+      border-radius: 50%;
+      background: #17231e;
+      box-shadow: 29px 0 0 #17231e, 29px 0 0 2px rgba(233, 251, 255, 0.86);
+    }
+
+    .runner-avatar.is-riding .runner-ride-vehicle {
+      opacity: 1;
+    }
+
     .runner-avatar::before {
       content: "";
       position: absolute;
@@ -3839,29 +4381,72 @@
       animation: runner-stun-shake 0.2s steps(2, end) infinite;
     }
 
-    .runner-avatar.is-attacking img {
-      animation: runner-attack-lunge 0.42s cubic-bezier(0.16, 0.9, 0.14, 1) both;
+    .runner-avatar.is-downed {
+      opacity: 0.72;
+      filter: grayscale(0.28) drop-shadow(0 0 8px rgba(255, 92, 92, 0.72)) drop-shadow(0 5px 5px rgba(16, 19, 27, 0.34));
     }
 
+    .runner-avatar.is-downed img {
+      transform: scaleX(var(--runner-facing-scale, 1)) translateY(3px) rotate(-10deg);
+    }
+
+    .runner-avatar.is-attacking img {
+      animation: runner-attack-lunge 0.34s cubic-bezier(0.2, 0.85, 0.2, 1) both;
+    }
+
+    .runner-avatar.is-attacking.is-attack-kick img {
+      animation: runner-attack-kick 0.42s cubic-bezier(0.18, 0.88, 0.16, 1) both;
+    }
+
+    /* 기본=주먹(너클). 킥일 때 아래 .is-attack-kick 규칙이 발 모양으로 덮어쓴다. */
     .runner-attack-swipe {
       position: absolute;
-      left: 50%;
-      top: -1px;
-      width: 42px;
-      height: 30px;
-      border-top: 4px solid rgba(255, 236, 142, 0.98);
-      border-right: 4px solid rgba(255, 236, 142, 0.98);
-      border-radius: 50%;
-      box-shadow: 10px -4px 0 -8px rgba(86, 200, 255, 0.85), 0 0 14px rgba(255, 220, 110, 0.7);
+      left: 58%;
+      top: 34%;
+      width: 17px;
+      height: 15px;
+      border-radius: 7px 9px 9px 7px;
+      background: radial-gradient(circle at 32% 34%, #fff7da 0%, #ffd062 58%, rgba(255, 176, 64, 0) 74%);
+      box-shadow:
+        -11px 0 0 -6px rgba(255, 232, 150, 0.6),
+        -19px 0 0 -8px rgba(255, 232, 150, 0.34),
+        0 0 12px rgba(255, 214, 110, 0.7);
       opacity: 0;
       pointer-events: none;
-      transform: translateX(0) scaleX(var(--runner-facing-scale, 1)) rotate(10deg);
+      transform: translateX(0) scaleX(var(--runner-facing-scale, 1));
       transform-origin: left center;
       z-index: 3;
     }
 
     .runner-avatar.is-attacking .runner-attack-swipe {
-      animation: runner-attack-swipe 0.42s cubic-bezier(0.16, 0.9, 0.14, 1) both;
+      animation: runner-attack-swipe 0.34s cubic-bezier(0.2, 0.85, 0.2, 1) both;
+    }
+
+    .runner-avatar.is-attacking.is-attack-kick .runner-attack-swipe {
+      top: 60%;
+      width: 24px;
+      height: 12px;
+      border-radius: 4px 10px 10px 4px;
+      animation: runner-attack-kick-strike 0.42s cubic-bezier(0.18, 0.88, 0.16, 1) both;
+    }
+
+    .runner-avatar.is-sword-attacking img {
+      animation: runner-sword-lunge 0.5s cubic-bezier(0.16, 0.9, 0.14, 1) both;
+    }
+
+    .runner-avatar.is-sword-attacking .runner-attack-swipe {
+      left: 50%;
+      top: 1px;
+      width: 56px;
+      height: 38px;
+      border-top: 5px solid rgba(244, 251, 255, 0.98);
+      border-right: 5px solid rgba(105, 205, 255, 0.96);
+      border-radius: 50%;
+      background: transparent;
+      box-shadow:
+        10px -2px 0 -8px rgba(255, 236, 142, 0.9),
+        0 0 16px rgba(105, 205, 255, 0.78);
+      animation: runner-sword-slash 0.5s cubic-bezier(0.16, 0.9, 0.14, 1) both;
     }
 
     .runner-hit-burst {
@@ -4015,6 +4600,61 @@
       z-index: 4;
     }
 
+    .runner-health {
+      position: absolute;
+      left: 50%;
+      top: -14px;
+      width: 38px;
+      height: 5px;
+      padding: 1px;
+      border: 1px solid rgba(255, 255, 255, 0.88);
+      border-radius: 999px;
+      background: rgba(16, 19, 27, 0.68);
+      transform: translateX(-50%);
+      pointer-events: none;
+      z-index: 4;
+    }
+
+    .runner-health-bar {
+      display: block;
+      width: var(--runner-health-width, 100%);
+      height: 100%;
+      border-radius: inherit;
+      background: linear-gradient(90deg, #5de485, #b7f66c);
+      transition: width 120ms ease, background 120ms ease;
+    }
+
+    .runner-avatar.is-low-health .runner-health-bar {
+      background: linear-gradient(90deg, #ff6464, #ffd36a);
+    }
+
+    .runner-avatar.is-downed .runner-health {
+      width: 46px;
+      border-color: rgba(255, 122, 122, 0.95);
+      background: rgba(36, 13, 16, 0.82);
+    }
+
+    .runner-avatar.is-downed .runner-health::after {
+      content: "DOWN";
+      position: absolute;
+      left: 50%;
+      top: -13px;
+      padding: 1px 4px;
+      border-radius: 999px;
+      background: rgba(255, 92, 92, 0.92);
+      color: #fff;
+      font-size: 8px;
+      font-weight: 1000;
+      line-height: 1;
+      transform: translateX(-50%);
+      white-space: nowrap;
+    }
+
+    .runner-avatar.is-downed .runner-health-bar {
+      width: 0;
+      background: #ff6464;
+    }
+
     .runner-avatar.is-player .runner-chat-bubble {
       border-color: #ffffff;
       background: #ffffff;
@@ -4069,6 +4709,11 @@
     @keyframes race-item-box-scan {
       0% { filter: brightness(0.96); transform: translate(-50%, -50%) translateY(0); }
       100% { filter: brightness(1.16); transform: translate(-50%, -50%) translateY(-2px); }
+    }
+
+    @keyframes race-sword-pickup-float {
+      0% { filter: brightness(0.98); transform: translate(-50%, -50%) translateY(0) rotate(-2deg); }
+      100% { filter: brightness(1.18); transform: translate(-50%, -50%) translateY(-4px) rotate(2deg); }
     }
 
     @keyframes race-stun-pulse {
@@ -4174,30 +4819,64 @@
       50% { transform: scaleX(var(--runner-facing-scale, 1)) translateX(1px) rotate(4deg); opacity: 1; filter: drop-shadow(0 0 7px rgba(98, 206, 255, 0.95)); }
     }
 
+    /* 기본공격 = 주먹 잽: 짧은 윈드업 → 앞으로 찌름 → 복귀 (키프레임 이름은 lock 테스트 호환 위해 유지) */
     @keyframes runner-attack-lunge {
-      0% { transform: translateX(0) scaleX(var(--runner-facing-scale, 1)) translateY(0) rotate(0deg) scale(1); }
-      22% { transform: translateX(calc(-2px * var(--runner-facing-scale, 1))) scaleX(var(--runner-facing-scale, 1)) translateY(1px) rotate(2deg) scaleX(0.98) scaleY(1.03); }
-      52% { transform: translateX(calc(11px * var(--runner-facing-scale, 1))) scaleX(var(--runner-facing-scale, 1)) translateY(-2px) rotate(-8deg) scaleX(1.13) scaleY(0.92); }
-      76% { transform: translateX(calc(5px * var(--runner-facing-scale, 1))) scaleX(var(--runner-facing-scale, 1)) translateY(0) rotate(4deg) scaleX(0.98) scaleY(1.04); }
-      100% { transform: translateX(0) scaleX(var(--runner-facing-scale, 1)) translateY(0) rotate(0deg) scale(1); }
+      0% { transform: translateX(0) scaleX(var(--runner-facing-scale, 1)) translateY(0) rotate(0deg); }
+      18% { transform: translateX(calc(-3px * var(--runner-facing-scale, 1))) scaleX(var(--runner-facing-scale, 1)) translateY(0) rotate(-3deg); }
+      46% { transform: translateX(calc(10px * var(--runner-facing-scale, 1))) scaleX(var(--runner-facing-scale, 1)) translateY(-1px) rotate(5deg) scaleX(1.08) scaleY(0.95); }
+      72% { transform: translateX(calc(3px * var(--runner-facing-scale, 1))) scaleX(var(--runner-facing-scale, 1)) translateY(0) rotate(-2deg); }
+      100% { transform: translateX(0) scaleX(var(--runner-facing-scale, 1)) translateY(0) rotate(0deg); }
     }
 
+    /* 주먹(너클)이 앞으로 뻗어나가며 사라짐 */
     @keyframes runner-attack-swipe {
+      0% { opacity: 0; transform: translateX(calc(-6px * var(--runner-facing-scale, 1))) scaleX(var(--runner-facing-scale, 1)) scale(0.6); }
+      38% { opacity: 1; transform: translateX(calc(11px * var(--runner-facing-scale, 1))) scaleX(var(--runner-facing-scale, 1)) scale(1.06); }
+      70% { opacity: 0.72; transform: translateX(calc(19px * var(--runner-facing-scale, 1))) scaleX(var(--runner-facing-scale, 1)) scale(0.95); }
+      100% { opacity: 0; transform: translateX(calc(26px * var(--runner-facing-scale, 1))) scaleX(var(--runner-facing-scale, 1)) scale(0.8); }
+    }
+
+    /* 발차기 = 큰 윈드업(뒤로 젖힘) → 앞으로 크게 내지름 → 복귀 */
+    @keyframes runner-attack-kick {
+      0% { transform: translateX(0) scaleX(var(--runner-facing-scale, 1)) translateY(0) rotate(0deg); }
+      24% { transform: translateX(calc(-6px * var(--runner-facing-scale, 1))) scaleX(var(--runner-facing-scale, 1)) translateY(1px) rotate(-8deg) scaleY(1.05); }
+      54% { transform: translateX(calc(15px * var(--runner-facing-scale, 1))) scaleX(var(--runner-facing-scale, 1)) translateY(-2px) rotate(11deg) scaleX(1.13) scaleY(0.9); }
+      78% { transform: translateX(calc(5px * var(--runner-facing-scale, 1))) scaleX(var(--runner-facing-scale, 1)) translateY(0) rotate(-4deg); }
+      100% { transform: translateX(0) scaleX(var(--runner-facing-scale, 1)) translateY(0) rotate(0deg); }
+    }
+
+    /* 발(킥 타격)이 더 낮고 길게 쓸고 나감 */
+    @keyframes runner-attack-kick-strike {
+      0% { opacity: 0; transform: translateX(calc(-8px * var(--runner-facing-scale, 1))) scaleX(var(--runner-facing-scale, 1)) scale(0.55) rotate(-6deg); }
+      46% { opacity: 1; transform: translateX(calc(17px * var(--runner-facing-scale, 1))) scaleX(var(--runner-facing-scale, 1)) scale(1.12) rotate(4deg); }
+      74% { opacity: 0.7; transform: translateX(calc(27px * var(--runner-facing-scale, 1))) scaleX(var(--runner-facing-scale, 1)) scale(0.98) rotate(8deg); }
+      100% { opacity: 0; transform: translateX(calc(34px * var(--runner-facing-scale, 1))) scaleX(var(--runner-facing-scale, 1)) scale(0.8) rotate(12deg); }
+    }
+
+    @keyframes runner-sword-lunge {
+      0% { transform: translateX(0) scaleX(var(--runner-facing-scale, 1)) translateY(0) rotate(0deg); }
+      20% { transform: translateX(calc(-5px * var(--runner-facing-scale, 1))) scaleX(var(--runner-facing-scale, 1)) translateY(1px) rotate(-7deg); }
+      50% { transform: translateX(calc(16px * var(--runner-facing-scale, 1))) scaleX(var(--runner-facing-scale, 1)) translateY(-2px) rotate(12deg) scaleX(1.1); }
+      76% { transform: translateX(calc(5px * var(--runner-facing-scale, 1))) scaleX(var(--runner-facing-scale, 1)) translateY(0) rotate(-4deg); }
+      100% { transform: translateX(0) scaleX(var(--runner-facing-scale, 1)) translateY(0) rotate(0deg); }
+    }
+
+    @keyframes runner-sword-slash {
       0% {
         opacity: 0;
-        transform: translateX(calc(-2px * var(--runner-facing-scale, 1))) scaleX(var(--runner-facing-scale, 1)) scale(0.54) rotate(-36deg);
+        transform: translateX(calc(-9px * var(--runner-facing-scale, 1))) scaleX(var(--runner-facing-scale, 1)) scale(0.64) rotate(-44deg);
       }
       42% {
         opacity: 1;
-        transform: translateX(calc(20px * var(--runner-facing-scale, 1))) scaleX(var(--runner-facing-scale, 1)) scale(1.16) rotate(7deg);
+        transform: translateX(calc(15px * var(--runner-facing-scale, 1))) scaleX(var(--runner-facing-scale, 1)) scale(1.12) rotate(4deg);
       }
-      68% {
-        opacity: 0.7;
-        transform: translateX(calc(30px * var(--runner-facing-scale, 1))) scaleX(var(--runner-facing-scale, 1)) scale(1.02) rotate(23deg);
+      72% {
+        opacity: 0.76;
+        transform: translateX(calc(28px * var(--runner-facing-scale, 1))) scaleX(var(--runner-facing-scale, 1)) scale(1.02) rotate(28deg);
       }
       100% {
         opacity: 0;
-        transform: translateX(calc(38px * var(--runner-facing-scale, 1))) scaleX(var(--runner-facing-scale, 1)) scale(0.78) rotate(42deg);
+        transform: translateX(calc(40px * var(--runner-facing-scale, 1))) scaleX(var(--runner-facing-scale, 1)) scale(0.82) rotate(50deg);
       }
     }
 
@@ -4583,15 +5262,41 @@
         grid-template-columns: 1fr;
       }
 
+      .profile-hero.scene-stack {
+        height: clamp(300px, 50dvh, 360px);
+        --profile-avatar-size: clamp(84px, 15vw, 116px);
+        --profile-stage-width: clamp(166px, 31vw, 224px);
+        --profile-stage-height: clamp(28px, 4.8vw, 38px);
+        --profile-stage-stairs-width: clamp(76px, 14vw, 104px);
+        --profile-stage-stairs-height: clamp(18px, 3.6vw, 25px);
+      }
+
+      .profile-hero .scene-content {
+        bottom: 30% !important;
+      }
+
+      .profile-hero .profile-name-row {
+        left: 50%;
+        right: auto;
+        width: min(390px, calc(100% - 48px));
+        transform: translateX(-50%);
+      }
+
+      #profile-skin-preview {
+        --profile-avatar-drop: 0px;
+        width: var(--profile-avatar-size);
+      }
+
       .profile-skin-grid {
-        grid-template-columns: repeat(4, minmax(0, 1fr));
-        grid-auto-rows: 64px;
-        max-height: min(430px, calc(100dvh - 248px));
+        grid-template-columns: repeat(auto-fill, minmax(118px, 128px));
+        grid-auto-rows: 48px;
+        justify-content: center;
+        max-height: min(310px, calc(100dvh - 344px));
       }
 
       .profile-skin-grid .skin-card {
-        min-height: 64px;
-        padding: 6px 5px;
+        min-height: 48px;
+        padding: 5px 4px;
       }
 
       .track-scene {
@@ -4767,33 +5472,307 @@
       }
     }
 
-    @media (max-width: 420px) {
-      .profile-hero {
-        padding: 16px;
+    @media (min-width: 860px) {
+      .profile-screen {
+        width: min(1380px, calc(100vw - 36px));
+      }
+
+      .profile-form {
+        grid-template-columns: minmax(620px, 1.48fr) minmax(430px, 0.9fr);
+        grid-template-rows: minmax(0, 1fr);
+        align-items: stretch;
+        gap: 14px;
+      }
+
+      .profile-hero.scene-stack {
+        height: min(760px, calc(100dvh - 48px));
+        --profile-avatar-size: clamp(132px, 8.6vw, 172px);
+        --profile-stage-width: clamp(270px, 17vw, 340px);
+        --profile-stage-height: clamp(42px, 3.2vw, 56px);
+        --profile-stage-stairs-width: clamp(118px, 8vw, 152px);
+        --profile-stage-stairs-height: clamp(28px, 2.2vw, 38px);
+      }
+
+      .profile-hero .profile-name-row {
+        left: 50%;
+        right: auto;
+        width: min(360px, calc(100% - 108px));
+        transform: translateX(-50%);
+      }
+
+      .profile-hero .scene-content {
+        bottom: 28% !important;
+      }
+
+      .profile-hero .profile-name-row input,
+      .profile-hero .profile-name-row .primary {
+        min-height: 38px;
+        font-size: 14px;
       }
 
       .profile-skin-grid {
-        gap: 6px;
-        grid-auto-rows: 62px;
-        max-height: 340px;
-      }
-
-      .profile-skin-grid .skin-card img {
-        width: 32px;
-        height: 32px;
-        margin-bottom: 3px;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        grid-auto-rows: 52px;
+        align-content: start;
+        max-height: calc(100dvh - 48px);
       }
 
       .profile-skin-grid .skin-card {
-        min-height: 62px;
-        padding: 6px 4px;
+        min-height: 52px;
+        padding: 5px 7px;
+      }
+
+      .profile-skin-grid .skin-card img {
+        width: 25px;
+        height: 25px;
+        margin-bottom: 2px;
+      }
+
+      .profile-skin-grid .skin-card b {
+        font-size: 10.5px;
+        line-height: 1.1;
+      }
+    }
+
+    @media (max-width: 859px) and (orientation: landscape) {
+      .profile-screen,
+      .profile-form {
+        max-height: calc(100dvh - 20px);
+      }
+
+      .profile-form {
+        grid-template-columns: minmax(280px, 1fr) minmax(260px, 0.82fr);
+        grid-template-rows: minmax(0, 1fr);
+        gap: 8px;
+      }
+
+      .profile-hero.scene-stack {
+        height: calc(100dvh - 20px);
+        min-height: 250px;
+        --profile-avatar-size: clamp(76px, 12vw, 92px);
+        --profile-stage-width: clamp(154px, 25vw, 198px);
+        --profile-stage-height: clamp(27px, 4.8vw, 34px);
+        --profile-stage-stairs-width: clamp(70px, 12vw, 92px);
+        --profile-stage-stairs-height: clamp(17px, 3.3vw, 23px);
+      }
+
+      .profile-hero .scene-content {
+        bottom: 34% !important;
+      }
+
+      .profile-title-text {
+        top: 5.2%;
+        font-size: clamp(26px, 5.6vw, 34px);
+      }
+
+      #profile-skin-name {
+        top: 15.6%;
+        font-size: 10px;
+      }
+
+      .profile-hero .profile-name-row {
+        left: 50%;
+        right: auto;
+        bottom: 10px;
+        width: min(226px, calc(100% - 52px));
+        transform: translateX(-50%);
+      }
+
+      .profile-hero .profile-name-row input,
+      .profile-hero .profile-name-row .primary {
+        min-height: 26px;
+        font-size: 11px;
+      }
+
+      .profile-skin-grid {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        grid-auto-rows: 36px;
+        gap: 4px;
+        max-height: calc(100dvh - 20px);
+      }
+
+      .profile-skin-grid .skin-card {
+        min-height: 36px;
+        padding: 3px;
+      }
+
+      .profile-skin-grid .skin-card img {
+        width: 17px;
+        height: 17px;
+        margin-bottom: 1px;
+      }
+
+      .profile-skin-grid .skin-card b {
+        font-size: 8.5px;
+        line-height: 1.05;
       }
 
       .skin-card[aria-pressed="true"]::after {
-        top: 5px;
-        right: 5px;
-        padding: 3px 5px;
-        font-size: 9px;
+        top: 3px;
+        right: 3px;
+        padding: 2px 4px;
+        font-size: 8px;
+      }
+    }
+
+    @media (max-width: 420px) {
+      .profile-hero.scene-stack {
+        height: clamp(226px, 31dvh, 246px);
+        --profile-avatar-size: clamp(72px, 23vw, 82px);
+        --profile-stage-width: clamp(148px, 50vw, 176px);
+        --profile-stage-height: clamp(27px, 8vw, 32px);
+        --profile-stage-stairs-width: clamp(68px, 24vw, 86px);
+        --profile-stage-stairs-height: clamp(17px, 6vw, 22px);
+      }
+
+      .profile-hero .scene-content {
+        bottom: 36% !important;
+      }
+
+      .profile-hero .profile-name-row {
+        left: 50%;
+        right: auto;
+        bottom: 9px;
+        width: min(214px, calc(100% - 54px));
+        transform: translateX(-50%);
+      }
+
+      #profile-skin-preview {
+        --profile-avatar-drop: 0px;
+      }
+
+      .profile-title-text {
+        top: 5.4%;
+        font-size: clamp(28px, 9.6vw, 34px);
+      }
+
+      #profile-skin-name {
+        top: 15.8%;
+        max-width: 74%;
+        padding: 2px 8px;
+        font-size: 9.5px;
+      }
+
+      .profile-hero .profile-name-row input,
+      .profile-hero .profile-name-row .primary {
+        min-height: 28px;
+        font-size: 11px;
+      }
+
+      .profile-skin-grid {
+        gap: 4px;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        grid-auto-rows: 36px;
+        justify-content: stretch;
+        max-height: min(240px, calc(100dvh - 264px));
+      }
+
+      .profile-skin-grid .skin-card img {
+        width: 17px;
+        height: 17px;
+        margin-bottom: 1px;
+      }
+
+      .profile-skin-grid .skin-card {
+        min-height: 36px;
+        padding: 3px;
+      }
+
+      .profile-skin-grid .skin-card b {
+        font-size: 8.5px;
+        line-height: 1.08;
+      }
+
+      .skin-card[aria-pressed="true"]::after {
+        top: 3px;
+        right: 3px;
+        padding: 2px 4px;
+        font-size: 8px;
+      }
+    }
+
+    @media (max-width: 420px) and (max-height: 640px) {
+      .profile-screen {
+        gap: 6px;
+        max-height: calc(100dvh - 10px);
+      }
+
+      .profile-form {
+        gap: 6px;
+        max-height: calc(100dvh - 10px);
+      }
+
+      .profile-hero.scene-stack {
+        height: clamp(174px, 38dvh, 214px);
+        --profile-avatar-size: clamp(62px, 20vw, 72px);
+        --profile-stage-width: clamp(126px, 42vw, 150px);
+        --profile-stage-height: clamp(23px, 6.2vw, 28px);
+        --profile-stage-stairs-width: clamp(58px, 20vw, 72px);
+        --profile-stage-stairs-height: clamp(14px, 4.8vw, 18px);
+      }
+
+      .profile-title-text {
+        top: 4.6%;
+        font-size: clamp(23px, 8.2vw, 28px);
+      }
+
+      #profile-skin-name {
+        top: 15.1%;
+        max-width: 72%;
+        padding: 1px 7px;
+        font-size: 8.5px;
+      }
+
+      .profile-hero .scene-content {
+        bottom: 30% !important;
+      }
+
+      .profile-hero .profile-name-row {
+        bottom: 7px;
+        width: min(198px, calc(100% - 64px));
+        gap: 4px;
+      }
+
+      .profile-hero .profile-name-row input,
+      .profile-hero .profile-name-row .primary {
+        min-height: 24px;
+        font-size: 10px;
+      }
+
+      .profile-name-row input {
+        padding: 0 10px;
+      }
+
+      .profile-skin-grid {
+        gap: 3px;
+        grid-auto-rows: 31px;
+        max-height: none;
+        overflow-y: hidden;
+        padding-right: 0;
+        scrollbar-gutter: auto;
+      }
+
+      .profile-skin-grid .skin-card {
+        min-height: 31px;
+        padding: 2px;
+      }
+
+      .profile-skin-grid .skin-card img {
+        width: 14px;
+        height: 14px;
+        margin-bottom: 0;
+      }
+
+      .profile-skin-grid .skin-card b {
+        font-size: 7.8px;
+        line-height: 1.02;
+      }
+
+      .skin-card[aria-pressed="true"]::after {
+        top: 2px;
+        right: 2px;
+        padding: 1px 3px;
+        font-size: 7px;
       }
     }
   </style>
@@ -4801,26 +5780,30 @@
 <body>
   <main class="shell" id="app-shell" data-screen="profile">
     <section class="profile-screen" id="profile-screen" aria-label="첫 접속 프로필 설정">
-      <div class="profile-hero">
-        <form class="profile-form" id="profile-form">
-          <div class="profile-heading">
-            <h1>특이점레이스</h1>
-            <div class="profile-name-row">
-              <input id="nickname-input" maxlength="16" autocomplete="nickname" placeholder="닉네임 입력" />
-              <button class="primary" id="profile-start-button" type="submit">시작하기</button>
-            </div>
+      <form class="profile-form" id="profile-form">
+        <div class="profile-hero">
+          <img id="profile-skin-preview" alt="선택한 스킨" />
+          <b id="profile-skin-name">스킨 선택</b>
+          <div class="profile-name-row profile-heading">
+            <input id="nickname-input" maxlength="16" autocomplete="nickname" placeholder="닉네임 입력" />
+            <button class="primary" id="profile-start-button" type="submit">시작하기</button>
           </div>
-          <div class="profile-preview">
-            <img id="profile-skin-preview" alt="선택한 스킨" />
-            <div>
-              <b id="profile-skin-name">스킨 선택</b>
-              <span>첫 접속 프로필</span>
-            </div>
-          </div>
-          <div class="profile-skin-grid" id="profile-skin-grid" aria-label="처음 선택할 스킨"></div>
-        </form>
-      </div>
+        </div>
+        <div class="profile-skin-grid" id="profile-skin-grid" aria-label="처음 선택할 스킨"></div>
+      </form>
     </section>
+
+    <div class="race-loading-overlay" id="race-loading-overlay" role="status" aria-live="polite" hidden>
+      <div class="race-loading-panel">
+        <div class="race-loading-copy-row">
+          <strong id="race-loading-title">입장 준비 중</strong>
+          <span id="race-loading-copy">필요한 정보만 확인하고 있습니다.</span>
+        </div>
+        <div class="race-loading-bar" aria-hidden="true">
+          <div class="race-loading-bar-fill"></div>
+        </div>
+      </div>
+    </div>
 
     <header class="topbar">
       <div class="brand">
@@ -5081,6 +6064,10 @@
       getRestoredAssetById
     } from "./src/restored/assets/asset-manifest.js";
     import {
+      buildLayeredScene,
+      LAYERED_SCENE_CSS
+    } from "./src/restored/ui/layered-scene.js";
+    import {
       canOpenConnectedMarathonLobby,
       createConnectedMarathonStateSnapshot,
       createMarathonRoomAdapterForMode,
@@ -5205,9 +6192,16 @@
       createSingularityStartGateNode,
       createSingularityTrackCountdownNode,
       createSingularityTrackCueNode,
+      createSingularityTrackFinishWindowNode,
       createSingularityTrackProgressPillNode,
-      getSingularityTrackProgressDetail
+      getSingularityTrackProgressDetail,
+      updateSingularityTrackFinishWindowNode
     } from "./src/restored/games/singularity-race-track.js";
+    import {
+      createSingularityRaceFinishWindowState,
+      formatSingularityRaceFinishWindowClock,
+      resolveSingularityRaceFinishWindowMs
+    } from "./src/restored/games/singularity-race-finish-window.js";
     import {
       advanceSingularityLocalBotPack,
       advanceSingularityWaitingBotPack,
@@ -5361,12 +6355,28 @@
     const BASIC_ATTACK_STALL_MS = 180;
     const BASIC_ATTACK_STUN_MS = 680;
     const BASIC_ATTACK_DAMAGE = 24;
-    const BASIC_ATTACK_RANGE_PROGRESS = 4.2;
+    const BASIC_ATTACK_RANGE_PROGRESS = 4.8;
     const BASIC_ATTACK_LANE_RANGE_PX = 132;
     const BASIC_ATTACK_LANE_TO_PROGRESS = 42;
+    const BASIC_ATTACK_INPUT_MEMORY_MS = 850;
     const ITEM_ROULETTE_DURATION_MS = 1050;
     const ITEM_ROULETTE_RESULT_VISIBLE_MS = 1150;
     const ITEM_ROULETTE_TICK_MS = 90;
+    const RACE_ITEM_SLOT_LIMIT = 2;
+    const SWORD_PICKUP_RESPAWN_MS = 14000;
+    const SWORD_ATTACK_RANGE_PROGRESS = 6.2;
+    const SWORD_ATTACK_LANE_RANGE_PX = 164;
+    const SWORD_ATTACK_COOLDOWN_MS = 760;
+    const SWORD_ATTACK_STALL_MS = 220;
+    const SWORD_ATTACK_STUN_MS = 860;
+    const SWORD_ATTACK_DAMAGE = 38;
+    const SWORD_PICKUP_POINTS = Object.freeze([
+      { progress: 24, laneOffsetPx: -146 },
+      { progress: 36, laneOffsetPx: 132 },
+      { progress: 62, laneOffsetPx: -92 },
+      { progress: 76, laneOffsetPx: 168 },
+      { progress: 94, laneOffsetPx: 0 }
+    ]);
     const ITEM_AIM_LOCK_MS = 4200;
     const BREAKABLE_OBSTACLE_KINDS = new Set(["crate", "energy"]);
     const BREAKABLE_OBSTACLE_RESPAWN_MS = 12000;
@@ -5542,6 +6552,9 @@
     const COUNTDOWN_BELL_TRACK_KEY = "sfx-countdown-bell";
     const MENU_AUDIO_TRACK_KEYS = Object.freeze(["menu-modern-future-world", "menu-atlas-futuristic"]);
     const RACE_SFX_TRACK_KEYS = Object.freeze(["sfx-countdown-bell", "sfx-attack-swipe", "sfx-item-pickup", "sfx-item-use", "sfx-item-hit", "sfx-skill-use", "sfx-winner-finish", "sfx-podium-applause", "sfx-ui-tap", "sfx-ui-confirm", "sfx-ui-toggle", "sfx-ui-deny"]);
+    const RACE_ENTRY_LOADING_MIN_MS = 0;
+    const RACE_LAUNCHER_LOADING_MIN_MS = 2400;
+    const RACE_AUDIO_METADATA_TIMEOUT_MS = 1200;
     const UI_SFX_KEYS = Object.freeze({
       tap: "sfx-ui-tap",
       confirm: "sfx-ui-confirm",
@@ -5673,6 +6686,10 @@
       profileSkinGrid: document.querySelector("#profile-skin-grid"),
       profileSkinPreview: document.querySelector("#profile-skin-preview"),
       profileSkinName: document.querySelector("#profile-skin-name"),
+      profileStartButton: document.querySelector("#profile-start-button"),
+      raceLoadingOverlay: document.querySelector("#race-loading-overlay"),
+      raceLoadingTitle: document.querySelector("#race-loading-title"),
+      raceLoadingCopy: document.querySelector("#race-loading-copy"),
       readyButton: document.querySelector("#ready-button"),
       previewButton: document.querySelector("#preview-button"),
       raceQueueToggle: document.querySelector("#race-queue-toggle"),
@@ -5779,6 +6796,10 @@
     const defaultSkin = presets[0]?.id || "default";
     const savedProfile = readPlayerProfile();
     const initialSkin = savedProfile?.skinId || localStorage.getItem(STORAGE_KEY) || defaultSkin;
+    function resolveInitialRaceScreen() {
+      if (canAdminDirectLaunch || shouldOpenAdminObserverShell) return SINGULARITY_RACE_SCREENS.RACE;
+      return SINGULARITY_RACE_SCREENS.PROFILE;
+    }
     const netcodeProfile = MAX_RUNNERS > 30
       ? createRestoredMarathonLargeRoomNetcodeProfile()
       : createRestoredMarathonNetcodeProfile();
@@ -5787,9 +6808,7 @@
     const netcodePingSample = createRestoredMarathonPingSample({ clientSentAtMs: 0, serverReceivedAtMs: 36, serverSentAtMs: 38, clientReceivedAtMs: 76 }, null, netcodeProfile);
     const netcodeReconciliationHint = createRestoredMarathonReconciliationHint({ x: 0, y: 0, progress: 0 }, { x: 128, y: 0, progress: 0.4, laneOffsetPx: 12 }, { elapsedMs: 60 }, netcodeProfile);
     const state = {
-      screen: savedProfile || canAdminDirectLaunch || shouldOpenAdminObserverShell
-        ? ((canAdminDirectLaunch || shouldOpenAdminObserverShell) ? SINGULARITY_RACE_SCREENS.RACE : SINGULARITY_RACE_SCREENS.LOBBY)
-        : SINGULARITY_RACE_SCREENS.PROFILE,
+      screen: resolveInitialRaceScreen(),
       nickname: savedProfile?.nickname || "YOU",
       selectedSkin: initialSkin,
       mapId: initialRaceMapId,
@@ -5870,6 +6889,7 @@
       activeChannel: initialVisibleChannels[0]?.channelId || "lobby:singularity-race:public",
       runners: createRunners(1, initialSkin, false),
       action: createActionRaceState(),
+      raceLoadingActive: false,
       messages: []
     };
     const raceAudioElements = new Map();
@@ -5893,6 +6913,7 @@
     let connectedInputPumpTimer = 0;
     let activePinchZoom = null;
     let raceNarrationFrameId = 0;
+    let profilePrepSceneStyleInjected = false;
     let suppressNextTrackClick = false;
     let raceMapDraftCache = { mapId: "", key: "", raw: "", draft: null, checkedAtMs: 0 };
 
@@ -5902,6 +6923,7 @@
 
     setTrackWorldSize();
     setupRaceAudioElements();
+    setupProfilePrepScene();
     state.messages = chatTransport.seedMessages(createInitialRestoredMarathonChannelMessages(channelSet));
     renderTrailMap();
     try {
@@ -5964,24 +6986,11 @@
 
     elements.profileForm.addEventListener("submit", (event) => {
       event.preventDefault();
-      unlockRaceAudio();
-      if (!event.submitter) playRaceUiSfx("confirm");
-      completeProfileSetup();
+      void handleProfileSubmit(event);
     });
 
     elements.readyButton.addEventListener("click", () => {
-      unlockRaceAudio();
-      maybeRequestRaceFullscreen();
-      if (state.screen === SINGULARITY_RACE_SCREENS.LOBBY) {
-        enterQueue("manual");
-      return;
-      }
-      if (state.screen === SINGULARITY_RACE_SCREENS.QUEUE && state.connectedSession?.provider === "cloudflare") {
-        pushSystem("관리자가 시작할 때까지 대기 중입니다.");
-        renderAll();
-        return;
-      }
-      if (state.screen === SINGULARITY_RACE_SCREENS.MAP_PREVIEW) enterQueue("map_return");
+      void handleReadyButtonClick();
     });
 
     elements.spectatorButton.addEventListener("click", () => {
@@ -6485,8 +7494,19 @@
       if (packet.type === "race_started") {
         state.action.raceStarted = true;
         state.action.gateOpenedAtMs = packet.payload?.gateOpenedAtMs || Date.now();
+        state.action.raceStartedAtMs = packet.payload?.raceStartedAtMs || state.action.gateOpenedAtMs;
         requestRaceMusicStart("cloudflare");
         renderAll();
+        return;
+      }
+      if (packet.type === "finish_window_started") {
+        syncActionFinishWindowFromPayload(packet.payload);
+        renderTrack();
+        renderRaceResultPanel();
+        return;
+      }
+      if (packet.type === "race_finished") {
+        syncActionFinishWindowFromPayload(packet.payload);
         return;
       }
       if (packet.type === "rate_limited" && packet.payload?.reason !== "input_10hz_limit") {
@@ -6690,6 +7710,15 @@
         entryOpen: payload.entryOpen !== false,
         roomActive: payload.roomActive !== false,
         mapId: normalizeRestoredMarathonTrailMapId(payload.mapId || payload.course?.mapId || fallback.mapId || state.mapId),
+        countdownEndsAtMs: Math.max(0, Number(payload.countdownEndsAtMs || 0)),
+        raceStartedAtMs: Math.max(0, Number(payload.raceStartedAtMs || 0)),
+        finishWindowStartedAtMs: Math.max(0, Number(payload.finishWindowStartedAtMs || 0)),
+        finishWindowEndsAtMs: Math.max(0, Number(payload.finishWindowEndsAtMs || 0)),
+        finishWindowDurationMs: Math.max(0, Number(payload.finishWindowDurationMs || 0)),
+        finishWindowRemainingMs: Math.max(0, Number(payload.finishWindowRemainingMs || 0)),
+        finishWindowActive: Boolean(payload.finishWindowActive),
+        finishedCount: Math.max(0, Number(payload.finishedCount || 0)),
+        playerCount: Math.max(0, Number(payload.playerCount || payload.players || 0)),
         mapVersion: fallback.mapVersion,
         protocolVersion: fallback.protocolVersion
       });
@@ -6704,8 +7733,23 @@
       state.cloudflareRoomStatus = "ok";
       state.cloudflareRoomLastCheckedAtMs = Date.now();
       state.mapId = normalizeRestoredMarathonTrailMapId(payload.mapId || payload.course?.mapId || summary.mapId || state.mapId);
+      syncActionFinishWindowFromPayload(summary);
       if (!options.silent) renderConnectedGate();
       return summary;
+    }
+
+    function syncActionFinishWindowFromPayload(payload = {}) {
+      if (!state.action || !payload) return;
+      const raceStartedAtMs = Math.max(0, Number(payload.raceStartedAtMs || 0));
+      const startedAtMs = Math.max(0, Number(payload.finishWindowStartedAtMs || 0));
+      const endsAtMs = Math.max(0, Number(payload.finishWindowEndsAtMs || 0));
+      const durationMs = Math.max(0, Number(payload.finishWindowDurationMs || (endsAtMs && startedAtMs ? endsAtMs - startedAtMs : 0)));
+      state.action.raceStartedAtMs = raceStartedAtMs || state.action.raceStartedAtMs || state.action.gateOpenedAtMs || 0;
+      state.action.finishWindowStartedAtMs = startedAtMs || state.action.finishWindowStartedAtMs || 0;
+      state.action.finishWindowEndsAtMs = endsAtMs || state.action.finishWindowEndsAtMs || 0;
+      state.action.finishWindowDurationMs = durationMs || state.action.finishWindowDurationMs || 0;
+      state.action.finishWindowFinishedCount = Math.max(0, Number(payload.finishedCount ?? state.action.finishWindowFinishedCount ?? 0));
+      state.action.finishWindowPlayerCount = Math.max(0, Number(payload.playerCount ?? payload.players ?? state.action.finishWindowPlayerCount ?? 0));
     }
 
     function isCloudflarePublicJoinBlocked(gate) {
@@ -7332,6 +8376,76 @@
       return Math.floor(Math.random() * 256);
     }
 
+    function delayRaceEntryLoading(ms) {
+      return new Promise((resolve) => window.setTimeout(resolve, Math.max(0, ms)));
+    }
+
+    function setRaceLoadingOverlay(active, options = {}) {
+      state.raceLoadingActive = Boolean(active);
+      if (elements.raceLoadingOverlay) {
+        elements.raceLoadingOverlay.hidden = !state.raceLoadingActive;
+      }
+      if (elements.raceLoadingTitle && options.title) elements.raceLoadingTitle.textContent = options.title;
+      if (elements.raceLoadingCopy && options.copy) elements.raceLoadingCopy.textContent = options.copy;
+      if (elements.profileStartButton) elements.profileStartButton.disabled = state.raceLoadingActive;
+      if (elements.readyButton) elements.readyButton.disabled = state.raceLoadingActive;
+      if (elements.spectatorButton) elements.spectatorButton.disabled = state.raceLoadingActive;
+      if (elements.previewButton) elements.previewButton.disabled = state.raceLoadingActive;
+    }
+
+    async function withRaceLoadingOverlay(options, task) {
+      if (state.raceLoadingActive) return undefined;
+      const startedAtMs = Date.now();
+      const minLoadingMs = Number.isFinite(Number(options?.minMs))
+        ? Math.max(0, Number(options.minMs))
+        : RACE_ENTRY_LOADING_MIN_MS;
+      if (minLoadingMs <= 0) return await task();
+      setRaceLoadingOverlay(true, options);
+      await delayRaceEntryLoading(0);
+      try {
+        return await task();
+      } finally {
+        const remainingMs = minLoadingMs - (Date.now() - startedAtMs);
+        if (remainingMs > 0) await delayRaceEntryLoading(remainingMs);
+        setRaceLoadingOverlay(false);
+      }
+    }
+
+    async function handleProfileSubmit(event) {
+      unlockRaceAudio();
+      if (!event?.submitter) playRaceUiSfx("confirm");
+      await withRaceLoadingOverlay({
+        minMs: RACE_LAUNCHER_LOADING_MIN_MS,
+        title: "로비 준비 중",
+        copy: "프로필과 스킨 정보를 정리하고 있습니다."
+      }, async () => {
+        completeProfileSetup();
+      });
+    }
+
+    async function handleReadyButtonClick() {
+      unlockRaceAudio();
+      maybeRequestRaceFullscreen();
+      await withRaceLoadingOverlay({
+        title: "이벤트 참가 준비 중",
+        copy: "방 상태와 트랙 정보를 확인하고 있습니다."
+      }, async () => {
+        if (state.screen === SINGULARITY_RACE_SCREENS.LOBBY) {
+          if (cloudflareOnlineEnabled && (!state.cloudflareRoomSummary || state.cloudflareRoomStatus === "loading" || state.cloudflareRoomStatus === "error")) {
+            await refreshCloudflarePublicRoomSummary("manual");
+          }
+          enterQueue("manual");
+          return;
+        }
+        if (state.screen === SINGULARITY_RACE_SCREENS.QUEUE && state.connectedSession?.provider === "cloudflare") {
+          pushSystem("관리자가 시작할 때까지 대기 중입니다.");
+          renderAll();
+          return;
+        }
+        if (state.screen === SINGULARITY_RACE_SCREENS.MAP_PREVIEW) enterQueue("map_return");
+      });
+    }
+
     function completeProfileSetup() {
       const profile = savePlayerProfile({
         nickname: elements.nicknameInput.value,
@@ -7679,6 +8793,12 @@
       state.action.countdownEndsAtMs = gateOpensAtMs;
       state.action.countdownAnnounced = false;
       state.action.gateOpenedAtMs = 0;
+      state.action.raceStartedAtMs = 0;
+      state.action.finishWindowStartedAtMs = 0;
+      state.action.finishWindowEndsAtMs = 0;
+      state.action.finishWindowDurationMs = 0;
+      state.action.finishWindowFinishedCount = 0;
+      state.action.finishWindowPlayerCount = 0;
       setRaceCue("countdown", createCountdownLabel(now), getLocalRunner()?.progress || START_LINE_PROGRESS, "you");
       stopMenuBgm();
       stopEntryGateMusic();
@@ -7705,6 +8825,7 @@
       state.action.countdownEndsAtMs = 0;
       state.action.raceStarted = true;
       state.action.gateOpenedAtMs = now;
+      state.action.raceStartedAtMs = now;
       requestRaceMusicStart("gate_open");
       if (state.connectedSession) startConnectedDevServerRace(now);
       setScreen("race");
@@ -7717,6 +8838,44 @@
       if (!isCountdownActive(now)) return "";
       const remaining = state.action.countdownEndsAtMs - now;
       return remaining > 650 ? String(Math.max(1, Math.ceil(remaining / 1000))) : "GO";
+    }
+
+    function startLocalFinishWindow(now = Date.now()) {
+      if (state.action.finishWindowEndsAtMs > now) return state.action.finishWindowEndsAtMs;
+      const raceStartedAtMs = state.action.raceStartedAtMs || state.action.gateOpenedAtMs || now;
+      const windowMs = resolveSingularityRaceFinishWindowMs(Math.max(0, now - raceStartedAtMs));
+      state.action.finishWindowStartedAtMs = now;
+      state.action.finishWindowEndsAtMs = now + windowMs;
+      state.action.finishWindowDurationMs = windowMs;
+      updateLocalFinishWindowCounts();
+      return state.action.finishWindowEndsAtMs;
+    }
+
+    function updateLocalFinishWindowCounts() {
+      if (state.connectedSession) return;
+      const ranking = createLocalFinishRanking();
+      state.action.finishWindowFinishedCount = ranking.filter((row) => row.finished).length;
+      state.action.finishWindowPlayerCount = ranking.length;
+    }
+
+    function getActiveRaceFinishWindow(now = Date.now()) {
+      const startedAtMs = Number(state.action.finishWindowStartedAtMs || 0);
+      const endsAtMs = Number(state.action.finishWindowEndsAtMs || 0);
+      if (!startedAtMs || !endsAtMs || state.action.raceFinished) return null;
+      if (!state.connectedSession) updateLocalFinishWindowCounts();
+      const finishWindow = createSingularityRaceFinishWindowState({
+        raceStartedAtMs: state.action.raceStartedAtMs || state.action.gateOpenedAtMs || startedAtMs,
+        firstFinishAtMs: startedAtMs,
+        endsAtMs,
+        nowMs: now
+      });
+      if (!finishWindow.active) return null;
+      return {
+        ...finishWindow,
+        clock: formatSingularityRaceFinishWindowClock(finishWindow.remainingMs),
+        finishedCount: Math.max(0, Number(state.action.finishWindowFinishedCount || 0)),
+        playerCount: Math.max(0, Number(state.action.finishWindowPlayerCount || state.runners.length || 0))
+      };
     }
 
     function getStartGateOpenProgress(now = Date.now()) {
@@ -7974,10 +9133,14 @@
         lastConnectedInputActive: false,
         mobileIntent: null,
         lastFacingDirection: "right",
+        lastAttackProgressDirection: 1,
+        lastAttackProgressDirectionAtMs: 0,
         stallUntilMs: 0,
         attackCooldownUntilMs: 0,
         attackVisualUntilMs: 0,
         attackVisualId: 0,
+        swordVisualUntilMs: 0,
+        swordVisualId: 0,
         attackFacingDirection: "right",
         attackImpactUntilMs: 0,
         attackImpactId: 0,
@@ -7996,8 +9159,10 @@
         skillChargesRemaining: 0,
         skillCooldownUntilMs: 0,
         currentItemId: "",
+        currentItemIds: [],
         itemAim: null,
         itemBoxes: createSingularityRaceItemBoxState(),
+        swordPickups: createRaceSwordPickupState(),
         itemHazards: [],
         itemProjectiles: [],
         itemBoostUntilMs: 0,
@@ -8016,6 +9181,12 @@
         countdownEndsAtMs: 0,
         countdownAnnounced: false,
         gateOpenedAtMs: 0,
+        raceStartedAtMs: 0,
+        finishWindowStartedAtMs: 0,
+        finishWindowEndsAtMs: 0,
+        finishWindowDurationMs: 0,
+        finishWindowFinishedCount: 0,
+        finishWindowPlayerCount: 0,
         connectedServerRaceStarted: false,
         finishedLocalPreview: false,
         raceFinished: false,
@@ -8117,7 +9288,7 @@
       if (!wasPressed) recordMovementInput(event.code);
       if (state.connectedSession) {
         if (event.code === "KeyE" && !event.repeat) {
-          if (state.action.raceStarted) useActionSkill();
+          if (state.action.raceStarted) useRaceItemOrRewardSkill();
           renderAll();
           return;
         }
@@ -8130,7 +9301,7 @@
         renderAll();
         return;
       }
-      if (event.code === "KeyE" && !event.repeat) useActionSkill();
+      if (event.code === "KeyE" && !event.repeat) useRaceItemOrRewardSkill();
     }
 
     function handleActionKeyUp(event) {
@@ -8176,9 +9347,9 @@
         renderRaceMobileControls();
         return false;
       }
-      const aim = resolveBasicAttackAim(event, player);
+      const aim = resolveBasicAttackAim(event, player, now);
       const damageEnabled = state.action.raceStarted && !isCountdownActive(now) && !isCloudflareConnectedSession();
-      const target = findBasicAttackTarget(player, aim.direction) || (event ? null : findNearestBasicAttackTarget(player));
+      const target = findBasicAttackTarget(player, aim.direction) || (aim.allowNearestFallback ? findNearestBasicAttackTarget(player) : null);
       const attackDirection = target
         ? (Number(target.progress) >= Number(player.progress) ? 1 : -1)
         : aim.direction;
@@ -8306,14 +9477,55 @@
       }, 470);
     }
 
-    function resolveBasicAttackAim(event, player) {
+    function resolveBasicAttackAim(event, player, now = Date.now()) {
       if (event) {
         const { x, y } = eventToTrackWorldPercent(event);
         const aimProgress = estimateRestoredMarathonTrailProgressFromPoint(x, y, selectedRaceMapId());
-        return { direction: aimProgress >= player.progress ? 1 : -1, progress: aimProgress };
+        return {
+          direction: aimProgress >= player.progress ? 1 : -1,
+          progress: aimProgress,
+          allowNearestFallback: false,
+          source: "pointer"
+        };
       }
-      const facing = state.runnerMotion.get("you")?.facing || "right";
-      return { direction: facing === "left" ? -1 : 1, progress: player.progress + (facing === "left" ? -1 : 1) };
+      const inputAim = resolveBasicAttackDirectionFromInput(player, now);
+      return {
+        direction: inputAim.direction,
+        progress: player.progress + inputAim.direction,
+        allowNearestFallback: !inputAim.explicit,
+        source: inputAim.source
+      };
+    }
+
+    function resolveBasicAttackDirectionFromInput(player, now = Date.now()) {
+      const frame = createCurrentPlayerInputFrame({
+        sequence: state.connectedInputSequence + 1
+      });
+      const progress = Number(player?.progress) || START_LINE_PROGRESS;
+      const trailPoint = progressToRestoredMarathonTrailPoint(progress, selectedRaceMapId());
+      const movement = resolveSingularityRaceInputMovement(frame, trailPoint);
+      const forward = Number(movement.forward || 0);
+      if (Math.abs(forward) > 0.001) {
+        return rememberAttackProgressDirection(forward < 0 ? -1 : 1, now, true);
+      }
+      const lastAt = Number(state.action.lastAttackProgressDirectionAtMs || 0);
+      const rememberedDirection = Number(state.action.lastAttackProgressDirection || 1) < 0 ? -1 : 1;
+      return {
+        direction: rememberedDirection,
+        explicit: lastAt > 0 && now - lastAt <= BASIC_ATTACK_INPUT_MEMORY_MS,
+        source: lastAt > 0 ? "remembered-progress-input" : "default-progress-forward"
+      };
+    }
+
+    function rememberAttackProgressDirection(direction, now = Date.now(), explicit = false) {
+      const normalizedDirection = Number(direction || 1) < 0 ? -1 : 1;
+      state.action.lastAttackProgressDirection = normalizedDirection;
+      state.action.lastAttackProgressDirectionAtMs = now;
+      return {
+        direction: normalizedDirection,
+        explicit,
+        source: "progress-input"
+      };
     }
 
     function findBasicAttackTarget(player, direction) {
@@ -8367,7 +9579,7 @@
       if (!canRequestConnectedAttack()) return;
       const player = getLocalRunner();
       if (!player) return;
-      const aim = resolveBasicAttackAim(event, player);
+      const aim = existingAction ? null : resolveBasicAttackAim(event, player);
       const action = existingAction || createRestoredMarathonAttackAction({
         attackerId: "runner:you",
         origin: { x: player.progress, y: attackLanePosition(player) },
@@ -8543,6 +9755,68 @@
       return result.moved;
     }
 
+    function normalizeRaceItemSlotIds(slotIds = [], options = {}) {
+      const includeCurrent = options.includeCurrent !== false;
+      const source = Array.isArray(slotIds) ? slotIds : [];
+      const merged = includeCurrent && state.action.currentItemId && source[0] !== state.action.currentItemId
+        ? [state.action.currentItemId, ...source]
+        : source;
+      const next = [];
+      for (const itemId of merged) {
+        const id = String(itemId || "").trim();
+        if (!id) continue;
+        if (!getSingularityRaceItemDefinition(id)) continue;
+        next.push(id);
+        if (next.length >= RACE_ITEM_SLOT_LIMIT) break;
+      }
+      return next;
+    }
+
+    function raceItemSlots() {
+      return normalizeRaceItemSlotIds(state.action.currentItemIds, { includeCurrent: true });
+    }
+
+    function syncRaceItemSlots(slotIds = []) {
+      const next = normalizeRaceItemSlotIds(slotIds, { includeCurrent: false });
+      state.action.currentItemIds = next;
+      state.action.currentItemId = next[0] || "";
+      if (state.action.itemAim && !next.includes(state.action.itemAim.itemId)) state.action.itemAim = null;
+      return next;
+    }
+
+    function raceItemSlotCount() {
+      return raceItemSlots().length;
+    }
+
+    function hasRaceItemSlotSpace() {
+      return raceItemSlotCount() < RACE_ITEM_SLOT_LIMIT;
+    }
+
+    function peekRaceItemId() {
+      return raceItemSlots()[0] || "";
+    }
+
+    function hasHeldRaceItem() {
+      return Boolean(peekRaceItemId());
+    }
+
+    function addRaceItemSlot(itemId) {
+      const slots = raceItemSlots();
+      if (!itemId || slots.length >= RACE_ITEM_SLOT_LIMIT) return false;
+      syncRaceItemSlots([...slots, itemId]);
+      return true;
+    }
+
+    function consumeRaceItemId(itemId = "") {
+      const slots = raceItemSlots();
+      const targetItemId = itemId || slots[0] || "";
+      const index = slots.indexOf(targetItemId);
+      if (index < 0) return "";
+      const [consumedItemId] = slots.splice(index, 1);
+      syncRaceItemSlots(slots);
+      return consumedItemId;
+    }
+
     function updateRaceItems(now = Date.now()) {
       if (state.action.finalResult) return false;
       let changed = false;
@@ -8553,14 +9827,54 @@
       changed = changed || beforeHazards !== state.action.itemHazards.length || beforeProjectiles !== state.action.itemProjectiles.length;
       if (state.action.itemAim && (
         Number(state.action.itemAim.expiresAtMs || 0) <= now
-        || state.action.itemAim.itemId !== state.action.currentItemId
+        || !raceItemSlots().includes(state.action.itemAim.itemId)
       )) {
         state.action.itemAim = null;
         changed = true;
       }
       if (state.action.raceStarted) changed = applyRaceItemHazards(now) || changed;
+      if (state.action.raceStarted) changed = collectRaceSwordPickup(now) || changed;
       if (state.action.raceStarted) changed = collectRaceItemBox(now) || changed;
       return changed;
+    }
+
+    function createRaceSwordPickupState() {
+      return SWORD_PICKUP_POINTS.map((point, index) => Object.freeze({
+        pickupId: `sword:${index + 1}`,
+        itemId: SINGULARITY_RACE_ITEM_IDS.SWORD,
+        progress: Number(point.progress),
+        laneOffsetPx: Number(point.laneOffsetPx),
+        respawnAtMs: 0
+      }));
+    }
+
+    function collectRaceSwordPickup(now = Date.now()) {
+      if (!canCollectSingularityRaceItem({
+        raceStarted: state.action.raceStarted,
+        finalResult: state.action.finalResult,
+        participantType: state.participantType,
+        currentItemId: peekRaceItemId(),
+        currentItemCount: raceItemSlotCount(),
+        itemSlotLimit: RACE_ITEM_SLOT_LIMIT
+      })) return false;
+      if (state.action.itemRoulette) return false;
+      const player = getLocalRunner();
+      if (!player) return false;
+      const pickup = state.action.swordPickups.find((entry) => (
+        Number(entry.respawnAtMs || 0) <= now
+        && isRaceItemBoxWithinPickup(entry, player, now)
+      ));
+      if (!pickup) return false;
+      if (!addRaceItemSlot(SINGULARITY_RACE_ITEM_IDS.SWORD)) return false;
+      state.action.swordPickups = state.action.swordPickups.map((entry) => (
+        entry.pickupId === pickup.pickupId
+          ? Object.freeze({ ...entry, respawnAtMs: now + SWORD_PICKUP_RESPAWN_MS })
+          : entry
+      ));
+      void playRaceSfx("sfx-item-pickup");
+      setRaceCue("item", "SWORD", pickup.progress, "you", { durationMs: 1100 });
+      pushSystem("Sword pickup: E로 칼 베기를 사용할 수 있습니다.");
+      return true;
     }
 
     function collectRaceItemBox(now = Date.now()) {
@@ -8568,7 +9882,9 @@
         raceStarted: state.action.raceStarted,
         finalResult: state.action.finalResult,
         participantType: state.participantType,
-        currentItemId: state.action.currentItemId
+        currentItemId: peekRaceItemId(),
+        currentItemCount: raceItemSlotCount(),
+        itemSlotLimit: RACE_ITEM_SLOT_LIMIT
       })) return false;
       if (state.action.itemRoulette) return false;
       const player = getLocalRunner();
@@ -8635,8 +9951,8 @@
         return false;
       }
       const now = Date.now();
-      if (!state.action.currentItemId) {
-        state.action.currentItemId = item.itemId;
+      if (hasRaceItemSlotSpace()) {
+        addRaceItemSlot(item.itemId);
         state.action.itemAim = null;
       }
       state.action.itemRoulette = Object.freeze({
@@ -8659,6 +9975,11 @@
       return true;
     }
 
+    function useRaceItemOrRewardSkill() {
+      if (hasHeldRaceItem()) return useRaceItem();
+      return useActionSkill();
+    }
+
     function useRaceItem() {
       if (state.roomClosed) return false;
       if (state.participantType === "spectator") {
@@ -8674,7 +9995,7 @@
         pushSystem("아이템이 선택되는 중입니다.");
         return false;
       }
-      const item = getSingularityRaceItemDefinition(state.action.currentItemId);
+      const item = getSingularityRaceItemDefinition(peekRaceItemId());
       if (!item) {
         state.action.itemAim = null;
         pushSystem("보유한 아이템이 없습니다.");
@@ -8685,12 +10006,13 @@
         return startRaceItemAim(item, "auto");
       }
       state.action.itemAim = null;
-      state.action.currentItemId = "";
+      consumeRaceItemId(item.itemId);
       void playRaceSfx("sfx-item-use");
       if (item.itemId === SINGULARITY_RACE_ITEM_IDS.BOOSTER) useBoosterItem(item);
       else if (item.itemId === SINGULARITY_RACE_ITEM_IDS.BANANA) useBananaItem(item);
       else if (item.itemId === SINGULARITY_RACE_ITEM_IDS.RED_PILL) useRedPillItem(item);
       else if (item.itemId === SINGULARITY_RACE_ITEM_IDS.TURBO_CAR) useTurboCarItem(item);
+      else if (item.itemId === SINGULARITY_RACE_ITEM_IDS.SWORD) useSwordItem(item);
       pushLocalItemPacket(item);
       renderAll();
       return true;
@@ -8724,6 +10046,139 @@
     }
 
     // 부서지는 보상 장애물(상자→자동차, 에너지드링크) 종류 판별 및 처리.
+    function useSwordItem(item) {
+      const now = Date.now();
+      const player = getLocalRunner();
+      if (!player) return false;
+      const aim = resolveBasicAttackAim(null, player, now);
+      const target = findSwordAttackTarget(player, aim.direction) || (aim.allowNearestFallback ? findNearestSwordAttackTarget(player) : null);
+      const attackDirection = target
+        ? (Number(target.progress) >= Number(player.progress) ? 1 : -1)
+        : aim.direction;
+      const attackFacingDirection = attackDirection < 0 ? "left" : "right";
+      const attackAim = target
+        ? {
+          x: (Number(target.progress) || 0) - (Number(player.progress) || 0) || attackDirection * 0.1,
+          y: attackLanePosition(target) - attackLanePosition(player)
+        }
+        : { x: attackDirection, y: 0 };
+      const damageEnabled = state.action.raceStarted && !isCountdownActive(now) && !isCloudflareConnectedSession();
+      const action = createRestoredMarathonAttackAction({
+        attackerId: "runner:you",
+        origin: { x: player.progress, y: attackLanePosition(player) },
+        aim: attackAim,
+        rangeMeters: SWORD_ATTACK_RANGE_PROGRESS,
+        selfStallMs: SWORD_ATTACK_STALL_MS,
+        cooldownMs: SWORD_ATTACK_COOLDOWN_MS,
+        stunMs: SWORD_ATTACK_STUN_MS,
+        damage: damageEnabled ? SWORD_ATTACK_DAMAGE : 0
+      });
+      preservePlayerMovementForAttack(now, attackFacingDirection);
+      state.action.attackCooldownUntilMs = Math.max(Number(state.action.attackCooldownUntilMs || 0), now + action.cooldownMs);
+      state.action.swordVisualUntilMs = now + 540;
+      state.action.swordVisualId += 1;
+      state.action.attackFacingDirection = attackFacingDirection;
+      state.action.stallUntilMs = Math.max(Number(state.action.stallUntilMs || 0), now + SWORD_ATTACK_STALL_MS);
+      scheduleSwordVisualCleanup(state.action.swordVisualId);
+      void playRaceSfx("sfx-attack-swipe");
+      if (!target) {
+        setRaceCue("item", item.label || "SWORD", player.progress, "you", { durationMs: 950 });
+        pushSystem("Sword slash: no nearby target.");
+        return true;
+      }
+      const hit = resolveRestoredMarathonAttackHit(action, {
+        runnerId: target.id,
+        position: { x: target.progress, y: attackLanePosition(target) },
+        hp: target.hp ?? 100,
+        maxHp: target.maxHp ?? 100
+      });
+      if (!hit.hit) {
+        setRaceCue("item", item.label || "SWORD", player.progress, "you", { durationMs: 950 });
+        pushSystem("Sword slash: target just out of reach.");
+        return true;
+      }
+      const effectiveHit = {
+        ...hit,
+        damage: damageEnabled ? hit.damage : 0,
+        slowMs: SWORD_ATTACK_STUN_MS,
+        stunMs: SWORD_ATTACK_STUN_MS,
+        nowMs: now
+      };
+      const damaged = applyRestoredMarathonRunnerDamage({
+        runnerId: target.id,
+        hp: target.hp ?? 100,
+        maxHp: target.maxHp ?? 100,
+        stunnedUntilMs: target.stunnedUntilMs ?? 0,
+        slowUntilMs: target.slowUntilMs ?? 0,
+        lastSafeCheckpointIndex: target.lastSafeCheckpointIndex ?? 0
+      }, effectiveHit);
+      const targetIndex = state.runners.findIndex((runner) => runner.id === target.id);
+      let updatedTarget = {
+        ...(targetIndex >= 0 ? state.runners[targetIndex] : target),
+        hp: damaged.hp,
+        stunnedUntilMs: damaged.stunnedUntilMs,
+        slowUntilMs: damaged.slowUntilMs,
+        collisionAtMs: now
+      };
+      if (damageEnabled && damaged.down) {
+        const respawn = createRestoredMarathonCheckpointRespawn(damaged, { checkpointMeters: [0, ...ACTION_CHECKPOINTS] });
+        updatedTarget = {
+          ...updatedTarget,
+          progress: Math.max(0, respawn.progressMeters),
+          hp: respawn.hp,
+          lastSafeCheckpointIndex: respawn.checkpointIndex
+        };
+        setRaceCue("respawn", `SWORD DOWN ${target.name}`, updatedTarget.progress, target.id);
+      } else {
+        setRaceCue("hit", `SWORD ${target.name}`, updatedTarget.progress, target.id);
+      }
+      setAttackImpactVisual(updatedTarget, now);
+      if (targetIndex >= 0) state.runners[targetIndex] = updatedTarget;
+      resolveSingleRailCollisions("sword");
+      pushSystem(`Sword slash: ${target.name || "runner"} hit.`);
+      return true;
+    }
+
+    function scheduleSwordVisualCleanup(visualId) {
+      window.setTimeout(() => {
+        if (state.action.swordVisualId !== visualId) return;
+        if (Date.now() < Number(state.action.swordVisualUntilMs || 0)) return;
+        renderActionPreviewFrame(Date.now());
+      }, 570);
+    }
+
+    function findSwordAttackTarget(player, direction) {
+      const playerProgress = Number(player?.progress || 0);
+      const playerLane = Number(player?.laneOffsetPx || 0);
+      const normalizedDirection = Number(direction || 1) < 0 ? -1 : 1;
+      return state.runners
+        .filter((runner) => runner?.id !== "you" && !runner.finishedAtMs && runner.hp !== 0)
+        .map((runner) => ({
+          runner,
+          progressDelta: (Number(runner.progress) || 0) - playerProgress,
+          laneDelta: Math.abs((Number(runner.laneOffsetPx) || 0) - playerLane)
+        }))
+        .filter((entry) => entry.laneDelta <= SWORD_ATTACK_LANE_RANGE_PX)
+        .filter((entry) => normalizedDirection > 0
+          ? entry.progressDelta >= -0.45 && entry.progressDelta <= SWORD_ATTACK_RANGE_PROGRESS
+          : entry.progressDelta <= 0.45 && entry.progressDelta >= -SWORD_ATTACK_RANGE_PROGRESS)
+        .sort((left, right) => Math.abs(left.progressDelta) - Math.abs(right.progressDelta) || left.laneDelta - right.laneDelta)[0]?.runner || null;
+    }
+
+    function findNearestSwordAttackTarget(player) {
+      const playerProgress = Number(player?.progress || 0);
+      const playerLane = Number(player?.laneOffsetPx || 0);
+      return state.runners
+        .filter((runner) => runner?.id !== "you" && !runner.finishedAtMs && runner.hp !== 0)
+        .map((runner) => ({
+          runner,
+          progressDelta: Math.abs((Number(runner.progress) || 0) - playerProgress),
+          laneDelta: Math.abs((Number(runner.laneOffsetPx) || 0) - playerLane)
+        }))
+        .filter((entry) => entry.progressDelta <= SWORD_ATTACK_RANGE_PROGRESS && entry.laneDelta <= SWORD_ATTACK_LANE_RANGE_PX)
+        .sort((left, right) => (left.progressDelta + left.laneDelta / 90) - (right.progressDelta + right.laneDelta / 90))[0]?.runner || null;
+    }
+
     function isBreakableRaceObstacle(obstacle) {
       return Boolean(obstacle) && BREAKABLE_OBSTACLE_KINDS.has(obstacle.kind);
     }
@@ -8822,7 +10277,7 @@
       const aim = state.action.itemAim;
       return Boolean(aim)
         && aim.itemId === itemId
-        && state.action.currentItemId === itemId
+        && raceItemSlots().includes(itemId)
         && Number(aim.expiresAtMs || 0) > now;
     }
 
@@ -8872,7 +10327,7 @@
         }
         resolvedAim = createRaceItemAim(item, player, targetEntry, null, Date.now());
       }
-      state.action.currentItemId = "";
+      consumeRaceItemId(item.itemId);
       state.action.itemAim = null;
       void playRaceSfx("sfx-item-use");
       if (item.itemId === SINGULARITY_RACE_ITEM_IDS.STUN_SHOT) useStunShotItem(item, resolvedAim);
@@ -9290,6 +10745,7 @@
         progress: Math.max(player.progress, LOCAL_FINISH_PROGRESS)
       };
       setLocalRunner(updatedPlayer);
+      const finishWindowEndsAtMs = startLocalFinishWindow(Date.now());
       finalizeRaceResult({
         source: "local",
         title: "완주 완료",
@@ -9299,6 +10755,7 @@
         progressPercent: Math.round(updatedPlayer.progress * 10) / 10,
         raceFinished: false,
         playerFinished: true,
+        ceremonyAwardAtMs: finishWindowEndsAtMs,
         publishPacket: true
       });
     }
@@ -9316,7 +10773,7 @@
       const ceremonyStartedAtMs = Number.isFinite(Number(options.ceremonyStartedAtMs))
         ? Number(options.ceremonyStartedAtMs)
         : Number(previousResult?.ceremonyStartedAtMs || state.action.ceremonyStartedAtMs || now);
-      const playerFinished = Boolean(playerRow?.finished || options.playerFinished || raceFinished);
+      const playerFinished = Boolean(playerRow?.finished || options.playerFinished);
       const ceremonyTransferAtMs = Number.isFinite(Number(options.ceremonyTransferAtMs))
         ? Number(options.ceremonyTransferAtMs)
         : Number(previousResult?.ceremonyTransferAtMs || state.action.ceremonyTransferAtMs || (playerFinished ? now + CEREMONY_TRANSFER_DELAY_MS : 0));
@@ -9354,6 +10811,9 @@
         ceremonyTransferAtMs,
         ceremonyEnteredAtMs,
         ceremonyAwardAtMs,
+        finishWindowStartedAtMs: state.action.finishWindowStartedAtMs || 0,
+        finishWindowEndsAtMs: state.action.finishWindowEndsAtMs || 0,
+        finishWindowDurationMs: state.action.finishWindowDurationMs || 0,
         finalizedAtMs: now
       });
       const player = getLocalRunner();
@@ -9402,9 +10862,10 @@
         refreshLocalCeremonyRanking(state.action.finalResult || result);
         state.action.lastCeremonyRefreshMs = now;
       }
-      if (now < Number(result.ceremonyAwardAtMs || 0)) return changed || shouldRefreshRanking;
       const latestResult = state.action.finalResult || result;
       const ranking = normalizeRaceResultRanking(createLocalFinishRanking(), latestResult.finishedParticipantId || "runner:you");
+      const allLocalFinished = ranking.length > 0 && ranking.every((row) => row.finished);
+      if (!allLocalFinished && now < Number(result.ceremonyAwardAtMs || 0)) return changed || shouldRefreshRanking;
       state.action.raceFinished = true;
       state.action.ceremonyAwardAtMs = now;
       state.action.finalResult = Object.freeze({
@@ -9470,7 +10931,9 @@
         participantId: row.participantId || `runner:${index + 1}`,
         displayName: row.displayName || row.participantId || `Runner ${index + 1}`,
         progressPercent: Math.round((Number(row.progressPercent) || 0) * 10) / 10,
-        finished: Boolean(row.finished || row.participantId === finishedParticipantId),
+        finished: row.finished === false
+          ? false
+          : Boolean(row.finished || row.finishedAtMs !== null && row.finishedAtMs !== undefined || row.participantId === finishedParticipantId),
         finishedAtMs: row.finishedAtMs ?? null
       })).sort((left, right) => left.rank - right.rank);
     }
@@ -9756,11 +11219,13 @@
       if (!merged.applied) return false;
       state.runners = orderLocalRunnerFirst([...merged.runners]);
       syncConnectedRemoteInterpolationBuffer(packet, state.runners);
+      syncActionFinishWindowFromPayload(payload);
       state.lastConnectedSnapshotSequence = Math.max(state.lastConnectedSnapshotSequence, sequence, merged.sequence);
       if (payload.phase === "racing" || payload.phase === "finished") {
         const wasRaceStarted = state.action.raceStarted;
         if (!state.action.raceStarted && isCountdownActive()) state.action.gateOpenedAtMs = Date.now();
         state.action.raceStarted = true;
+        state.action.raceStartedAtMs = Math.max(0, Number(payload.raceStartedAtMs || 0)) || state.action.raceStartedAtMs || state.action.gateOpenedAtMs || Date.now();
         if (!wasRaceStarted) requestRaceMusicStart("server_snapshot");
       }
       const localParticipantId = payload.participants.some((participant) => participant.participantId === "runner:you")
@@ -9780,6 +11245,7 @@
           progressPercent: localSnapshot?.progressPercent,
           raceFinished,
           playerFinished: localFinished,
+          ceremonyAwardAtMs: raceFinished ? undefined : state.action.finishWindowEndsAtMs || undefined,
           publishPacket: false
         });
       }
@@ -10382,6 +11848,9 @@
       if (intent?.forward < 0) nextKeys.add("KeyS");
       if (intent?.lateral) nextKeys.add(intent.lateral > 0 ? "KeyD" : "KeyA");
       state.action.mobileIntent = intent;
+      if (Math.abs(Number(intent?.forward || 0)) > 0.001) {
+        rememberAttackProgressDirection(Number(intent.forward) < 0 ? -1 : 1);
+      }
       updateJoystickThumb(x, y);
       setVirtualJoystickKeys(nextKeys);
     }
@@ -10501,6 +11970,8 @@
     function recordMovementInput(code) {
       if (!VIRTUAL_MOVE_KEYS.includes(code)) return;
       state.action.lastMovementInputAtMs = Date.now();
+      if (code === "KeyW") rememberAttackProgressDirection(1);
+      if (code === "KeyS") rememberAttackProgressDirection(-1);
       if (code === "KeyA") state.action.lastFacingDirection = "left";
       if (code === "KeyD") state.action.lastFacingDirection = "right";
     }
@@ -10726,7 +12197,7 @@
         ? `${Math.ceil(skillCooldownRemainingMs / 1000)}초`
         : (hasCurrentRewardSkill() ? `${state.action.placeholderSkinGrade || "보상"}급 ${skillChargeMeta}` : "보상 필요");
       const skillReady = state.action.raceStarted && !isCountdownActive(now) && canUseCurrentRewardSkill();
-      const currentItem = getSingularityRaceItemDefinition(state.action.currentItemId);
+      const currentItem = getSingularityRaceItemDefinition(peekRaceItemId());
       const roulette = getActiveRaceItemRoulette(now);
       const rouletteItem = roulette ? getRaceItemRouletteDisplayItem(roulette, now) : null;
       const activeItemAim = currentItem && isRaceItemAimReady(currentItem.itemId, now) ? state.action.itemAim : null;
@@ -10781,10 +12252,28 @@
       title.textContent = activeItemAim ? "발사" : (displayItem && isProjectileRaceItem(displayItem.itemId) ? "조준" : "아이템");
       meta.textContent = itemMeta;
       if (displayItem) {
-        elements.raceItemButton.replaceChildren(createRaceItemIconNode(displayItem, { size: "button" }), title, meta);
+        elements.raceItemButton.replaceChildren(createRaceItemIconNode(displayItem, { size: "button" }), title, meta, createRaceItemSlotStripNode());
         return;
       }
-      elements.raceItemButton.replaceChildren(title, meta);
+      elements.raceItemButton.replaceChildren(title, meta, createRaceItemSlotStripNode());
+    }
+
+    function createRaceItemSlotStripNode() {
+      const strip = document.createElement("span");
+      strip.className = "race-item-slot-strip";
+      const slotIds = raceItemSlots();
+      for (let index = 0; index < RACE_ITEM_SLOT_LIMIT; index += 1) {
+        const item = getSingularityRaceItemDefinition(slotIds[index]);
+        const slot = document.createElement("span");
+        slot.className = `race-item-slot${item ? " is-filled" : " is-empty"}`;
+        slot.dataset.slot = String(index + 1);
+        if (item) {
+          slot.title = item.label;
+          slot.append(createRaceItemIconNode(item, { size: "mini" }));
+        }
+        strip.append(slot);
+      }
+      return strip;
     }
 
     function renderTrailMap() {
@@ -11112,16 +12601,59 @@
       return asset.path.startsWith(".") ? asset.path : `./${asset.path}`;
     }
 
+    function setupProfilePrepScene() {
+      const hero = document.querySelector(".profile-hero");
+      if (!hero) return;
+      if (!profilePrepSceneStyleInjected) {
+        const style = document.createElement("style");
+        style.id = "layered-scene-css";
+        style.textContent = LAYERED_SCENE_CSS;
+        document.head.appendChild(style);
+        profilePrepSceneStyleInjected = true;
+      }
+      const slot = buildLayeredScene(hero, "race-prep", {
+        resolveAssetPath: resolveRestoredAssetPath
+      });
+      let swoosh = hero.querySelector(":scope > .profile-title-swoosh");
+      if (!swoosh) {
+        swoosh = document.createElement("div");
+        swoosh.className = "profile-title-swoosh";
+        swoosh.setAttribute("aria-hidden", "true");
+      }
+      const titleLayer = hero.querySelector(':scope > .scene-layer[data-layer="title"]');
+      if (titleLayer) hero.insertBefore(swoosh, titleLayer);
+      else hero.appendChild(swoosh);
+      let titleText = hero.querySelector(":scope > .profile-title-text");
+      if (!titleText) {
+        titleText = document.createElement("div");
+        titleText.className = "profile-title-text";
+        titleText.setAttribute("aria-hidden", "true");
+      }
+      titleText.textContent = "2026 AGI";
+      if (titleLayer?.nextSibling) hero.insertBefore(titleText, titleLayer.nextSibling);
+      else hero.appendChild(titleText);
+      let avatarRig = slot.querySelector(":scope > .profile-avatar-rig");
+      if (!avatarRig) {
+        avatarRig = document.createElement("div");
+        avatarRig.className = "profile-avatar-rig";
+        avatarRig.setAttribute("aria-hidden", "true");
+        slot.appendChild(avatarRig);
+      }
+      if (elements.profileSkinName) elements.profileSkinName.hidden = false;
+      if (elements.profileSkinPreview) avatarRig.appendChild(elements.profileSkinPreview);
+    }
+
     function setupRaceAudioElements() {
       if (!elements.raceAudioRoot) return;
       for (const track of RACE_AUDIO_TRACKS) {
         if (!track.src || raceAudioElements.has(track.key)) continue;
         const audio = document.createElement("audio");
         audio.id = `race-audio-${track.key}`;
-        audio.preload = "auto";
+        audio.preload = "none";
         audio.loop = Boolean(track.loop);
         audio.volume = track.volume;
-        audio.src = track.src;
+        audio.dataset.src = track.src;
+        audio.dataset.lazyLoaded = "false";
         audio.dataset.trackKey = track.key;
         audio.dataset.assetId = track.assetId;
         audio.dataset.role = track.role;
@@ -11129,6 +12661,39 @@
         elements.raceAudioRoot.append(audio);
         raceAudioElements.set(track.key, audio);
       }
+    }
+
+    function ensureRaceAudioElement(trackKey) {
+      setupRaceAudioElements();
+      return raceAudioElements.get(trackKey) || null;
+    }
+
+    function attachRaceAudioSource(track, audio) {
+      if (!track?.src || !audio) return false;
+      if (audio.dataset.lazyLoaded === "true" && (audio.currentSrc || audio.src)) return true;
+      audio.preload = "auto";
+      audio.src = track.src;
+      audio.dataset.lazyLoaded = "true";
+      return true;
+    }
+
+    function waitForRaceAudioMetadata(audio) {
+      if (!audio || audio.readyState >= 1) return Promise.resolve();
+      return new Promise((resolve) => {
+        let done = false;
+        const finish = () => {
+          if (done) return;
+          done = true;
+          audio.removeEventListener("loadedmetadata", finish);
+          audio.removeEventListener("error", finish);
+          window.clearTimeout(timeoutId);
+          resolve();
+        };
+        const timeoutId = window.setTimeout(finish, RACE_AUDIO_METADATA_TIMEOUT_MS);
+        audio.addEventListener("loadedmetadata", finish, { once: true });
+        audio.addEventListener("error", finish, { once: true });
+        try { audio.load(); } catch { finish(); }
+      });
     }
 
     function unlockRaceAudio() {
@@ -11314,13 +12879,15 @@
 
     async function playRaceAudioTrack(trackKey, options = {}) {
       const track = RACE_AUDIO_TRACK_BY_KEY[trackKey];
-      const audio = raceAudioElements.get(trackKey);
+      const audio = ensureRaceAudioElement(trackKey);
       if (!track || !audio || !track.src || !state.raceAudio.unlocked) return false;
       try {
+        attachRaceAudioSource(track, audio);
         audio.volume = track.volume;
         audio.loop = Boolean(track.loop);
         const startAtSeconds = Number(options.startAtSeconds);
         if (Number.isFinite(startAtSeconds)) {
+          await waitForRaceAudioMetadata(audio);
           try { audio.currentTime = Math.max(0, startAtSeconds); } catch {}
         } else if (options.restart !== false) {
           try { audio.currentTime = 0; } catch {}
@@ -11524,11 +13091,16 @@
           : (Number(runner.sizeScale) > 0 ? Number(runner.sizeScale) : 1);
         const blinded = Number(runner.blindedUntilMs || 0) > visualTiming.now;
         const attacking = runner.id === "you" && Number(state.action.attackVisualUntilMs || 0) > visualTiming.now;
+        const swordAttacking = runner.id === "you" && Number(state.action.swordVisualUntilMs || 0) > visualTiming.now;
         const impactHit = runner.id === state.action.attackImpactTargetId && Number(state.action.attackImpactUntilMs || 0) > visualTiming.now;
-        const facing = attacking ? state.action.attackFacingDirection || motion.facing : motion.facing;
-        const running = !attacking && !stunned && motion.running;
+        const maxHp = Math.max(1, Number(runner.maxHp || 100));
+        const hp = Math.max(0, Math.min(maxHp, Number(runner.hp ?? maxHp)));
+        const hpRatio = hp / maxHp;
+        const downed = hp <= 0;
+        const facing = (attacking || swordAttacking) ? state.action.attackFacingDirection || motion.facing : motion.facing;
+        const running = !downed && !attacking && !swordAttacking && !stunned && motion.running;
         const sprinting = running && motion.sprinting;
-        const colliding = !attacking && !stunned && runner.collisionAtMs && visualTiming.now - runner.collisionAtMs < 520;
+        const colliding = !downed && !attacking && !swordAttacking && !stunned && runner.collisionAtMs && visualTiming.now - runner.collisionAtMs < 520;
         const rewardSkinActive = isRunnerRewardSkinActive(runner, visualTiming.now);
         const rewardSkinGrade = rewardSkinActive ? String(runner.rewardSkinGrade || "").toLowerCase() : "";
         const avatar = existing.get(runner.id) || createSingularityRunnerAvatarNode(runner);
@@ -11540,8 +13112,12 @@
           running ? "is-running" : "is-idle",
           sprinting ? "is-sprinting" : "",
           attacking ? "is-attacking" : "",
+          attacking && Number(state.action.attackVisualId || 0) % 2 === 1 ? "is-attack-kick" : "",
+          swordAttacking ? "is-sword-attacking" : "",
           impactHit ? "is-impact-hit" : "",
           stunned ? "is-stunned" : "",
+          hpRatio > 0 && hpRatio <= 0.34 ? "is-low-health" : "",
+          downed ? "is-downed" : "",
           boosted ? "is-boosted" : "",
           growing ? "is-growing" : "",
           riding ? "is-riding" : "",
@@ -11551,7 +13127,7 @@
           rewardSkinGrade ? `is-reward-grade-${rewardSkinGrade}` : ""
         ].filter(Boolean).join(" ");
         if (avatar.className !== nextClassName) avatar.className = nextClassName;
-        if (attacking) avatar.dataset.attackVisualId = String(state.action.attackVisualId || 0);
+        if (attacking || swordAttacking) avatar.dataset.attackVisualId = String(attacking ? state.action.attackVisualId || 0 : state.action.swordVisualId || 0);
         else delete avatar.dataset.attackVisualId;
         if (impactHit) avatar.dataset.attackImpactId = String(state.action.attackImpactId || 0);
         else delete avatar.dataset.attackImpactId;
@@ -11695,6 +13271,7 @@
       const cue = state.action.raceCue;
       const now = Date.now();
       const entries = [
+        ...createRaceSavePointEffectEntries(),
         ...createRaceObstacleEffectEntries(),
         ...createRaceItemEffectEntries(now)
       ];
@@ -11711,6 +13288,9 @@
       const boxes = state.action.itemBoxes
         .filter((box) => isSingularityRaceItemBoxActive(box, now))
         .map(createRaceItemBoxEntry);
+      const swords = state.action.swordPickups
+        .filter((pickup) => Number(pickup.respawnAtMs || 0) <= now)
+        .map(createRaceSwordPickupEntry);
       const traps = state.action.itemHazards
         .map((hazard) => createRaceItemMarkerEntry(`hazard:${hazard.id}`, getRaceItemHazardClass(hazard), getRaceItemMarkerLabel(hazard), hazard));
       const projectiles = state.action.itemProjectiles
@@ -11718,12 +13298,17 @@
       const aim = isRaceItemAimReady(state.action.itemAim?.itemId, now)
         ? [createRaceItemAimEntry(state.action.itemAim)]
         : [];
-      return [...boxes, ...traps, ...projectiles, ...aim];
+      return [...boxes, ...swords, ...traps, ...projectiles, ...aim];
     }
 
     function createRaceObstacleEffectEntries() {
       if (state.action.finalResult) return [];
       return currentRaceMapObstacles().map(createRaceObstacleEntry);
+    }
+
+    function createRaceSavePointEffectEntries() {
+      if (state.action.finalResult) return [];
+      return ACTION_CHECKPOINTS.map((progress, index) => createRaceSavePointEntry(progress, index));
     }
 
     function syncKeyedChildren(container, entries, keyName) {
@@ -11752,6 +13337,7 @@
     }
 
     function renderTrackHudNodes(player) {
+      const now = Date.now();
       const progressOptions = {
         nickname: state.nickname,
         progress: player.progress,
@@ -11775,6 +13361,20 @@
           }
         });
       }
+      const finishWindow = getActiveRaceFinishWindow(now);
+      if (finishWindow) {
+        const finishWindowOptions = {
+          clock: finishWindow.clock,
+          remainingMs: finishWindow.remainingMs,
+          finishedCount: finishWindow.finishedCount,
+          playerCount: finishWindow.playerCount
+        };
+        entries.push({
+          key: "finish-window",
+          create: () => createSingularityTrackFinishWindowNode(finishWindowOptions),
+          update: (node) => updateSingularityTrackFinishWindowNode(node, finishWindowOptions)
+        });
+      }
       syncKeyedChildren(elements.trackHud, entries, "hudKey");
     }
 
@@ -11785,6 +13385,48 @@
       const detailText = getSingularityTrackProgressDetail(options);
       if (title && title.textContent !== titleText) title.textContent = titleText;
       if (detail && detail.textContent !== detailText) detail.textContent = detailText;
+    }
+
+    function getRaceSavePointClass(index) {
+      if (index < state.action.checkpointIndex) return "is-cleared";
+      if (index === state.action.checkpointIndex) return "is-next";
+      return "";
+    }
+
+    function createRaceSavePointEntry(progress, index) {
+      const stateClass = getRaceSavePointClass(index);
+      return {
+        key: `save:${index + 1}`,
+        create: () => createRaceSavePointNode(progress, index, stateClass),
+        update: (node) => updateRaceSavePointNode(node, progress, index, stateClass)
+      };
+    }
+
+    function createRaceSavePointNode(progress, index, stateClass) {
+      const point = raceItemPoint(progress, 0);
+      const node = document.createElement("div");
+      const label = document.createElement("span");
+      const meta = document.createElement("span");
+      label.className = "race-save-marker-label";
+      label.textContent = "SAVE";
+      meta.className = "race-save-marker-index";
+      node.append(label, meta);
+      updateRaceSavePointNode(node, progress, index, stateClass, point);
+      return node;
+    }
+
+    function updateRaceSavePointNode(node, progress, index, stateClass, point = raceItemPoint(progress, 0)) {
+      const className = ["race-save-marker", stateClass].filter(Boolean).join(" ");
+      const meta = node.querySelector(".race-save-marker-index");
+      const metaText = `${index + 1} / ${Math.round(progress)}%`;
+      if (node.className !== className) node.className = className;
+      if (node.dataset.saveIndex !== String(index + 1)) node.dataset.saveIndex = String(index + 1);
+      if (node.dataset.progress !== String(progress)) node.dataset.progress = String(progress);
+      if (node.dataset.saveState !== stateClass) node.dataset.saveState = stateClass;
+      node.setAttribute("aria-label", `Save point ${index + 1} at ${Math.round(progress)} percent`);
+      node.style.left = `${point.x}%`;
+      node.style.top = `${point.y}%`;
+      if (meta && meta.textContent !== metaText) meta.textContent = metaText;
     }
 
     function createRaceObstacleEntry(obstacle) {
@@ -11839,6 +13481,10 @@
 
     function createRaceItemBoxEntry(box) {
       return createRaceItemMarkerEntry(`box:${box.boxId}`, "race-item-box", "Item Box", box, "box");
+    }
+
+    function createRaceSwordPickupEntry(pickup) {
+      return createRaceItemMarkerEntry(`sword:${pickup.pickupId}`, "race-sword-pickup", "Sword Pickup", pickup, "sword");
     }
 
     function getRaceItemHazardClass(item) {
@@ -11967,6 +13613,7 @@
       if (item?.itemId === SINGULARITY_RACE_ITEM_IDS.INK_CLOUD) return "ink";
       if (item?.itemId === SINGULARITY_RACE_ITEM_IDS.RED_PILL) return "red-pill";
       if (item?.itemId === SINGULARITY_RACE_ITEM_IDS.TURBO_CAR) return "turbo-car";
+      if (item?.itemId === SINGULARITY_RACE_ITEM_IDS.SWORD) return "sword";
       return "box";
     }
 
@@ -11978,7 +13625,8 @@
         "stun-shot": ["stun-core", "stun-bolt"],
         ink: ["ink-blob-a", "ink-blob-b", "ink-spark"],
         "red-pill": ["pill-left", "pill-right", "pill-shine"],
-        "turbo-car": ["car-body", "car-window", "car-wheel"]
+        "turbo-car": ["car-body", "car-window", "car-wheel"],
+        sword: ["sword-blade", "sword-guard", "sword-hilt"]
       };
       return parts[kind] || parts.box;
     }
@@ -12205,6 +13853,7 @@
       if (item?.itemId === SINGULARITY_RACE_ITEM_IDS.INK_CLOUD) return "I";
       if (item?.itemId === SINGULARITY_RACE_ITEM_IDS.RED_PILL) return "R";
       if (item?.itemId === SINGULARITY_RACE_ITEM_IDS.TURBO_CAR) return "C";
+      if (item?.itemId === SINGULARITY_RACE_ITEM_IDS.SWORD) return "W";
       return "?";
     }
 
@@ -12215,6 +13864,7 @@
       if (item?.itemId === SINGULARITY_RACE_ITEM_IDS.INK_CLOUD) return "is-ink";
       if (item?.itemId === SINGULARITY_RACE_ITEM_IDS.RED_PILL) return "is-red-pill";
       if (item?.itemId === SINGULARITY_RACE_ITEM_IDS.TURBO_CAR) return "is-turbo-car";
+      if (item?.itemId === SINGULARITY_RACE_ITEM_IDS.SWORD) return "is-sword";
       return "";
     }
 
@@ -12457,6 +14107,11 @@
     function renderRaceCeremonyStatus(result) {
       const phase = result.ceremonyPhase || (result.raceFinished ? "award" : "wait");
       elements.raceCeremonyPodium.dataset.phase = phase;
+      const finishWindow = getActiveRaceFinishWindow(Date.now());
+      if (finishWindow && phase !== "award") {
+        elements.raceCeremonyStatus.textContent = `완주 마감 ${finishWindow.clock} · ${finishWindow.finishedCount}/${finishWindow.playerCount}`;
+        return;
+      }
       if (phase === "transfer" && !state.action.ceremonyEnteredAtMs) {
         const transferRemainingSeconds = Math.max(0, Math.ceil((Number(result.ceremonyTransferAtMs || 0) - Date.now()) / 1000));
         elements.raceCeremonyStatus.textContent = `잠시 후 시상대 공간으로 이동합니다 ${transferRemainingSeconds > 0 ? `${transferRemainingSeconds}초` : ""}`.trim();
@@ -12521,6 +14176,7 @@
       if (row.finishedAtMs !== null && row.finishedAtMs !== undefined) {
         return `${Math.round(Number(row.finishedAtMs) / 1000)}초`;
       }
+      if (row.finished === false) return `DNF ${Math.round((Number(row.progressPercent) || 0) * 10) / 10}%`;
       return `${Math.round((Number(row.progressPercent) || 0) * 10) / 10}%`;
     }
 
@@ -12586,7 +14242,7 @@
       const maxHp = player.maxHp || state.action.maxHp || 100;
       const hp = Math.max(0, Math.min(maxHp, player.hp ?? state.action.hp ?? maxHp));
       const hasRewardSkill = hasCurrentRewardSkill();
-      const currentItem = getSingularityRaceItemDefinition(state.action.currentItemId);
+      const currentItem = getSingularityRaceItemDefinition(peekRaceItemId());
       const activeItemAim = currentItem && isRaceItemAimReady(currentItem.itemId, now) ? state.action.itemAim : null;
       const chargeText = state.action.skillMaxCharges === 0 ? "무제한" : `${state.action.skillChargesRemaining}회`;
       elements.actionCharacter.textContent = state.action.placeholderSkinLabel
@@ -12747,7 +14403,7 @@
       const selected = presets.find((preset) => preset.id === state.selectedSkin) || presets[0];
       if (selected) {
         elements.profileSkinPreview.src = getSingularityRaceSkinDataUrl(selected.id, "side");
-        elements.profileSkinName.textContent = selected.name || selected.id;
+        elements.profileSkinName.textContent = `스킨명 : ${selected.name || selected.id}`;
       }
       const cards = presets.slice(0, PROFILE_SKIN_LIMIT).map((preset) => {
         const button = document.createElement("button");
@@ -12928,6 +14584,40 @@
       ));
     }
 
+    function decorateRaceMessageWithRank(message, rankByRunnerId) {
+      if (state.screen !== SINGULARITY_RACE_SCREENS.RACE) return message;
+      if (message.senderType === "system" || message.type === "system") return message;
+      const runnerId = resolveChatMessageRunnerId(message);
+      if (!runnerId) return message;
+      const rank = rankByRunnerId.get(runnerId);
+      if (!rank) return message;
+      const displayName = String(message.displayName || message.author || "").trim();
+      if (!displayName || /#\d+\s*$/.test(displayName)) return message;
+      return { ...message, displayName: `${displayName}#${rank}` };
+    }
+
+    function createRaceChatRankMap(now = Date.now()) {
+      return new Map(getRaceRunnerRankEntries(now).map((entry) => [entry.runner.id, entry.rank]));
+    }
+
+    function resolveChatMessageRunnerId(message) {
+      const senderId = String(message?.senderId || "").trim();
+      if (!senderId || senderId === "server" || senderId.startsWith("spectator:")) return "";
+      if (senderId === "player:you" || senderId === "runner:you" || senderId === state.connectedSession?.playerId) return "you";
+      const participantRunnerId = runnerIdFromParticipantId(senderId);
+      const candidates = new Set([senderId, participantRunnerId]);
+      if (senderId.startsWith("player:")) candidates.add(senderId.slice("player:".length));
+      for (const runner of state.runners) {
+        if (!runner?.id) continue;
+        if (candidates.has(runner.id)) return runner.id;
+        if (connectedParticipantIdForRunner(runner.id) === senderId) return runner.id;
+      }
+      const displayName = String(message.displayName || message.author || "").trim();
+      if (!displayName) return "";
+      const nameMatches = state.runners.filter((runner) => runner?.name === displayName);
+      return nameMatches.length === 1 ? nameMatches[0].id : "";
+    }
+
     function renderMessages() {
       const channel = findRestoredMarathonChannel(channelSet, state.activeChannel);
       if (elements.chatChannel && channel) elements.chatChannel.textContent = getSingularityChatChannelLabel(channel);
@@ -12939,7 +14629,8 @@
         elements.messages.replaceChildren(createSingularityEmptyChatNode());
         return;
       }
-      elements.messages.replaceChildren(...messages.map(createSingularityMessageNode));
+      const rankByRunnerId = createRaceChatRankMap();
+      elements.messages.replaceChildren(...messages.map((message) => createSingularityMessageNode(decorateRaceMessageWithRank(message, rankByRunnerId))));
       elements.messages.scrollTop = elements.messages.scrollHeight;
     }
 

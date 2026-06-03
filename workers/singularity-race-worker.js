@@ -12,6 +12,10 @@ import {
   resolveSingularityRaceObstacleCollision
 } from "../src/restored/games/singularity-race-obstacle-contract.js";
 import {
+  createSingularityRaceFinishWindowState,
+  resolveSingularityRaceFinishWindowMs
+} from "../src/restored/games/singularity-race-finish-window.js";
+import {
   createRestoredMarathonAttackAction,
   resolveRestoredMarathonAttackHit
 } from "../src/restored/games/marathon-combat-contract.js";
@@ -29,8 +33,8 @@ const INPUT_LIMIT_PER_SECOND = 10;
 const SERVER_TICK_INTERVAL_MS = 100;
 const INPUT_STALE_MS = 550;
 const SELF_SPEED_MULTIPLIER_CAP = 1.6;
-const SNAPSHOT_INTERVAL_MS = 200;
-const MIN_SNAPSHOT_INTERVAL_MS = 125;
+const SNAPSHOT_INTERVAL_MS = 100;
+const MIN_SNAPSHOT_INTERVAL_MS = 100;
 const CHAT_COOLDOWN_MS = 900;
 const CHAT_BURST_WINDOW_MS = 10000;
 const CHAT_BURST_LIMIT = 5;
@@ -38,7 +42,7 @@ const COUNTDOWN_MS = 10000;
 const COURSE_DISTANCE_METERS = 42195;
 const ENTRY_OPEN_DEFAULT = false;
 const ROOM_ACTIVE_DEFAULT = false;
-const BASIC_ATTACK_RANGE_PROGRESS = 4.2;
+const BASIC_ATTACK_RANGE_PROGRESS = 4.8;
 const BASIC_ATTACK_LANE_TO_PROGRESS = 42;
 const BASIC_ATTACK_ARC_DEGREES = 70;
 const BASIC_ATTACK_STALL_MS = 180;
@@ -82,6 +86,9 @@ export class SingularityRaceRoom {
     this.chatHistory = [];
     this.phase = "lobby";
     this.countdownEndsAtMs = 0;
+    this.raceStartedAtMs = 0;
+    this.finishWindowStartedAtMs = 0;
+    this.finishWindowEndsAtMs = 0;
     this.entryOpen = ENTRY_OPEN_DEFAULT;
     this.roomActive = ROOM_ACTIVE_DEFAULT;
     this.mapId = PUBLIC_MAP_ID;
@@ -253,7 +260,7 @@ export class SingularityRaceRoom {
         cooldownRemainingMs: Math.max(0, Math.round(Number(session.attackCooldownUntilMs || 0) - now))
       }, session));
     }
-    const action = createServerBasicAttackAction(session, packet, sequence);
+    const action = createServerBasicAttackAction(session, packet, sequence, this.mapId);
     const target = findServerBasicAttackTarget(this, action, session.participantId);
     session.lastAttackSequence = sequence;
     session.attackCooldownUntilMs = now + BASIC_ATTACK_COOLDOWN_MS;
@@ -331,6 +338,9 @@ export class SingularityRaceRoom {
   async startCountdown(now, session) {
     this.phase = "countdown";
     this.countdownEndsAtMs = now + COUNTDOWN_MS;
+    this.raceStartedAtMs = 0;
+    this.finishWindowStartedAtMs = 0;
+    this.finishWindowEndsAtMs = 0;
     this.entryOpen = false;
     await this.persistRoomState();
     await this.safeSetAlarm(this.countdownEndsAtMs + 25);
@@ -347,6 +357,9 @@ export class SingularityRaceRoom {
   async resetRoom(reason = "admin_reset_room") {
     this.phase = "lobby";
     this.countdownEndsAtMs = 0;
+    this.raceStartedAtMs = 0;
+    this.finishWindowStartedAtMs = 0;
+    this.finishWindowEndsAtMs = 0;
     this.entryOpen = ENTRY_OPEN_DEFAULT;
     this.chatHistory = [];
     await this.persistRoomState();
@@ -366,6 +379,9 @@ export class SingularityRaceRoom {
     this.roomActive = true;
     this.phase = "lobby";
     this.countdownEndsAtMs = 0;
+    this.raceStartedAtMs = 0;
+    this.finishWindowStartedAtMs = 0;
+    this.finishWindowEndsAtMs = 0;
     this.entryOpen = ENTRY_OPEN_DEFAULT;
     this.chatHistory = [];
     await this.persistRoomState();
@@ -382,6 +398,9 @@ export class SingularityRaceRoom {
     this.roomActive = ROOM_ACTIVE_DEFAULT;
     this.phase = "lobby";
     this.countdownEndsAtMs = 0;
+    this.raceStartedAtMs = 0;
+    this.finishWindowStartedAtMs = 0;
+    this.finishWindowEndsAtMs = 0;
     this.entryOpen = ENTRY_OPEN_DEFAULT;
     this.chatHistory = [];
     await this.persistRoomState();
@@ -422,6 +441,10 @@ export class SingularityRaceRoom {
       roomActive: this.roomActive !== false,
       mapId: this.mapId,
       countdownEndsAtMs: this.countdownEndsAtMs,
+      raceStartedAtMs: this.raceStartedAtMs,
+      finishWindowStartedAtMs: this.finishWindowStartedAtMs,
+      finishWindowEndsAtMs: this.finishWindowEndsAtMs,
+      ...finishWindowSummary(this, now),
       participants: participantSnapshots(this, now)
     }));
   }
@@ -466,6 +489,9 @@ export class SingularityRaceRoom {
       const wasActive = this.phase !== "lobby";
       this.phase = "lobby";
       this.countdownEndsAtMs = 0;
+      this.raceStartedAtMs = 0;
+      this.finishWindowStartedAtMs = 0;
+      this.finishWindowEndsAtMs = 0;
       if (wasActive) this.entryOpen = ENTRY_OPEN_DEFAULT;
       await this.persistRoomState();
       await this.safeDeleteAlarm();
@@ -481,42 +507,90 @@ export class SingularityRaceRoom {
   refreshPhase(now) {
     if (this.phase === "countdown" && this.countdownEndsAtMs > 0 && now >= this.countdownEndsAtMs) {
       this.phase = "racing";
+      this.raceStartedAtMs = this.countdownEndsAtMs || now;
+      this.finishWindowStartedAtMs = 0;
+      this.finishWindowEndsAtMs = 0;
       for (const session of playerSessions(this)) session.lastMovementTickAtMs = now;
       this.scheduleServerTick();
-      this.broadcast(this.serverPacket("race_started", { gateOpenedAtMs: this.countdownEndsAtMs, serverOwned: true }));
+      this.broadcast(this.serverPacket("race_started", {
+        gateOpenedAtMs: this.countdownEndsAtMs,
+        raceStartedAtMs: this.raceStartedAtMs,
+        serverOwned: true
+      }));
       return true;
     }
     if (this.phase === "racing") {
       const players = playerSessions(this);
-      if (players.length > 0 && players.every((session) => Number(session.finishedAtMs || 0) > 0)) {
+      if (players.length <= 0) return false;
+      const finishedPlayers = players.filter((session) => Number(session.finishedAtMs || 0) > 0);
+      const allFinished = finishedPlayers.length === players.length;
+      let changed = false;
+      if (!allFinished && finishedPlayers.length > 0 && this.finishWindowEndsAtMs <= 0) {
+        const firstFinishAtMs = Math.min(...finishedPlayers.map((session) => Number(session.finishedAtMs || now)));
+        const raceStartedAtMs = Number(this.raceStartedAtMs || 0) || firstFinishAtMs;
+        const finishWindowMs = resolveSingularityRaceFinishWindowMs(Math.max(0, firstFinishAtMs - raceStartedAtMs));
+        this.finishWindowStartedAtMs = firstFinishAtMs;
+        this.finishWindowEndsAtMs = firstFinishAtMs + finishWindowMs;
+        this.safeSetAlarm(this.finishWindowEndsAtMs + 25);
+        this.broadcast(this.serverPacket("finish_window_started", {
+          firstFinishAtMs,
+          raceStartedAtMs,
+          finishWindowMs,
+          finishWindowEndsAtMs: this.finishWindowEndsAtMs,
+          finishedCount: finishedPlayers.length,
+          playerCount: players.length,
+          serverOwned: true
+        }));
+        changed = true;
+      }
+      const finishWindowExpired = this.finishWindowEndsAtMs > 0 && now >= this.finishWindowEndsAtMs;
+      if (allFinished || finishWindowExpired) {
         this.phase = "finished";
         this.countdownEndsAtMs = 0;
         this.entryOpen = ENTRY_OPEN_DEFAULT;
         this.clearServerTick();
-        this.broadcast(this.serverPacket("race_finished", { finishedAtMs: now, serverOwned: true }));
+        this.safeDeleteAlarm();
+        this.broadcast(this.serverPacket("race_finished", {
+          finishedAtMs: now,
+          reason: allFinished ? "all_finished" : "finish_window_expired",
+          finishWindowEndsAtMs: this.finishWindowEndsAtMs,
+          finishedCount: finishedPlayers.length,
+          playerCount: players.length,
+          serverOwned: true
+        }));
         return true;
       }
+      return changed;
     }
     return false;
   }
 
   async loadRoomState() {
     if (this.roomStateLoaded) return;
-    const stored = await this.safeStorageGet(["phase", "countdownEndsAtMs", "entryOpen", "roomActive", "mapId"]);
+    const stored = await this.safeStorageGet(["phase", "countdownEndsAtMs", "raceStartedAtMs", "finishWindowStartedAtMs", "finishWindowEndsAtMs", "entryOpen", "roomActive", "mapId"]);
     this.phase = sanitizePhase(stored.get("phase"));
     this.countdownEndsAtMs = Number(stored.get("countdownEndsAtMs") || 0);
+    this.raceStartedAtMs = Number(stored.get("raceStartedAtMs") || 0);
+    this.finishWindowStartedAtMs = Number(stored.get("finishWindowStartedAtMs") || 0);
+    this.finishWindowEndsAtMs = Number(stored.get("finishWindowEndsAtMs") || 0);
     this.entryOpen = stored.has("entryOpen") ? stored.get("entryOpen") !== false : ENTRY_OPEN_DEFAULT;
     this.roomActive = stored.has("roomActive") ? stored.get("roomActive") !== false : ROOM_ACTIVE_DEFAULT;
     this.mapId = normalizeRestoredMarathonTrailMapId(stored.get("mapId") || PUBLIC_MAP_ID);
     if (!this.roomActive) {
       this.phase = "lobby";
       this.countdownEndsAtMs = 0;
+      this.raceStartedAtMs = 0;
+      this.finishWindowStartedAtMs = 0;
+      this.finishWindowEndsAtMs = 0;
       this.entryOpen = ENTRY_OPEN_DEFAULT;
       await this.persistRoomState();
       await this.safeDeleteAlarm();
     } else if (this.sessions.size === 0 && this.phase !== "lobby") {
       this.phase = "lobby";
       this.countdownEndsAtMs = 0;
+      this.raceStartedAtMs = 0;
+      this.finishWindowStartedAtMs = 0;
+      this.finishWindowEndsAtMs = 0;
       this.entryOpen = ENTRY_OPEN_DEFAULT;
       await this.persistRoomState();
       await this.safeDeleteAlarm();
@@ -524,12 +598,16 @@ export class SingularityRaceRoom {
     this.roomStateLoaded = true;
     if (this.phase === "countdown" && this.countdownEndsAtMs > Date.now()) this.scheduleCountdownTimer();
     if (this.phase === "racing") this.scheduleServerTick();
+    if (this.phase === "racing" && this.finishWindowEndsAtMs > Date.now()) this.safeSetAlarm(this.finishWindowEndsAtMs + 25);
   }
 
   async persistRoomState() {
     await this.safeStoragePut({
       phase: this.phase,
       countdownEndsAtMs: this.countdownEndsAtMs,
+      raceStartedAtMs: this.raceStartedAtMs,
+      finishWindowStartedAtMs: this.finishWindowStartedAtMs,
+      finishWindowEndsAtMs: this.finishWindowEndsAtMs,
       entryOpen: this.entryOpen,
       roomActive: this.roomActive !== false,
       mapId: this.mapId
@@ -838,6 +916,24 @@ function participantSnapshots(room, now = Date.now()) {
   });
 }
 
+function finishWindowSummary(room, now = Date.now()) {
+  const players = playerSessions(room);
+  const finishedCount = players.filter((session) => Number(session.finishedAtMs || 0) > 0).length;
+  const finishWindow = createSingularityRaceFinishWindowState({
+    raceStartedAtMs: room.raceStartedAtMs,
+    firstFinishAtMs: room.finishWindowStartedAtMs,
+    endsAtMs: room.finishWindowEndsAtMs,
+    nowMs: now
+  });
+  return {
+    finishWindowActive: finishWindow.active,
+    finishWindowDurationMs: finishWindow.durationMs,
+    finishWindowRemainingMs: finishWindow.remainingMs,
+    finishedCount,
+    playerCount: players.length
+  };
+}
+
 function joinPayload(room, session) {
   return {
     ok: true,
@@ -853,6 +949,10 @@ function joinPayload(room, session) {
     roomActive: room.roomActive !== false,
     mapId: room.mapId,
     countdownEndsAtMs: room.countdownEndsAtMs,
+    raceStartedAtMs: room.raceStartedAtMs,
+    finishWindowStartedAtMs: room.finishWindowStartedAtMs,
+    finishWindowEndsAtMs: room.finishWindowEndsAtMs,
+    ...finishWindowSummary(room),
     mapVersion: "baegeum-city-v2-map-001",
     venueSchemaVersion: "venue-schema-001",
     protocolVersion: "restored-marathon-001",
@@ -872,6 +972,11 @@ function roomSummary(room) {
     phase: room.phase,
     entryOpen: room.entryOpen,
     mapId: room.mapId,
+    countdownEndsAtMs: room.countdownEndsAtMs,
+    raceStartedAtMs: room.raceStartedAtMs,
+    finishWindowStartedAtMs: room.finishWindowStartedAtMs,
+    finishWindowEndsAtMs: room.finishWindowEndsAtMs,
+    ...finishWindowSummary(room),
     players: roomActive ? countPlayers(room) : 0,
     maxPlayers: MAX_RUNNERS,
     spectators: roomActive ? countSpectators(room) : 0,
@@ -1042,12 +1147,12 @@ function serverSkillProgressRange(skillId) {
   return 2.4;
 }
 
-function createServerBasicAttackAction(session, packet, sequence) {
+function createServerBasicAttackAction(session, packet, sequence, mapId = PUBLIC_MAP_ID) {
   return createRestoredMarathonAttackAction({
     attackerId: session.participantId,
     sequence,
     origin: serverAttackPosition(session),
-    aim: normalizeAttackAim(packet.payload?.aim, session.lastInputPayload),
+    aim: normalizeAttackAim(packet.payload?.aim, session, mapId),
     rangeMeters: BASIC_ATTACK_RANGE_PROGRESS,
     arcDegrees: BASIC_ATTACK_ARC_DEGREES,
     selfStallMs: BASIC_ATTACK_STALL_MS,
@@ -1080,19 +1185,22 @@ function serverAttackPosition(session) {
   };
 }
 
-function normalizeAttackAim(aimInput = {}, lastInputPayload = null) {
+function normalizeAttackAim(aimInput = {}, session = null, mapId = PUBLIC_MAP_ID) {
   const aim = safeObject(aimInput);
-  const x = clampNumber(aim.x ?? fallbackAimX(lastInputPayload), -1, 1);
+  const x = clampNumber(aim.x ?? fallbackAimX(session, mapId), -1, 1);
   const y = clampNumber(aim.y ?? 0, -1, 1);
   if (Math.hypot(x, y) > 0.001) return { x, y };
-  return { x: fallbackAimX(lastInputPayload), y: 0 };
+  return { x: fallbackAimX(session, mapId), y: 0 };
 }
 
-function fallbackAimX(lastInputPayload = null) {
-  const directionX = Number(lastInputPayload?.direction?.x || 0);
-  const forward = Number(lastInputPayload?.intent?.forward || 0);
-  if (Math.abs(directionX) > 0.001) return directionX < 0 ? -1 : 1;
-  return forward < 0 ? -1 : 1;
+function fallbackAimX(session = null, mapId = PUBLIC_MAP_ID) {
+  const lastInputPayload = session?.lastInputPayload || null;
+  const progressPercent = Number(session?.progressPercent || START_PROGRESS);
+  const trailPoint = progressToRestoredMarathonTrailPoint(progressPercent, mapId);
+  const movement = resolveSingularityRaceInputMovement(lastInputPayload || {}, trailPoint);
+  const forward = Number(movement.forward || 0);
+  if (Math.abs(forward) > 0.001) return forward < 0 ? -1 : 1;
+  return 1;
 }
 
 function advanceSession(session, now, phase, mapId = PUBLIC_MAP_ID, options = {}) {

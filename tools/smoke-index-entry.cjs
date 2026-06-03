@@ -69,7 +69,7 @@ assert.ok(html.indexOf("이벤트 참가") < html.indexOf("배금도시 v2"), "r
 assert.ok(html.indexOf("카테고리 열람") < html.indexOf("로그인"), "hub actions should be tucked behind the category menu");
 assert.ok(baegeumCityHtml.includes('id="game"'), "Baegeum City v2 entry should mount the old canvas city core");
 assert.ok(baegeumCityHtml.includes('src="./src/main.js"'), "Baegeum City v2 entry should load the city-core runtime");
-assert.ok(baegeumCityHtml.includes('href="./editor.html"'), "Baegeum City v2 entry should keep the map editor link");
+assert.ok(baegeumCityHtml.includes('href="./archive/tools/editor.html"'), "Baegeum City v2 entry should keep the archived map editor link");
 assert.ok(baegeumCityHtml.includes('href="./skin-lab.html"'), "Baegeum City v2 entry should keep the character test link");
 assert.ok(!baegeumCityHtml.includes("window.location.replace"), "Baegeum City v2 entry should not redirect into the dice build");
 
