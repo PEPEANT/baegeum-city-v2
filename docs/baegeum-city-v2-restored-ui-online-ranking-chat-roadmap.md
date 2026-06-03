@@ -7,7 +7,7 @@ Conclusion: the restored build should improve its UI first by naming stable surf
 This document owns the next planning layer for the active restored build:
 
 ```text
-index.html -> singularity-race-first launcher
+index.html -> Simulacra World launcher with Singularity Race as the primary mode
 sub mode -> baegeum-city-v2-dice.html
 ```
 
@@ -21,6 +21,16 @@ Related source documents:
 - `docs/baegeum-city-v2-chat.md`
 - `docs/baegeum-city-v2-restored-recomposition-plan.md`
 - `docs/baegeum-city-v2-restored-growth-architecture.md`
+
+## Launcher Shell
+
+Current root launcher behavior:
+
+- `index.html` is the first visible Simulacra World hub, not a redirect or a public-room-only gate.
+- The primary `바로 플레이` action opens local/guest `singularity-race.html` so the first click always reaches the playable profile flow.
+- Public Cloudflare online entry is a separate `온라인 참가` action and may still show room creation/admin-gate state.
+- Login, skin, shop, archive, and community are launcher shell slots. They may open small local panels now, but real account, store, inventory, payment, or cross-game entitlement behavior must wait for separate contracts.
+- Preserved mode cards for Baegeum City v2, Dice City v1, Drawing World, and Baegeum City v1 remain visible from the root launcher.
 
 ## Current Restored Baseline
 

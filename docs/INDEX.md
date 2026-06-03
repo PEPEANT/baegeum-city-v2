@@ -55,6 +55,7 @@
 - [Singularity Race Public Admin Revival Plan](singularity-race-admin-revival-plan.md): Minimal public admin v2 plan for adminToken-authenticated Worker control, separate from dev localStorage admin.
 - [Restored Study And Career System Plan](plans/restored-study-career-system.md): Planning draft for library study, university classes, company work, won wages, and promotion gates.
 - [Singularity Race v0.1 Lock](singularity-race-v0-1-lock.md): Current focus lock that keeps `특이점레이스` as the playable v0.1 representative game, preserves future expansion paths, and blocks premature common-engine or city/life/economy expansion work.
+- [Singularity Race Free Movement Prototype Brief](singularity-race-free-movement-prototype-brief.md): Handoff brief for a standalone `(x, y) + velocity + gravity` movement prototype where progress is derived from position rather than used as authority.
 - [Restored Feature Plan Template](templates/restored-feature-plan-template.md): Required sections for restored feature plans, including job/occupation impact, ranking impact, chat impact, online authority, assets, and verification.
 
 ## AI Operating Loop

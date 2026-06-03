@@ -34,6 +34,8 @@ const packageJson = JSON.parse(readProjectFile("package.json"));
 
 [
   'data-primary-mode="singularity-race"',
+  'id="primaryRaceLink" class="primary-action race-entry-link" href="./singularity-race.html"',
+  'id="onlineRaceLink"',
   'href="./singularity-race.html?online=cloudflare&amp;serverUrl=wss%3A%2F%2Fsingularity-race-online.rneetn.workers.dev%2Fws"',
   'href="./baegeum-city-v2.html"',
   'href="./baegeum-city-v2-dice.html?map=dice-city&spawn=dice-blackjack-casino-01"',
@@ -42,14 +44,21 @@ const packageJson = JSON.parse(readProjectFile("package.json"));
   "./assets/singularity-race/banner-qorud.png",
   "https://gall.dcinside.com/mgallery/board/lists?id=thesingularity",
   "SIMULACRA WORLD",
+  "시뮬라크 월드",
   "시뮬라크 월드에서 시작되는 특이점이 온다 픽셀 레이스",
   "배금도시 v2",
   "다이스시티 v1",
   "드로잉월드",
   "배금도시 v1",
+  "data-hub-panel=\"login\"",
+  "data-hub-panel=\"skins\"",
+  "data-hub-panel=\"shop\"",
+  "data-hub-panel=\"archive\"",
+  "hubModal",
   "aboutOpenButton",
   "제작자: 훈서기",
   "플레이",
+  "온라인 참가",
 ].forEach((token) => assertIncludes(indexSource, token, `index should keep ${token}`));
 
 assertExcludes(indexSource, 'href="./singularity-race-admin.html?devOnline=1"', "launcher should not expose the dev host page as a user button");

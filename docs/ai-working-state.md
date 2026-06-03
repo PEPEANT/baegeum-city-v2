@@ -1,6 +1,38 @@
 # AI Working State
 
 Date: 2026-06-03
+Observed: User corrected the prototype direction: Singularity Race free-movement testing should remain 2D top-view. Constant gravity/jump/side-view floor behavior was not agreed; gravity should only be considered later for specific sections.
+Changed: Corrected `free-race-prototype.html` back to top-view movement. Removed `onGround`, `GRAVITY_ACCELERATION`, `JUMP_VELOCITY`, fast-fall, `resolveTerrain()`, and side-view floor/pit rendering. WASD/arrows now apply 8-direction top-view acceleration to `vx/vy`; velocity uses drag and a 2D max-speed clamp. Pressure plates now use a top-view `pressureContactPoint()` at the player center instead of a foot/jump model. Follow-up bug audit fixed two prototype bugs: off-course drag now actually slows/limits speed instead of making off-course movement more slippery, and closed gate collision now removes velocity along the collision normal instead of only zeroing rightward `vx`. Updated `tools/smoke-free-race-prototype.cjs` to fail if gravity/jump/onGround/floor logic, old inflated plate checks, old one-way gate collision, or stale gate-open timing returns.
+Verified: `node tools/smoke-free-race-prototype.cjs`, `git diff --check`, and full `npm run check` passed after the bug-audit patch. Browser fallback on `http://127.0.0.1:4173/free-race-prototype.html?codex=bug-audit` confirmed authority keys `x/y/vx/vy`, no gravity/jump/onGround tokens, no horizontal overflow, off-course speed capped at `245px/s`, closed gate collision blocks both left-side and right-side approaches by removing normal velocity, strict pressure contact rejects a near-outside point and accepts an inside point, two occupied pads open the gate, and no console/page errors.
+Blocked: None. This correction still does not touch `singularity-race.html`, `workers/singularity-race-worker.js`, or the live rail/progress movement modules.
+Next: Human-play the corrected top-view prototype for movement speed, reverse feel, body bumping, and pressure plate precision before adding any attack or future gravity-zone slice.
+Do not: Re-add jump, onGround, constant gravity, floor/ramp/pit physics, or side-view assumptions to the top-view prototype unless the human explicitly approves a gravity-zone slice.
+
+Date: 2026-06-03
+Observed: Superseded historical note. This intermediate v2 retune briefly introduced side-view jump/gravity language and should not be treated as current behavior.
+Changed: Superseded by the top-view correction entry above. Current `free-race-prototype.html` has no `onGround`, jump, constant gravity, floor, ramp, or pit physics.
+Verified: Superseded. Use the current top-view verification entry above.
+Blocked: None.
+Next: See the current top-view prototype entry above.
+Do not: Revive this side-view/jump/gravity interpretation without explicit human approval.
+
+Date: 2026-06-03
+Observed: User approved moving on after final verification, and the current movement handoff brief points to a standalone free-movement prototype instead of rewriting the live Singularity Race rail/progress authority.
+Changed: Historical prototype creation note. The current corrected prototype keeps the same standalone file/test/doc shape, but the authority keys are now `x/y/vx/vy` and side-view gravity/floor/pit behavior has been removed.
+Verified: Historical verification was superseded by the top-view correction and bug-audit verification above.
+Blocked: None. The prototype intentionally does not touch `singularity-race.html`, `workers/singularity-race-worker.js`, or the live `src/restored/games/singularity-race-*` rail movement modules.
+Next: Human-play the top-view prototype for free movement feel, reverse movement, pressure plate precision, body bumping, and whether the `(x,y)+velocity -> derived progress` model is worth a later migration plan.
+Do not: Treat prototype progress as input authority, wire it into public online, or start replacing live Singularity Race movement before the prototype feel is accepted.
+
+Date: 2026-06-03
+Observed: User clarified that "launcher" means the root Simulacra World engine-core launcher with Baegeum City v2, Dice City v1, Drawing World, and Baegeum City v1 cards, and wanted it visible first as a future hub for login, skins, shop, archive, and community instead of feeling blocked by online room state.
+Changed: Updated `index.html` so the first shell is titled `시뮬라크 월드`, the primary `바로 플레이` action opens local/guest `singularity-race.html`, and public Cloudflare race entry is a separate `온라인 참가` action. Added visible launcher hub slots for login, skins, shop, and archive with a shared modal, kept community and the four preserved mode cards visible, and softened the one-note blue launcher background. Updated launcher/v0.1 smoke guards and the restored UI/v0.1 docs to treat this as an existing launcher hub slot, not a new common-engine implementation.
+Verified: `node tools/smoke-index-entry.cjs`, `node tools/smoke-singularity-race-v01-lock.cjs`, `node tools/check-restored-ui-online-ranking-chat-roadmap.cjs`, `git diff --check`, `npm run check:singularity-race`, and full `npm run check` passed. Browser fallback on `http://127.0.0.1:4173/index.html?codex=launcher-hub` confirmed title/H1 `시뮬라크 월드`, primary href `./singularity-race.html`, separate online Cloudflare href, login hub modal contents, no horizontal overflow, and mobile order with banner before launcher controls.
+Blocked: The in-app Browser `iab` target was unavailable, so browser verification used the available Playwright fallback. Real account, skin inventory, shop, archive persistence, and community surfaces are still shell slots only.
+Next: If continuing launcher work, wire one real but local-only profile/session selector or skin inventory summary into the launcher hub before adding any account/store entitlement behavior.
+Do not: Make the root launcher depend on public room creation, collapse local and online entry back into one button, or turn hub slots into live account/shop systems without separate contracts.
+
+Date: 2026-06-03
 Observed: User approved changing the public Cloudflare room from "always visible" to "created by admin first" while keeping the one fixed Durable Object backend.
 Changed: Added `roomActive` to the Singularity Race Worker state. Fresh rooms and `/admin/deactivate` now stay hidden and reject player/spectator joins with `room_not_created`; `/admin/create` activates the fixed public room while keeping `entryOpen:false` so users can join the waiting queue but still need admin in-game entry. The admin page now maps `방 만들기` to `/admin/create`, maps room close/delete to `/admin/deactivate`, hides inactive public rooms from the list, and disables visit/entry/start/delete controls until the room is active. The player page now treats inactive/unknown Cloudflare rooms as non-joinable, shows a `방 없음` gate, and handles `room_closed` by disconnecting and returning to the lobby/profile.
 Guarded: Updated Cloudflare online static and Worker contract smokes for `/admin/create`, `/admin/deactivate`, `roomActive`, `room_not_created`, inactive start/open rejection, active room creation, and deactivate hiding.

@@ -1,0 +1,622 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <title>Free Race Prototype</title>
+    <link rel="icon" href="data:,">
+    <style>
+      :root {
+        color-scheme: dark;
+        --bg: #101218;
+        --panel: rgba(12, 15, 22, 0.82);
+        --line: rgba(119, 222, 195, 0.34);
+        --ink: #eef9f5;
+        --muted: rgba(226, 240, 238, 0.68);
+        --accent: #77dec3;
+        --warn: #ffd36e;
+        --danger: #ff6d8a;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html,
+      body {
+        width: 100%;
+        height: 100%;
+        margin: 0;
+        overflow: hidden;
+        background: var(--bg);
+        color: var(--ink);
+        font-family: "Malgun Gothic", "Apple SD Gothic Neo", system-ui, sans-serif;
+      }
+
+      canvas {
+        display: block;
+        width: 100vw;
+        height: 100dvh;
+        background:
+          linear-gradient(135deg, rgba(13, 18, 24, 0.98), rgba(18, 43, 38, 0.9) 55%, rgba(42, 22, 46, 0.92));
+      }
+
+      .hud {
+        position: fixed;
+        top: 14px;
+        left: 14px;
+        display: grid;
+        gap: 8px;
+        width: min(360px, calc(100vw - 28px));
+        padding: 12px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: var(--panel);
+        backdrop-filter: blur(10px);
+      }
+
+      .hud h1,
+      .hud p {
+        margin: 0;
+      }
+
+      .hud h1 {
+        font-size: 16px;
+      }
+
+      .hud p {
+        color: var(--muted);
+        font-size: 12px;
+        line-height: 1.45;
+      }
+
+      .meter-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 6px;
+      }
+
+      .meter {
+        display: grid;
+        gap: 2px;
+        min-height: 42px;
+        padding: 8px;
+        border: 1px solid rgba(238, 249, 245, 0.12);
+        border-radius: 8px;
+        background: rgba(255, 255, 255, 0.05);
+      }
+
+      .meter span {
+        color: var(--muted);
+        font-size: 11px;
+      }
+
+      .meter strong {
+        overflow: hidden;
+        font-size: 13px;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .touch-stick {
+        position: fixed;
+        left: 18px;
+        bottom: 18px;
+        display: none;
+        width: 124px;
+        height: 124px;
+        border: 1px solid rgba(119, 222, 195, 0.34);
+        border-radius: 50%;
+        background: rgba(10, 13, 19, 0.52);
+        touch-action: none;
+      }
+
+      .touch-stick::after {
+        content: "";
+        position: absolute;
+        left: calc(50% - 20px);
+        top: calc(50% - 20px);
+        width: 40px;
+        height: 40px;
+        border: 1px solid rgba(255, 211, 110, 0.56);
+        border-radius: 50%;
+        background: rgba(255, 211, 110, 0.18);
+        transform: translate(var(--stick-x, 0), var(--stick-y, 0));
+      }
+
+      @media (pointer: coarse), (max-width: 720px) {
+        .touch-stick {
+          display: block;
+        }
+
+        .hud {
+          top: 10px;
+          left: 10px;
+          width: min(330px, calc(100vw - 20px));
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <canvas id="world" aria-label="free race prototype canvas"></canvas>
+    <section class="hud" aria-label="free race prototype hud">
+      <h1>자유 이동 프로토타입</h1>
+      <p>권위 상태는 x/y/vx/vy입니다. progress와 lane은 위치에서만 파생됩니다.</p>
+      <div class="meter-grid">
+        <div class="meter"><span>P1 progress</span><strong id="p1Progress">0%</strong></div>
+        <div class="meter"><span>P1 lane</span><strong id="p1Lane">0px</strong></div>
+        <div class="meter"><span>P1 velocity</span><strong id="p1Velocity">0, 0</strong></div>
+        <div class="meter"><span>2-body gate</span><strong id="gateState">닫힘</strong></div>
+      </div>
+    </section>
+    <div class="touch-stick" id="touchStick" aria-hidden="true"></div>
+
+    <script>
+      const canvas = document.querySelector("#world");
+      const context = canvas.getContext("2d");
+      const hud = {
+        p1Progress: document.querySelector("#p1Progress"),
+        p1Lane: document.querySelector("#p1Lane"),
+        p1Velocity: document.querySelector("#p1Velocity"),
+        gateState: document.querySelector("#gateState")
+      };
+      const touchStick = document.querySelector("#touchStick");
+
+      const WORLD_WIDTH = 1400;
+      const WORLD_HEIGHT = 820;
+      const FIXED_TIMESTEP = 1 / 60;
+      const MAX_ACCUMULATED_SECONDS = 0.14;
+      const COURSE_WIDTH = 112;
+      const PLAYER_RADIUS = 16;
+      const PLAYER_COLLISION_RADIUS = 15;
+      const PRESSURE_PAD_INSET_X = 8;
+      const PRESSURE_PAD_INSET_Y = 6;
+      const MOVE_ACCELERATION = 3200;
+      const BOT_ACCELERATION = 1850;
+      const MOVEMENT_DRAG = 7.8;
+      const OFF_COURSE_DRAG = 11.2;
+      const MAX_MOVE_SPEED = 365;
+      const OFF_COURSE_MAX_SPEED = 245;
+      const BODY_COLLISION_IMPULSE = 0.28;
+      const AUTHORITY_STATE_KEYS = Object.freeze(["x", "y", "vx", "vy"]);
+      const coursePoints = Object.freeze([
+        { x: 100, y: 610 },
+        { x: 260, y: 610 },
+        { x: 430, y: 520 },
+        { x: 620, y: 420 },
+        { x: 800, y: 470 },
+        { x: 960, y: 350 },
+        { x: 1140, y: 410 },
+        { x: 1320, y: 290 }
+      ]);
+      const pads = Object.freeze([
+        { id: "pad-a", x: 1010, y: 628, w: 74, h: 40 },
+        { id: "pad-b", x: 1110, y: 628, w: 74, h: 40 }
+      ]);
+      const gate = { x: 1226, y: 480, w: 28, h: 188 };
+
+      const course = buildCourse(coursePoints);
+      const keys = new Set();
+      const touchIntent = { active: false, x: 0, y: 0 };
+      const players = [
+        createPlayer("p1", "P1", "#77dec3", 150, 590),
+        createPlayer("p2", "P2", "#ffd36e", 220, 590)
+      ];
+      let scale = 1;
+      let offsetX = 0;
+      let offsetY = 0;
+      let lastFrameMs = performance.now();
+      let accumulator = 0;
+      let elapsedTotal = 0;
+
+      function createPlayer(id, name, color, x, y) {
+        return {
+          id,
+          name,
+          color,
+          x,
+          y,
+          vx: 0,
+          vy: 0,
+          maxProgressPercent: 0,
+          laneOffsetPx: 0,
+          progressPercent: 0
+        };
+      }
+
+      function buildCourse(points) {
+        let totalLength = 0;
+        const segments = [];
+        for (let index = 0; index < points.length - 1; index += 1) {
+          const start = points[index];
+          const end = points[index + 1];
+          const dx = end.x - start.x;
+          const dy = end.y - start.y;
+          const length = Math.hypot(dx, dy) || 1;
+          segments.push(Object.freeze({
+            start,
+            end,
+            dx,
+            dy,
+            length,
+            startDistance: totalLength
+          }));
+          totalLength += length;
+        }
+        return Object.freeze({
+          points,
+          segments: Object.freeze(segments),
+          totalLength
+        });
+      }
+
+      function deriveProgressFromPoint(point, courseShape = course) {
+        let best = null;
+        for (const segment of courseShape.segments) {
+          const toPointX = point.x - segment.start.x;
+          const toPointY = point.y - segment.start.y;
+          const t = clamp((toPointX * segment.dx + toPointY * segment.dy) / (segment.length * segment.length), 0, 1);
+          const footX = segment.start.x + segment.dx * t;
+          const footY = segment.start.y + segment.dy * t;
+          const deltaX = point.x - footX;
+          const deltaY = point.y - footY;
+          const distanceSq = deltaX * deltaX + deltaY * deltaY;
+          if (!best || distanceSq < best.distanceSq) {
+            const normalX = -segment.dy / segment.length;
+            const normalY = segment.dx / segment.length;
+            const along = segment.startDistance + segment.length * t;
+            best = {
+              distanceSq,
+              footX,
+              footY,
+              laneOffsetPx: deltaX * normalX + deltaY * normalY,
+              progressPercent: clamp(along / courseShape.totalLength * 100, 0, 100)
+            };
+          }
+        }
+        return Object.freeze(best || { progressPercent: 0, laneOffsetPx: 0, footX: point.x, footY: point.y, distanceSq: 0 });
+      }
+
+      function resizeCanvas() {
+        const dpr = Math.max(1, Math.min(2, window.devicePixelRatio || 1));
+        canvas.width = Math.round(window.innerWidth * dpr);
+        canvas.height = Math.round(window.innerHeight * dpr);
+        context.setTransform(dpr, 0, 0, dpr, 0, 0);
+        const width = window.innerWidth;
+        const height = window.innerHeight;
+        scale = Math.min(width / WORLD_WIDTH, height / WORLD_HEIGHT);
+        offsetX = (width - WORLD_WIDTH * scale) / 2;
+        offsetY = (height - WORLD_HEIGHT * scale) / 2;
+      }
+
+      function frame(nowMs) {
+        const deltaSeconds = Math.min(MAX_ACCUMULATED_SECONDS, (nowMs - lastFrameMs) / 1000);
+        lastFrameMs = nowMs;
+        accumulator += deltaSeconds;
+        while (accumulator >= FIXED_TIMESTEP) {
+          update(FIXED_TIMESTEP);
+          accumulator -= FIXED_TIMESTEP;
+        }
+        render();
+        requestAnimationFrame(frame);
+      }
+
+      function update(dt) {
+        elapsedTotal += dt;
+        advancePlayer(players[0], resolveP1Input(), dt, MOVE_ACCELERATION);
+        advancePlayer(players[1], resolveP2Input(), dt, BOT_ACCELERATION);
+        resolveCircleCollision(players[0], players[1]);
+        const gateOpen = areAllPadsOccupied();
+        for (const player of players) {
+          resolveGateCollision(player, gateOpen);
+          const progress = deriveProgressFromPoint(player);
+          player.progressPercent = progress.progressPercent;
+          player.laneOffsetPx = progress.laneOffsetPx;
+          player.maxProgressPercent = Math.max(player.maxProgressPercent, progress.progressPercent);
+        }
+      }
+
+      function resolveP1Input() {
+        const keyX = (keys.has("KeyD") || keys.has("ArrowRight") ? 1 : 0) - (keys.has("KeyA") || keys.has("ArrowLeft") ? 1 : 0);
+        const keyY = (keys.has("KeyS") || keys.has("ArrowDown") ? 1 : 0) - (keys.has("KeyW") || keys.has("ArrowUp") ? 1 : 0);
+        const x = keyX || touchIntent.x;
+        const y = keyY || touchIntent.y;
+        return normalizeInput(x, y);
+      }
+
+      function resolveP2Input() {
+        const keyX = (keys.has("KeyL") ? 1 : 0) - (keys.has("KeyJ") ? 1 : 0);
+        const keyY = (keys.has("KeyK") ? 1 : 0) - (keys.has("KeyI") ? 1 : 0);
+        if (keyX || keyY) return normalizeInput(keyX, keyY);
+        const target = players[0].x > 880
+          ? { x: 1148, y: 648 }
+          : {
+              x: 760 + Math.cos(elapsedTotal * 0.45) * 120,
+              y: 560 + Math.sin(elapsedTotal * 0.62) * 90
+            };
+        return normalizeInput(target.x - players[1].x, target.y - players[1].y);
+      }
+
+      function normalizeInput(x, y) {
+        const length = Math.hypot(x, y);
+        if (!length) return Object.freeze({ x: 0, y: 0 });
+        return Object.freeze({ x: x / length, y: y / length });
+      }
+
+      function advancePlayer(player, input, dt, acceleration) {
+        const progress = deriveProgressFromPoint(player);
+        const offCourse = Math.abs(progress.laneOffsetPx) > COURSE_WIDTH;
+        player.vx += input.x * acceleration * dt;
+        player.vy += input.y * acceleration * dt;
+        const drag = offCourse ? OFF_COURSE_DRAG : MOVEMENT_DRAG;
+        player.vx = applyDrag(player.vx, drag, dt);
+        player.vy = applyDrag(player.vy, drag, dt);
+        clampVelocity(player, offCourse ? OFF_COURSE_MAX_SPEED : MAX_MOVE_SPEED);
+        player.x += player.vx * dt;
+        player.y += player.vy * dt;
+        player.x = clamp(player.x, PLAYER_RADIUS, WORLD_WIDTH - PLAYER_RADIUS);
+        player.y = clamp(player.y, PLAYER_RADIUS, WORLD_HEIGHT - PLAYER_RADIUS);
+      }
+
+      function resolveCircleCollision(left, right) {
+        const dx = right.x - left.x;
+        const dy = right.y - left.y;
+        const distance = Math.hypot(dx, dy) || 1;
+        const minDistance = PLAYER_COLLISION_RADIUS * 2;
+        if (distance >= minDistance) return false;
+        const nx = dx / distance;
+        const ny = dy / distance;
+        const overlap = minDistance - distance;
+        left.x -= nx * overlap * 0.5;
+        left.y -= ny * overlap * 0.5;
+        right.x += nx * overlap * 0.5;
+        right.y += ny * overlap * 0.5;
+        const relativeVelocity = (right.vx - left.vx) * nx + (right.vy - left.vy) * ny;
+        if (relativeVelocity < 0) {
+          const impulse = -relativeVelocity * BODY_COLLISION_IMPULSE;
+          left.vx -= nx * impulse;
+          left.vy -= ny * impulse;
+          right.vx += nx * impulse;
+          right.vy += ny * impulse;
+        }
+        return true;
+      }
+
+      function areAllPadsOccupied() {
+        return pads.every((pad) => players.some((player) => isPlayerStandingOnPad(player, pad)));
+      }
+
+      function pressureContactPoint(player) {
+        return Object.freeze({
+          x: player.x,
+          y: player.y
+        });
+      }
+
+      function isPlayerStandingOnPad(player, pad) {
+        const point = pressureContactPoint(player);
+        return point.x >= pad.x + PRESSURE_PAD_INSET_X
+          && point.x <= pad.x + pad.w - PRESSURE_PAD_INSET_X
+          && point.y >= pad.y + PRESSURE_PAD_INSET_Y
+          && point.y <= pad.y + pad.h - PRESSURE_PAD_INSET_Y;
+      }
+
+      function resolveGateCollision(player, gateOpen) {
+        if (gateOpen) return;
+        const nearestX = clamp(player.x, gate.x, gate.x + gate.w);
+        const nearestY = clamp(player.y, gate.y, gate.y + gate.h);
+        const dx = player.x - nearestX;
+        const dy = player.y - nearestY;
+        const distanceSq = dx * dx + dy * dy;
+        if (distanceSq >= PLAYER_COLLISION_RADIUS * PLAYER_COLLISION_RADIUS) return;
+        const distance = Math.sqrt(distanceSq) || 1;
+        const nx = dx / distance || -1;
+        const ny = dy / distance || 0;
+        const push = PLAYER_COLLISION_RADIUS - distance;
+        player.x += nx * push;
+        player.y += ny * push;
+        const normalVelocity = player.vx * nx + player.vy * ny;
+        if (normalVelocity < 0) {
+          player.vx -= nx * normalVelocity;
+          player.vy -= ny * normalVelocity;
+        }
+      }
+
+      function applyDrag(value, drag, dt) {
+        return value * Math.exp(-drag * dt);
+      }
+
+      function clampVelocity(player, maxSpeed) {
+        const speed = Math.hypot(player.vx, player.vy);
+        if (speed <= maxSpeed) return;
+        const scaleDown = maxSpeed / speed;
+        player.vx *= scaleDown;
+        player.vy *= scaleDown;
+      }
+
+      function render() {
+        context.clearRect(0, 0, window.innerWidth, window.innerHeight);
+        withWorld(() => {
+          drawTerrain();
+          drawCourse();
+          drawPadsAndGate();
+          for (const player of players) drawPlayer(player);
+        });
+        updateHud();
+      }
+
+      function withWorld(draw) {
+        context.save();
+        context.translate(offsetX, offsetY);
+        context.scale(scale, scale);
+        draw();
+        context.restore();
+      }
+
+      function drawTerrain() {
+        context.fillStyle = "rgba(8, 10, 14, 0.72)";
+        context.fillRect(0, 0, WORLD_WIDTH, WORLD_HEIGHT);
+        context.strokeStyle = "rgba(238, 249, 245, 0.06)";
+        context.lineWidth = 1;
+        for (let x = 0; x <= WORLD_WIDTH; x += 70) {
+          context.beginPath();
+          context.moveTo(x, 0);
+          context.lineTo(x, WORLD_HEIGHT);
+          context.stroke();
+        }
+        for (let y = 0; y <= WORLD_HEIGHT; y += 70) {
+          context.beginPath();
+          context.moveTo(0, y);
+          context.lineTo(WORLD_WIDTH, y);
+          context.stroke();
+        }
+        context.strokeStyle = "rgba(255, 211, 110, 0.18)";
+        context.lineWidth = 3;
+        context.strokeRect(18, 18, WORLD_WIDTH - 36, WORLD_HEIGHT - 36);
+      }
+
+      function drawCourse() {
+        context.lineCap = "round";
+        context.lineJoin = "round";
+        context.strokeStyle = "rgba(119, 222, 195, 0.2)";
+        context.lineWidth = COURSE_WIDTH * 2;
+        drawCoursePath();
+        context.stroke();
+        context.strokeStyle = "rgba(236, 247, 243, 0.72)";
+        context.lineWidth = 8;
+        drawCoursePath();
+        context.stroke();
+        context.setLineDash([14, 18]);
+        context.strokeStyle = "rgba(255, 211, 110, 0.74)";
+        context.lineWidth = 3;
+        drawCoursePath();
+        context.stroke();
+        context.setLineDash([]);
+      }
+
+      function drawCoursePath() {
+        context.beginPath();
+        context.moveTo(course.points[0].x, course.points[0].y);
+        for (const point of course.points.slice(1)) context.lineTo(point.x, point.y);
+      }
+
+      function drawPadsAndGate() {
+        const gateOpen = areAllPadsOccupied();
+        for (const pad of pads) {
+          const occupied = players.some((player) => isPlayerStandingOnPad(player, pad));
+          context.fillStyle = occupied ? "rgba(119, 222, 195, 0.72)" : "rgba(255, 211, 110, 0.24)";
+          context.fillRect(pad.x, pad.y, pad.w, pad.h);
+          context.strokeStyle = "rgba(255, 255, 255, 0.46)";
+          context.strokeRect(pad.x, pad.y, pad.w, pad.h);
+          context.strokeStyle = occupied ? "rgba(16, 18, 24, 0.64)" : "rgba(255, 255, 255, 0.28)";
+          context.strokeRect(
+            pad.x + PRESSURE_PAD_INSET_X,
+            pad.y + PRESSURE_PAD_INSET_Y,
+            pad.w - PRESSURE_PAD_INSET_X * 2,
+            pad.h - PRESSURE_PAD_INSET_Y * 2
+          );
+        }
+        context.fillStyle = gateOpen ? "rgba(119, 222, 195, 0.18)" : "rgba(255, 109, 138, 0.72)";
+        context.fillRect(gate.x, gate.y, gate.w, gate.h);
+      }
+
+      function drawPlayer(player) {
+        const progress = deriveProgressFromPoint(player);
+        context.strokeStyle = "rgba(255, 255, 255, 0.3)";
+        context.lineWidth = 2;
+        context.beginPath();
+        context.moveTo(player.x, player.y);
+        context.lineTo(player.x + player.vx * 0.18, player.y + player.vy * 0.18);
+        context.stroke();
+        context.strokeStyle = Math.abs(progress.laneOffsetPx) > COURSE_WIDTH ? "rgba(255, 109, 138, 0.9)" : "rgba(255, 255, 255, 0.56)";
+        context.lineWidth = 2;
+        context.beginPath();
+        context.moveTo(player.x, player.y);
+        context.lineTo(progress.footX, progress.footY);
+        context.stroke();
+        context.fillStyle = player.color;
+        context.beginPath();
+        context.arc(player.x, player.y, PLAYER_RADIUS, 0, Math.PI * 2);
+        context.fill();
+        const contact = pressureContactPoint(player);
+        context.fillStyle = "rgba(16, 18, 24, 0.72)";
+        context.beginPath();
+        context.arc(contact.x, contact.y, 3.5, 0, Math.PI * 2);
+        context.fill();
+        context.fillStyle = "#101218";
+        context.font = "bold 14px system-ui";
+        context.textAlign = "center";
+        context.textBaseline = "middle";
+        context.fillText(player.name, player.x, player.y);
+      }
+
+      function updateHud() {
+        const player = players[0];
+        hud.p1Progress.textContent = `${player.progressPercent.toFixed(1)}% / max ${player.maxProgressPercent.toFixed(1)}%`;
+        hud.p1Lane.textContent = `${player.laneOffsetPx.toFixed(0)}px ${Math.abs(player.laneOffsetPx) > COURSE_WIDTH ? "off" : "on"}`;
+        hud.p1Velocity.textContent = `${player.vx.toFixed(0)}, ${player.vy.toFixed(0)} top`;
+        hud.gateState.textContent = areAllPadsOccupied() ? "열림" : "두 명 필요";
+      }
+
+      function clamp(value, min, max) {
+        return Math.max(min, Math.min(max, Number.isFinite(Number(value)) ? Number(value) : min));
+      }
+
+      window.addEventListener("resize", resizeCanvas);
+      window.addEventListener("keydown", (event) => {
+        keys.add(event.code);
+      });
+      window.addEventListener("keyup", (event) => {
+        keys.delete(event.code);
+      });
+
+      touchStick.addEventListener("pointerdown", (event) => {
+        touchIntent.active = true;
+        touchStick.setPointerCapture(event.pointerId);
+        updateTouchIntent(event);
+      });
+      touchStick.addEventListener("pointermove", (event) => {
+        if (touchIntent.active) updateTouchIntent(event);
+      });
+      touchStick.addEventListener("pointerup", clearTouchIntent);
+      touchStick.addEventListener("pointercancel", clearTouchIntent);
+
+      function updateTouchIntent(event) {
+        const rect = touchStick.getBoundingClientRect();
+        const centerX = rect.left + rect.width / 2;
+        const centerY = rect.top + rect.height / 2;
+        const dx = event.clientX - centerX;
+        const dy = event.clientY - centerY;
+        const distance = Math.hypot(dx, dy);
+        const radius = rect.width * 0.42;
+        const magnitude = Math.min(1, distance / radius);
+        const normalized = normalizeInput(dx, dy);
+        touchIntent.x = normalized.x * magnitude;
+        touchIntent.y = normalized.y * magnitude;
+        touchStick.style.setProperty("--stick-x", `${Math.round(touchIntent.x * 38)}px`);
+        touchStick.style.setProperty("--stick-y", `${Math.round(touchIntent.y * 38)}px`);
+      }
+
+      function clearTouchIntent() {
+        touchIntent.active = false;
+        touchIntent.x = 0;
+        touchIntent.y = 0;
+        touchStick.style.setProperty("--stick-x", "0px");
+        touchStick.style.setProperty("--stick-y", "0px");
+      }
+
+      window.__freeRacePrototype = Object.freeze({
+        authorityKeys: AUTHORITY_STATE_KEYS,
+        players,
+        course,
+        deriveProgressFromPoint,
+        resolveCircleCollision,
+        pressureContactPoint,
+        isPlayerStandingOnPad
+      });
+
+      resizeCanvas();
+      requestAnimationFrame(frame);
+    </script>
+  </body>
+</html>

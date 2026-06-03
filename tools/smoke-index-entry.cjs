@@ -10,15 +10,23 @@ const baegeumCityHtml = fs.readFileSync(path.join(root, "baegeum-city-v2.html"),
 
 assert.ok(html.includes('data-primary-mode="singularity-race"'), "root index should mark Singularity Race as the primary mode");
 assert.ok(html.includes('id="primaryRaceLink"'), "root index should expose the primary race link");
-assert.ok(html.includes('href="./singularity-race.html?online=cloudflare&amp;serverUrl=wss%3A%2F%2Fsingularity-race-online.rneetn.workers.dev%2Fws"'), "primary action should open the public online player race entry");
+assert.ok(html.includes('id="onlineRaceLink"'), "root index should expose a separate online race link");
+assert.ok(html.includes('id="primaryRaceLink" class="primary-action race-entry-link" href="./singularity-race.html"'), "primary action should open the local player race entry");
+assert.ok(html.includes('id="onlineRaceLink" class="secondary-action is-compact race-entry-link" href="./singularity-race.html?online=cloudflare&amp;serverUrl=wss%3A%2F%2Fsingularity-race-online.rneetn.workers.dev%2Fws"'), "online action should open the public online player race entry");
 assert.equal(html.includes('href="./singularity-race-admin.html?devOnline=1"'), false, "launcher should not expose the dev host entry as a main user button");
 assert.ok(html.includes("SIMULACRA WORLD"), "launcher should use Simulacra World as the shell brand label");
 assert.equal(html.includes("SINGULARITY RACE"), false, "launcher shell brand should no longer look like the game title");
+assert.ok(html.includes("<title>시뮬라크 월드</title>"), "launcher document title should present the platform shell");
 assert.ok(html.includes("시뮬라크 월드에서 시작되는 특이점이 온다 픽셀 레이스"), "launcher should use the final Simulacra World invitation copy");
 assert.ok(html.includes("디시인사이드 특이점 여러분을 이 작은 세계로 초대합니다"), "launcher should invite the Singularity community");
 assert.ok(html.includes("./assets/singularity-race/banner-qorud.png"), "launcher should use the supplied Singularity Race banner");
 assert.ok(html.includes("https://gall.dcinside.com/mgallery/board/lists?id=thesingularity"), "launcher should link the community to the Singularity gallery");
 assert.ok(html.includes("aboutOpenButton"), "launcher settings should open the game info panel");
+assert.ok(html.includes('data-hub-panel="login"'), "launcher should reserve a login hub panel");
+assert.ok(html.includes('data-hub-panel="skins"'), "launcher should reserve a skin hub panel");
+assert.ok(html.includes('data-hub-panel="shop"'), "launcher should reserve a shop hub panel");
+assert.ok(html.includes('data-hub-panel="archive"'), "launcher should reserve an archive hub panel");
+assert.ok(html.includes('id="hubModal"'), "launcher should use one hub modal for shell panels");
 assert.ok(html.includes("launcherBgmTracks"), "launcher should own the two-track lobby BGM playlist");
 assert.ok(html.includes("LAUNCHER_MENU_BGM_INTENT_KEY"), "launcher should remember the race-page BGM start intent");
 assert.ok(html.includes("rememberLauncherBgmIntent"), "launcher should pass the lobby BGM intent before opening the race page");
@@ -36,7 +44,8 @@ assert.ok(html.includes("드로잉월드"), "launcher should label Drawing World
 assert.ok(html.includes("배금도시 v1"), "launcher should label Baegeum City v1");
 assert.ok(html.includes("확장 엔진 기반 픽셀 도시"), "Baegeum City v2 card should describe the pixel city build");
 assert.ok(html.includes("다 함께 그리는 온라인 창작 월드"), "Drawing World card should describe online drawing");
-assert.match(html, /id="primaryRaceLink"[\s\S]*?>\s*플레이\s*<span>/, "primary action should use the short Play label");
+assert.match(html, /id="primaryRaceLink"[\s\S]*?>\s*바로 플레이\s*<span>로컬<\/span>/, "primary action should use the local Play label");
+assert.match(html, /id="onlineRaceLink"[\s\S]*?>\s*온라인 참가\s*<span>공개방<\/span>/, "online action should be visibly separate from local play");
 assert.equal(html.includes("대표 모드"), false, "launcher should remove the representative-mode eyebrow text");
 assert.equal(html.includes("특이점레이스 시작"), false, "primary action should no longer use the old start label");
 assert.equal(html.includes("특이점레이스 도시 트랙"), false, "launcher should remove the banner title copy");
@@ -48,6 +57,7 @@ assert.equal(html.includes("profile / lobby / queue / countdown / result loop"),
 });
 assert.ok(!html.includes("window.location.replace"), "root index must not redirect away from the launcher");
 assert.ok(html.indexOf("플레이") < html.indexOf("배금도시 v2"), "race entry should appear before city links");
+assert.ok(html.indexOf("로그인") < html.indexOf("바로 플레이"), "hub actions should appear before race entry actions");
 assert.ok(baegeumCityHtml.includes('id="game"'), "Baegeum City v2 entry should mount the old canvas city core");
 assert.ok(baegeumCityHtml.includes('src="./src/main.js"'), "Baegeum City v2 entry should load the city-core runtime");
 assert.ok(baegeumCityHtml.includes('href="./editor.html"'), "Baegeum City v2 entry should keep the map editor link");

@@ -6,7 +6,8 @@ Conclusion: the current repository focus is to finish `특이점레이스` as th
 
 `Baegeum-City_v3` is a workshop, experiment bench, and storage space. It is not yet a finished integrated platform.
 
-- `index.html` is the launcher that presents `특이점레이스` as the main mode.
+- `index.html` is the Simulacra World launcher that presents `특이점레이스` as the main mode while keeping login, skin, shop, archive, community, and preserved-mode entry slots visible.
+- The launcher's primary `바로 플레이` action opens the local/guest Singularity Race flow; public Cloudflare entry remains a separate online action because public rooms can be admin-gated.
 - `singularity-race.html` is the current release-target game.
 - `singularity-race-admin.html` is the host, operator, observer, and test-bot surface.
 - Baegeum City, Dice City, casino, life, Drawing World, editor, skin lab, and related files remain preserved sub-systems.
@@ -18,7 +19,7 @@ The v0.1 work should stay inside the Singularity Race flow:
 
 ```text
 index.html
--> singularity-race.html
+-> singularity-race.html local/guest entry
 -> profile
 -> lobby
 -> queue
@@ -44,7 +45,8 @@ The minimum complete loop is:
 ## Do Not Implement Now
 
 - Do not create a new common engine.
-- Do not create a new Simulacra World launcher.
+- Do not replace the existing Simulacra World launcher with a new platform engine.
+- Do not turn launcher login, skin, shop, archive, or community slots into live account/store/entitlement systems before separate contracts exist.
 - Do not expand Baegeum City, Dice City, casino, life, parking, burger shop, stock, real estate, item exchange, or shop systems.
 - Do not split `singularity-race.html` through a large refactor during the v0.1 stabilization pass.
 - Do not delete existing Baegeum City, Dice City, casino, life, Drawing World, editor, or skin-lab files or links.

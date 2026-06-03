@@ -7,7 +7,7 @@ Conclusion: the restored Dice City-derived HTML should stay playable, but every 
 This document owns the pre-redesign work for the current player-facing build:
 
 ```text
-index.html -> singularity-race-first launcher
+index.html -> Simulacra World launcher with Singularity Race as the primary mode
 sub mode -> baegeum-city-v2-dice.html
 ```
 
