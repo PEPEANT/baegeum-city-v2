@@ -36,13 +36,13 @@ async function main() {
   assert.equal(railMaxProgress, 100, "race clamp must allow the visible finish line");
   assert(finishProgress >= 99 && finishProgress < railMaxProgress, "finish trigger must sit near the real finish");
 
-  const sprintFrame = input.createRestoredMarathonInputFrame({
+  const shiftFrame = input.createRestoredMarathonInputFrame({
     participantId: "runner:you",
     keys: ["KeyD", "ShiftLeft"],
     sequence: 1
   });
-  assert.equal(sprintFrame.direction.x, 1, "D must move the runner toward the finish");
-  assert.equal(sprintFrame.mode, "sprint", "Shift + D must produce sprint input");
+  assert.equal(shiftFrame.direction.x, 1, "D must move the runner toward the finish");
+  assert.equal(shiftFrame.mode, "run", "Shift + D must stay on base run input");
 
   const runSecondsToFinish = Math.ceil((finishProgress - startProgress) / runSpeed);
   const sprintSecondsToFinish = Math.ceil((finishProgress - startProgress) / sprintSpeed);
@@ -50,7 +50,7 @@ async function main() {
   assertMovementAxisPixelFeel({ runSpeed, sprintSpeed, laneSpeed, laneSprintSpeed, trailGeometry });
   assert(gateClearance <= 0.12, "start paddock clamp should let runners stand close to the gate");
   assert(gateOpenAnimationMs >= 650, "start gate should visibly open instead of disappearing");
-  assertServerSprintMatchesClient({ marathon, sprintSpeed });
+  assertServerPushStillAdvances({ marathon, runSpeed });
 
   const network = assertNetcodePressure(netcode);
 
@@ -79,7 +79,7 @@ async function main() {
     laneOffsetPx: 0,
     serverProgress: startProgress,
     serverLaneOffsetPx: 0
-  }, sprintFrame, 1, {
+  }, shiftFrame, 1, {
     sprintProgressPerSecond: sprintSpeed,
     laneSprintSpeedPxPerSecond: laneSprintSpeed,
     minProgress: 2.5,
@@ -87,7 +87,7 @@ async function main() {
     laneHalfWidthPx: 232,
     correctionFactor: 0
   });
-  assert(predicted.progress > startProgress, "connected local prediction should respond immediately to Shift+D");
+  assert(predicted.progress > startProgress, "connected local prediction should respond immediately to D even when Shift is held");
 
   assertRacePageContracts();
   assertConnectedStartGuards();
@@ -153,24 +153,24 @@ function assertRacePageContracts() {
 }
 
 function assertMovementSpeedFeel(values) {
-  assert(values.runSecondsToFinish >= 145 && values.runSecondsToFinish <= 185, "normal run should fit the 2:30 song window before item/sprint shortcuts");
-  assert(values.sprintSecondsToFinish >= 105 && values.sprintSecondsToFinish < values.runSecondsToFinish, "constant sprint should shorten the song-length race without making it instant");
+  assert(values.runSecondsToFinish >= 145 && values.runSecondsToFinish <= 155, "base run should be slightly faster while still fitting the song-length race");
+  assert.equal(values.sprintSecondsToFinish, values.runSecondsToFinish, "Shift sprint should no longer shorten the race");
   assert(values.stagingRunSpeed >= 1, "start paddock movement must be visible before the race opens");
-  assert(values.stagingSprintSpeed >= values.sprintSpeed, "start paddock sprint should not feel slower than active sprint");
-  assert(values.sprintSpeed >= values.runSpeed * 1.25, "Shift sprint must feel clearly faster than normal running");
+  assert.equal(values.stagingSprintSpeed, values.stagingRunSpeed, "start paddock Shift should no longer change speed");
+  assert.equal(values.sprintSpeed, values.runSpeed, "Shift sprint must not be faster than normal running");
 }
 
 function assertMovementAxisPixelFeel(values) {
   const samples = [5, 32, 50, 68, 92];
-  assert(values.laneSpeed >= 116 && values.laneSpeed <= 132, "lateral lane speed should match fixed-camera free movement");
-  assert(values.laneSprintSpeed >= 150 && values.laneSprintSpeed <= 172, "Shift lateral speed should match fixed-camera sprint movement");
+  assert(values.laneSpeed >= 128 && values.laneSpeed <= 140, "lateral lane speed should match the slightly faster base movement");
+  assert.equal(values.laneSprintSpeed, values.laneSpeed, "Shift lateral speed should not be faster than base movement");
   for (const progress of samples) {
     const runPx = progressPixelsPerSecond(values.trailGeometry, progress, values.runSpeed);
     const sprintPx = progressPixelsPerSecond(values.trailGeometry, progress, values.sprintSpeed);
     assert(values.laneSpeed >= runPx * 0.9, `lateral lane speed should not feel slower than forward run at progress ${progress}`);
     assert(values.laneSpeed <= runPx * 1.12, `lateral lane speed should not outrun normal forward movement at progress ${progress}`);
-    assert(values.laneSprintSpeed >= sprintPx * 0.9, `Shift lateral movement should not feel slower than forward sprint at progress ${progress}`);
-    assert(values.laneSprintSpeed <= sprintPx * 1.12, `Shift lateral movement should not outrun forward sprint at progress ${progress}`);
+    assert(values.laneSprintSpeed >= sprintPx * 0.9, `Shift lateral movement should still match base forward movement at progress ${progress}`);
+    assert(values.laneSprintSpeed <= sprintPx * 1.12, `Shift lateral movement should not outrun base forward movement at progress ${progress}`);
   }
 }
 
@@ -190,15 +190,15 @@ function trackPixelAtProgress(trailGeometry, progress) {
   };
 }
 
-function assertServerSprintMatchesClient({ marathon, sprintSpeed }) {
+function assertServerPushStillAdvances({ marathon, runSpeed }) {
   const moved = marathon.advanceRestoredMarathonParticipant(
     marathon.createRestoredMarathonParticipant({ participantId: "runner:you" }),
-    { pace: "sprint", sequence: 1, raceTimeMs: 1000 },
+    { pace: "push", sequence: 1, raceTimeMs: 1000 },
     1000,
     { distanceMeters: 900 }
   );
-  const serverSprintPercent = moved.progressMeters / 900 * 100;
-  assert(serverSprintPercent > sprintSpeed, "server sprint rehearsal should still advance authoritative progress faster than one local long-race tick");
+  const serverPushPercent = moved.progressMeters / 900 * 100;
+  assert(serverPushPercent > runSpeed, "server push rehearsal should still advance authoritative progress faster than one local long-race tick");
 }
 
 function assertNetcodePressure(netcode) {

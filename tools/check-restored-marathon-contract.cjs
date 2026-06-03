@@ -118,11 +118,10 @@ function assertSingularityRaceMovementTuning(source) {
   const [runSpeed, sprintSpeed, stagingRunSpeed, stagingSprintSpeed, laneSpeed, laneSprintSpeed, railMaxProgress, finishProgress] = [
     "LOCAL_RUN_PROGRESS_PER_SECOND", "LOCAL_SPRINT_PROGRESS_PER_SECOND", "LOCAL_STAGING_RUN_PROGRESS_PER_SECOND", "LOCAL_STAGING_SPRINT_PROGRESS_PER_SECOND", "LOCAL_LANE_SPEED_PX_PER_SECOND", "LOCAL_LANE_SPRINT_SPEED_PX_PER_SECOND", "RAIL_MAX_PROGRESS", "LOCAL_FINISH_PROGRESS"
   ].map((name) => readNumberConstant(source, name));
-  assert(runSpeed >= 0.5 && runSpeed <= 0.65 && sprintSpeed <= 0.9 && sprintSpeed >= runSpeed * 1.25, "Song-length maze race should target about one track-length music loop with clear sprint lift.");
-  assert(stagingSprintSpeed >= stagingRunSpeed * 2, "Shift sprint should be much faster while staging.");
-  assert(laneSpeed < laneSprintSpeed, "Shift should still affect lane movement.");
-  assert(laneSpeed >= 116 && laneSpeed <= 132, "W/S lane movement should match fixed-camera free movement.");
-  assert(laneSprintSpeed >= 150 && laneSprintSpeed <= 172, "Shift+W/S should match fixed-camera sprint movement."); assert(readNumberConstant(source, "ROAD_LANE_HALF_WIDTH_PX") >= 230, "Road lane clamp should let runners approach the visible wall.");
+  assert(runSpeed >= 0.62 && runSpeed <= 0.66 && sprintSpeed === runSpeed, "Song-length maze race should use one slightly faster base run pace with no Shift sprint lift.");
+  assert(stagingSprintSpeed === stagingRunSpeed, "Shift sprint should not change staging speed.");
+  assert(laneSpeed === laneSprintSpeed, "Shift should not affect lane movement.");
+  assert(laneSpeed >= 128 && laneSpeed <= 140, "W/S lane movement should match the slightly faster base movement."); assert(readNumberConstant(source, "ROAD_LANE_HALF_WIDTH_PX") >= 230, "Road lane clamp should let runners approach the visible wall.");
   assert.equal(railMaxProgress, 100, "Race progress clamp should allow the finish line."); assert(finishProgress >= 99 && finishProgress < railMaxProgress, "Local finish should trigger near the real finish line.");
 }
 

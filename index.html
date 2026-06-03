@@ -305,6 +305,50 @@
         line-height: 1.45;
       }
 
+      .secondary-action strong {
+        font-size: 16px;
+        line-height: 1.25;
+      }
+
+      .secondary-action .online-card-copy {
+        color: var(--muted);
+        font-size: 12px;
+      }
+
+      .online-card-foot {
+        display: flex;
+        width: 100%;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        margin-top: auto;
+      }
+
+      .online-count-pill {
+        min-width: 58px;
+        padding: 5px 9px;
+        border: 1px solid rgba(103, 196, 255, 0.32);
+        border-radius: 999px;
+        background: rgba(6, 18, 35, 0.62);
+        color: var(--ink);
+        font-size: 12px;
+        font-weight: 1000;
+        text-align: center;
+        white-space: nowrap;
+      }
+
+      .online-count-pill[data-status="online"] {
+        border-color: rgba(99, 211, 199, 0.52);
+        background: rgba(99, 211, 199, 0.16);
+        color: #dffdf8;
+      }
+
+      .online-count-pill[data-status="offline"] {
+        border-color: rgba(255, 198, 109, 0.34);
+        background: rgba(255, 198, 109, 0.10);
+        color: var(--warm);
+      }
+
       .hub-modal[hidden] {
         display: none;
       }
@@ -458,20 +502,20 @@
 
         <div class="mode-grid">
           <a class="secondary-action is-muted" href="./baegeum-city-v2.html">
-            배금도시 v2
-            <span>확장 엔진 기반 픽셀 도시. 2D 도시와 폰 UI, 장소 이동 실험이 보존된 현재 도시 빌드.</span>
+            <strong>배금도시 온라인</strong>
+            <span class="online-card-copy">배금도시 v2 본편 입구. 도시 생활, 폰, 경제, 온라인 전환 기준 빌드.</span>
+            <span class="online-card-foot">
+              <span>공개 준비중</span>
+              <span class="online-count-pill" data-status="offline">0/-</span>
+            </span>
           </a>
-          <a class="secondary-action is-muted" href="./baegeum-city-v2-dice.html?map=dice-city&spawn=dice-blackjack-casino-01">
-            다이스시티 v1
-            <span>초기 도시 코어와 카지노 거리 흐름을 보존한 실험 모드.</span>
-          </a>
-          <a class="secondary-action is-muted" href="https://drawing-world.onrender.com/" target="_blank" rel="noreferrer">
-            드로잉월드
-            <span>다 함께 그리는 온라인 창작 월드.</span>
-          </a>
-          <a class="secondary-action is-muted" href="https://pepeant.github.io/MammonCity/" target="_blank" rel="noreferrer">
-            배금도시 v1
-            <span>비주얼노벨 형태의 초기 배금도시 게임.</span>
+          <a class="secondary-action is-muted" id="drawingWorldOnlineLink" href="https://drawing-world.onrender.com/" target="_blank" rel="noreferrer">
+            <strong>드로잉월드 온라인</strong>
+            <span class="online-card-copy">다 함께 그리는 온라인 창작 월드.</span>
+            <span class="online-card-foot">
+              <span>접속자</span>
+              <span class="online-count-pill" id="drawingWorldOnlineCount" data-status="loading" aria-live="polite">0/-</span>
+            </span>
           </a>
         </div>
       </section>
@@ -587,7 +631,7 @@
         archive: {
           title: "아카이브",
           copy: "보존된 월드와 기록을 한 곳에 묶는 자리입니다.",
-          items: ["배금도시 v2", "다이스시티 v1", "외부 월드 링크"]
+          items: ["배금도시 온라인", "드로잉월드 온라인", "구버전 링크는 메인에서 숨김"]
         },
         about: {
           title: "특이점 레이스",
@@ -610,6 +654,8 @@
       const hubModalList = document.querySelector("#hubModalList");
       const categoryMenu = document.querySelector("#categoryMenuPanel");
       const categoryMenuButton = document.querySelector("#categoryMenuButton");
+      const drawingWorldOnlineCount = document.querySelector("#drawingWorldOnlineCount");
+      const DRAWING_WORLD_ROOMS_ENDPOINT = "/api/drawing-world-rooms";
 
       function setCategoryMenuOpen(open) {
         categoryMenu.hidden = !open;
@@ -633,6 +679,34 @@
         hubModal.hidden = true;
       }
 
+      function summarizeDrawingWorldRooms(payload) {
+        const rooms = Array.isArray(payload?.rooms) ? payload.rooms.filter((room) => room?.hidden !== true) : [];
+        const players = rooms.reduce((sum, room) => (
+          sum
+          + Math.max(0, Number(room.players ?? room.playerCount ?? room.clients ?? 0) || 0)
+          + Math.max(0, Number(room.viewers ?? 0) || 0)
+        ), 0);
+        const maxPlayers = rooms.reduce((sum, room) => sum + Math.max(0, Number(room.maxPlayers ?? 0) || 0), 0);
+        return { players, maxPlayers: maxPlayers || 50 };
+      }
+
+      async function refreshDrawingWorldOnlineCount() {
+        if (!drawingWorldOnlineCount) return;
+        try {
+          const response = await fetch(DRAWING_WORLD_ROOMS_ENDPOINT, { cache: "no-store" });
+          const payload = await response.json();
+          if (!response.ok || !payload?.ok) throw new Error(payload?.reason || "drawing_world_rooms_unavailable");
+          const summary = summarizeDrawingWorldRooms(payload);
+          drawingWorldOnlineCount.textContent = `${summary.players}/${summary.maxPlayers}`;
+          drawingWorldOnlineCount.dataset.status = "online";
+          drawingWorldOnlineCount.title = "드로잉월드 현재 접속자";
+        } catch {
+          drawingWorldOnlineCount.textContent = "0/-";
+          drawingWorldOnlineCount.dataset.status = "offline";
+          drawingWorldOnlineCount.title = "접속자 수를 불러오는 중입니다";
+        }
+      }
+
       for (const button of document.querySelectorAll("[data-hub-panel]")) {
         button.addEventListener("click", () => openHubPanel(button.dataset.hubPanel));
       }
@@ -645,6 +719,7 @@
       hubModal.addEventListener("click", (event) => {
         if (event.target === hubModal) closeHubPanel();
       });
+      void refreshDrawingWorldOnlineCount();
     </script>
   </body>
 </html>

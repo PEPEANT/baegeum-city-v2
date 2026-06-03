@@ -37,9 +37,7 @@ const packageJson = JSON.parse(readProjectFile("package.json"));
   'id="primaryRaceLink" class="primary-action race-entry-link" href="./singularity-race.html?online=cloudflare&amp;serverUrl=wss%3A%2F%2Fsingularity-race-online.rneetn.workers.dev%2Fws"',
   'href="./singularity-race.html?online=cloudflare&amp;serverUrl=wss%3A%2F%2Fsingularity-race-online.rneetn.workers.dev%2Fws"',
   'href="./baegeum-city-v2.html"',
-  'href="./baegeum-city-v2-dice.html?map=dice-city&spawn=dice-blackjack-casino-01"',
   'href="https://drawing-world.onrender.com/"',
-  'href="https://pepeant.github.io/MammonCity/"',
   "./assets/singularity-race/banner-qorud.png",
   "https://gall.dcinside.com/mgallery/board/lists?id=thesingularity",
   "SIMULACRA WORLD",
@@ -50,10 +48,10 @@ const packageJson = JSON.parse(readProjectFile("package.json"));
   'id="categoryMenuButton"',
   'aria-label="카테고리 열람"',
   'id="categoryMenuPanel"',
-  "배금도시 v2",
-  "다이스시티 v1",
-  "드로잉월드",
-  "배금도시 v1",
+  "배금도시 온라인",
+  "드로잉월드 온라인",
+  'id="drawingWorldOnlineCount"',
+  'DRAWING_WORLD_ROOMS_ENDPOINT = "/api/drawing-world-rooms"',
   "data-hub-panel=\"login\"",
   "data-hub-panel=\"skins\"",
   "data-hub-panel=\"shop\"",
@@ -65,6 +63,8 @@ const packageJson = JSON.parse(readProjectFile("package.json"));
 ].forEach((token) => assertIncludes(indexSource, token, `index should keep ${token}`));
 
 assertExcludes(indexSource, 'href="./singularity-race-admin.html?devOnline=1"', "launcher should not expose the dev host page as a user button");
+assertExcludes(indexSource, 'href="./baegeum-city-v2-dice.html?map=dice-city&spawn=dice-blackjack-casino-01"', "launcher should hide the old Dice City v1 card");
+assertExcludes(indexSource, 'href="https://pepeant.github.io/MammonCity/"', "launcher should hide the old Baegeum City v1 card");
 assertExcludes(indexSource, 'id="onlineRaceLink"', "launcher should not keep the old separate online action");
 assertExcludes(indexSource, "바로 플레이", "launcher should not keep the old local play label");
 assertExcludes(indexSource, "<span>로컬</span>", "launcher should not keep the old local badge");
@@ -77,7 +77,7 @@ assertExcludes(indexSource, "특이점레이스 시작", "launcher should not ke
 assertExcludes(indexSource, "특이점레이스 도시 트랙", "launcher should not keep the old banner title copy");
 assertExcludes(indexSource, "SINGULARITY RACE", "launcher shell brand should not look like the game title");
 assertExcludes(indexSource, "Pixel City Race", "launcher banner should use Korean copy");
-assertIncludes(indexSource, 'class="secondary-action is-muted" href="./baegeum-city-v2.html"', "Baegeum City v2 should remain a muted preserved mode");
+assertIncludes(indexSource, 'class="secondary-action is-muted" href="./baegeum-city-v2.html"', "Baegeum City Online should remain a muted preserved mode");
 assert.ok(fs.existsSync(path.join(root, "baegeum-city-v2.html")), "Baegeum City v2 city-core entry should remain preserved");
 assert.ok(fs.existsSync(path.join(root, "archive", "tools", "editor.html")), "world editor file should remain preserved in archive/tools even if it is not a launcher card");
 assert.ok(fs.existsSync(path.join(root, "skin-lab.html")), "skin lab file should remain preserved even if it is not a launcher card");

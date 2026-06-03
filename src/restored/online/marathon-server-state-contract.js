@@ -14,8 +14,8 @@ export const RESTORED_MARATHON_SERVER_STATE_VERSION = "restored-marathon-server-
 
 const PACES = Object.freeze(["recover", "steady", "push", "sprint"]);
 const DEFAULT_LANE_HALF_WIDTH_PX = 232;
-const DEFAULT_LANE_SPEED_PX_PER_SECOND = 122;
-const DEFAULT_LANE_SPRINT_SPEED_PX_PER_SECOND = 160;
+const DEFAULT_LANE_SPEED_PX_PER_SECOND = 134;
+const DEFAULT_LANE_SPRINT_SPEED_PX_PER_SECOND = 134;
 
 export function startRestoredMarathonServerRoom(roomInput = {}, options = {}) {
   const room = createRestoredMarathonRoom(roomInput);
@@ -34,7 +34,7 @@ export function createRestoredMarathonServerInputCommand(envelope = {}, options 
     version: RESTORED_MARATHON_SERVER_STATE_VERSION,
     roomId: envelope.roomId || payload.roomId || "",
     participantId: payload.participantId || "",
-    pace: PACES.includes(payload.pace) ? payload.pace : "steady",
+    pace: normalizeRacePace(payload.pace),
     sequence: Math.max(1, Number(envelope.sequence || payload.sequence || 1)),
     raceTimeMs: Math.max(0, Number(payload.raceTimeMs || envelope.serverTimeMs || options.serverTimeMs || 0)),
     receivedAtMs: Math.max(0, Number(options.receivedAtMs || envelope.receivedAtMs || 0)),
@@ -140,7 +140,7 @@ export function validateRestoredMarathonServerStateContract() {
   if (!sideOnly.ok || sideOnly.participant.progressMeters !== first.participant.progressMeters) errors.push("side-only input must not advance marathon progress");
   if (sideOnly.participant.laneOffsetPx <= first.participant.laneOffsetPx) errors.push("side-only input should still move the runner across the road lane");
   const sideSprint = advanceSideOnlySprint(first.room);
-  if (sideSprint.laneOffsetPx < 150) errors.push("server sprint lane input should match fixed-camera free movement");
+  if (sideSprint.laneOffsetPx < 120) errors.push("server side lane input should match fixed-camera free movement");
   const uphillProgressMeters = findUphillProgressMeters(120);
   const uphillRoom = startRestoredMarathonServerRoom(createRestoredMarathonRoom({
     course: { distanceMeters: 120, checkpointMeters: [0, 60, 120] },
@@ -169,6 +169,11 @@ export function validateRestoredMarathonServerStateContract() {
 
 function input(sequence, pace, raceTimeMs, x = 1, y = 0, participantId = "runner:test") {
   return Object.freeze({ roomId: "room:test", sequence, payload: { participantId, pace, raceTimeMs, direction: { x, y } } });
+}
+
+function normalizeRacePace(pace) {
+  const value = PACES.includes(pace) ? pace : "steady";
+  return value === "sprint" ? "push" : value;
 }
 
 function advanceSideOnlySprint(roomInput) {

@@ -630,6 +630,7 @@
       position: absolute;
       left: 30px;
       bottom: 148px;
+      display: none !important;
       width: 112px;
       min-height: 42px;
       border-radius: 999px;
@@ -5676,19 +5677,6 @@
         height: 34px;
       }
 
-      .race-sprint-button {
-        left: 18px;
-        bottom: 112px;
-        display: grid;
-        width: 58px;
-        height: 58px;
-        min-height: 58px;
-        place-items: center;
-        border-radius: 50%;
-        font-size: 10px;
-        line-height: 1.05;
-      }
-
       .race-action-buttons {
         right: 0;
         bottom: 0;
@@ -6119,7 +6107,7 @@
 
           <div class="packet-list debug-only" aria-label="online packet preparation">
             <div class="packet"><strong>join_request</strong><span>닉네임, 스킨, 방 참가 요청</span></div>
-            <div class="packet"><strong>input_update</strong><span>WASD 2D 도로 이동, Shift 스프린트</span></div>
+            <div class="packet"><strong>input_update</strong><span>WASD 2D 도로 이동, 기본 속도</span></div>
             <div class="packet"><strong>state_snapshot</strong><span>서버 권위 위치와 체크포인트</span></div>
             <div class="packet"><strong>race_finalized</strong><span>완주 시간과 순위 확정</span></div>
           </div>
@@ -6205,7 +6193,7 @@
         </div>
         <div class="race-input-controls" id="race-input-controls" aria-label="경기 이동과 스킬">
           <div class="race-joystick-stack">
-            <button class="race-sprint-button" id="race-sprint-button" type="button">달리기</button>
+            <button class="race-sprint-button" id="race-sprint-button" type="button" hidden aria-hidden="true" tabindex="-1">달리기</button>
             <div class="race-dpad" id="race-joystick" aria-label="원형 이동키">
               <span class="race-dpad-core" id="race-joystick-thumb" aria-hidden="true"></span>
             </div>
@@ -6426,6 +6414,7 @@
       createRestoredMarathonTrailWallSvgPaths,
       estimateRestoredMarathonTrailProgressFromPoint,
       getRestoredMarathonTrailMap,
+      isRestoredMarathonTrailLaneBoundaryClipped,
       listRestoredMarathonTrailMaps,
       listRestoredMarathonTrailSavePoints,
       normalizeRestoredMarathonTrailMapId,
@@ -6592,12 +6581,12 @@
     const START_PADDOCK_MAX_PROGRESS = START_GATE_PROGRESS - START_GATE_CLEARANCE_PROGRESS;
     const ROAD_LANE_HALF_WIDTH_PX = 232;
     const RACE_MINIMAP_VIEWBOX_SIZE = 42;
-    const LOCAL_LANE_SPEED_PX_PER_SECOND = 122;
-    const LOCAL_LANE_SPRINT_SPEED_PX_PER_SECOND = 160;
+    const LOCAL_LANE_SPEED_PX_PER_SECOND = 134;
+    const LOCAL_LANE_SPRINT_SPEED_PX_PER_SECOND = 134;
     const LOCAL_STAGING_RUN_PROGRESS_PER_SECOND = 1.0;
-    const LOCAL_STAGING_SPRINT_PROGRESS_PER_SECOND = 2.05;
-    const LOCAL_RUN_PROGRESS_PER_SECOND = 0.58;
-    const LOCAL_SPRINT_PROGRESS_PER_SECOND = 0.76;
+    const LOCAL_STAGING_SPRINT_PROGRESS_PER_SECOND = 1.0;
+    const LOCAL_RUN_PROGRESS_PER_SECOND = 0.64;
+    const LOCAL_SPRINT_PROGRESS_PER_SECOND = 0.64;
     const LOCAL_BACKWARD_PROGRESS_MULTIPLIER = 0.45;
     const CHAT_BUBBLE_MAX_LENGTH = 42;
     const CHAT_BUBBLE_VISIBLE_MS = 3600;
@@ -8151,6 +8140,11 @@
       return listSingularityRaceMapObstacles(mapId, readCurrentRaceMapDraft(mapId));
     }
 
+    function shouldShowLaneBoundaryCollision(laneBoundary, progress) {
+      if (!laneBoundary?.touchedBoundary) return false;
+      return !isRestoredMarathonTrailLaneBoundaryClipped(progress, laneBoundary.boundarySide, selectedRaceMapId());
+    }
+
     function resetRaceMapRenderCache() {
       state.renderCache.minimapPlayerNode = null;
       state.runnerVisuals.clear();
@@ -9651,7 +9645,7 @@
         podiumApplausePlayed: false,
         lastCollisionCueMs: 0,
         packetLog: [
-          { type: "input_update", detail: "WASD / Shift" },
+          { type: "input_update", detail: "WASD" },
           { type: "skill_use", detail: "E" },
           { type: "attack_action", detail: "Mouse" },
           { type: "respawn_notice", detail: "Checkpoint" }
@@ -9717,6 +9711,7 @@
         state.adminObserverKeys[event.code] = true;
         return;
       }
+      if (event.code === "ShiftLeft" || event.code === "ShiftRight") return;
       if (state.participantType === "spectator") return;
       if (state.action.finalResult) {
         if (!canMoveInCeremonyRoom() || event.code === "KeyE") return;
@@ -9760,7 +9755,7 @@
       state.action.keys[event.code] = false;
       const releasedMovementKey = VIRTUAL_MOVE_KEYS.includes(event.code);
       const releasedSprintKey = event.code === "ShiftLeft" || event.code === "ShiftRight";
-      const shouldStopMotion = !hasMovementKeyHeld() && (releasedMovementKey || releasedSprintKey);
+      const shouldStopMotion = !hasMovementKeyHeld() && releasedMovementKey;
       if (shouldStopMotion) stopPlayerRunAnimation(Date.now());
       if (state.connectedSession) {
         if (canPublishConnectedInputRequest()) publishConnectedInputRequest(false);
@@ -11957,17 +11952,18 @@
       const resolvedRunner = (immune || breakable)
         ? { ...player, progress: nextProgress, laneOffsetPx: nextLane }
         : obstacle.runner;
-      const touching = (pressure.intensity > 0.08 || laneBoundary.touchedBoundary || blockingHit) && state.action.raceStarted;
+      const visibleBoundaryTouched = shouldShowLaneBoundaryCollision(laneBoundary, nextProgress);
+      const touching = (pressure.intensity > 0.08 || visibleBoundaryTouched || blockingHit) && state.action.raceStarted;
       rememberItemPickupTrace(player.progress, player.laneOffsetPx, resolvedRunner.progress, resolvedRunner.laneOffsetPx);
       setLocalRunner({
         ...resolvedRunner,
         laneBoundarySide: laneBoundary.boundarySide,
-        laneBoundaryTouched: laneBoundary.touchedBoundary,
+        laneBoundaryTouched: visibleBoundaryTouched,
         collisionAtMs: touching ? Date.now() : player.collisionAtMs
       });
       if (breakable) handleBreakableObstacleHit(obstacle.obstacle);
       else if (blockingHit) markPlayerObstacleCollision(obstacle.obstacle);
-      else if (touching) markPlayerRailCollision(laneBoundary.touchedBoundary ? "boundary" : reason);
+      else if (touching) markPlayerRailCollision(visibleBoundaryTouched ? "boundary" : reason);
       return Math.abs(forwardAmount) > 0.0001 || Math.abs(lateralAmount) > 0.05;
     }
 
@@ -12401,14 +12397,11 @@
     }
 
     function setVirtualSprint(pressed, shouldRender = true) {
-      if (state.roomClosed) return false;
-      if (state.participantType === "spectator" || (state.action.finalResult && !canMoveInCeremonyRoom())) return false;
-      if (pressed && (state.screen !== SINGULARITY_RACE_SCREENS.RACE || state.raceQueueOpen)) return false;
-      const nextPressed = Boolean(pressed);
-      if (Boolean(state.action.keys.ShiftLeft) === nextPressed) return false;
-      state.action.keys.ShiftLeft = nextPressed;
-      if (!nextPressed && !hasMovementKeyHeld()) stopPlayerRunAnimation(Date.now());
-      elements.raceSprintButton.classList.toggle("is-held", nextPressed);
+      if (!state.action.keys.ShiftLeft && !state.action.keys.ShiftRight) return false;
+      state.action.keys.ShiftLeft = false;
+      state.action.keys.ShiftRight = false;
+      elements.raceSprintButton.classList.remove("is-held");
+      if (!hasMovementKeyHeld()) stopPlayerRunAnimation(Date.now());
       if (canPublishConnectedInputRequest()) publishConnectedInputRequest(false);
       if (shouldRender) renderAll();
       return true;
@@ -12736,8 +12729,8 @@
       renderRaceSkillItemButton(currentItem, rouletteItem, itemMeta, activeItemAim);
       const movementDisabled = roomClosed || spectator || (Boolean(state.action.finalResult) && !canMoveInCeremonyRoom()) || state.raceQueueOpen;
       elements.raceJoystick.setAttribute("aria-disabled", String(movementDisabled));
-      elements.raceSprintButton.disabled = movementDisabled;
-      elements.raceSprintButton.classList.toggle("is-held", Boolean(state.action.keys.ShiftLeft || state.action.keys.ShiftRight));
+      elements.raceSprintButton.disabled = true;
+      elements.raceSprintButton.classList.remove("is-held");
       for (const button of elements.virtualMoveButtons) {
         button.classList.toggle("is-held", Boolean(state.action.keys[button.dataset.key]));
         button.disabled = movementDisabled;
@@ -13762,7 +13755,7 @@
     }
 
     function isSprintKeyHeld() {
-      return Boolean(state.action.keys.ShiftLeft || state.action.keys.ShiftRight);
+      return false;
     }
 
     function smoothRunnerVisualPoint(runner, index, elapsedMs) {

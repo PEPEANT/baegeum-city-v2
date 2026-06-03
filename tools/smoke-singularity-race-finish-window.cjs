@@ -11,9 +11,9 @@ async function main() {
   const { SingularityRaceRoom } = await import(pathToFileURL(path.join(root, "workers/singularity-race-worker.js")).href);
   const validation = finishWindow.validateSingularityRaceFinishWindowContract();
   assert.equal(validation.ok, true, `finish-window contract failed: ${validation.errors.join(", ")}`);
-  assert.equal(finishWindow.resolveSingularityRaceFinishWindowMs(25000), 45000, "short first finish should clamp to 45 seconds");
-  assert.equal(finishWindow.resolveSingularityRaceFinishWindowMs(120000), 54000, "medium first finish should scale by 0.45");
-  assert.equal(finishWindow.resolveSingularityRaceFinishWindowMs(300000), 90000, "long first finish should clamp to 90 seconds");
+  assert.equal(finishWindow.resolveSingularityRaceFinishWindowMs(25000), 30000, "short first finish should use the fixed 30 second window");
+  assert.equal(finishWindow.resolveSingularityRaceFinishWindowMs(120000), 30000, "medium first finish should use the fixed 30 second window");
+  assert.equal(finishWindow.resolveSingularityRaceFinishWindowMs(300000), 30000, "long first finish should use the fixed 30 second window");
 
   const fakeState = createFakeDurableObjectState();
   const room = new SingularityRaceRoom(fakeState, { ADMIN_TOKEN: "unit-admin-token" });
@@ -31,7 +31,7 @@ async function main() {
   await Promise.resolve();
   assert.equal(room.phase, "racing", "finish window should keep racing while unfinished players remain");
   assert.equal(room.finishWindowStartedAtMs, now, "finish window should start at first finish time");
-  assert.equal(room.finishWindowEndsAtMs, now + 45000, "60 second first finish should use the 45 second minimum");
+  assert.equal(room.finishWindowEndsAtMs, now + 30000, "first finish should use the fixed 30 second window");
   assert.ok(fakeState.alarms.some((alarm) => alarm >= room.finishWindowEndsAtMs), "finish window should schedule a Durable Object alarm");
 
   const summary = await jsonOf(await room.fetch(new Request("https://unit.test/summary")));
@@ -42,6 +42,17 @@ async function main() {
   assert.equal(room.refreshPhase(room.finishWindowEndsAtMs + 1), true, "expired finish window should close the race");
   assert.equal(room.phase, "finished", "finish window expiry should move phase to finished");
   assert.equal(room.entryOpen, false, "finished room should keep entry closed until admin opens the next round");
+
+  const soloRoom = new SingularityRaceRoom(createFakeDurableObjectState(), { ADMIN_TOKEN: "unit-admin-token" });
+  soloRoom.roomStateLoaded = true;
+  soloRoom.roomActive = true;
+  soloRoom.phase = "racing";
+  soloRoom.entryOpen = false;
+  soloRoom.raceStartedAtMs = now - 60000;
+  soloRoom.sessions.set("client:solo", createPlayerSession({ clientId: "client:solo", participantId: "runner:client:solo", finishedAtMs: now, progressPercent: 100 }));
+  assert.equal(soloRoom.refreshPhase(now), true, "solo first finisher should still start the finish window");
+  assert.equal(soloRoom.phase, "racing", "solo finish should not skip the 30 second finish window");
+  assert.equal(soloRoom.finishWindowEndsAtMs, now + 30000, "solo finish window should also be 30 seconds");
   console.log("Singularity Race finish-window smoke passed.");
 }
 

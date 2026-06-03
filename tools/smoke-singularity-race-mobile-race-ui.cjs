@@ -49,7 +49,7 @@ function mediaBlock(query) {
 
 assertIncludes("id=\"race-joystick\"", "mobile joystick surface should exist");
 assertIncludes("id=\"race-joystick-thumb\"", "mobile joystick thumb should exist");
-assertIncludes("id=\"race-sprint-button\"", "mobile hold-to-run button should exist");
+assertIncludes("id=\"race-sprint-button\" type=\"button\" hidden aria-hidden=\"true\"", "legacy sprint button should stay hidden");
 assertIncludes("id=\"race-options-button\"", "race options gear should exist");
 assertIncludes("id=\"race-options-panel\"", "race options panel should exist");
 assertIncludes("id=\"race-options-home\"", "gear panel should expose home");
@@ -80,7 +80,7 @@ assertIncludes("state.action.mobileDirection", "mobile race direction should avo
 assertIncludes("direction: state.action.mobileDirection || undefined", "mobile input frame should prefer screen direction over race intent");
 assertIncludes("CONNECTED_INPUT_PUMP_INTERVAL_MS = 100", "connected mobile input pump should stay within the 10 Hz budget");
 assertIncludes("startConnectedInputPump", "connected mobile input should use a render-independent pump");
-assertIncludes("setVirtualSprint", "mobile sprint path should exist");
+assertIncludes("function setVirtualSprint", "legacy sprint path should only clear stale Shift state");
 assertIncludes("focusChatInput", "chat button should focus chat input");
 
 assertExcludes("id=\"race-chat-toggle\"", "race chat toggle button should be removed");
@@ -101,7 +101,7 @@ assert.ok(
     && mobileBlock.includes("display: block"),
   "mobile race input controls should be enabled only inside the mobile media query"
 );
-assert.ok(mobileBlock.includes(".race-sprint-button"), "mobile media query should size sprint button");
+assert.ok(source.includes(".race-sprint-button") && source.includes("display: none !important"), "mobile sprint button should be visually removed");
 assert.ok(mobileBlock.includes(".shell[data-screen=\"race\"] .chat-panel"), "mobile media query should protect chat position");
 assert.ok(
   mobileBlock.includes(".shell[data-screen=\"queue\"] .chat-panel")
@@ -160,11 +160,9 @@ assert.ok(
   "mobile attack button should be compact and low"
 );
 assert.ok(
-  mobileBlock.includes(".race-sprint-button")
-    && mobileBlock.includes("width: 58px")
-    && mobileBlock.includes("height: 58px")
-    && mobileBlock.includes("border-radius: 50%"),
-  "mobile sprint should be a compact circular button"
+  !mobileBlock.includes("height: 58px")
+    && !mobileBlock.includes("place-items: center;\n        border-radius: 50%;\n        font-size: 10px"),
+  "mobile sprint button sizing should be removed"
 );
 
 const chatBlock = cssBlock(".shell[data-screen=\"race\"] .chat-panel");

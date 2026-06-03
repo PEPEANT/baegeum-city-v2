@@ -27,6 +27,10 @@ export function createVisibleMarathonTrailWallPath(points, options = {}) {
   return commands.join(" ") || `M${round(points[0]?.x || 0)} ${round(points[0]?.y || 0)}`;
 }
 
+export function createMarathonTrailWallVisibilityPoints(points, options = {}) {
+  return Object.freeze(markInteriorWallArtifactRuns(points, options));
+}
+
 function markInteriorWallArtifactRuns(points, options) {
   const result = points.map((point) => ({
     ...point,

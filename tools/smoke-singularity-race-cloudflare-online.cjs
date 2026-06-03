@@ -38,9 +38,9 @@ const finishWindowContract = read("src/restored/games/singularity-race-finish-wi
   "const CHAT_COOLDOWN_MS = 900",
   "const START_PADDOCK_MAX_PROGRESS",
   "const STAGING_RUN_PROGRESS_PER_SECOND = 1.0",
-  "const STAGING_SPRINT_PROGRESS_PER_SECOND = 2.05",
-  "const RUN_PROGRESS_PER_SECOND = 0.58",
-  "const SPRINT_PROGRESS_PER_SECOND = 0.76",
+  "const STAGING_SPRINT_PROGRESS_PER_SECOND = 1.0",
+  "const RUN_PROGRESS_PER_SECOND = 0.64",
+  "const SPRINT_PROGRESS_PER_SECOND = 0.64",
   "progressToRestoredMarathonTrailPoint",
   "resolveSingularityRaceInputMovement",
   "resolveSingularityRaceLaneBoundary",
@@ -250,12 +250,12 @@ assertIncludes(worker, "normalizeAttackAim(packet.payload?.aim, session, mapId)"
 assertIncludes(worker, "resolveSingularityRaceInputMovement(lastInputPayload || {}, trailPoint)", "worker attack fallback should project last input onto the track axis");
 assert.ok(!/api[-_]?key|secret|password|private[-_]?key/i.test(worker), "worker source must not embed secret-like config keys");
 [
-  "SINGULARITY_RACE_FINISH_WINDOW_RATIO = 0.45",
-  "SINGULARITY_RACE_FINISH_WINDOW_MIN_MS = 45000",
-  "SINGULARITY_RACE_FINISH_WINDOW_MAX_MS = 90000",
+  "SINGULARITY_RACE_FINISH_WINDOW_MS = 30000",
   "resolveSingularityRaceFinishWindowMs",
   "validateSingularityRaceFinishWindowContract"
 ].forEach((token) => assertIncludes(finishWindowContract, token, `finish window contract should keep ${token}`));
+assertIncludes(worker, "finishedPlayers.length > 0 && this.finishWindowEndsAtMs <= 0", "first finisher should always start the finish window");
+assert.ok(!worker.includes("if (allFinished || finishWindowExpired)"), "all-finished races must still wait for the 30 second finish window");
 
 execFileSync(process.execPath, [path.join(root, "tools/smoke-singularity-race-finish-window.cjs")], { stdio: "inherit" });
 execFileSync(process.execPath, [path.join(root, "tools/smoke-singularity-race-cloudflare-worker-contract.cjs")], { stdio: "inherit" });

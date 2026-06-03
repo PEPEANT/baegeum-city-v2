@@ -200,12 +200,13 @@ async function assertServerOwnedAttackStun(room) {
 }
 
 function assertFinishedPhaseClosesEntry(room, playerSession) {
-  room.phase = "racing";
-  room.sessions.clear();
-  room.sessions.set("client:unit-player", { ...playerSession, finishedAtMs: Date.now() });
-  assert.equal(room.refreshPhase(Date.now()), true, "all finished players should close the racing phase");
-  assert.equal(room.phase, "finished", "all finished players should move the room to finished");
-  assert.equal(room.entryOpen, false, "finished room should wait for admin to reopen entry");
+  const now = Date.now();
+  Object.assign(room, { phase: "racing", raceStartedAtMs: now - 60000, finishWindowStartedAtMs: 0, finishWindowEndsAtMs: 0 });
+  room.sessions.clear(); room.sessions.set("client:unit-player", { ...playerSession, finishedAtMs: now });
+  assert.equal(room.refreshPhase(now), true, "first finisher should start the finish window even when all current players are finished");
+  assert.deepEqual([room.phase, room.finishWindowEndsAtMs], ["racing", now + 30000], "all finished players should wait through the fixed 30 second finish window");
+  assert.equal(room.refreshPhase(room.finishWindowEndsAtMs + 1), true, "expired finish window should close the racing phase");
+  assert.deepEqual([room.phase, room.entryOpen], ["finished", false], "finish-window expiry should move the room to finished and keep entry closed");
 }
 
 function createPlayerSession(overrides = {}) {
@@ -290,9 +291,7 @@ async function jsonOf(response) {
 }
 
 assertWorkerAdminEndpointContracts()
-  .then(() => {
-    console.log("Singularity Race Cloudflare Worker contract smoke passed.");
-  })
+  .then(() => console.log("Singularity Race Cloudflare Worker contract smoke passed."))
   .catch((error) => {
     console.error(error);
     process.exit(1);

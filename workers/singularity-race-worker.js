@@ -63,11 +63,11 @@ const START_GATE_CLEARANCE_PROGRESS = 0.08;
 const START_PADDOCK_MAX_PROGRESS = START_GATE_PROGRESS - START_GATE_CLEARANCE_PROGRESS;
 const START_LANE_HALF_WIDTH_PX = 232;
 const STAGING_RUN_PROGRESS_PER_SECOND = 1.0;
-const STAGING_SPRINT_PROGRESS_PER_SECOND = 2.05;
-const RUN_PROGRESS_PER_SECOND = 0.58;
-const SPRINT_PROGRESS_PER_SECOND = 0.76;
-const LANE_SPEED_PX_PER_SECOND = 122;
-const LANE_SPRINT_SPEED_PX_PER_SECOND = 160;
+const STAGING_SPRINT_PROGRESS_PER_SECOND = 1.0;
+const RUN_PROGRESS_PER_SECOND = 0.64;
+const SPRINT_PROGRESS_PER_SECOND = 0.64;
+const LANE_SPEED_PX_PER_SECOND = 134;
+const LANE_SPRINT_SPEED_PX_PER_SECOND = 134;
 const CHAT_LIMIT = 80;
 const PUBLIC_MAP_ID = RESTORED_MARATHON_DEFAULT_TRAIL_MAP_ID;
 
@@ -525,7 +525,7 @@ export class SingularityRaceRoom {
       const finishedPlayers = players.filter((session) => Number(session.finishedAtMs || 0) > 0);
       const allFinished = finishedPlayers.length === players.length;
       let changed = false;
-      if (!allFinished && finishedPlayers.length > 0 && this.finishWindowEndsAtMs <= 0) {
+      if (finishedPlayers.length > 0 && this.finishWindowEndsAtMs <= 0) {
         const firstFinishAtMs = Math.min(...finishedPlayers.map((session) => Number(session.finishedAtMs || now)));
         const raceStartedAtMs = Number(this.raceStartedAtMs || 0) || firstFinishAtMs;
         const finishWindowMs = resolveSingularityRaceFinishWindowMs(Math.max(0, firstFinishAtMs - raceStartedAtMs));
@@ -534,8 +534,10 @@ export class SingularityRaceRoom {
         this.safeSetAlarm(this.finishWindowEndsAtMs + 25);
         this.broadcast(this.serverPacket("finish_window_started", {
           firstFinishAtMs,
+          finishWindowStartedAtMs: this.finishWindowStartedAtMs,
           raceStartedAtMs,
           finishWindowMs,
+          finishWindowDurationMs: finishWindowMs,
           finishWindowEndsAtMs: this.finishWindowEndsAtMs,
           finishedCount: finishedPlayers.length,
           playerCount: players.length,
@@ -544,7 +546,7 @@ export class SingularityRaceRoom {
         changed = true;
       }
       const finishWindowExpired = this.finishWindowEndsAtMs > 0 && now >= this.finishWindowEndsAtMs;
-      if (allFinished || finishWindowExpired) {
+      if (finishWindowExpired) {
         this.phase = "finished";
         this.countdownEndsAtMs = 0;
         this.entryOpen = ENTRY_OPEN_DEFAULT;
@@ -1241,7 +1243,7 @@ function advanceSession(session, now, phase, mapId = PUBLIC_MAP_ID, options = {}
   session.effectKind = skillBoostActive || skillShieldActive ? "skill" : (effect ? (effect.kind || "") : "");
   session.sizeScale = skillShieldActive ? 1.08 : (effect ? (Number(effect.sizeScale) || 1) : 1);
   const progressDelta = paceSpeed(pace, staging) * forwardFactor * speedScale * slowFactor * effectMultiplier * elapsedSeconds;
-  const laneSpeed = pace === "sprint" ? LANE_SPRINT_SPEED_PX_PER_SECOND : LANE_SPEED_PX_PER_SECOND;
+  const laneSpeed = LANE_SPEED_PX_PER_SECOND;
   const minProgress = racing ? RAIL_MIN_PROGRESS : START_PADDOCK_MIN_PROGRESS;
   const maxProgress = racing ? 100 : START_PADDOCK_MAX_PROGRESS;
   const laneBoundary = resolveSingularityRaceLaneBoundary(
@@ -1315,8 +1317,7 @@ function countPlayers(room) { return playerSessions(room).length; }
 function countSpectators(room) { return [...room.sessions.values()].filter((item) => item.participantType === "spectator").length; }
 function laneOffsetFor(lane) { return ((lane - 1) / Math.max(1, MAX_RUNNERS - 1) - 0.5) * START_LANE_HALF_WIDTH_PX * 1.8; }
 function paceSpeed(pace, staging = false) {
-  if (staging) return pace === "sprint" ? STAGING_SPRINT_PROGRESS_PER_SECOND : STAGING_RUN_PROGRESS_PER_SECOND;
-  return pace === "sprint" ? SPRINT_PROGRESS_PER_SECOND : RUN_PROGRESS_PER_SECOND;
+  return staging ? STAGING_RUN_PROGRESS_PER_SECOND : RUN_PROGRESS_PER_SECOND;
 }
 function scaleBackwardForward(forward) {
   const value = Number(forward || 0);

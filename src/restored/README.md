@@ -32,7 +32,7 @@ Current pre-split contracts:
 - `engine/simulacra-world-shell.js`: pure shell snapshot and launch guard for the Simulacra World registry, exposing only active derived games while blocking candidate/reference entries from launching.
 - `games/singularity-race-dev-online.js`: player-page dev relay helpers plus the server `state_snapshot` to runner-display merge used before a real transport is attached.
 - `games/singularity-race-prediction.js`: connected local movement prediction and small server reconciliation helper so the local player responds immediately while snapshots remain authoritative.
-- `games/marathon-input-contract.js`: pure Singularity Race WASD, Shift sprint, E skill, and mouse attack input contract.
+- `games/marathon-input-contract.js`: pure Singularity Race WASD/mobile movement without a player sprint toggle, E skill, and mouse attack input contract.
 - `games/marathon-character-skill-contract.js`: pure checkpoint meme-style character assignment and skill-use contract.
 - `games/marathon-combat-contract.js`: pure mouse attack, hit, runner-down, and checkpoint respawn contract.
 - `games/marathon-trail-geometry.js`: single log-curve trail geometry, five save point positions, SVG path helpers, and pointer-to-progress estimation for the standalone lobby.

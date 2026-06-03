@@ -97,7 +97,7 @@ assert(!pageSource.includes("focus-pulse"), "player focus ring should stay stati
 assert(pageSource.includes("lastMovementInputAtMs"), "recent movement input should preserve facing for short key taps");
 assert(pageSource.includes("hasRecentMovementInput"), "recent input grace should smooth short key taps");
 assert(pageSource.includes("releaseStaleMovementKeys(now)"), "hot loop should clear movement keys only after focus loss");
-assert(staleReleaseBody.includes("!document.hidden && document.hasFocus()"), "stale movement release should not interrupt focused held-key sprinting");
+assert(staleReleaseBody.includes("!document.hidden && document.hasFocus()"), "stale movement release should not interrupt focused held movement");
 assert(pageSource.includes("event.repeat && !state.action.keys[event.code]"), "orphan key-repeat events should not restart movement");
 assert(pageSource.includes("hasFreshPlayerMovementInput(timing.now)"), "local run animation should require fresh player input");
 assert(pageSource.includes("if (!wasPressed) recordMovementInput(event.code);"), "key-repeat events should not keep reviving movement freshness");
@@ -107,9 +107,9 @@ assert(!basicAttackBody.includes("state.action.stallUntilMs = Math.max(state.act
 assert(pageSource.includes("state.action.lastMovementInputAtMs = 0"), "movement stop path should clear stale movement freshness");
 assert(pageSource.includes("function stopPlayerRunAnimation"), "player run animation should have an explicit stop path");
 assert(keyUpBody.includes("stopPlayerRunAnimation(Date.now())"), "movement keyup should stop local run animation immediately");
-assert(keyUpBody.includes("releasedSprintKey"), "sprint keyup should be treated as a motion release");
+assert(keyUpBody.includes("releasedSprintKey") && keyUpBody.includes("&& releasedMovementKey"), "Shift keyup should no longer be treated as a motion release");
 assert(releaseMoveBody.includes("stopPlayerRunAnimation(Date.now())"), "virtual movement release should stop local run animation immediately");
-assert(sprintBody.includes("!nextPressed && !hasMovementKeyHeld()"), "mobile sprint release should stop motion when no movement key is held");
+assert(sprintBody.includes("state.action.keys.ShiftLeft = false") && sprintBody.includes("classList.remove(\"is-held\")"), "legacy mobile sprint path should only clear stale Shift state");
 assert(!pageSource.includes("createSingularityPlayerFocusRingNode(playerPoint"), "player focus ring should not render in the race effects layer");
 assert(pageSource.includes("BASIC_ATTACK_COOLDOWN_MS"), "basic attack should have a cooldown");
 assert(pageSource.includes("attackVisualId"), "basic attack visual should have a one-shot sequence id");

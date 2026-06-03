@@ -56,7 +56,7 @@ export function validateRestoredMarathonInputContract() {
     keys: ["KeyW", "ShiftLeft"],
     sequence: 2
   });
-  if (sprint.mode !== "sprint" || sprint.pace !== "sprint") errors.push("Shift + WASD should sprint");
+  if (sprint.mode !== "run" || sprint.pace !== "push") errors.push("Shift + WASD should stay on the base run pace");
   const attack = createRestoredMarathonInputFrame({
     participantId: "runner:test",
     keys: ["KeyW"],
@@ -72,11 +72,11 @@ export function validateRestoredMarathonInputContract() {
     intent: { forward: 1, lateral: -0.5 },
     sequence: 5
   });
-  if (mobile.mode !== "sprint" || mobile.intent.forward !== 1 || mobile.intent.lateral !== -0.5) {
-    errors.push("mobile race intent should drive sprint/run mode without WASD");
+  if (mobile.mode !== "run" || mobile.intent.forward !== 1 || mobile.intent.lateral !== -0.5) {
+    errors.push("mobile race intent should drive base run mode without WASD");
   }
   const packet = createRestoredMarathonInputPacket(sprint, { roomId: "room:test" });
-  if (packet.payload.pace !== "sprint" || packet.type !== "input_update") errors.push("input packet should preserve pace");
+  if (packet.payload.pace !== "push" || packet.type !== "input_update") errors.push("input packet should preserve base run pace");
   const mobilePacket = createRestoredMarathonInputPacket(mobile, { roomId: "room:test" });
   if (mobilePacket.payload.intent?.forward !== 1 || mobilePacket.payload.intent?.lateral !== -0.5) errors.push("input packet should preserve race intent");
   const mobileReverse = createRestoredMarathonInputFrame({
@@ -134,7 +134,6 @@ function chooseRunMode({ direction, intent, keys, skillPressed, attacking }) {
   if (skillPressed) return "skill";
   const moving = Boolean((intent && (intent.forward || intent.lateral)) || direction.x || direction.y);
   if (!moving) return "idle";
-  if (keys.ShiftLeft || keys.ShiftRight) return "sprint";
   return "run";
 }
 

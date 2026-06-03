@@ -23,6 +23,9 @@ function validateTrailMap(api, map, errors) {
   const finish = api.progressToRestoredMarathonTrailPoint(100, map.id);
   if (finish.x <= start.x || finish.y >= start.y) errors.push(`${map.id} must run from lower-left to upper-right`);
   if (!wallPaths.left.startsWith("M") || !wallPaths.right.startsWith("M")) errors.push(`${map.id} wall paths must be SVG-ready`);
+  if (map.id === "baegeum-city" && !api.isRestoredMarathonTrailLaneBoundaryClipped(41, "right", map.id)) {
+    errors.push("baegeum-city clipped bend should suppress invisible positive-lane wall feedback");
+  }
   const mappedCenter = api.progressToRestoredMarathonMapPoint(58, { mapId: map.id, worldWidth: 7600, worldHeight: 2600, laneOffsetPx: 0, laneHalfWidthPx: 232, minPercent: 2, maxPercent: 98 });
   const mappedLane = api.progressToRestoredMarathonMapPoint(58, { mapId: map.id, worldWidth: 7600, worldHeight: 2600, laneOffsetPx: 232, laneHalfWidthPx: 232, minPercent: 2, maxPercent: 98 });
   if (mappedCenter.x === mappedLane.x && mappedCenter.y === mappedLane.y) errors.push(`${map.id} map point lane offset must affect marker placement`);

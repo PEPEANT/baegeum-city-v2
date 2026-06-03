@@ -1,4 +1,5 @@
 import { sampleSmoothTrailPoints } from "./marathon-trail-smoothing.js";
+import { isRestoredMarathonTrailLaneBoundaryClippedWith } from "./marathon-trail-boundary-clip.js";
 import { createVisibleMarathonTrailWallPath } from "./marathon-trail-wall-clip.js";
 import { validateRestoredMarathonTrailGeometryContractWith } from "./marathon-trail-geometry-validation.js";
 import {
@@ -27,6 +28,7 @@ const RESTORED_MARATHON_TRAILS_BY_ID = new Map(RESTORED_MARATHON_TRAIL_MAP_DEFIN
 
 export const RESTORED_MARATHON_WORLD_WIDTH = 4600;
 export const RESTORED_MARATHON_WORLD_HEIGHT = 3600;
+const RESTORED_MARATHON_TRAIL_WALL_OFFSET_PX = 286;
 
 export function listRestoredMarathonTrailMaps() {
   return Object.freeze(RESTORED_MARATHON_TRAIL_MAP_DEFINITIONS.map((definition) => {
@@ -78,11 +80,22 @@ export function createRestoredMarathonTrailSvgPath(steps = 92, mapId = RESTORED_
 }
 
 export function createRestoredMarathonTrailWallSvgPaths(steps = 92, options = {}) {
-  const offsetPx = Math.max(80, Math.min(420, Number(options.offsetPx) || 286));
+  const offsetPx = Math.max(80, Math.min(420, Number(options.offsetPx) || RESTORED_MARATHON_TRAIL_WALL_OFFSET_PX));
   const mapId = normalizeRestoredMarathonTrailMapId(options.mapId);
   return Object.freeze({
     left: createRestoredMarathonTrailOffsetSvgPath(offsetPx, steps, mapId),
     right: createRestoredMarathonTrailOffsetSvgPath(-offsetPx, steps, mapId)
+  });
+}
+
+export function isRestoredMarathonTrailLaneBoundaryClipped(progressPercent = 0, boundarySide = "none", mapId = RESTORED_MARATHON_DEFAULT_TRAIL_MAP_ID) {
+  const normalizedMapId = normalizeRestoredMarathonTrailMapId(mapId);
+  return isRestoredMarathonTrailLaneBoundaryClippedWith(progressPercent, boundarySide, {
+    mapId: normalizedMapId,
+    offsetPx: RESTORED_MARATHON_TRAIL_WALL_OFFSET_PX,
+    progressToPoint: (progress) => progressToRestoredMarathonTrailPoint(progress, normalizedMapId),
+    worldWidth: RESTORED_MARATHON_WORLD_WIDTH,
+    worldHeight: RESTORED_MARATHON_WORLD_HEIGHT
   });
 }
 
@@ -146,7 +159,7 @@ export function createRestoredMarathonTrailSaveCheckpointMeters(distanceMeters =
 }
 
 export function validateRestoredMarathonTrailGeometryContract() {
-  return validateRestoredMarathonTrailGeometryContractWith({ listRestoredMarathonTrailMaps, listRestoredMarathonTrailSavePoints, createRestoredMarathonTrailSvgPath, createRestoredMarathonTrailWallSvgPaths, progressToRestoredMarathonTrailPoint, progressToRestoredMarathonMapPoint, trailLength: (mapId) => getTrailRecord(mapId).trail.totalLength, worldWidth: RESTORED_MARATHON_WORLD_WIDTH, worldHeight: RESTORED_MARATHON_WORLD_HEIGHT });
+  return validateRestoredMarathonTrailGeometryContractWith({ listRestoredMarathonTrailMaps, listRestoredMarathonTrailSavePoints, createRestoredMarathonTrailSvgPath, createRestoredMarathonTrailWallSvgPaths, isRestoredMarathonTrailLaneBoundaryClipped, progressToRestoredMarathonTrailPoint, progressToRestoredMarathonMapPoint, trailLength: (mapId) => getTrailRecord(mapId).trail.totalLength, worldWidth: RESTORED_MARATHON_WORLD_WIDTH, worldHeight: RESTORED_MARATHON_WORLD_HEIGHT });
 }
 
 function getTrailRecord(mapId) {

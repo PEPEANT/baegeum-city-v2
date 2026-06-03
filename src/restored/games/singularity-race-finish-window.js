@@ -1,13 +1,8 @@
-export const SINGULARITY_RACE_FINISH_WINDOW_RATIO = 0.45;
-export const SINGULARITY_RACE_FINISH_WINDOW_MIN_MS = 45000;
-export const SINGULARITY_RACE_FINISH_WINDOW_MAX_MS = 90000;
+export const SINGULARITY_RACE_FINISH_WINDOW_MS = 30000;
 
 export function resolveSingularityRaceFinishWindowMs(firstFinisherElapsedMs, options = {}) {
-  const ratio = positiveNumber(options.ratio, SINGULARITY_RACE_FINISH_WINDOW_RATIO);
-  const minMs = positiveNumber(options.minMs, SINGULARITY_RACE_FINISH_WINDOW_MIN_MS);
-  const maxMs = Math.max(minMs, positiveNumber(options.maxMs, SINGULARITY_RACE_FINISH_WINDOW_MAX_MS));
-  const elapsedMs = Math.max(0, Number(firstFinisherElapsedMs) || 0);
-  return Math.round(clamp(elapsedMs * ratio, minMs, maxMs));
+  void firstFinisherElapsedMs;
+  return Math.round(positiveNumber(options.windowMs, SINGULARITY_RACE_FINISH_WINDOW_MS));
 }
 
 export function createSingularityRaceFinishWindowState(options = {}) {
@@ -48,22 +43,18 @@ export function formatSingularityRaceFinishWindowClock(remainingMs) {
 
 export function validateSingularityRaceFinishWindowContract() {
   const errors = [];
-  if (resolveSingularityRaceFinishWindowMs(25000) !== 45000) errors.push("short races should still give at least 45 seconds");
-  if (resolveSingularityRaceFinishWindowMs(120000) !== 54000) errors.push("medium races should scale by first finisher elapsed time");
-  if (resolveSingularityRaceFinishWindowMs(300000) !== 90000) errors.push("long races should cap at 90 seconds");
+  if (resolveSingularityRaceFinishWindowMs(25000) !== 30000) errors.push("short races should use the fixed 30 second finish window");
+  if (resolveSingularityRaceFinishWindowMs(120000) !== 30000) errors.push("medium races should use the fixed 30 second finish window");
+  if (resolveSingularityRaceFinishWindowMs(300000) !== 30000) errors.push("long races should use the fixed 30 second finish window");
   const active = createSingularityRaceFinishWindowState({ raceStartedAtMs: 1000, firstFinishAtMs: 61000, nowMs: 62000 });
-  if (!active.active || active.remainingMs <= 0 || active.durationMs !== 45000) errors.push("active finish window should expose remaining time");
-  const ended = createSingularityRaceFinishWindowState({ raceStartedAtMs: 1000, firstFinishAtMs: 61000, nowMs: 106000 });
+  if (!active.active || active.remainingMs <= 0 || active.durationMs !== 30000) errors.push("active finish window should expose remaining time");
+  const ended = createSingularityRaceFinishWindowState({ raceStartedAtMs: 1000, firstFinishAtMs: 61000, nowMs: 91000 });
   if (!ended.ended || ended.remainingMs !== 0) errors.push("expired finish window should end cleanly");
-  if (formatSingularityRaceFinishWindowClock(90500) !== "01:31") errors.push("finish window clock should format mm:ss");
+  if (formatSingularityRaceFinishWindowClock(30000) !== "00:30") errors.push("finish window clock should format mm:ss");
   return Object.freeze({ ok: errors.length === 0, errors: Object.freeze(errors) });
 }
 
 function positiveNumber(value, fallback) {
   const number = Number(value);
   return Number.isFinite(number) && number > 0 ? number : fallback;
-}
-
-function clamp(value, min, max) {
-  return Math.max(min, Math.min(max, value));
 }
