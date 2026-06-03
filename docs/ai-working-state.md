@@ -1,6 +1,14 @@
 # AI Working State
 
 Date: 2026-06-03
+Observed: User approved committing, pushing, deploying, and returning the public Singularity Race admin link with the supplied admin token.
+Changed: Committed the current Singularity Race stabilization batch as `94d035f Stabilize singularity race polish batch` and pushed `main` to `origin/main`. The supplied admin token was used only for live verification/link handoff and was not written to project files.
+Verified: Live Vercel stable URLs returned 200 and now serve the new wall-clip module plus the updated race HTML tokens for shared watch camera, rank-in-nameplate, and conditional HP bars. Live Worker `/admin/state` returned 200 OK with the supplied bearer token, `roomActive:true`, `phase:lobby`, `entryOpen:false`, and `maxPlayers:50`.
+Blocked: Direct `vercel` CLI deploy was not available because no local Vercel credentials were installed, but the Git push-triggered Vercel deployment is serving the new committed files on `https://simulacra-world.vercel.app/`.
+Next: Share only the admin URL with the token as a one-time handoff link; do not add the token to repository docs or source.
+Do not: Commit the literal admin token into the repository.
+
+Date: 2026-06-03
 Observed: User wanted the runner-head UI simplified: remove the separate rank badge above the HP area, show live rank as `#1` on the nickname label, and keep overhead HP bars hidden until damage/down state matters.
 Changed: In `singularity-race.html`, runner rank labels now use `#rank`, runner avatars pass a `nameLabel` like `nickname #1`, and damaged/down runners get `has-visible-health` so overhead HP bars are hidden while HP is full. Removed the mobile CSS rule that forced runner rank badges visible. In `src/restored/games/singularity-race-runner-view.js`, rank badges are kept hidden and the nameplate accepts the rank-decorated label. Updated mobile/combat smoke guards and the running-screen ranking guard in `docs/plans/restored-marathon-stadium.md`.
 Verified: `node --check src/restored/games/singularity-race-runner-view.js`, `node tools/smoke-singularity-race-mobile-race-ui.cjs`, `node tools/smoke-singularity-race-combat-full-race.cjs`, `node tools/check-restored-marathon-contract.cjs`, `npm run check:singularity-race`, full `npm run check`, and `git diff --check` passed.
