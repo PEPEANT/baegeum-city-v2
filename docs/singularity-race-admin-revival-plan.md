@@ -22,8 +22,8 @@ Use `adminToken` for v0.1:
 
 - Worker secret: `ADMIN_TOKEN`
 - Accepted client transport: `Authorization: Bearer <token>` or `X-Admin-Token: <token>`
-- Optional page query: `?adminToken=<token>` only to hold it in memory for that page session
-- Do not store admin tokens in repo, localStorage, chat logs, or public docs
+- Optional page query: `?adminToken=<token>` only as a one-time handoff into tab-scoped `sessionStorage`; the page removes it from the address bar with `history.replaceState`
+- Do not store admin tokens in repo, `localStorage`, chat logs, or public docs
 - Missing or wrong token returns `401`
 
 Cloudflare Access can replace this later, but v0.1 should keep the token contract small.

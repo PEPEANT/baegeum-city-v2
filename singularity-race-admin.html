@@ -995,7 +995,8 @@
     const CLOUDFLARE_PUBLIC_ROOM_ID = "room:singularity-race:public-001";
     const CLOUDFLARE_DEFAULT_HTTP_ENDPOINT = "https://singularity-race-online.rneetn.workers.dev";
     const cloudflareHttpEndpoint = resolveCloudflareAdminHttpEndpoint(queryParams.get("serverUrl") || queryParams.get("apiUrl"));
-    const cloudflareAdminToken = String(queryParams.get("adminToken") || "").trim();
+    const ADMIN_TOKEN_SESSION_KEY = "singularity-race:admin-token:v1";
+    const cloudflareAdminToken = resolveSessionCloudflareAdminToken(window.sessionStorage, ADMIN_TOKEN_SESSION_KEY);
     const devOnlineEnabled = !cloudflareAdminEnabled && queryParams.get("devOnline") === "1";
     const devRooms = readRestoredMarathonDevRooms(window.localStorage);
     const selectedRoomId = window.localStorage.getItem(ADMIN_SELECTED_ROOM_STORAGE_KEY) || "";
@@ -1721,6 +1722,40 @@
       return url.toString();
     }
 
+    function resolveSessionCloudflareAdminToken(storage, storageKey) {
+      const params = new URLSearchParams(window.location.search);
+      // ?adminLogout=1 clears the tab-scoped token.
+      if (params.get("adminLogout") === "1") {
+        try { storage.removeItem(storageKey); } catch {}
+      }
+      // If a token arrives by URL, keep it for this tab and remove it from the address bar.
+      const fromUrl = String(params.get("adminToken") || "").trim();
+      if (fromUrl) {
+        try { storage.setItem(storageKey, fromUrl); } catch {}
+        try {
+          params.delete("adminToken");
+          const qs = params.toString();
+          window.history.replaceState(null, "", window.location.pathname + (qs ? `?${qs}` : "") + window.location.hash);
+        } catch {}
+        return fromUrl;
+      }
+      // Reuse only the current browser tab session; do not persist the token in localStorage.
+      try { return String(storage.getItem(storageKey) || "").trim(); } catch { return ""; }
+    }
+
+    function promptForAdminToken() {
+      let current = "";
+      try { current = window.sessionStorage.getItem(ADMIN_TOKEN_SESSION_KEY) || ""; } catch {}
+      const next = window.prompt("관리자 토큰을 입력하세요. (비우고 확인하면 로그아웃)", current);
+      if (next === null) return; // 취소
+      const trimmed = String(next).trim();
+      try {
+        if (trimmed) window.sessionStorage.setItem(ADMIN_TOKEN_SESSION_KEY, trimmed);
+        else window.sessionStorage.removeItem(ADMIN_TOKEN_SESSION_KEY);
+      } catch {}
+      window.location.reload();
+    }
+
     function hasCloudflareAdminToken() {
       return cloudflareAdminEnabled && cloudflareAdminToken.length > 0;
     }
@@ -1950,7 +1985,7 @@
         const hasControl = hasCloudflareAdminControl();
         const roomActive = isCloudflarePublicRoomActive(publicSummary);
         elements.gate.textContent = `${hasControl ? "\uacf5\uac1c \uad00\ub9ac\uc790 \uc5f0\uacb0" : "\uad00\ub9ac\uc790 \ud1a0\ud070 \ud544\uc694"} / ${roomActive ? publicPhase : "\ubc29 \uc5c6\uc74c"}`;
-        elements.startStatus.textContent = state.cloudflareStatus || (hasCloudflareAdminToken() ? (roomActive ? "Worker \uc778\uc99d \uc644\ub8cc" : "\ubc29 \ub9cc\ub4e4\uae30\ub97c \ub204\ub974\uba74 \uc720\uc800 \ud398\uc774\uc9c0\uc5d0 \uacf5\uac1c\ub429\ub2c8\ub2e4.") : "URL\uc5d0 adminToken\uc774 \ud544\uc694\ud569\ub2c8\ub2e4.");
+        elements.startStatus.textContent = state.cloudflareStatus || (hasCloudflareAdminToken() ? (roomActive ? "Worker \uc778\uc99d \uc644\ub8cc" : "\ubc29 \ub9cc\ub4e4\uae30\ub97c \ub204\ub974\uba74 \uc720\uc800 \ud398\uc774\uc9c0\uc5d0 \uacf5\uac1c\ub429\ub2c8\ub2e4.") : "\uad00\ub9ac\uc790 \ud1a0\ud070\uc774 \ud544\uc694\ud569\ub2c8\ub2e4. \ud31d\uc5c5\uc5d0 \uc785\ub825\ud558\uba74 \uc800\uc7a5\ub429\ub2c8\ub2e4(\uc0c1\ud0dc \ud074\ub9ad).");
         elements.gate.classList.toggle("is-open", hasControl && roomActive);
         elements.createRoomButton.disabled = !hasControl || roomActive;
         elements.directGameLink.setAttribute("aria-disabled", "true");
@@ -2490,6 +2525,17 @@
 
     function senderLabel(type) {
       return ({ admin: "방장", system: "시스템", spectator: "관전자", player: "플레이어" })[type] || "사용자";
+    }
+
+    // Public Cloudflare admin mode asks for a tab-scoped token if none was supplied.
+    if (cloudflareAdminEnabled && !cloudflareAdminToken) {
+      window.setTimeout(promptForAdminToken, 0);
+    }
+    // The status pill can replace/clear the token while staying on the admin page.
+    if (cloudflareAdminEnabled && elements.gate) {
+      elements.gate.style.cursor = "pointer";
+      elements.gate.title = "클릭하면 관리자 토큰을 입력/변경합니다";
+      elements.gate.addEventListener("click", promptForAdminToken);
     }
 
   </script>

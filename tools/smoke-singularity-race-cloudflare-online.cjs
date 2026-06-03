@@ -168,6 +168,10 @@ const merge = read("src/restored/games/singularity-race-dev-online.js");
   "isCloudflarePublicRoomActive",
   "createCloudflarePlayerHref",
   "createCloudflareOperatorHref",
+  "ADMIN_TOKEN_SESSION_KEY",
+  "resolveSessionCloudflareAdminToken",
+  "window.history.replaceState",
+  "window.sessionStorage",
   "getAdminRoomSummaries",
   "adminToken",
   "공개 관리자 연결",
@@ -196,6 +200,8 @@ assert.ok(!client.includes('url.searchParams.set("operator", "1")'), "Cloudflare
 assert.ok(!worker.includes("const host = Boolean(options.operator)"), "Worker host authority must not come from public joins");
 assert.ok(!admin.includes('url.searchParams.set("operator", "1")'), "Public admin page must not create operator links");
 assert.ok(!admin.includes('localStorage.setItem("adminToken"'), "Public admin page must not persist adminToken");
+assert.ok(!admin.includes("ADMIN_TOKEN_STORAGE_KEY"), "Public admin page must not use persistent token storage naming");
+assert.ok(!/window\.localStorage\.(getItem|setItem|removeItem)\([^)]*admin-token/i.test(admin), "Public admin page must not persist admin token in localStorage");
 assertIncludes(merge, "participant.skinPreset", "server snapshots should preserve remote participant skins");
 [
   "preserveLocalPrediction",
