@@ -63,6 +63,7 @@ export function mergeSingularityServerSnapshotRunners(existingRunners = [], snap
     return Object.freeze({
       id,
       name: participant.displayName || existing?.name || `Runner ${index + 1}`,
+      host: Boolean(participant.host || existing?.host),
       skin: existing?.skin || (id === "you" ? options.selectedSkin : participant.skinPreset || presets[index % presets.length]?.id) || options.defaultSkin || "default",
       ready: false,
       progress: display.progress,
@@ -127,9 +128,8 @@ export function validateSingularityRaceDevOnlineContract() {
     { sequence: 13, phase: "racing", participants: [{ participantId: "runner:tab-123", displayName: "Tester", laneOffsetPx: 0, progressMeters: 4219.5, lastSequence: 6 }] },
     { selectedSkin: "gpichan", courseDistanceMeters: 42195, roadLaneHalfWidthPx: 232, preserveLocalPrediction: true, localRunnerId: "runner:tab-123" });
   if (uniquePredicted.runners[0]?.id !== "you" || uniquePredicted.runners[0].progress <= 10 || uniquePredicted.runners[0].progress >= 12) errors.push("unique local runner prediction should map to you and smooth toward server snapshots");
-  const remoteSkin = mergeSingularityServerSnapshotRunners([], { sequence: 11, phase: "lobby",
-    participants: [{ participantId: "runner:remote", displayName: "Remote", skinPreset: "robot" }] }, { defaultSkin: "singularity-fan" });
-  if (remoteSkin.runners[0]?.skin !== "robot") errors.push("remote server snapshot should preserve participant skin presets");
+  const remoteSkin = mergeSingularityServerSnapshotRunners([], { sequence: 11, phase: "lobby", participants: [{ participantId: "runner:remote", displayName: "Remote", skinPreset: "robot", host: true }] }, { defaultSkin: "singularity-fan" });
+  if (remoteSkin.runners[0]?.skin !== "robot" || remoteSkin.runners[0]?.host !== true) errors.push("remote server snapshot should preserve participant skin presets and host markers");
   const predicted = mergeSingularityServerSnapshotRunners([
     { id: "you", name: "YOU", skin: "gpichan", progress: 12, laneOffsetPx: 80, hp: 100, maxHp: 100, clientPredicted: true }
   ], {

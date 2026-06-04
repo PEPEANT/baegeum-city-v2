@@ -1,6 +1,20 @@
 # AI Working State
 
 Date: 2026-06-04
+Observed: User reported two more user-room host issues: if the host leaves the queue room, the room should close immediately, and other players should see which runner is the host in both the queue and in-game race view.
+Changed: The Cloudflare Worker now closes a user room with `host_disconnected` when the host player disconnects while the room is still in the lobby/queue phase and no result snapshot exists. Server snapshots already included `host`; the client snapshot merge now preserves that marker, queue slots label the host as `방장`, and in-game nameplates prepend `방장` before the runner name/rank. Host contract and online smokes now guard host-disconnect close and host marker display paths.
+Verified: `node --check workers/singularity-race-worker.js`, `node --check tools/smoke-singularity-race-cloudflare-host-contract.cjs`, `node tools/smoke-singularity-race-cloudflare-host-contract.cjs`, `node tools/smoke-singularity-race-cloudflare-online.cjs`, `node tools/smoke-singularity-race-v01-lock.cjs`, `npm run check:singularity-race`, `git diff --check`, and full `npm run check` passed. Browser verification on local `singularity-race.html` confirmed the queue slot renders `01 방장 · HostUser`, snapshot merge preserves `host:true`, and the in-game nameplate host path is present without page errors.
+Next: Commit/push/deploy the client + Worker changes together if the user wants them live.
+Do not: Keep user rooms open after the host leaves the lobby queue, or drop the Worker `host` marker when merging snapshots into runners.
+
+Date: 2026-06-04
+Observed: User asked for the room-scoped host controls to be openable/closable because the fixed queue/race overlay can cover the play field.
+Changed: Added a `접기`/`열기` toggle to the Cloudflare host controls. The host overlay now keeps the title and room code visible while hiding the `입장 열기`/`시작`/`방 취소|방 종료` action row when collapsed, preserves the collapsed state during the current page session, and keeps ARIA expanded state in sync. The online smoke now guards the toggle button, collapsed state, helper, and hidden action-row CSS.
+Verified: `node tools/smoke-singularity-race-cloudflare-online.cjs`, `npm run check:singularity-race`, `git diff --check`, and full `npm run check` passed. Browser verification on local `singularity-race.html` confirmed the host controls toggle from `접기` to `열기`, hide actions while collapsed, shrink from 102px to 55px, and reopen without page errors.
+Next: Commit/push/deploy the client-only host-control toggle if the user wants it live.
+Do not: Remove the fixed queue/race host overlay or hide the room code/title while collapsed.
+
+Date: 2026-06-04
 Observed: User accepted that the current user-room host flow is green and identified the remaining room-control gap as host cancel/end before final results. Rechecking showed the broadcast one-pass stringify optimization is already present, but `/rooms/host/end` was still blocked server-side by `result_not_finalized` and client-side by the host end button gate.
 Changed: User-room hosts can now end/cancel a room before `resultSnapshot` exists. The Worker no longer rejects pre-result `/rooms/host/end`; it closes the room through the existing token-clear, socket-close, and auto-delete path. The player page labels the pre-result host action as `방 취소`, asks for confirmation before canceling, enables the action while the room is active, and clears any room host token when a `room_closed` packet arrives. The Cloudflare host and online smokes now guard the pre-result cancel contract and client confirmation/token cleanup hooks.
 Verified: `node --check workers/singularity-race-worker.js`, `node --check tools/smoke-singularity-race-cloudflare-host-contract.cjs`, `node tools/smoke-singularity-race-cloudflare-host-contract.cjs`, `node tools/smoke-singularity-race-cloudflare-online.cjs`, `npm run check:singularity-race`, `git diff --check`, and full `npm run check` passed.

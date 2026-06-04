@@ -30,6 +30,19 @@ async function run() {
   const wrongOpen = await jsonOf(await room.fetch(hostRequest("/host/open", "wrong-token")));
   assert.deepEqual([wrongOpen.status, wrongOpen.body.reason], [401, "host_unauthorized"], "wrong host token should be explicit");
 
+  const disconnectRoom = new SingularityRaceRoom(createFakeDurableObjectState(), {});
+  const disconnectToken = "unit-disconnect-token";
+  const disconnectCreate = await jsonOf(await disconnectRoom.fetch(new Request("https://unit.test/host/create?roomId=room%3Asingularity-race%3Auser%3AQUIT01&roomCode=QUIT01", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ hostToken: disconnectToken, hostClientId: "client:quit-host", displayName: "Quit User Room" })
+  })));
+  assert.equal(disconnectCreate.status, 200, "disconnect-room create should activate a user room");
+  const hostSession = createPlayerSession({ clientId: "client:quit-host", host: true });
+  disconnectRoom.sessions.set(hostSession.clientId, hostSession);
+  await disconnectRoom.disconnectSocket(createFakeSocket(hostSession), "closed");
+  assert.deepEqual([disconnectRoom.roomActive, disconnectRoom.roomStatus, disconnectRoom.hostToken], [false, "closed", ""], "host leaving a user-room lobby should close the room");
+
   const open = await jsonOf(await room.fetch(hostRequest("/host/open", hostToken)));
   assert.deepEqual([open.status, open.body.entryOpen], [200, true], "host open should allow entry");
 
@@ -81,13 +94,14 @@ function hostRequest(pathname, hostToken) {
   });
 }
 
-function createPlayerSession() {
+function createPlayerSession(options = {}) {
   const now = Date.now();
   return {
-    clientId: "client:unit-player",
-    participantId: "runner:client:unit-player",
+    clientId: options.clientId || "client:unit-player",
+    participantId: `runner:${options.clientId || "client:unit-player"}`,
     participantType: "player",
-    displayName: "Unit Player",
+    displayName: options.displayName || "Unit Player",
+    host: Boolean(options.host),
     progressPercent: 4,
     laneOffsetPx: 0,
     finishedAtMs: null,
@@ -96,6 +110,10 @@ function createPlayerSession() {
     inputWindowStartedAtMs: now,
     inputCount: 0
   };
+}
+
+function createFakeSocket(session) {
+  return { deserializeAttachment: () => session, send() {}, close() {} };
 }
 
 function createFakeDurableObjectState() {

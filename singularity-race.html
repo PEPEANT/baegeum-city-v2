@@ -1505,6 +1505,44 @@
       font-size: 12px;
     }
 
+    .room-create-button {
+      width: 100%;
+      margin-bottom: 12px;
+      border-style: dashed;
+    }
+
+    .room-card {
+      padding: 12px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background: rgba(10, 31, 58, 0.84);
+    }
+
+    .room-card-head {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 10px;
+    }
+
+    .room-card-title strong {
+      font-size: 18px;
+    }
+
+    .room-card-title small {
+      display: block;
+      margin-top: 4px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .room-card-meta {
+      display: flex;
+      flex: 0 0 auto;
+      align-items: center;
+      gap: 8px;
+    }
+
     .signal {
       width: 13px;
       height: 13px;
@@ -1618,6 +1656,13 @@
       display: none;
     }
 
+    .host-controls-header {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      align-items: center;
+      gap: 10px;
+    }
+
     .host-controls strong,
     .host-controls span {
       display: block;
@@ -1634,6 +1679,26 @@
       color: var(--muted);
       font-size: 12px;
       line-height: 1.4;
+    }
+
+    .host-controls-toggle {
+      min-width: 58px;
+      min-height: 30px;
+      border: 1px solid rgba(112, 216, 239, 0.34);
+      border-radius: 8px;
+      background: rgba(8, 26, 50, 0.72);
+      color: #f2fbff;
+      font-size: 12px;
+      font-weight: 900;
+    }
+
+    .host-controls.is-collapsed {
+      gap: 0;
+      padding: 8px 10px;
+    }
+
+    .host-controls.is-collapsed .host-actions {
+      display: none;
     }
 
     .host-actions {
@@ -6186,28 +6251,36 @@
           <span class="badge" id="room-panel-badge">로비</span>
         </div>
         <div class="panel-body">
-          <div class="room-name">
-            <div>
-              <strong id="room-display-name">특이점 스타디움 001</strong>
-              <small id="room-code">최대 50명</small>
-            </div>
-            <button class="room-refresh" id="room-refresh-button" type="button" hidden>새로고침</button>
-            <span class="signal" aria-label="local preview signal"></span>
-          </div>
+          <button class="secondary room-create-button" id="cloudflare-create-room-button" type="button" hidden>+ 방 만들기</button>
 
-          <div class="controls">
-            <button class="primary" id="ready-button" type="button">로비 입장</button>
-            <button class="secondary" id="spectator-button" type="button">관전 입장</button>
-            <button class="secondary" id="cloudflare-create-room-button" type="button" hidden>방 만들기</button>
-            <button class="ghost debug-only" id="fill-button" type="button">봇은 방장 페이지에서 관리</button>
+          <div class="room-card">
+            <div class="room-card-head">
+              <div class="room-card-title">
+                <strong id="room-display-name">특이점 스타디움 001</strong>
+                <small id="room-code">최대 50명</small>
+              </div>
+              <div class="room-card-meta">
+                <span class="badge room-card-badge">공개방</span>
+                <span class="signal" aria-label="local preview signal"></span>
+                <button class="room-refresh" id="room-refresh-button" type="button" hidden>새로고침</button>
+              </div>
+            </div>
+            <div class="controls">
+              <button class="primary" id="ready-button" type="button">로비 입장</button>
+              <button class="secondary" id="spectator-button" type="button">관전 입장</button>
+              <button class="ghost debug-only" id="fill-button" type="button">봇은 방장 페이지에서 관리</button>
+            </div>
           </div>
 
           <div class="host-controls" id="cloudflare-host-controls" hidden>
-            <div>
-              <strong id="cloudflare-host-title">방장 컨트롤</strong>
-              <span id="cloudflare-host-code">CODE -</span>
+            <div class="host-controls-header">
+              <div>
+                <strong id="cloudflare-host-title">방장 컨트롤</strong>
+                <span id="cloudflare-host-code">CODE -</span>
+              </div>
+              <button class="host-controls-toggle" id="cloudflare-host-toggle-button" type="button" aria-controls="cloudflare-host-actions" aria-expanded="true">접기</button>
             </div>
-            <div class="host-actions">
+            <div class="host-actions" id="cloudflare-host-actions">
               <button id="cloudflare-host-open-button" type="button">입장 열기</button>
               <button id="cloudflare-host-start-button" type="button">시작</button>
               <button id="cloudflare-host-end-button" type="button">방 종료</button>
@@ -7118,6 +7191,7 @@
       cloudflareHostControls: document.querySelector("#cloudflare-host-controls"),
       cloudflareHostTitle: document.querySelector("#cloudflare-host-title"),
       cloudflareHostCode: document.querySelector("#cloudflare-host-code"),
+      cloudflareHostToggleButton: document.querySelector("#cloudflare-host-toggle-button"),
       cloudflareHostOpenButton: document.querySelector("#cloudflare-host-open-button"),
       cloudflareHostStartButton: document.querySelector("#cloudflare-host-start-button"),
       cloudflareHostEndButton: document.querySelector("#cloudflare-host-end-button"),
@@ -7226,6 +7300,7 @@
       previewTick: 0,
       connectedSession: null,
       cloudflareHost: false,
+      cloudflareHostControlsCollapsed: false,
       cloudflareRoomSummary: null,
       cloudflareResultSnapshot: null,
       cloudflareRoomStatus: cloudflareOnlineEnabled ? "loading" : "idle",
@@ -7632,6 +7707,10 @@
 
     elements.cloudflareHostStartButton.addEventListener("click", () => {
       void requestCloudflareHostAction("start");
+    });
+
+    elements.cloudflareHostToggleButton.addEventListener("click", () => {
+      toggleCloudflareHostControls();
     });
 
     elements.cloudflareHostEndButton.addEventListener("click", () => {
@@ -9677,7 +9756,7 @@
       stopMenuBgm();
       stopEntryGateMusic();
       playCountdownBellSfx(createCountdownBellOffsetSeconds(now, gateOpensAtMs));
-      pushSystem(source === "admin" ? "방장이 10초 카운트다운을 시작했습니다." : "출발 카운트다운이 시작되었습니다.");
+      pushSystem(source === "admin" ? `방장이 ${Math.round(SINGULARITY_RACE_START_COUNTDOWN_MS / 1000)}초 카운트다운을 시작했습니다.` : "출발 카운트다운이 시작되었습니다.");
       return true;
     }
 
@@ -9826,6 +9905,7 @@
       return {
         id: participant.participantId === "runner:you" ? "you" : participant.participantId,
         name: participant.displayName || `Runner ${index + 1}`,
+        host: Boolean(participant.host),
         skin: participant.participantId === "runner:you" ? state.selectedSkin : presets[index % presets.length]?.id || defaultSkin,
         ready: false,
         progress: participant.progressMeters > 0 ? Math.min(100, (participant.progressMeters / 42195) * 100) : START_LINE_PROGRESS,
@@ -12658,6 +12738,12 @@
       renderAll();
     }
 
+    function toggleCloudflareHostControls() {
+      if (!elements.cloudflareHostControls || elements.cloudflareHostControls.hidden) return;
+      state.cloudflareHostControlsCollapsed = !state.cloudflareHostControlsCollapsed;
+      renderCloudflareHostControlsCollapsedState();
+    }
+
     function toggleRaceChatOverlay(focusInput = false) {
       if (state.screen !== SINGULARITY_RACE_SCREENS.RACE) return;
       state.raceChatOpen = !state.raceChatOpen;
@@ -13965,7 +14051,7 @@
         playRaceUiSfx("confirm");
         return;
       }
-      if (["preview-button", "race-queue-toggle", "race-options-button", "race-options-chat", "race-options-queue", "race-options-about", "race-options-fullscreen", "race-about-close", "race-zoom-reset"].includes(id)
+      if (["preview-button", "race-queue-toggle", "cloudflare-host-toggle-button", "race-options-button", "race-options-chat", "race-options-queue", "race-options-about", "race-options-fullscreen", "race-about-close", "race-zoom-reset"].includes(id)
         || control.classList.contains("skin-card")
         || control.classList.contains("channel-tab")) {
         playRaceUiSfx("toggle");
@@ -15493,7 +15579,8 @@
     function createRunnerNameplateLabel(runner, rankLabel = "") {
       const name = String(runner?.name || runner?.id || "").trim();
       const rank = String(rankLabel || "").trim();
-      return rank ? `${name} ${rank}` : name;
+      const host = runner?.host ? "방장" : "";
+      return [host, rank ? `${name} ${rank}` : name].filter(Boolean).join(" · ");
     }
 
     function renderAdminObserverPanel(now = Date.now(), force = false) {
@@ -15720,6 +15807,12 @@
         : (devOnlineEnabled ? "방장 페이지에서 방을 먼저 만들어야 합니다." : "개발 연결은 ?devOnline=1에서만 열립니다.");
     }
 
+    function renderCloudflareHostControlsCollapsedState() {
+      elements.cloudflareHostControls.classList.toggle("is-collapsed", Boolean(state.cloudflareHostControlsCollapsed));
+      elements.cloudflareHostToggleButton.textContent = state.cloudflareHostControlsCollapsed ? "열기" : "접기";
+      elements.cloudflareHostToggleButton.setAttribute("aria-expanded", String(!state.cloudflareHostControlsCollapsed));
+    }
+
     function renderCloudflareHostControls(summary = getCurrentConnectedRoomSummary()) {
       if (!elements.cloudflareCreateRoomButton || !elements.cloudflareHostControls) return;
       const online = Boolean(cloudflareOnlineEnabled);
@@ -15729,8 +15822,9 @@
       elements.shell.classList.toggle("cloudflare-host-active", isHostRoom);
       elements.cloudflareCreateRoomButton.hidden = !online || connected;
       elements.cloudflareCreateRoomButton.disabled = state.cloudflareRoomFetchInFlight || connected;
-      elements.cloudflareCreateRoomButton.textContent = state.cloudflareRoomFetchInFlight ? "처리 중" : "방 만들기";
+      elements.cloudflareCreateRoomButton.textContent = state.cloudflareRoomFetchInFlight ? "처리 중" : "+ 방 만들기";
       elements.cloudflareHostControls.hidden = !isHostRoom;
+      renderCloudflareHostControlsCollapsedState();
       if (!isHostRoom) return;
       const phase = summary.phase || "lobby";
       const resultFinalized = Boolean(summary.resultSnapshot);

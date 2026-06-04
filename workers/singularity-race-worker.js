@@ -48,7 +48,7 @@ const MIN_SNAPSHOT_INTERVAL_MS = 100;
 const CHAT_COOLDOWN_MS = 900;
 const CHAT_BURST_WINDOW_MS = 10000;
 const CHAT_BURST_LIMIT = 5;
-const COUNTDOWN_MS = 10000;
+const COUNTDOWN_MS = 6000;
 const COURSE_DISTANCE_METERS = 42195;
 const ENTRY_OPEN_DEFAULT = false;
 const ROOM_ACTIVE_DEFAULT = false;
@@ -648,6 +648,11 @@ export class SingularityRaceRoom {
     const now = Date.now();
     const session = this.getSession(socket);
     if (!session) return;
+    if (this.roomKind === "user" && session.host && this.phase === "lobby" && !this.resultSnapshot) {
+      this.markRoomClosed("host_disconnected", now);
+      await this.persistRoomState();
+      return;
+    }
     this.sessions.delete(session.clientId);
     this.lastActivityAtMs = now;
     if (this.sessions.size === 0) {

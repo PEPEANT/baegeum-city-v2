@@ -116,7 +116,7 @@ export function createSingularityRunnerSlotNode(runner, index, options = {}) {
   slot.className = `runner-slot${runner?.id === "you" ? " is-player" : ""}`;
   const name = document.createElement("strong");
   name.textContent = runner
-    ? `${formatSlotNumber(index)} ${runner.name}`
+    ? `${formatSlotNumber(index)} ${runner.host ? "방장 · " : ""}${runner.name}`
     : `${formatSlotNumber(index)} 빈 자리`;
   const status = document.createElement("span");
   status.textContent = runner ? createRunnerSlotStatus(runner, options) : "빈 자리";
@@ -197,6 +197,8 @@ export function validateSingularityRaceRunnerViewContract() {
     updateSingularityRunnerAvatarNode(avatar, { id: "runner:test", name: "Test", hp: 25, maxHp: 100 }, "", { nameLabel: "Test #1" });
     if (avatar.querySelector(".runner-nameplate")?.textContent !== "Test #1") errors.push("runner nameplate should accept rank-decorated labels");
     if (!avatar.classList.contains("is-low-health")) errors.push("low-health runners should get a visible health class");
+    const hostSlot = createSingularityRunnerSlotNode({ id: "runner:host", name: "Host", host: true }, 0);
+    if (!hostSlot.querySelector("strong")?.textContent.includes("방장")) errors.push("host queue slots should label the room host");
   }
   return Object.freeze({ ok: errors.length === 0, errors: Object.freeze(errors) });
 }
