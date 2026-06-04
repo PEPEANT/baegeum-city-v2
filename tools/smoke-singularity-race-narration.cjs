@@ -7,6 +7,8 @@ const { pathToFileURL } = require("node:url");
 
 const root = path.resolve(__dirname, "..");
 const playerSource = fs.readFileSync(path.join(root, "singularity-race.html"), "utf8");
+const adminSource = fs.readFileSync(path.join(root, "singularity-race-admin.html"), "utf8");
+const workerSource = fs.readFileSync(path.join(root, "workers", "singularity-race-worker.js"), "utf8");
 const controlPath = path.join(root, "src", "restored", "games", "singularity-race-control.js");
 const controlSource = fs.readFileSync(controlPath, "utf8");
 const assetDir = path.join(root, "assets", "singularity-race", "narration");
@@ -46,10 +48,18 @@ async function main() {
   assert(playerSource.includes("노란색 아이템을 먹고 PC 사용자는 E키"), "second narration line should explain item usage");
   assert(playerSource.includes("writeSingularityRaceNarrationCommand"), "observer narration should persist through its own storage key");
   assert(playerSource.includes("applyNarrationControlCommand"), "player page should consume narration commands");
+  assert(playerSource.includes('packet.type === "narration_start"'), "Cloudflare player packets should trigger narration");
+  assert(playerSource.includes("cloudflareOnlineEnabled ? CLOUDFLARE_ROOM_ID : DEV_ROOM_ID"), "narration room filter should use the active Cloudflare room id online");
   assert(playerSource.includes("queueRaceNarrationFrame"), "narration should animate independently from runner movement");
   assert(playerSource.includes("renderRaceNarration"), "player page should render the narration timeline");
   assert(playerSource.includes("RACE_NARRATION_ASSETS.blink"), "timeline should include the blink frame");
   assert(playerSource.includes("RACE_NARRATION_ASSETS.wave"), "timeline should include the wave frame");
+  assert(adminSource.includes("admin-narration-button"), "admin page should expose a start-adjacent narration button");
+  assert(adminSource.includes("playCloudflarePublicNarration"), "admin page should call the public Worker narration endpoint");
+  assert(adminSource.includes('requestCloudflareAdmin("/admin/narration"'), "admin page should request /admin/narration in Cloudflare mode");
+  assert(adminSource.includes("writeSingularityRaceNarrationCommand"), "admin page should keep local dev narration rehearsal working");
+  assert(workerSource.includes('url.pathname.endsWith("/admin/narration")'), "Worker should expose an authenticated admin narration endpoint");
+  assert(workerSource.includes('this.serverPacket("narration_start"'), "Worker should broadcast narration_start to connected clients");
 
   console.log("Singularity Race narration smoke passed.");
 }

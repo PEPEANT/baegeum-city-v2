@@ -1507,9 +1507,33 @@
       font-size: 12px;
     }
 
-    .room-create-button {
-      width: 100%;
+    .room-create-row {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 8px;
       margin-bottom: 12px;
+    }
+
+    .room-name-input {
+      width: 100%;
+      min-height: 38px;
+      padding: 0 12px;
+      border: 1px solid rgba(86, 200, 255, 0.34);
+      border-radius: 8px;
+      background: rgba(3, 12, 26, 0.62);
+      color: var(--ink);
+      font-size: 13px;
+      font-weight: 800;
+      outline: none;
+    }
+
+    .room-name-input:focus {
+      border-color: rgba(86, 200, 255, 0.72);
+      box-shadow: 0 0 0 3px rgba(86, 200, 255, 0.12);
+    }
+
+    .room-create-button {
+      min-width: 112px;
       border-style: dashed;
     }
 
@@ -1545,14 +1569,109 @@
       gap: 8px;
     }
 
+    .room-section-label {
+      display: block;
+      margin: 14px 0 6px;
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: 0.4px;
+      color: var(--muted);
+      text-transform: uppercase;
+    }
+
+    .room-list-head {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      margin: 2px 0 6px;
+    }
+
+    .room-list-head .room-section-label {
+      margin: 0;
+    }
+
+    .room-list-head[hidden],
+    .room-selected-label[hidden] {
+      display: none;
+    }
+
+    .room-list-count {
+      font-size: 11px;
+      font-weight: 800;
+      color: var(--muted);
+    }
+
     .cloudflare-room-list {
       display: grid;
       gap: 8px;
-      margin-top: 10px;
+      margin-top: 0;
+      max-height: 264px;
+      overflow-y: auto;
+      padding-right: 2px;
     }
 
     .cloudflare-room-list[hidden] {
       display: none;
+    }
+
+    .room-choice-main {
+      display: grid;
+      gap: 5px;
+      min-width: 0;
+    }
+
+    .room-choice-people {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 1px;
+    }
+
+    .room-people-pill {
+      display: inline-flex;
+      align-items: baseline;
+      gap: 4px;
+      padding: 2px 8px;
+      border-radius: 999px;
+      background: rgba(86, 200, 255, 0.14);
+      border: 1px solid rgba(86, 200, 255, 0.26);
+      font-size: 10.5px;
+      font-weight: 700;
+      color: #d6f3ff;
+      white-space: nowrap;
+    }
+
+    .room-people-pill b {
+      font-size: 12px;
+      font-weight: 900;
+    }
+
+    .room-people-pill--spectator {
+      background: rgba(160, 176, 200, 0.12);
+      border-color: rgba(160, 176, 200, 0.24);
+      color: #cdd8e6;
+    }
+
+    .room-people-pill.is-full {
+      background: rgba(255, 138, 138, 0.16);
+      border-color: rgba(255, 138, 138, 0.38);
+      color: #ffd9d9;
+    }
+
+    .room-choice-side {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 6px;
+    }
+
+    .cloudflare-room-choice:hover:not(:disabled) {
+      border-color: rgba(112, 216, 239, 0.5);
+    }
+
+    .cloudflare-room-choice:disabled {
+      opacity: 0.55;
+      cursor: default;
     }
 
     .cloudflare-room-choice {
@@ -5588,6 +5707,14 @@
         grid-template-columns: minmax(0, 1fr);
       }
 
+      .room-create-row {
+        grid-template-columns: minmax(0, 1fr);
+      }
+
+      .room-create-button {
+        width: 100%;
+      }
+
       .shell[data-screen="queue"] .lobby-grid {
         grid-template-columns: minmax(0, 1fr);
       }
@@ -6333,8 +6460,18 @@
           <span class="badge" id="room-panel-badge">로비</span>
         </div>
         <div class="panel-body">
-          <button class="secondary room-create-button" id="cloudflare-create-room-button" type="button" hidden>+ 방 만들기</button>
+          <div class="room-create-row" id="cloudflare-create-room-row" hidden>
+            <input class="room-name-input" id="cloudflare-room-name-input" type="text" maxlength="32" autocomplete="off" placeholder="방 이름 입력">
+            <button class="secondary room-create-button" id="cloudflare-create-room-button" type="button">+ 방 만들기</button>
+          </div>
 
+          <div class="room-list-head" id="cloudflare-room-list-head" hidden>
+            <span class="room-section-label">참여 가능한 방</span>
+            <span class="room-list-count" id="cloudflare-room-list-count"></span>
+          </div>
+          <div class="cloudflare-room-list" id="cloudflare-room-list" hidden></div>
+
+          <span class="room-section-label room-selected-label" id="room-selected-label" hidden>선택한 방</span>
           <div class="room-card">
             <div class="room-card-head">
               <div class="room-card-title">
@@ -6353,8 +6490,6 @@
               <button class="ghost debug-only" id="fill-button" type="button">봇은 방장 페이지에서 관리</button>
             </div>
           </div>
-
-          <div class="cloudflare-room-list" id="cloudflare-room-list" hidden></div>
 
           <div class="connected-gate debug-only" id="connected-gate">
             <div>
@@ -7278,6 +7413,8 @@
       raceChatOpenButton: document.querySelector("#race-chat-open-button"),
       fillButton: document.querySelector("#fill-button"),
       spectatorButton: document.querySelector("#spectator-button"),
+      cloudflareCreateRoomRow: document.querySelector("#cloudflare-create-room-row"),
+      cloudflareRoomNameInput: document.querySelector("#cloudflare-room-name-input"),
       cloudflareCreateRoomButton: document.querySelector("#cloudflare-create-room-button"),
       cloudflareHostControls: document.querySelector("#cloudflare-host-controls"),
       cloudflareHostTitle: document.querySelector("#cloudflare-host-title"),
@@ -7287,6 +7424,9 @@
       cloudflareHostStartButton: document.querySelector("#cloudflare-host-start-button"),
       cloudflareHostEndButton: document.querySelector("#cloudflare-host-end-button"),
       cloudflareRoomList: document.querySelector("#cloudflare-room-list"),
+      cloudflareRoomListHead: document.querySelector("#cloudflare-room-list-head"),
+      cloudflareRoomListCount: document.querySelector("#cloudflare-room-list-count"),
+      roomSelectedLabel: document.querySelector("#room-selected-label"),
       roomTitle: document.querySelector("#room-panel-title"),
       roomCopy: document.querySelector("#room-panel-copy"),
       roomBadge: document.querySelector("#room-panel-badge"),
@@ -7795,6 +7935,12 @@
       void createCloudflareUserRoom();
     });
 
+    elements.cloudflareRoomNameInput.addEventListener("keydown", (event) => {
+      if (event.key !== "Enter") return;
+      event.preventDefault();
+      void createCloudflareUserRoom();
+    });
+
     elements.cloudflareRoomList.addEventListener("click", (event) => {
       const button = event.target.closest("[data-cloudflare-room-id]");
       if (!button) return;
@@ -8098,6 +8244,27 @@
       }
       if (packet.type === "skill_use") {
         handleCloudflareSkillUsePacket(packet);
+        return;
+      }
+      if (packet.type === "narration_start") {
+        const payload = packet.payload || {};
+        if (payload.entryOpen !== false) {
+          const summary = updateCloudflareRoomSummary({
+            ...getCurrentConnectedRoomSummary(),
+            roomId: payload.roomId || CLOUDFLARE_ROOM_ID,
+            phase: payload.phase || "lobby",
+            entryOpen: payload.entryOpen,
+            roomActive: payload.roomActive !== false
+          }, { silent: true });
+          enterCloudflareRaceStagingIfOpen(summary);
+        }
+        applyNarrationControlCommand(createSingularityRaceNarrationCommand({
+          commandId: payload.commandId || `cloudflare:narration:${packet.sequence || Date.now()}`,
+          roomId: payload.roomId || CLOUDFLARE_ROOM_ID,
+          sourceClientId: "server:cloudflare-durable-object",
+          scriptId: payload.scriptId || SINGULARITY_RACE_NARRATION_SCRIPT_ID,
+          nowMs: payload.createdAtMs || packet.serverTimeMs || Date.now()
+        }));
         return;
       }
       if (packet.type === "state_snapshot") {
@@ -8413,9 +8580,22 @@
         .filter((room) => {
           if (!room.roomId || seen.has(room.roomId)) return false;
           seen.add(room.roomId);
-          if (room.roomKind !== "user") return true;
-          return room.roomActive !== false && !["closed", "deleted"].includes(room.roomStatus);
+          return isCloudflareVisibleUserRoom(room);
         }));
+    }
+
+    function isCloudflareVisibleUserRoom(room = {}) {
+      return room.roomKind === "user" && room.roomActive !== false && !["closed", "deleted"].includes(room.roomStatus);
+    }
+
+    function isCloudflareClosedRoom(room = {}) {
+      return room.roomActive === false || ["closed", "deleted"].includes(room.roomStatus);
+    }
+
+    function updateCloudflareRoomDirectory(payload = {}) {
+      if (!cloudflareOnlineEnabled || !payload) return state.cloudflareRoomDirectory;
+      state.cloudflareRoomDirectory = getCloudflareRoomDirectory(payload);
+      return state.cloudflareRoomDirectory;
     }
 
     function selectCloudflareRoomFromDirectory(roomId) {
@@ -8446,6 +8626,23 @@
       }
     }
 
+    function createCloudflareRoomsUrl(roomId = CLOUDFLARE_ROOM_ID, options = {}) {
+      const roomsUrl = new URL(`${CLOUDFLARE_HTTP_ENDPOINT}/rooms`);
+      roomsUrl.searchParams.set("roomId", roomId || SINGULARITY_RACE_CLOUDFLARE_ROOM_ID);
+      if (options.includeUserRooms) roomsUrl.searchParams.set("includeUserRooms", "1");
+      return roomsUrl;
+    }
+
+    async function fetchCloudflareRoomsPayload(roomId = CLOUDFLARE_ROOM_ID, options = {}) {
+      const response = await fetch(createCloudflareRoomsUrl(roomId, options).toString(), {
+        cache: "no-store",
+        signal: options.signal
+      });
+      const payload = await response.json().catch(() => null);
+      if (!response.ok || !payload?.ok) throw new Error(payload?.reason || `rooms_${response.status}`);
+      return payload;
+    }
+
     async function createCloudflareUserRoom() {
       if (!cloudflareOnlineEnabled || !CLOUDFLARE_HTTP_ENDPOINT) {
         pushSystem("Cloudflare Worker 주소가 있어야 유저 방을 만들 수 있습니다.");
@@ -8461,11 +8658,12 @@
       state.cloudflareRoomStatus = "loading";
       renderConnectedGate();
       try {
+        const roomDisplayName = resolveCloudflareCreateRoomName();
         const response = await fetch(`${CLOUDFLARE_HTTP_ENDPOINT}/rooms/create`, {
           method: "POST",
           headers: { "content-type": "application/json" },
           body: JSON.stringify({
-            displayName: `${state.nickname || "HOST"} Room`,
+            displayName: roomDisplayName,
             hostClientId: createCloudflareClientId()
           })
         });
@@ -8490,6 +8688,11 @@
         state.cloudflareRoomFetchInFlight = false;
         renderConnectedGate();
       }
+    }
+
+    function resolveCloudflareCreateRoomName() {
+      const typed = String(elements.cloudflareRoomNameInput?.value || "").replace(/\s+/g, " ").trim().slice(0, 32);
+      return typed || `${state.nickname || "HOST"} Room`;
     }
 
     async function requestCloudflareHostAction(action) {
@@ -8559,13 +8762,25 @@
       const abort = typeof AbortController === "function" ? new AbortController() : null;
       const timeoutId = abort ? window.setTimeout(() => abort.abort(), CLOUDFLARE_ROOM_FETCH_TIMEOUT_MS) : 0;
       try {
-        const roomsUrl = new URL(`${CLOUDFLARE_HTTP_ENDPOINT}/rooms`);
-        roomsUrl.searchParams.set("roomId", CLOUDFLARE_ROOM_ID);
-        if (CLOUDFLARE_ROOM_ID === SINGULARITY_RACE_CLOUDFLARE_ROOM_ID) roomsUrl.searchParams.set("includeUserRooms", "1");
-        const response = await fetch(roomsUrl.toString(), { cache: "no-store", signal: abort?.signal });
-        const payload = await response.json().catch(() => null);
-        if (!response.ok || !payload?.ok) throw new Error(payload?.reason || `rooms_${response.status}`);
-        updateCloudflareRoomSummary(payload, { silent: true });
+        const currentRoomId = CLOUDFLARE_ROOM_ID || SINGULARITY_RACE_CLOUDFLARE_ROOM_ID;
+        const directoryPromise = fetchCloudflareRoomsPayload(SINGULARITY_RACE_CLOUDFLARE_ROOM_ID, {
+          includeUserRooms: true,
+          signal: abort?.signal
+        });
+        const [payload, directoryPayload] = currentRoomId === SINGULARITY_RACE_CLOUDFLARE_ROOM_ID
+          ? [await directoryPromise, null]
+          : await Promise.all([
+            fetchCloudflareRoomsPayload(currentRoomId, { signal: abort?.signal }),
+            directoryPromise
+          ]);
+        const resolvedDirectoryPayload = directoryPayload || payload;
+        updateCloudflareRoomDirectory(resolvedDirectoryPayload);
+        const summary = updateCloudflareRoomSummary(payload, { silent: true });
+        if (!state.connectedSession && summary?.roomKind === "user" && isCloudflareClosedRoom(summary)) {
+          clearCloudflareHostToken(summary.roomId);
+          setCloudflareRoomId(SINGULARITY_RACE_CLOUDFLARE_ROOM_ID, { updateUrl: true });
+          updateCloudflareRoomSummary(resolvedDirectoryPayload, { silent: true });
+        }
         renderAll();
         return state.cloudflareRoomSummary;
       } catch (error) {
@@ -8713,12 +8928,14 @@
       if (!cloudflareOnlineEnabled || !payload) return state.cloudflareRoomSummary;
       const summary = normalizeCloudflareRoomSummary(payload);
       if (Array.isArray(payload.rooms) || Array.isArray(payload.userRooms)) {
-        state.cloudflareRoomDirectory = getCloudflareRoomDirectory(payload);
-      } else if (summary.roomId) {
+        updateCloudflareRoomDirectory(payload);
+      } else if (isCloudflareVisibleUserRoom(summary)) {
         state.cloudflareRoomDirectory = Object.freeze([
           summary,
           ...state.cloudflareRoomDirectory.filter((room) => room.roomId !== summary.roomId)
         ]);
+      } else if (summary.roomKind === "user" && summary.roomId) {
+        state.cloudflareRoomDirectory = Object.freeze(state.cloudflareRoomDirectory.filter((room) => room.roomId !== summary.roomId));
       }
       if (summary.roomId) setCloudflareRoomId(summary.roomId, { updateUrl: summary.roomKind === "user" || queryParams.has("roomId") });
       state.cloudflareRoomSummary = summary;
@@ -9838,7 +10055,7 @@
     function applyNarrationControlCommand(command) {
       if (!shouldAcceptSingularityRaceNarrationCommand(command, {
         lastCommandId: lastNarrationControlCommandId,
-        roomId: DEV_ROOM_ID,
+        roomId: cloudflareOnlineEnabled ? CLOUDFLARE_ROOM_ID : DEV_ROOM_ID,
         nowMs: Date.now(),
         maxAgeMs: RACE_NARRATION_TOTAL_MS + 1500
       })) return;
@@ -15840,16 +16057,13 @@
 
     function renderCloudflareRoomDirectory() {
       if (!elements.cloudflareRoomList) return;
-      const summary = getCurrentConnectedRoomSummary();
-      const directory = state.cloudflareRoomDirectory.length
-        ? state.cloudflareRoomDirectory
-        : (summary ? [summary] : []);
-      const hasUserRooms = directory.some((room) => room.roomKind === "user");
-      const visibleDirectory = hasUserRooms
-        ? directory.filter((room) => room.roomKind === "user")
-        : directory;
-      elements.cloudflareRoomList.hidden = !cloudflareOnlineEnabled || !visibleDirectory.length;
-      if (!cloudflareOnlineEnabled || !visibleDirectory.length) {
+      const visibleDirectory = state.cloudflareRoomDirectory.filter(isCloudflareVisibleUserRoom);
+      const showList = cloudflareOnlineEnabled && visibleDirectory.length > 0;
+      if (elements.roomSelectedLabel) elements.roomSelectedLabel.hidden = !cloudflareOnlineEnabled;
+      if (elements.cloudflareRoomListHead) elements.cloudflareRoomListHead.hidden = !showList;
+      if (elements.cloudflareRoomListCount) elements.cloudflareRoomListCount.textContent = showList ? `${visibleDirectory.length}개` : "";
+      elements.cloudflareRoomList.hidden = !showList;
+      if (!showList) {
         elements.cloudflareRoomList.replaceChildren();
         return;
       }
@@ -15860,18 +16074,45 @@
         button.dataset.cloudflareRoomId = room.roomId;
         button.disabled = Boolean(state.connectedSession);
         button.classList.toggle("is-selected", room.roomId === CLOUDFLARE_ROOM_ID);
-        const title = document.createElement("div");
+
+        const main = document.createElement("div");
+        main.className = "room-choice-main";
         const name = document.createElement("strong");
         name.textContent = room.displayName || room.roomCode || room.roomId;
         const meta = document.createElement("small");
-        meta.textContent = `CODE ${room.roomCode || "PUBLIC"} · 선수 ${room.players}/${room.maxPlayers} · 관전 ${room.spectators}/${room.maxSpectators}`;
-        title.append(name, meta);
-        const badge = document.createElement("span");
-        badge.className = "badge";
-        badge.textContent = `${room.roomKind === "user" ? "유저방" : "공개방"} · ${getCloudflareRoomStatusLabel(room)}`;
-        button.append(title, badge);
+        meta.textContent = `CODE ${room.roomCode || "PUBLIC"}`;
+        const people = document.createElement("div");
+        people.className = "room-choice-people";
+        people.append(
+          createRoomPeoplePill("선수", room.players, room.maxPlayers, room.players >= room.maxPlayers),
+          createRoomPeoplePill("관전", room.spectators, room.maxSpectators, false, true)
+        );
+        main.append(name, meta, people);
+
+        const side = document.createElement("div");
+        side.className = "room-choice-side";
+        const kindBadge = document.createElement("span");
+        kindBadge.className = "badge";
+        kindBadge.textContent = room.roomKind === "user" ? "유저방" : "공개방";
+        const statusBadge = document.createElement("span");
+        statusBadge.className = "badge";
+        statusBadge.textContent = getCloudflareRoomStatusLabel(room);
+        side.append(kindBadge, statusBadge);
+
+        button.append(main, side);
         return button;
       }));
+    }
+
+    function createRoomPeoplePill(label, count, max, full = false, spectator = false) {
+      const pill = document.createElement("span");
+      pill.className = `room-people-pill${spectator ? " room-people-pill--spectator" : ""}${full ? " is-full" : ""}`;
+      const value = document.createElement("b");
+      value.textContent = `${Math.max(0, Number(count) || 0)}/${Math.max(1, Number(max) || 1)}`;
+      const text = document.createElement("span");
+      text.textContent = label;
+      pill.append(value, text);
+      return pill;
     }
 
     function renderProfileSkins() {
@@ -16006,14 +16247,17 @@
     }
 
     function renderCloudflareHostControls(summary = getCurrentConnectedRoomSummary()) {
-      if (!elements.cloudflareCreateRoomButton || !elements.cloudflareHostControls) return;
+      if (!elements.cloudflareCreateRoomButton || !elements.cloudflareCreateRoomRow || !elements.cloudflareHostControls) return;
       const online = Boolean(cloudflareOnlineEnabled);
       const connected = Boolean(state.connectedSession);
       const hostToken = summary?.roomId ? readCloudflareHostToken(summary.roomId) : "";
       const isHostRoom = online && Boolean(summary?.roomId && hostToken);
-      elements.cloudflareCreateRoomButton.hidden = !online || connected;
+      elements.cloudflareCreateRoomRow.hidden = !online || connected;
       elements.cloudflareCreateRoomButton.disabled = state.cloudflareRoomFetchInFlight || connected;
       elements.cloudflareCreateRoomButton.textContent = state.cloudflareRoomFetchInFlight ? "처리 중" : "+ 방 만들기";
+      if (elements.cloudflareRoomNameInput) {
+        elements.cloudflareRoomNameInput.disabled = state.cloudflareRoomFetchInFlight || connected;
+      }
       const phase = summary?.phase || "lobby";
       const resultFinalized = Boolean(summary?.resultSnapshot);
       const canLobbyCommand = summary?.roomActive !== false && !resultFinalized && (phase === "lobby" || phase === "finished");

@@ -54,6 +54,7 @@ const COUNTDOWN_MS = 6000;
 const COURSE_DISTANCE_METERS = 42195;
 const ENTRY_OPEN_DEFAULT = false;
 const ROOM_ACTIVE_DEFAULT = false;
+const NARRATION_SCRIPT_ID = "singularity-race-intro-001";
 const BASIC_ATTACK_ACTION_RANGE = 2.4;
 const BASIC_ATTACK_ACTION_ARC_DEGREES = 42;
 const SERVER_ACTION_LANE_TO_PROGRESS = 52;
@@ -871,6 +872,7 @@ export class SingularityRaceRoom {
     if (url.pathname.endsWith("/admin/close")) return this.handleAdminEntryClose();
     if (url.pathname.endsWith("/admin/reset")) return this.handleAdminReset();
     if (url.pathname.endsWith("/admin/map")) return this.handleAdminMap(request);
+    if (url.pathname.endsWith("/admin/narration")) return this.handleAdminNarration(request);
     return json({ ok: false, reason: "unknown_admin_endpoint" }, 404);
   }
 
@@ -929,6 +931,30 @@ export class SingularityRaceRoom {
     this.broadcast(this.serverPacket("presence_update", { summary: roomSummary(this), serverOwned: true }));
     this.broadcastSnapshot(true);
     return json({ ...roomSummary(this), ok: true, action: "map" });
+  }
+
+  async handleAdminNarration(request) {
+    if (!this.roomActive) return json({ ...roomSummary(this), ok: false, reason: "room_not_created" }, 409);
+    if (this.phase !== "lobby" && this.phase !== "finished") return json({ ok: false, reason: "race_active", phase: this.phase }, 409);
+    if (this.entryOpen === false) return json({ ...roomSummary(this), ok: false, reason: "entry_not_open" }, 409);
+    if (countPlayers(this) <= 0) return json({ ...roomSummary(this), ok: false, reason: "no_players" }, 409);
+    const body = await readJsonBody(request);
+    const now = Date.now();
+    const scriptId = sanitizeNarrationScriptId(body?.scriptId || NARRATION_SCRIPT_ID);
+    const commandId = `admin:narration:${scriptId}:${now}`;
+    this.lastActivityAtMs = now;
+    await this.persistRoomState();
+    this.broadcast(this.serverPacket("narration_start", {
+      roomId: this.roomId,
+      commandId,
+      scriptId,
+      createdAtMs: now,
+      phase: this.phase,
+      entryOpen: this.entryOpen,
+      roomActive: this.roomActive !== false,
+      serverOwned: true
+    }, { clientId: "admin:public-console" }));
+    return json({ ...roomSummary(this), ok: true, action: "narration", commandId, scriptId, createdAtMs: now });
   }
 
   async handleHostRequest(request, url) {
@@ -2058,4 +2084,8 @@ function urlMapId(rawUrl) {
   } catch {
     return "";
   }
+}
+function sanitizeNarrationScriptId(value) {
+  const normalized = String(value || NARRATION_SCRIPT_ID).replace(/[^a-zA-Z0-9:_-]/g, "").slice(0, 80);
+  return normalized || NARRATION_SCRIPT_ID;
 }

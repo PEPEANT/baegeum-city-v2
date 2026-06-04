@@ -77,13 +77,10 @@ const finishWindowContract = read("src/restored/games/singularity-race-finish-wi
   'url.pathname.startsWith("/admin/")',
   "verifyAdminRequest",
   "ADMIN_TOKEN", "/admin/state", "/admin/create", "/admin/deactivate",
-  "/admin/start", "/admin/open", "/admin/close", "/admin/reset", "/admin/map",
+  "/admin/start", "/admin/open", "/admin/close", "/admin/reset", "/admin/map", "/admin/narration", "handleAdminNarration", "narration_start",
   "USER_ROOM_PREFIX",
   "/rooms/create", "/rooms/host/open", "/rooms/host/start", "/rooms/host/end",
-  "includeUserRooms", "collectUserRoomSummaries", "roomDirectorySummary",
-  "verifyHostRequest",
-  "X-Host-Token",
-  "hostToken",
+  "includeUserRooms", "collectUserRoomSummaries", "roomDirectorySummary", "verifyHostRequest", "X-Host-Token", "hostToken",
   "admin_unauthorized",
   "admin_token_not_configured",
   "entryOpen",
@@ -149,12 +146,13 @@ const finishWindowContract = read("src/restored/games/singularity-race-finish-wi
   'joinCloudflareConnectedRoom("host_create", "player"',
   "autoHostJoin",
   'fetch(`${CLOUDFLARE_HTTP_ENDPOINT}/rooms/host/${action}`,',
-  'roomsUrl.searchParams.set("roomId", CLOUDFLARE_ROOM_ID)',
+  "createCloudflareRoomsUrl", "fetchCloudflareRoomsPayload", "updateCloudflareRoomDirectory", "isCloudflareVisibleUserRoom",
+  "fetchCloudflareRoomsPayload(SINGULARITY_RACE_CLOUDFLARE_ROOM_ID", "includeUserRooms: true",
   "renderCloudflareHostControls",
   "cloudflare-room-list", "cloudflareRoomDirectory", "getCloudflareRoomDirectory", "renderCloudflareRoomDirectory", "selectCloudflareRoomFromDirectory",
-  "hasUserRooms", "visibleDirectory",
+  "visibleDirectory",
   "data-cloudflare-room-id",
-  "cloudflare-create-room-button",
+  "cloudflare-create-room-button", "cloudflare-room-name-input", "resolveCloudflareCreateRoomName", "displayName: roomDisplayName",
   "cloudflare-host-start-button", "cloudflare-host-toggle-button",
   "state.cloudflareHostControlsCollapsed = false", "elements.cloudflareHostToggleButton.hidden = true", "isRaceStartOnly", "showHostControls",
   "runner?.host",
@@ -187,8 +185,7 @@ const finishWindowContract = read("src/restored/games/singularity-race-finish-wi
   "raceItemButton",
   "targetId: resolveConnectedSkillTargetId()",
   "createMobileRaceIntent",
-  "presence_update",
-  "room_closed",
+  "presence_update", 'packet.type === "narration_start"', "room_closed",
   "localizeCloudflareSnapshot",
   "sendCloudflareChatMessage",
   "state.cloudflareHost",
@@ -213,7 +210,7 @@ const finishWindowContract = read("src/restored/games/singularity-race-finish-wi
   "refreshCloudflareRoomSummary",
   "createCloudflarePublicRoom",
   "deactivateCloudflarePublicRoom",
-  "startCloudflarePublicRoom",
+  "startCloudflarePublicRoom", "playCloudflarePublicNarration", "admin-narration-button", 'requestCloudflareAdmin("/admin/narration"',
   "toggleCloudflarePublicEntry",
   "resetCloudflarePublicRoom",
   "requestCloudflareAdmin",
@@ -247,6 +244,7 @@ assert.ok(!client.includes("sendHostStart"), "Cloudflare client must not expose 
 assert.ok(!client.includes("sendStartRequest"), "Cloudflare client must not expose a player start helper");
 assert.ok(!race.includes("requestCloudflareRaceStart"), "Race page must not expose a Cloudflare player start helper");
 assert.ok(!race.includes("cloudflareRoomClient.sendStartRequest"), "Race page must not send player start requests");
+assert.ok(!race.includes('CLOUDFLARE_ROOM_ID === SINGULARITY_RACE_CLOUDFLARE_ROOM_ID) roomsUrl.searchParams.set("includeUserRooms"'), "room directory fetch must not depend on the currently selected room id");
 assert.ok(!race.includes('.shell.cloudflare-host-active[data-screen="queue"] .room-panel') && !race.includes('.shell.cloudflare-host-active[data-screen="race"] .room-panel') && !race.includes("host-controls.is-collapsed"), "Host controls must not keep the old fixed/collapsed popup styling");
 assert.ok(!race.includes("방장 시작 대기중"), "Race page should wait for admin start, not a player host");
 assert.ok(!race.includes("현재 이 방의 시작 권한을 가진 호스트"), "Race page must not tell the first user they are host");

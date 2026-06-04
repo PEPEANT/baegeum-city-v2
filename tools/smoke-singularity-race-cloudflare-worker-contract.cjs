@@ -12,84 +12,68 @@ async function assertWorkerAdminEndpointContracts() {
   const missingSecretRoom = new SingularityRaceRoom(createFakeDurableObjectState(), {});
 
   const missingSecret = await jsonOf(await missingSecretRoom.fetch(new Request("https://unit.test/admin/state")));
-  assert.equal(missingSecret.status, 503, "admin state without ADMIN_TOKEN should return 503");
-  assert.equal(missingSecret.body.ok, false, "missing ADMIN_TOKEN response must be ok:false");
-  assert.equal(missingSecret.body.reason, "admin_token_not_configured", "missing ADMIN_TOKEN should be explicit");
+  assert.deepEqual([missingSecret.status, missingSecret.body.ok, missingSecret.body.reason], [503, false, "admin_token_not_configured"], "missing ADMIN_TOKEN should be explicit");
 
   const wrongToken = await jsonOf(await room.fetch(new Request("https://unit.test/admin/state", {
     headers: { Authorization: "Bearer wrong-token" }
   })));
-  assert.equal(wrongToken.status, 401, "wrong admin token should return 401");
-  assert.equal(wrongToken.body.ok, false, "wrong admin token response must be ok:false");
-  assert.equal(wrongToken.body.reason, "admin_unauthorized", "wrong admin token should be explicit");
+  assert.deepEqual([wrongToken.status, wrongToken.body.ok, wrongToken.body.reason], [401, false, "admin_unauthorized"], "wrong admin token should be explicit");
 
   const state = await jsonOf(await room.fetch(adminRequest("/admin/state")));
-  assert.equal(state.status, 200, "admin state with token should succeed");
-  assert.equal(state.body.ok, true, "admin state should be ok:true");
-  assert.equal(state.body.roomActive, false, "fresh public room should not be visible until admin creates it");
-  assert.equal(state.body.entryOpen, false, "fresh public room should wait for admin user-entry open");
+  assert.deepEqual([state.status, state.body.ok, state.body.roomActive, state.body.entryOpen], [200, true, false, false], "fresh public room should wait for admin create and entry open");
 
   const inactiveStart = await jsonOf(await room.fetch(adminRequest("/admin/start", { method: "POST" })));
-  assert.equal(inactiveStart.status, 409, "admin start before room create should be blocked");
-  assert.equal(inactiveStart.body.reason, "room_not_created", "admin start before room create should be explicit");
+  assert.deepEqual([inactiveStart.status, inactiveStart.body.reason], [409, "room_not_created"], "admin start before room create should be explicit");
 
   const inactiveOpen = await jsonOf(await room.fetch(adminRequest("/admin/open", { method: "POST" })));
-  assert.equal(inactiveOpen.status, 409, "admin entry open before room create should be blocked");
-  assert.equal(inactiveOpen.body.reason, "room_not_created", "admin entry open before room create should be explicit");
+  assert.deepEqual([inactiveOpen.status, inactiveOpen.body.reason], [409, "room_not_created"], "admin entry open before room create should be explicit");
 
   const create = await jsonOf(await room.fetch(adminRequest("/admin/create", { method: "POST" })));
-  assert.equal(create.status, 200, "admin create should activate the fixed public room");
-  assert.equal(create.body.ok, true, "admin create should be ok:true");
-  assert.equal(create.body.roomActive, true, "admin create should make the room visible");
-  assert.equal(create.body.entryOpen, false, "created room should still wait for in-game entry open");
+  assert.deepEqual([create.status, create.body.ok, create.body.roomActive, create.body.entryOpen], [200, true, true, false], "admin create should activate the fixed public room but keep entry closed");
 
   const emptyStart = await jsonOf(await room.fetch(adminRequest("/admin/start", { method: "POST" })));
-  assert.equal(emptyStart.status, 409, "admin start with no players should be blocked");
-  assert.equal(emptyStart.body.ok, false, "admin start with no players must be ok:false");
-  assert.equal(emptyStart.body.reason, "no_players", "admin start with no players should be explicit");
+  assert.deepEqual([emptyStart.status, emptyStart.body.ok, emptyStart.body.reason], [409, false, "no_players"], "admin start with no players should be explicit");
 
   const queuedPlayerSession = createPlayerSession();
   room.sessions.set("client:unit-player", queuedPlayerSession);
   const queuedStart = await jsonOf(await room.fetch(adminRequest("/admin/start", { method: "POST" })));
-  assert.equal(queuedStart.status, 409, "admin start before in-game entry should be blocked");
-  assert.equal(queuedStart.body.ok, false, "admin start before in-game entry must be ok:false");
-  assert.equal(queuedStart.body.reason, "entry_not_open", "admin start should wait for in-game entry open after queue joins");
+  assert.deepEqual([queuedStart.status, queuedStart.body.ok, queuedStart.body.reason], [409, false, "entry_not_open"], "admin start should wait for in-game entry open after queue joins");
+
+  const queuedNarration = await jsonOf(await room.fetch(adminRequest("/admin/narration", { method: "POST", body: JSON.stringify({ scriptId: "singularity-race-intro-001" }) })));
+  assert.deepEqual([queuedNarration.status, queuedNarration.body.reason], [409, "entry_not_open"], "admin narration should wait for in-game entry open");
   room.sessions.delete("client:unit-player");
 
   const close = await jsonOf(await room.fetch(adminRequest("/admin/close", { method: "POST" })));
-  assert.equal(close.status, 200, "admin close should succeed in lobby");
-  assert.equal(close.body.entryOpen, false, "admin close should close entry");
+  assert.deepEqual([close.status, close.body.entryOpen], [200, false], "admin close should close entry");
 
   const open = await jsonOf(await room.fetch(adminRequest("/admin/open", { method: "POST" })));
-  assert.equal(open.status, 200, "admin open should succeed in lobby");
-  assert.equal(open.body.entryOpen, true, "admin open should reopen entry");
+  assert.deepEqual([open.status, open.body.entryOpen], [200, true], "admin open should reopen entry");
+
+  const emptyNarration = await jsonOf(await room.fetch(adminRequest("/admin/narration", { method: "POST", body: JSON.stringify({ scriptId: "singularity-race-intro-001" }) })));
+  assert.deepEqual([emptyNarration.status, emptyNarration.body.reason], [409, "no_players"], "admin narration should require at least one player");
 
   const stagingSession = createPlayerSession();
   room.sessions.set("client:unit-player", stagingSession);
+  const narration = await jsonOf(await room.fetch(adminRequest("/admin/narration", { method: "POST", body: JSON.stringify({ scriptId: "singularity-race-intro-001" }) })));
+  assert.deepEqual([narration.status, narration.body.action, narration.body.scriptId], [200, "narration", "singularity-race-intro-001"], "admin narration should succeed once players are in the opened staging room");
   await assertPaddockMovementBeforeAdminStart(room, stagingSession);
   room.sessions.delete("client:unit-player");
 
   const map = await jsonOf(await room.fetch(adminRequest("/admin/map", { method: "POST", body: JSON.stringify({ mapId: "singularity-maze-run" }) })));
-  assert.equal(map.status, 200, "admin map should succeed in lobby");
-  assert.equal(map.body.mapId, "singularity-maze-run", "admin map should update room map id");
+  assert.deepEqual([map.status, map.body.mapId], [200, "singularity-maze-run"], "admin map should update room map id");
 
   const playerSession = createPlayerSession();
   room.sessions.set("client:unit-player", playerSession);
   await assertPlayerStartBlocked(room, playerSession);
 
   const start = await jsonOf(await room.fetch(adminRequest("/admin/start", { method: "POST" })));
-  assert.equal(start.status, 200, "admin start with a player should succeed");
-  assert.equal(start.body.ok, true, "admin start with a player should be ok:true");
-  assert.equal(start.body.phase, "countdown", "admin start should move room to countdown");
-  assert.equal(start.body.entryOpen, false, "admin start should close new entry");
+  assert.deepEqual([start.status, start.body.ok, start.body.phase, start.body.entryOpen], [200, true, "countdown", false], "admin start should move room to countdown and close new entry");
 
   await assertLastIntentTickMovement(room, playerSession);
   await assertServerOwnedAttackStun(room);
   assertFinishedPhaseClosesEntry(room, playerSession);
   const deactivate = await jsonOf(await room.fetch(adminRequest("/admin/deactivate", { method: "POST" })));
-  assert.equal(deactivate.status, 200, "admin deactivate should hide the fixed public room");
-  assert.equal(deactivate.body.ok, true, "admin deactivate should be ok:true");
-  assert.equal(deactivate.body.roomActive, false, "admin deactivate should make the room inactive");
+  assert.deepEqual([deactivate.status, deactivate.body.ok, deactivate.body.roomActive], [200, true, false], "admin deactivate should make the room inactive");
   if (room.countdownTimer) clearTimeout(room.countdownTimer);
   if (room.serverTickTimer) clearTimeout(room.serverTickTimer);
 }
