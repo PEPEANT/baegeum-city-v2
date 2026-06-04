@@ -32,7 +32,7 @@ Latest status 2026-06-03: `item:sword` is now implemented. Base attack is still 
 ## 2. 남은 작업 (원인 + 접근)
 
 ### A. 사거리 ↑ + 거대화 더 크게 (가장 싸고 체감 큼, 먼저 권장)
-- 사거리: `BASIC_ATTACK_RANGE_PROGRESS` 상수 — 클라/서버 양쪽. 값 상향.
+- 사거리: 기본공격은 클라/서버 공유 `singularity-race-basic-attack-range.js` 픽셀 캡슐 판정으로 관리. 현재 기준은 118px forward reach / 54px radius / 18px rear grace.
 - 거대화: `SINGULARITY_RACE_RED_PILL_SIZE_SCALE` ([src/restored/games/singularity-race-item-contract.js](../src/restored/games/singularity-race-item-contract.js), 현재 1.7)로 상향 완료. 필요시 이후 플레이 감각 기준으로 `selfSizeScale`/렌더 상한만 재확인.
 
 ### B. (완료 — 1번 참고)

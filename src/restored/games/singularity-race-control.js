@@ -1,6 +1,6 @@
 import { RESTORED_MARATHON_MAX_RUNNERS } from "./marathon-contract.js";
 
-export const SINGULARITY_RACE_START_COUNTDOWN_MS = 10000;
+export const SINGULARITY_RACE_START_COUNTDOWN_MS = 6000;
 export const SINGULARITY_RACE_CONTROL_STORAGE_KEY = "singularity-race:race-control:v1";
 export const SINGULARITY_RACE_TEST_BOTS_STORAGE_KEY = "singularity-race:test-bots:v1";
 export const SINGULARITY_RACE_NARRATION_STORAGE_KEY = "singularity-race:narration-control:v1";
@@ -202,7 +202,7 @@ export function validateSingularityRaceControlContract() {
   writeSingularityRaceTestBotsCommand(storage, bots);
   writeSingularityRaceControlCommand(storage, closed);
   writeSingularityRaceNarrationCommand(storage, narration);
-  if (command.type !== "start_countdown" || command.gateOpensAtMs !== 11000) errors.push("start countdown command must keep the 10 second gate delay");
+  if (command.type !== "start_countdown" || command.gateOpensAtMs !== 1000 + SINGULARITY_RACE_START_COUNTDOWN_MS) errors.push("start countdown command must keep the configured gate delay");
   if (bots.type !== "set_test_bots" || bots.botCount !== RESTORED_MARATHON_MAX_RUNNERS) errors.push("test bot command must keep the requested bot count");
   if (!shouldAcceptSingularityRaceControlCommand(command, { nowMs: 1000 })) errors.push("future countdown command should be accepted");
   if (shouldAcceptSingularityRaceControlCommand(command, { nowMs: 12000 })) errors.push("expired countdown command should be ignored");

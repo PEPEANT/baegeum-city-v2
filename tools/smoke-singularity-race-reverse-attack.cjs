@@ -75,7 +75,7 @@ async function main() {
     lastInputReceivedAtMs: now
   });
   const front = session({ clientId: "client:front", participantId: "runner:client:front", progressPercent: 12 });
-  const back = session({ clientId: "client:back", participantId: "runner:client:back", progressPercent: 8 });
+  const back = session({ clientId: "client:back", participantId: "runner:client:back", progressPercent: 9.5 });
   [attacker, front, back].forEach((entry) => room.sessions.set(entry.clientId, entry));
 
   await room.webSocketMessage(socketFor(attacker), JSON.stringify({ type: "attack_action", sequence: 31, payload: {} }));

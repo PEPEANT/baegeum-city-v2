@@ -173,7 +173,7 @@ async function assertServerOwnedAttackStun(room) {
   room.countdownEndsAtMs = 0;
   room.sessions.clear();
   const attacker = createPlayerSession({ clientId: "client:attacker", participantId: "runner:client:attacker", displayName: "Attacker", progressPercent: 10, laneOffsetPx: 0, lastMovementTickAtMs: now });
-  const target = createPlayerSession({ clientId: "client:target", participantId: "runner:client:target", displayName: "Target", lane: 2, progressPercent: 12, laneOffsetPx: 0, lastMovementTickAtMs: now });
+  const target = createPlayerSession({ clientId: "client:target", participantId: "runner:client:target", displayName: "Target", lane: 2, progressPercent: 10.5, laneOffsetPx: 0, lastMovementTickAtMs: now });
   room.sessions.set(attacker.clientId, attacker);
   room.sessions.set(target.clientId, target);
   await room.webSocketMessage(createFakeSocket(attacker), attackPacket(21, { attackerId: "runner:spoofed", origin: { x: 999, y: 999 }, aim: { x: 1, y: 0 } }));

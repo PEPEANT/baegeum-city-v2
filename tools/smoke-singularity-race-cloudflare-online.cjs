@@ -18,6 +18,7 @@ function assertIncludes(source, token, message) {
 execFileSync(process.execPath, ["--check", path.join(root, "workers/singularity-race-worker.js")], { stdio: "pipe" });
 execFileSync(process.execPath, ["--check", path.join(root, "src/restored/online/singularity-race-cloudflare-client.js")], { stdio: "pipe" });
 execFileSync(process.execPath, ["--check", path.join(root, "src/restored/games/singularity-race-finish-window.js")], { stdio: "pipe" });
+execFileSync(process.execPath, ["--check", path.join(root, "src/restored/games/singularity-race-basic-attack-range.js")], { stdio: "pipe" });
 execFileSync(process.execPath, ["--input-type=module", "-e", 'import assert from "node:assert/strict"; import { isSingularityRaceCloudflarePublicHost as isPublicHost, resolveSingularityRaceCloudflareWsUrl as resolveWs } from "./src/restored/online/singularity-race-cloudflare-client.js"; assert.equal(isPublicHost({ host: "39826afc.singularity-race-client.pages.dev" }), true); assert.equal(isPublicHost({ host: "simulacra-world.vercel.app" }), true); assert.equal(resolveWs("", { protocol: "https:", host: "39826afc.singularity-race-client.pages.dev" }), "wss://singularity-race-online.rneetn.workers.dev/ws"); assert.equal(resolveWs("", { protocol: "http:", host: "localhost:4173" }), "ws://127.0.0.1:8787/ws");'], { cwd: root, stdio: "pipe" });
 
 const worker = read("workers/singularity-race-worker.js");
@@ -26,7 +27,7 @@ const client = read("src/restored/online/singularity-race-cloudflare-client.js")
 const race = read("singularity-race.html");
 const admin = read("singularity-race-admin.html");
 const merge = read("src/restored/games/singularity-race-dev-online.js");
-const finishWindowContract = read("src/restored/games/singularity-race-finish-window.js");
+const finishWindowContract = read("src/restored/games/singularity-race-finish-window.js"), attackRange = read("src/restored/games/singularity-race-basic-attack-range.js");
 
 [
   'const ROOM_ID = "room:singularity-race:public-001"',
@@ -150,21 +151,20 @@ const finishWindowContract = read("src/restored/games/singularity-race-finish-wi
   'fetch(`${CLOUDFLARE_HTTP_ENDPOINT}/rooms/host/${action}`,',
   'roomsUrl.searchParams.set("roomId", CLOUDFLARE_ROOM_ID)',
   "renderCloudflareHostControls",
-  "cloudflare-room-list",
-  "cloudflareRoomDirectory", "getCloudflareRoomDirectory", "renderCloudflareRoomDirectory", "selectCloudflareRoomFromDirectory",
+  "cloudflare-room-list", "cloudflareRoomDirectory", "getCloudflareRoomDirectory", "renderCloudflareRoomDirectory", "selectCloudflareRoomFromDirectory",
+  "hasUserRooms", "visibleDirectory",
   "data-cloudflare-room-id",
   "cloudflare-create-room-button",
   "cloudflare-host-start-button", "cloudflare-host-toggle-button",
-  "cloudflareHostControlsCollapsed", "renderCloudflareHostControlsCollapsedState", "toggleCloudflareHostControls",
-  "host-controls.is-collapsed .host-actions", "host-controls.is-collapsed .host-controls-header > div",
-  'aria-expanded", String(!state.cloudflareHostControlsCollapsed)',
+  "state.cloudflareHostControlsCollapsed = false", "elements.cloudflareHostToggleButton.hidden = true", "isRaceStartOnly", "showHostControls",
   "runner?.host",
   "방 취소", "window.confirm",
   'summary.roomStatus === "closed"',
   "clearCloudflareHostToken(summary.roomId)",
   "cloudflare-host-active",
-  '.shell.cloudflare-host-active[data-screen="queue"] .room-panel',
-  '.shell.cloudflare-host-active[data-screen="race"] .room-panel',
+  '.shell.cloudflare-host-active[data-screen="queue"] .queue-actions',
+  '.shell.cloudflare-host-active[data-screen="race"] .queue-actions',
+  '.shell.cloudflare-host-active[data-screen="race"] #cloudflare-host-start-button',
   "readCloudflareHostToken",
   "writeCloudflareHostToken",
   "setCloudflareRoomId",
@@ -247,6 +247,7 @@ assert.ok(!client.includes("sendHostStart"), "Cloudflare client must not expose 
 assert.ok(!client.includes("sendStartRequest"), "Cloudflare client must not expose a player start helper");
 assert.ok(!race.includes("requestCloudflareRaceStart"), "Race page must not expose a Cloudflare player start helper");
 assert.ok(!race.includes("cloudflareRoomClient.sendStartRequest"), "Race page must not send player start requests");
+assert.ok(!race.includes('.shell.cloudflare-host-active[data-screen="queue"] .room-panel') && !race.includes('.shell.cloudflare-host-active[data-screen="race"] .room-panel') && !race.includes("host-controls.is-collapsed"), "Host controls must not keep the old fixed/collapsed popup styling");
 assert.ok(!race.includes("방장 시작 대기중"), "Race page should wait for admin start, not a player host");
 assert.ok(!race.includes("현재 이 방의 시작 권한을 가진 호스트"), "Race page must not tell the first user they are host");
 assert.ok(!race.includes("cloudflareOperatorEnabled"), "Race page must not expose public operator query authority");
@@ -258,11 +259,10 @@ assert.ok(!admin.includes('localStorage.setItem("adminToken"'), "Public admin pa
 assert.ok(!admin.includes("ADMIN_TOKEN_STORAGE_KEY"), "Public admin page must not use persistent token storage naming");
 assert.ok(!/window\.localStorage\.(getItem|setItem|removeItem)\([^)]*admin-token/i.test(admin), "Public admin page must not persist admin token in localStorage");
 assertIncludes(merge, "participant.skinPreset", "server snapshots should preserve remote participant skins");
-assertIncludes(race, "const BASIC_ATTACK_RANGE_PROGRESS = 3.2", "client basic attack range should stay tuned to 3.2 progress");
-assertIncludes(race, "const BASIC_ATTACK_LANE_RANGE_PX = 96", "client basic attack lane range should stay tight");
-assertIncludes(race, "const BASIC_ATTACK_ARC_DEGREES = 58", "client basic attack arc should stay tight");
-assertIncludes(worker, "const BASIC_ATTACK_RANGE_PROGRESS = 3.2", "worker basic attack range should stay tuned to 3.2 progress");
-assertIncludes(worker, "const BASIC_ATTACK_ARC_DEGREES = 58", "worker basic attack arc should stay tight");
+assertIncludes(attackRange, "SINGULARITY_RACE_BASIC_ATTACK_REACH_PX = 118", "basic attack should use a fixed pixel reach contract");
+assertIncludes(race, "findSingularityRaceBasicAttackTarget", "client basic attack should use the shared pixel range helper");
+assertIncludes(worker, "findSingularityRaceBasicAttackTarget", "worker basic attack should use the shared pixel range helper");
+assert.ok(!race.includes("BASIC_ATTACK_RANGE_PROGRESS") && !worker.includes("BASIC_ATTACK_RANGE_PROGRESS"), "basic attack must not return to progress-percent range checks");
 assertIncludes(race, "handleCloudflareCombatActionPacket", "race page should render server-owned public attack packets");
 assertIncludes(race, "serverAttackUntilMs", "race page should keep short server attack visuals through snapshots");
 [

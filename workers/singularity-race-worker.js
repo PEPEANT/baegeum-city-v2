@@ -16,9 +16,11 @@ import {
   resolveSingularityRaceFinishWindowMs
 } from "../src/restored/games/singularity-race-finish-window.js";
 import {
-  createRestoredMarathonAttackAction,
-  resolveRestoredMarathonAttackHit
+  createRestoredMarathonAttackAction
 } from "../src/restored/games/marathon-combat-contract.js";
+import {
+  findSingularityRaceBasicAttackTarget
+} from "../src/restored/games/singularity-race-basic-attack-range.js";
 import {
   createRestoredMarathonSkillUse,
   getRestoredMarathonSkill
@@ -52,9 +54,10 @@ const COUNTDOWN_MS = 6000;
 const COURSE_DISTANCE_METERS = 42195;
 const ENTRY_OPEN_DEFAULT = false;
 const ROOM_ACTIVE_DEFAULT = false;
-const BASIC_ATTACK_RANGE_PROGRESS = 3.2;
-const BASIC_ATTACK_LANE_TO_PROGRESS = 52;
-const BASIC_ATTACK_ARC_DEGREES = 58;
+const BASIC_ATTACK_ACTION_RANGE = 2.4;
+const BASIC_ATTACK_ACTION_ARC_DEGREES = 42;
+const SERVER_ACTION_LANE_TO_PROGRESS = 52;
+const SERVER_SKILL_LANE_TO_PROGRESS = 52;
 const BASIC_ATTACK_STALL_MS = 180;
 const BASIC_ATTACK_COOLDOWN_MS = 1150;
 const BASIC_ATTACK_STUN_MS = 680;
@@ -1652,7 +1655,7 @@ function applyServerTargetSkillEffect(casterSession, targetSession, use, now) {
 
 function serverSkillDistance(casterSession, targetSession) {
   const progressDistance = Math.abs(Number(targetSession.progressPercent || 0) - Number(casterSession.progressPercent || 0));
-  const laneDistance = Math.abs(Number(targetSession.laneOffsetPx || 0) - Number(casterSession.laneOffsetPx || 0)) / BASIC_ATTACK_LANE_TO_PROGRESS;
+  const laneDistance = Math.abs(Number(targetSession.laneOffsetPx || 0) - Number(casterSession.laneOffsetPx || 0)) / SERVER_SKILL_LANE_TO_PROGRESS;
   return Math.hypot(progressDistance, laneDistance);
 }
 
@@ -1670,8 +1673,8 @@ function createServerBasicAttackAction(session, packet, sequence, mapId = PUBLIC
     sequence,
     origin: serverAttackPosition(session),
     aim: normalizeAttackAim(packet.payload?.aim, session, mapId),
-    rangeMeters: BASIC_ATTACK_RANGE_PROGRESS,
-    arcDegrees: BASIC_ATTACK_ARC_DEGREES,
+    rangeMeters: BASIC_ATTACK_ACTION_RANGE,
+    arcDegrees: BASIC_ATTACK_ACTION_ARC_DEGREES,
     selfStallMs: BASIC_ATTACK_STALL_MS,
     cooldownMs: BASIC_ATTACK_COOLDOWN_MS,
     stunMs: BASIC_ATTACK_STUN_MS,
@@ -1680,25 +1683,35 @@ function createServerBasicAttackAction(session, packet, sequence, mapId = PUBLIC
 }
 
 function findServerBasicAttackTarget(room, action, attackerId) {
-  return playerSessions(room)
-    .filter((session) => session.participantId !== attackerId && session.finishedAtMs === null)
-    .map((session) => ({
-      session,
-      hit: resolveRestoredMarathonAttackHit(action, {
-        runnerId: session.participantId,
-        position: serverAttackPosition(session),
-        hp: 100,
-        maxHp: 100
-      })
-    }))
-    .filter((entry) => entry.hit.hit)
-    .sort((left, right) => left.hit.distanceMeters - right.hit.distanceMeters)[0] || null;
+  const attacker = playerSessions(room).find((session) => session.participantId === attackerId);
+  if (!attacker) return null;
+  const entry = findSingularityRaceBasicAttackTarget(
+    serverAttackRunner(attacker),
+    playerSessions(room)
+      .filter((session) => session.participantId !== attackerId && session.finishedAtMs === null)
+      .map((session) => serverAttackRunner(session)),
+    {
+      mapId: room.mapId,
+      direction: normalizeAttackDirection(action.aim)
+    }
+  );
+  return entry ? { session: entry.target.session, range: entry.range } : null;
+}
+
+function serverAttackRunner(session) {
+  return {
+    id: session.participantId,
+    participantId: session.participantId,
+    progressPercent: Number(session.progressPercent || START_PROGRESS),
+    laneOffsetPx: Number(session.laneOffsetPx || 0),
+    session
+  };
 }
 
 function serverAttackPosition(session) {
   return {
     x: round2(Number(session.progressPercent || START_PROGRESS)),
-    y: round2(Number(session.laneOffsetPx || 0) / BASIC_ATTACK_LANE_TO_PROGRESS)
+    y: round2(Number(session.laneOffsetPx || 0) / SERVER_ACTION_LANE_TO_PROGRESS)
   };
 }
 
@@ -1718,6 +1731,10 @@ function fallbackAimX(session = null, mapId = PUBLIC_MAP_ID) {
   const forward = Number(movement.forward || 0);
   if (Math.abs(forward) > 0.001) return forward < 0 ? -1 : 1;
   return 1;
+}
+
+function normalizeAttackDirection(aimInput = {}) {
+  return Number(aimInput?.x || 0) < 0 ? -1 : 1;
 }
 
 function advanceSession(session, now, phase, mapId = PUBLIC_MAP_ID, options = {}) {
