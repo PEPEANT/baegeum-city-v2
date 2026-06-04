@@ -1,6 +1,13 @@
 # AI Working State
 
 Date: 2026-06-04
+Observed: User diagnosed the live Singularity Race user-room host bug as two stacked issues: newly created user rooms start with entry closed and zero players because the host only creates the room over HTTP, and the host controls live inside the lobby room panel that is hidden on queue/race screens.
+Changed: Updated the Cloudflare player page so a successful user-room create stores the host token, clears the create request busy state, and immediately joins the created room as a player with the host token. Host controls now gain a `cloudflare-host-active` shell state and stay as a fixed top overlay on both queue and race screens instead of disappearing with the lobby room panel. The Cloudflare online smoke now guards the host-create player join and queue/race overlay selectors.
+Verified: `node tools/smoke-singularity-race-cloudflare-online.cjs`, `node --check src/restored/online/singularity-race-cloudflare-client.js`, `node --check tools/smoke-singularity-race-cloudflare-online.cjs`, `npm run check:singularity-race`, `git diff --check`, and full `npm run check` passed. Browser verification on `http://127.0.0.1:4173/singularity-race.html?resetProfile=1&online=cloudflare&serverUrl=wss%3A%2F%2Fsingularity-race-online.rneetn.workers.dev%2Fws` confirmed the host controls stay fixed and clickable on both queue and race screens with no page errors.
+Next: Commit, push, and let the GitHub-triggered Vercel deployment update `https://simulacra-world.vercel.app/`; then verify the live page contains the host overlay and auto host join tokens.
+Do not: Move room-scoped host authority back into lobby-only room-card UI, or make user-room hosts use global admin controls.
+
+Date: 2026-06-04
 Observed: User accepted the conclusion that Singularity Race broadcast CPU waste should be fixed before further attack-range tuning, with the correction that one-pass stringify reduces CPU only while bandwidth remains unchanged.
 Changed: Optimized `SingularityRaceRoom.broadcast(packet)` so each server packet is serialized once before the WebSocket loop, then the same string is sent to every socket. This keeps packet semantics identical while removing per-socket `JSON.stringify(packet)` CPU work.
 Verified: `node --check workers/singularity-race-worker.js`, `node tools/smoke-singularity-race-cloudflare-online.cjs`, `npm run check:singularity-race`, and `git diff --check -- workers/singularity-race-worker.js` passed. Git only reported the usual LF-to-CRLF warning for the Worker file.

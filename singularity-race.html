@@ -1658,6 +1658,45 @@
       opacity: 0.45;
     }
 
+    .shell.cloudflare-host-active[data-screen="queue"] .room-panel,
+    .shell.cloudflare-host-active[data-screen="race"] .room-panel {
+      position: fixed;
+      left: 50%;
+      top: 12px;
+      z-index: 272;
+      display: block;
+      width: min(430px, calc(100vw - 24px));
+      min-height: 0;
+      padding: 0;
+      border: 0;
+      background: transparent;
+      box-shadow: none;
+      transform: translateX(-50%);
+      pointer-events: none;
+    }
+
+    .shell.cloudflare-host-active[data-screen="queue"] .room-panel .panel-header,
+    .shell.cloudflare-host-active[data-screen="race"] .room-panel .panel-header,
+    .shell.cloudflare-host-active[data-screen="queue"] .room-panel .panel-body > :not(#cloudflare-host-controls),
+    .shell.cloudflare-host-active[data-screen="race"] .room-panel .panel-body > :not(#cloudflare-host-controls) {
+      display: none;
+    }
+
+    .shell.cloudflare-host-active[data-screen="queue"] #cloudflare-host-controls,
+    .shell.cloudflare-host-active[data-screen="race"] #cloudflare-host-controls {
+      margin: 0;
+      border-color: rgba(112, 216, 239, 0.46);
+      background: rgba(7, 20, 38, 0.92);
+      box-shadow: 0 14px 36px rgba(0, 0, 0, 0.28);
+      pointer-events: auto;
+      backdrop-filter: blur(14px);
+    }
+
+    .shell.cloudflare-host-active[data-screen="queue"] #cloudflare-host-code,
+    .shell.cloudflare-host-active[data-screen="race"] #cloudflare-host-code {
+      color: rgba(238, 248, 255, 0.74);
+    }
+
     .primary,
     .secondary,
     .ghost {
@@ -8226,8 +8265,10 @@
         writeCloudflareHostToken(payload.roomId, payload.hostToken);
         state.cloudflareHost = true;
         updateCloudflareRoomSummary(payload, { silent: true });
+        state.cloudflareRoomFetchInFlight = false;
         pushSystem(`유저 방 생성 완료: ${payload.roomCode || payload.roomId}`);
         renderAll();
+        await joinCloudflareConnectedRoom("host_create", "player", { autoHostJoin: true });
         return payload;
       } catch (error) {
         state.cloudflareRoomStatus = "error";
@@ -15682,6 +15723,7 @@
       const connected = Boolean(state.connectedSession);
       const hostToken = summary?.roomId ? readCloudflareHostToken(summary.roomId) : "";
       const isHostRoom = online && Boolean(summary?.roomId && hostToken);
+      elements.shell.classList.toggle("cloudflare-host-active", isHostRoom);
       elements.cloudflareCreateRoomButton.hidden = !online || connected;
       elements.cloudflareCreateRoomButton.disabled = state.cloudflareRoomFetchInFlight || connected;
       elements.cloudflareCreateRoomButton.textContent = state.cloudflareRoomFetchInFlight ? "처리 중" : "방 만들기";
