@@ -156,7 +156,7 @@ const finishWindowContract = read("src/restored/games/singularity-race-finish-wi
   "cloudflare-create-room-button",
   "cloudflare-host-start-button", "cloudflare-host-toggle-button",
   "cloudflareHostControlsCollapsed", "renderCloudflareHostControlsCollapsedState", "toggleCloudflareHostControls",
-  "host-controls.is-collapsed .host-actions",
+  "host-controls.is-collapsed .host-actions", "host-controls.is-collapsed .host-controls-header > div",
   'aria-expanded", String(!state.cloudflareHostControlsCollapsed)',
   "runner?.host",
   "방 취소", "window.confirm",
