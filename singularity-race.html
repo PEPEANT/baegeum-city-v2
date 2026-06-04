@@ -6651,6 +6651,7 @@
     import {
       SINGULARITY_RACE_CLOUDFLARE_ROOM_ID,
       createSingularityRaceCloudflareRoomClient,
+      isSingularityRaceCloudflarePublicHost,
       resolveSingularityRaceCloudflareWsUrl
     } from "./src/restored/online/singularity-race-cloudflare-client.js";
     import {
@@ -7130,7 +7131,10 @@
     ];
     const queryParams = new URLSearchParams(window.location.search);
     const devOnlineEnabled = queryParams.get("devOnline") === "1";
-    const cloudflareOnlineEnabled = queryParams.get("online") === "cloudflare" || queryParams.get("cfOnline") === "1";
+    const cloudflarePublicHostEnabled = isSingularityRaceCloudflarePublicHost(window.location);
+    const cloudflareOnlineDisabled = queryParams.get("offline") === "1" || queryParams.get("online") === "local";
+    const cloudflareOnlineEnabled = queryParams.get("online") === "cloudflare" || queryParams.get("cfOnline") === "1"
+      || (cloudflarePublicHostEnabled && !cloudflareOnlineDisabled && !devOnlineEnabled);
     const adminLaunchEnabled = queryParams.get("adminLaunch") === "1";
     const adminObserverEnabled = queryParams.get("adminObserver") === "1";
     const debugUiEnabled = queryParams.get("debug") === "1";

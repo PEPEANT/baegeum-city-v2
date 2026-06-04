@@ -18,6 +18,7 @@ function assertIncludes(source, token, message) {
 execFileSync(process.execPath, ["--check", path.join(root, "workers/singularity-race-worker.js")], { stdio: "pipe" });
 execFileSync(process.execPath, ["--check", path.join(root, "src/restored/online/singularity-race-cloudflare-client.js")], { stdio: "pipe" });
 execFileSync(process.execPath, ["--check", path.join(root, "src/restored/games/singularity-race-finish-window.js")], { stdio: "pipe" });
+execFileSync(process.execPath, ["--input-type=module", "-e", 'import assert from "node:assert/strict"; import { isSingularityRaceCloudflarePublicHost as isPublicHost, resolveSingularityRaceCloudflareWsUrl as resolveWs } from "./src/restored/online/singularity-race-cloudflare-client.js"; assert.equal(isPublicHost({ host: "39826afc.singularity-race-client.pages.dev" }), true); assert.equal(isPublicHost({ host: "simulacra-world.vercel.app" }), true); assert.equal(resolveWs("", { protocol: "https:", host: "39826afc.singularity-race-client.pages.dev" }), "wss://singularity-race-online.rneetn.workers.dev/ws"); assert.equal(resolveWs("", { protocol: "http:", host: "localhost:4173" }), "ws://127.0.0.1:8787/ws");'], { cwd: root, stdio: "pipe" });
 
 const worker = read("workers/singularity-race-worker.js");
 const wrangler = read("wrangler.toml");
@@ -118,6 +119,8 @@ const finishWindowContract = read("src/restored/games/singularity-race-finish-wi
   "SINGULARITY_RACE_CLOUDFLARE_INPUT_MIN_INTERVAL_MS = 100",
   "SINGULARITY_RACE_CLOUDFLARE_SNAPSHOT_HZ = 10",
   "SINGULARITY_RACE_CLOUDFLARE_SNAPSHOT_MAX_HZ = 10",
+  "SINGULARITY_RACE_CLOUDFLARE_PUBLIC_WS_ENDPOINT", "singularity-race-online.rneetn.workers.dev/ws",
+  "isSingularityRaceCloudflarePublicHost", 'host.endsWith(".singularity-race-client.pages.dev")',
   "resolveSingularityRaceCloudflareWsUrl",
   "createSingularityRaceCloudflareRoomClient",
   "join.hostToken"
@@ -125,6 +128,9 @@ const finishWindowContract = read("src/restored/games/singularity-race-finish-wi
 
 [
   'queryParams.get("online") === "cloudflare"',
+  "cloudflarePublicHostEnabled", "cloudflareOnlineDisabled",
+  'queryParams.get("offline") === "1"', 'queryParams.get("online") === "local"',
+  "cloudflarePublicHostEnabled && !cloudflareOnlineDisabled && !devOnlineEnabled", "isSingularityRaceCloudflarePublicHost",
   "CLOUDFLARE_WS_ENDPOINT",
   "joinOnlineConnectedRoom",
   "joinCloudflareConnectedRoom",

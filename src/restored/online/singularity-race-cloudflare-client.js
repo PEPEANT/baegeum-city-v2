@@ -1,12 +1,21 @@
 export const SINGULARITY_RACE_CLOUDFLARE_CLIENT_VERSION = "singularity-race-cloudflare-client-001";
 export const SINGULARITY_RACE_CLOUDFLARE_ROOM_ID = "room:singularity-race:public-001";
+export const SINGULARITY_RACE_CLOUDFLARE_PUBLIC_WS_ENDPOINT = "wss://singularity-race-online.rneetn.workers.dev/ws";
 export const SINGULARITY_RACE_CLOUDFLARE_INPUT_MIN_INTERVAL_MS = 100;
 export const SINGULARITY_RACE_CLOUDFLARE_SNAPSHOT_HZ = 10;
 export const SINGULARITY_RACE_CLOUDFLARE_SNAPSHOT_MAX_HZ = 10;
 
+export function isSingularityRaceCloudflarePublicHost(locationLike = globalThis.location) {
+  const host = String(locationLike?.host || "").toLowerCase();
+  return host === "simulacra-world.vercel.app"
+    || host === "singularity-race-client.pages.dev"
+    || host.endsWith(".singularity-race-client.pages.dev");
+}
+
 export function resolveSingularityRaceCloudflareWsUrl(rawEndpoint = "", locationLike = globalThis.location) {
   const endpoint = String(rawEndpoint || "").trim();
   if (endpoint) return normalizeWsEndpoint(endpoint, locationLike);
+  if (isSingularityRaceCloudflarePublicHost(locationLike)) return SINGULARITY_RACE_CLOUDFLARE_PUBLIC_WS_ENDPOINT;
   const protocol = locationLike?.protocol === "https:" ? "wss:" : "ws:";
   const host = String(locationLike?.host || "");
   if (/^(127\.0\.0\.1|localhost)(:\d+)?$/.test(host)) return "ws://127.0.0.1:8787/ws";

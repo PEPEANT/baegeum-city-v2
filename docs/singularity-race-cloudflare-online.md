@@ -17,7 +17,7 @@ Conclusion: the public online slice uses Cloudflare Workers + Durable Objects fo
 
 - `workers/singularity-race-worker.js`: Cloudflare Worker entry and `SingularityRaceRoom` Durable Object.
 - `wrangler.toml`: Worker + Durable Object binding.
-- `src/restored/online/singularity-race-cloudflare-client.js`: browser WebSocket client used only when `?online=cloudflare` is present.
+- `src/restored/online/singularity-race-cloudflare-client.js`: browser WebSocket client used when `?online=cloudflare` is present, or by default on the public deployment hosts.
 - `tools/smoke-singularity-race-cloudflare-online.cjs`: static contract guard for the online slice.
 
 ## Player URL
@@ -27,6 +27,8 @@ After deploying the Worker, open the game with:
 ```text
 singularity-race.html?online=cloudflare&serverUrl=wss://YOUR-WORKER.YOUR-SUBDOMAIN.workers.dev/ws
 ```
+
+On the current public deployment hosts, the player page also defaults to the public Worker when opened without query parameters. This keeps shared links like `/singularity-race` or Cloudflare Pages preview links from falling back to a disconnected local mode.
 
 Current public Worker:
 
@@ -38,6 +40,7 @@ wss://singularity-race-online.rneetn.workers.dev/ws
 Current public player/dev-admin URLs:
 
 ```text
+https://singularity-race-client.pages.dev/singularity-race
 https://singularity-race-client.pages.dev/singularity-race?online=cloudflare&serverUrl=wss%3A%2F%2Fsingularity-race-online.rneetn.workers.dev%2Fws
 https://singularity-race-client.pages.dev/singularity-race-admin?online=cloudflare&serverUrl=wss%3A%2F%2Fsingularity-race-online.rneetn.workers.dev%2Fws
 ```
