@@ -978,7 +978,6 @@ export class SingularityRaceRoom {
   }
 
   async handleHostEnd() {
-    if (this.roomKind === "user" && !this.resultSnapshot) return json({ ...roomSummary(this), ok: false, reason: "result_not_finalized" }, 409);
     this.markRoomClosed("host_closed_room", Date.now());
     await this.persistRoomState();
     return json({ ...roomSummary(this), ok: true, action: "end", host: true });

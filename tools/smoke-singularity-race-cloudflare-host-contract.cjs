@@ -40,8 +40,17 @@ async function run() {
   const start = await jsonOf(await room.fetch(hostRequest("/host/start", hostToken)));
   assert.deepEqual([start.status, start.body.phase, start.body.entryOpen], [200, "countdown", false], "host start should move to countdown");
 
-  const earlyEnd = await jsonOf(await room.fetch(hostRequest("/host/end", hostToken)));
-  assert.deepEqual([earlyEnd.status, earlyEnd.body.reason], [409, "result_not_finalized"], "host end before final results should be blocked");
+  const cancelRoom = new SingularityRaceRoom(createFakeDurableObjectState(), {});
+  const cancelToken = "unit-cancel-token";
+  const cancelCreate = await jsonOf(await cancelRoom.fetch(new Request("https://unit.test/host/create?roomId=room%3Asingularity-race%3Auser%3ACANCEL&roomCode=CANCEL", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ hostToken: cancelToken, hostClientId: "client:cancel-host", displayName: "Cancel User Room" })
+  })));
+  assert.equal(cancelCreate.status, 200, "cancel-room create should activate a user room");
+  cancelRoom.sessions.set("client:unit-player", createPlayerSession());
+  const earlyEnd = await jsonOf(await cancelRoom.fetch(hostRequest("/host/end", cancelToken)));
+  assert.deepEqual([earlyEnd.status, earlyEnd.body.roomActive, earlyEnd.body.roomStatus, cancelRoom.hostToken], [200, false, "closed", ""], "host end before final results should cancel and close the room");
 
   const now = Date.now();
   const player = room.sessions.get("client:unit-player");

@@ -7635,6 +7635,8 @@
     });
 
     elements.cloudflareHostEndButton.addEventListener("click", () => {
+      const summary = getCurrentConnectedRoomSummary();
+      if (!summary?.resultSnapshot && !window.confirm("결과 확정 전 방을 종료할까요? 현재 판은 취소되고 참가자는 로비로 돌아갑니다.")) return;
       void requestCloudflareHostAction("end");
     });
 
@@ -7933,6 +7935,7 @@
         const summary = updateCloudflareRoomSummary(packet.payload?.summary || { roomActive: false, roomStatus: "closed" }, { silent: true });
         const snapshot = normalizeCloudflareResultSnapshot(packet.payload?.resultSnapshot || summary?.resultSnapshot || null);
         if (snapshot) applyCloudflareResultSnapshot(snapshot, { show: true, roomClosed: true, render: false });
+        if (summary?.roomId) clearCloudflareHostToken(summary.roomId);
         const currentClient = cloudflareRoomClient;
         cloudflareRoomClient = null;
         currentClient?.close();
@@ -15736,7 +15739,8 @@
       elements.cloudflareHostCode.textContent = `CODE ${summary.roomCode || summary.roomId}`;
       elements.cloudflareHostOpenButton.disabled = state.cloudflareRoomFetchInFlight || !canLobbyCommand || summary.entryOpen === true;
       elements.cloudflareHostStartButton.disabled = state.cloudflareRoomFetchInFlight || !canLobbyCommand || summary.entryOpen === false || Number(summary.players || 0) <= 0;
-      elements.cloudflareHostEndButton.disabled = state.cloudflareRoomFetchInFlight || summary.roomActive === false || !resultFinalized;
+      elements.cloudflareHostEndButton.textContent = resultFinalized ? "방 종료" : "방 취소";
+      elements.cloudflareHostEndButton.disabled = state.cloudflareRoomFetchInFlight || summary.roomActive === false || summary.roomStatus === "closed" || summary.roomStatus === "deleted";
     }
 
     function renderConnectedPackets() {
