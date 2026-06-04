@@ -97,12 +97,22 @@ async function assertUserRoomDirectory(SingularityRaceRoom) {
     body: JSON.stringify({ hostClientId: "client:directory-host", displayName: "Directory Room" })
   })));
   assert.equal(create.status, 200, "public room registry should create a user room");
-  const summary = await jsonOf(await publicRoom.fetch(new Request("https://unit.test/summary?includeUserRooms=1")));
-  assert.equal(summary.status, 200, "public summary should expose room directory");
-  assert.equal(summary.body.userRooms.length, 1, "public summary should include active user rooms");
-  assert.equal(summary.body.userRooms[0].roomId, create.body.roomId, "directory entry should point at the created room");
-  assert.equal(summary.body.userRooms[0].participants, undefined, "directory entries should not include participant snapshots");
-  assert.ok(summary.body.rooms.some((room) => room.roomId === create.body.roomId), "combined room list should include the created room");
+  const emptySummary = await jsonOf(await publicRoom.fetch(new Request("https://unit.test/summary?includeUserRooms=1")));
+  assert.equal(emptySummary.status, 200, "public summary should expose room directory");
+  assert.equal(emptySummary.body.userRooms.length, 0, "zero-player user rooms should not appear as joinable ghost rooms");
+
+  const userRoom = namespace.getRoom(create.body.roomId);
+  userRoom.sessions.set("client:directory-host", createPlayerSession({ clientId: "client:directory-host", host: true }));
+  const liveSummary = await jsonOf(await publicRoom.fetch(new Request("https://unit.test/summary?includeUserRooms=1")));
+  assert.equal(liveSummary.body.userRooms.length, 1, "public summary should include live user rooms with a connected host");
+  assert.equal(liveSummary.body.userRooms[0].roomId, create.body.roomId, "directory entry should point at the created room");
+  assert.equal(liveSummary.body.userRooms[0].participants, undefined, "directory entries should not include participant snapshots");
+  assert.ok(liveSummary.body.rooms.some((room) => room.roomId === create.body.roomId), "combined room list should include the created room");
+
+  userRoom.entryOpen = true;
+  userRoom.sessions.set("client:late-player", createPlayerSession({ clientId: "client:late-player" }));
+  const openSummary = await jsonOf(await publicRoom.fetch(new Request("https://unit.test/summary?includeUserRooms=1")));
+  assert.deepEqual([openSummary.body.userRooms.length, openSummary.body.userRooms[0].entryOpen, openSummary.body.userRooms[0].players], [1, true, 2], "entry-open lobby rooms should stay visible for late joins before countdown");
 }
 
 function hostRequest(pathname, hostToken) {

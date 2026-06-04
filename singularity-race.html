@@ -8585,7 +8585,12 @@
     }
 
     function isCloudflareVisibleUserRoom(room = {}) {
-      return room.roomKind === "user" && room.roomActive !== false && !["closed", "deleted"].includes(room.roomStatus);
+      return room.roomKind === "user"
+        && room.roomActive !== false
+        && !["closed", "deleted", "results_finalized"].includes(room.roomStatus)
+        && (room.phase || "lobby") === "lobby"
+        && Number(room.players || 0) > 0
+        && Number(room.players || 0) < Number(room.maxPlayers || 50);
     }
 
     function isCloudflareClosedRoom(room = {}) {
@@ -8610,6 +8615,18 @@
       if (summary) updateCloudflareRoomSummary(summary, { silent: true });
       renderAll();
       void refreshCloudflarePublicRoomSummary("silent");
+    }
+
+    function maybeAutoSelectVisibleCloudflareUserRoom(options = {}) {
+      if (!cloudflareOnlineEnabled || state.connectedSession) return false;
+      if (CLOUDFLARE_ROOM_ID !== SINGULARITY_RACE_CLOUDFLARE_ROOM_ID) return false;
+      const room = state.cloudflareRoomDirectory.find(isCloudflareVisibleUserRoom);
+      if (!room) return false;
+      setCloudflareRoomId(room.roomId, { updateUrl: options.updateUrl !== false });
+      state.cloudflareRoomSummary = normalizeCloudflareRoomSummary(room);
+      state.cloudflareRoomStatus = "ready";
+      state.cloudflareRoomError = "";
+      return true;
     }
 
     function resolveCloudflareHttpEndpoint(wsEndpoint = "") {
@@ -8775,11 +8792,15 @@
           ]);
         const resolvedDirectoryPayload = directoryPayload || payload;
         updateCloudflareRoomDirectory(resolvedDirectoryPayload);
-        const summary = updateCloudflareRoomSummary(payload, { silent: true });
+        const autoSelectedUserRoom = maybeAutoSelectVisibleCloudflareUserRoom({ updateUrl: true });
+        const summary = autoSelectedUserRoom
+          ? state.cloudflareRoomSummary
+          : updateCloudflareRoomSummary(payload, { silent: true });
         if (!state.connectedSession && summary?.roomKind === "user" && isCloudflareClosedRoom(summary)) {
           clearCloudflareHostToken(summary.roomId);
           setCloudflareRoomId(SINGULARITY_RACE_CLOUDFLARE_ROOM_ID, { updateUrl: true });
           updateCloudflareRoomSummary(resolvedDirectoryPayload, { silent: true });
+          maybeAutoSelectVisibleCloudflareUserRoom({ updateUrl: true });
         }
         renderAll();
         return state.cloudflareRoomSummary;
@@ -13570,8 +13591,15 @@
       const fallbackRoomDisplayName = (cloudflareOnlineEnabled || devOnlineEnabled || adminLaunchEnabled)
         ? "생성된 방 없음"
         : "로컬 테스트방";
-      elements.roomDisplayName.textContent = summary?.displayName || activeDevRoom?.displayName || fallbackRoomDisplayName;
+      const showingCloudflarePublicAnchor = cloudflareOnlineEnabled
+        && summary?.roomId === SINGULARITY_RACE_CLOUDFLARE_ROOM_ID
+        && summary?.roomKind !== "user";
+      elements.roomDisplayName.textContent = showingCloudflarePublicAnchor
+        ? "참여 가능한 유저방 없음"
+        : (summary?.displayName || activeDevRoom?.displayName || fallbackRoomDisplayName);
+      if (elements.roomCardBadge && summary && showingCloudflarePublicAnchor) elements.roomCardBadge.textContent = "대기";
       if (elements.roomCardBadge && summary) elements.roomCardBadge.textContent = summary.roomKind === "user" ? "유저방" : "공개방";
+      if (elements.roomCardBadge && summary && showingCloudflarePublicAnchor) elements.roomCardBadge.textContent = "대기";
       const waitingForOperatorStart = Boolean(state.connectedSession)
         && state.screen === SINGULARITY_RACE_SCREENS.QUEUE
         && !state.action.raceStarted;

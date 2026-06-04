@@ -1,6 +1,13 @@
 # AI Working State
 
 Date: 2026-06-04
+Observed: User showed the room list displaying a ghost user room with `0/50` players while the selected room panel still showed the internal public room anchor `특이점레이스 공개방 001` as if it were a playable room. User also clarified that after entry opens, late players should still be able to join before the host starts the race.
+Changed: Tightened the Cloudflare user-room directory on both Worker and player page. The Worker now omits zero-player user rooms from `includeUserRooms=1` directory results, keeps only a short creation grace for room-count limiting, and treats entry-open lobby rooms with connected players as visible/joinable until countdown starts. The player page now filters visible user-room cards by live player count/lobby phase, auto-selects the first visible user room when the internal public anchor is selected, and displays the public anchor as `참여 가능한 유저방 없음` instead of a normal selected room title.
+Verified: `node --check workers/singularity-race-worker.js`, `node --check tools/smoke-singularity-race-cloudflare-host-contract.cjs`, `node --check tools/smoke-singularity-race-cloudflare-online.cjs`, `node tools/smoke-singularity-race-cloudflare-host-contract.cjs`, `node tools/smoke-singularity-race-cloudflare-online.cjs`, and `npm run check:singularity-race` passed.
+Next: Run full `npm run check`, then commit/push/deploy if the user wants this hotfix live.
+Do not: Re-show zero-player user rooms as joinable cards, or let the fixed public room anchor appear as the normal player-selected room.
+
+Date: 2026-06-04
 Observed: User confirmed the public room should disappear from the normal player room list, while still serving as the internal directory/admin anchor. Attached diagnosis showed the current room summary request and room-directory request were coupled to `CLOUDFLARE_ROOM_ID`, so user-room selection stopped directory refreshes from asking the public room for `includeUserRooms=1`.
 Changed: Split Cloudflare selected-room summary fetches from room-directory fetches in `singularity-race.html`. Directory refresh now always requests `room:singularity-race:public-001` with `includeUserRooms=1`, even while the selected room is a user room. The player room directory now stores/renders only active non-closed user rooms, so the fixed public room no longer appears as a lobby card. If a selected user room is closed/deleted while not connected, the client clears its host token and returns selection to the public anchor. Updated the Cloudflare online smoke and docs to lock this separation.
 Verified: `node tools/smoke-singularity-race-cloudflare-online.cjs`, `npm run check:singularity-race`, `node tools/check-size.cjs`, `git diff --check`, and full `npm run check` passed.

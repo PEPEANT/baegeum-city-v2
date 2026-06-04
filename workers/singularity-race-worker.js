@@ -36,6 +36,7 @@ const USER_ROOM_CREATE_COOLDOWN_MS = 60000;
 const USER_ROOM_MAX_ACTIVE = 12;
 const USER_ROOM_EMPTY_IDLE_MS = 3 * 60 * 1000;
 const USER_ROOM_UNSTARTED_DELETE_MS = 10 * 60 * 1000;
+const USER_ROOM_REGISTRY_GRACE_MS = 15000;
 const USER_ROOM_RESULT_CLOSE_MS = 3 * 60 * 1000;
 const USER_ROOM_DELETE_AFTER_CLOSED_MS = 10 * 60 * 1000;
 const ROOM_NAME = "특이점레이스 공개방 001";
@@ -1050,7 +1051,7 @@ export class SingularityRaceRoom {
         retryAfterMs: retryAtMs - now
       }, 429);
     }
-    const activeUserRooms = countActiveUserRoomRegistry(this.userRoomRegistry);
+    const activeUserRooms = countActiveUserRoomRegistry(this.userRoomRegistry, now);
     if (activeUserRooms >= USER_ROOM_MAX_ACTIVE) {
       return json({
         ok: false,
@@ -1087,6 +1088,8 @@ export class SingularityRaceRoom {
         hostClientId: normalizeClientId(body?.hostClientId),
         roomStatus: "open",
         roomActive: true,
+        phase: "lobby",
+        players: 0,
         createdAtMs: now,
         lastSeenAtMs: now,
         closedAtMs: 0,
@@ -1125,7 +1128,7 @@ export class SingularityRaceRoom {
   async collectUserRoomSummaries(url) {
     const rooms = [];
     for (const record of normalizeUserRoomRegistry(this.userRoomRegistry)) {
-      if (record.roomActive === false || ["closed", "deleted"].includes(record.roomStatus)) continue;
+      if (!isActiveUserRoomRegistryRecord(record)) continue;
       const roomId = normalizeRoomId(record.roomId || record.roomCode);
       if (!isUserRoomId(roomId)) continue;
       try {
@@ -1133,6 +1136,7 @@ export class SingularityRaceRoom {
         const summary = await response.json().catch(() => null);
         if (!response.ok || !summary?.ok || summary.roomActive === false) continue;
         if (["closed", "deleted"].includes(summary.roomStatus)) continue;
+        if (!isUserRoomDirectorySummaryVisible(summary)) continue;
         rooms.push(roomDirectorySummary(summary));
       } catch {}
     }
@@ -1149,10 +1153,13 @@ export class SingularityRaceRoom {
         const response = await roomStub(this.env, roomId).fetch(new Request(`${url.origin}/summary?roomId=${encodeURIComponent(roomId)}`));
         const summary = await response.json().catch(() => null);
         if (!response.ok || !summary?.ok || summary.roomStatus === "deleted") continue;
+        if (summary.roomActive === false || ["closed", "deleted"].includes(summary.roomStatus)) continue;
         nextRecord = {
           ...nextRecord,
           roomStatus: summary.roomStatus || (summary.roomActive === false ? "closed" : "open"),
           roomActive: summary.roomActive !== false,
+          phase: summary.phase || "lobby",
+          players: Math.max(0, Number(summary.players || 0)),
           closedAtMs: Number(summary.closedAtMs || 0),
           deleteAfterMs: Number(summary.deleteAfterMs || 0),
           lastSeenAtMs: now
@@ -1977,6 +1984,8 @@ function normalizeUserRoomRegistry(value) {
       hostClientId: normalizeClientId(record?.hostClientId),
       roomStatus: sanitizeRoomStatus(record?.roomStatus),
       roomActive: record?.roomActive !== false,
+      phase: sanitizePhase(record?.phase),
+      players: Math.max(0, Number(record?.players || 0)),
       createdAtMs: Math.max(0, Number(record?.createdAtMs || 0)),
       lastSeenAtMs: Math.max(0, Number(record?.lastSeenAtMs || 0)),
       closedAtMs: Math.max(0, Number(record?.closedAtMs || 0)),
@@ -1994,8 +2003,21 @@ function normalizeCooldownRegistry(value) {
 function pruneCooldownRegistry(value, now = Date.now()) {
   return Object.fromEntries(Object.entries(normalizeCooldownRegistry(value)).filter(([, retryAtMs]) => retryAtMs > now));
 }
-function countActiveUserRoomRegistry(registry) {
-  return normalizeUserRoomRegistry(registry).filter((record) => record.roomActive !== false && !["closed", "deleted"].includes(record.roomStatus)).length;
+function countActiveUserRoomRegistry(registry, now = Date.now()) {
+  return normalizeUserRoomRegistry(registry).filter((record) => isActiveUserRoomRegistryRecord(record, now)).length;
+}
+function isActiveUserRoomRegistryRecord(record, now = Date.now()) {
+  if (record?.roomActive === false || ["closed", "deleted"].includes(record?.roomStatus)) return false;
+  const ageMs = now - Math.max(0, Number(record?.createdAtMs || 0));
+  return Number(record?.players || 0) > 0 || ageMs <= USER_ROOM_REGISTRY_GRACE_MS;
+}
+function isUserRoomDirectorySummaryVisible(summary = {}) {
+  if (summary.roomKind !== "user" && !isUserRoomId(summary.roomId)) return false;
+  if (summary.roomActive === false || ["closed", "deleted", "results_finalized"].includes(summary.roomStatus)) return false;
+  if ((summary.phase || "lobby") !== "lobby") return false;
+  if (Number(summary.players || 0) <= 0) return false;
+  if (Number(summary.players || 0) >= Number(summary.maxPlayers || MAX_RUNNERS)) return false;
+  return true;
 }
 function upsertUserRoomRegistry(registry, nextRecord) {
   const roomId = normalizeRoomId(nextRecord?.roomId || nextRecord?.roomCode);
