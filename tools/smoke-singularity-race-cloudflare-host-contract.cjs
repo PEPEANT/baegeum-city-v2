@@ -40,8 +40,27 @@ async function run() {
   const start = await jsonOf(await room.fetch(hostRequest("/host/start", hostToken)));
   assert.deepEqual([start.status, start.body.phase, start.body.entryOpen], [200, "countdown", false], "host start should move to countdown");
 
+  const earlyEnd = await jsonOf(await room.fetch(hostRequest("/host/end", hostToken)));
+  assert.deepEqual([earlyEnd.status, earlyEnd.body.reason], [409, "result_not_finalized"], "host end before final results should be blocked");
+
+  const now = Date.now();
+  const player = room.sessions.get("client:unit-player");
+  Object.assign(player, {
+    progressPercent: 100,
+    finishedAtMs: now - 31000
+  });
+  room.sessions.set(player.clientId, player);
+  Object.assign(room, {
+    phase: "racing",
+    raceStartedAtMs: now - 60000,
+    finishWindowStartedAtMs: now - 31000,
+    finishWindowEndsAtMs: now - 1
+  });
+  assert.equal(room.refreshPhase(now), true, "expired finish window should create server result snapshot");
+  assert.equal(room.resultSnapshot?.rankings?.[0]?.rank, 1, "server result snapshot should rank the player once");
+
   const end = await jsonOf(await room.fetch(hostRequest("/host/end", hostToken)));
-  assert.deepEqual([end.status, end.body.roomActive, room.hostToken], [200, false, ""], "host end should deactivate and clear token");
+  assert.deepEqual([end.status, end.body.roomActive, end.body.roomStatus, room.hostToken], [200, false, "closed", ""], "host end should close finalized room and clear token");
   if (room.countdownTimer) clearTimeout(room.countdownTimer);
   if (room.serverTickTimer) clearTimeout(room.serverTickTimer);
 }

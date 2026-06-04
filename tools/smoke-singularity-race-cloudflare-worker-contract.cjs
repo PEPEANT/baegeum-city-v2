@@ -207,6 +207,7 @@ function assertFinishedPhaseClosesEntry(room, playerSession) {
   assert.deepEqual([room.phase, room.finishWindowEndsAtMs], ["racing", now + 30000], "all finished players should wait through the fixed 30 second finish window");
   assert.equal(room.refreshPhase(room.finishWindowEndsAtMs + 1), true, "expired finish window should close the racing phase");
   assert.deepEqual([room.phase, room.entryOpen], ["finished", false], "finish-window expiry should move the room to finished and keep entry closed");
+  assert.ok(room.resultSnapshot?.rankings?.length === 1, "finish-window expiry should create one authoritative result snapshot");
 }
 
 function createPlayerSession(overrides = {}) {

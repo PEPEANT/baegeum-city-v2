@@ -30,6 +30,12 @@ const USER_ROOM_PREFIX = "room:singularity-race:user:";
 const USER_ROOM_CODE_LENGTH = 6;
 const USER_ROOM_CODE_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
 const HOST_TOKEN_LENGTH = 32;
+const USER_ROOM_CREATE_COOLDOWN_MS = 60000;
+const USER_ROOM_MAX_ACTIVE = 12;
+const USER_ROOM_EMPTY_IDLE_MS = 3 * 60 * 1000;
+const USER_ROOM_UNSTARTED_DELETE_MS = 10 * 60 * 1000;
+const USER_ROOM_RESULT_CLOSE_MS = 3 * 60 * 1000;
+const USER_ROOM_DELETE_AFTER_CLOSED_MS = 10 * 60 * 1000;
 const ROOM_NAME = "특이점레이스 공개방 001";
 const MAX_RUNNERS = 50;
 const MAX_SPECTATORS = 32;
@@ -102,6 +108,16 @@ export class SingularityRaceRoom {
     this.roomName = ROOM_NAME;
     this.hostToken = "";
     this.hostClientId = "";
+    this.roomStatus = "open";
+    this.createdAtMs = 0;
+    this.lastActivityAtMs = 0;
+    this.resultSnapshot = null;
+    this.resultFinalizedAtMs = 0;
+    this.closedAtMs = 0;
+    this.deleteAfterMs = 0;
+    this.userRoomRegistry = [];
+    this.roomCreateCooldowns = {};
+    this.registryLoaded = false;
     this.roomStateLoaded = false;
     this.storageAvailable = true;
     this.countdownTimer = null;
@@ -113,7 +129,8 @@ export class SingularityRaceRoom {
     const url = new URL(request.url);
     this.applyRoomIdentityFromUrl(url);
     await this.loadRoomState();
-    if (this.refreshPhase(Date.now())) await this.persistRoomState();
+    await this.refreshRuntime(Date.now());
+    if (url.pathname === "/rooms/create") return this.handleCreateUserRoomRequest(request, url);
     if (url.pathname.endsWith("/summary")) return json(roomSummary(this));
     if (url.pathname.startsWith("/host/")) return this.handleHostRequest(request, url);
     if (url.pathname.startsWith("/admin/")) return this.handleAdminRequest(request, url);
@@ -133,7 +150,7 @@ export class SingularityRaceRoom {
 
   async webSocketMessage(socket, message) {
     await this.loadRoomState();
-    if (this.refreshPhase(Date.now())) await this.persistRoomState();
+    await this.refreshRuntime(Date.now());
     const packet = parsePacket(message);
     const session = this.getSession(socket);
     if (!packet || !session) return send(socket, this.serverPacket("error", { reason: "bad_packet" }));
@@ -203,6 +220,7 @@ export class SingularityRaceRoom {
     this.state.acceptWebSocket(server);
     server.serializeAttachment(session);
     this.sessions.set(session.clientId, session);
+    this.lastActivityAtMs = now;
     this.broadcast(this.serverPacket("presence_update", { summary: roomSummary(this) }));
     send(server, this.serverPacket("hello_result", {
       ok: true,
@@ -225,6 +243,7 @@ export class SingularityRaceRoom {
 
   handleChat(socket, session, packet) {
     const now = Date.now();
+    if (!isRoomInteractionOpen(this)) return send(socket, this.serverPacket("error", { reason: "room_closed" }, session));
     const gate = acceptChat(session, now);
     if (!gate.ok) return send(socket, this.serverPacket("rate_limited", gate, session));
     const text = cleanText(packet.payload?.text, 140);
@@ -241,12 +260,14 @@ export class SingularityRaceRoom {
       moderationStatus: "approved"
     };
     this.chatHistory = [...this.chatHistory, message].slice(-CHAT_LIMIT);
+    this.lastActivityAtMs = now;
     this.broadcast(this.serverPacket("chat_delivered", { message }, session));
   }
 
   async handleInput(socket, session, packet) {
     const now = Date.now();
     if (session.participantType !== "player") return send(socket, this.serverPacket("error", { reason: "spectator_input_blocked" }, session));
+    if (!isRoomInteractionOpen(this)) return send(socket, this.serverPacket("error", { reason: "room_closed" }, session));
     if (!acceptInput(session, now)) return send(socket, this.serverPacket("rate_limited", { reason: "input_10hz_limit" }, session));
     if (!canAdvancePlayerMovement(this) || session.finishedAtMs !== null) {
       updateSessionSequence(session, packet.sequence || packet.payload?.sequence || 0);
@@ -255,6 +276,7 @@ export class SingularityRaceRoom {
       return;
     }
     recordSessionInput(session, packet.payload || {}, now, packet.sequence || packet.payload?.sequence || 0);
+    this.lastActivityAtMs = now;
     socket.serializeAttachment(session);
     this.sessions.set(session.clientId, session);
     this.scheduleServerTick();
@@ -272,7 +294,7 @@ export class SingularityRaceRoom {
   handleAttack(socket, session, packet) {
     const now = Date.now();
     if (session.participantType !== "player") return send(socket, this.serverPacket("error", { reason: "participant_cannot_attack" }, session));
-    if (!this.roomActive) return send(socket, this.serverPacket("error", { reason: "room_not_created" }, session));
+    if (!isRoomInteractionOpen(this)) return send(socket, this.serverPacket("error", { reason: this.roomActive === false ? "room_not_created" : "room_closed" }, session));
     if (!canAttackInPhase(this.phase, this.entryOpen)) return send(socket, this.serverPacket("error", { reason: "race_not_attackable" }, session));
     const sequence = Math.max(1, Number(packet.sequence || packet.payload?.sequence || 1));
     if (sequence <= Number(session.lastAttackSequence || 0)) return send(socket, this.serverPacket("error", { reason: "stale_attack" }, session));
@@ -311,7 +333,7 @@ export class SingularityRaceRoom {
   handleSkill(socket, session, packet) {
     const now = Date.now();
     if (session.participantType !== "player") return send(socket, this.serverPacket("error", { reason: "participant_cannot_skill" }, session));
-    if (!this.roomActive) return send(socket, this.serverPacket("error", { reason: "room_not_created" }, session));
+    if (!isRoomInteractionOpen(this)) return send(socket, this.serverPacket("error", { reason: this.roomActive === false ? "room_not_created" : "room_closed" }, session));
     if (this.phase !== "racing") return send(socket, this.serverPacket("error", { reason: "race_not_running" }, session));
     if (Number(session.stunnedUntilMs || 0) > now || Number(session.actionLockedUntilMs || 0) > now) {
       return send(socket, this.serverPacket("error", { reason: "participant_control_locked" }, session));
@@ -364,6 +386,12 @@ export class SingularityRaceRoom {
     this.finishWindowStartedAtMs = 0;
     this.finishWindowEndsAtMs = 0;
     this.entryOpen = false;
+    this.roomStatus = "open";
+    this.resultSnapshot = null;
+    this.resultFinalizedAtMs = 0;
+    this.closedAtMs = 0;
+    this.deleteAfterMs = 0;
+    this.lastActivityAtMs = now;
     await this.persistRoomState();
     await this.safeSetAlarm(this.countdownEndsAtMs + 25);
     this.scheduleCountdownTimer();
@@ -383,6 +411,12 @@ export class SingularityRaceRoom {
     this.finishWindowStartedAtMs = 0;
     this.finishWindowEndsAtMs = 0;
     this.entryOpen = ENTRY_OPEN_DEFAULT;
+    this.roomStatus = "open";
+    this.resultSnapshot = null;
+    this.resultFinalizedAtMs = 0;
+    this.closedAtMs = 0;
+    this.deleteAfterMs = 0;
+    this.lastActivityAtMs = Date.now();
     this.chatHistory = [];
     await this.persistRoomState();
     await this.safeDeleteAlarm();
@@ -398,6 +432,7 @@ export class SingularityRaceRoom {
   }
 
   async createRoom(reason = "admin_create_room") {
+    const now = Date.now();
     this.roomActive = true;
     this.phase = "lobby";
     this.countdownEndsAtMs = 0;
@@ -405,6 +440,13 @@ export class SingularityRaceRoom {
     this.finishWindowStartedAtMs = 0;
     this.finishWindowEndsAtMs = 0;
     this.entryOpen = ENTRY_OPEN_DEFAULT;
+    this.roomStatus = "open";
+    this.createdAtMs = now;
+    this.lastActivityAtMs = now;
+    this.resultSnapshot = null;
+    this.resultFinalizedAtMs = 0;
+    this.closedAtMs = 0;
+    this.deleteAfterMs = 0;
     this.chatHistory = [];
     await this.persistRoomState();
     await this.safeDeleteAlarm();
@@ -424,6 +466,11 @@ export class SingularityRaceRoom {
     this.finishWindowStartedAtMs = 0;
     this.finishWindowEndsAtMs = 0;
     this.entryOpen = ENTRY_OPEN_DEFAULT;
+    this.roomStatus = this.roomKind === "user" ? "closed" : "open";
+    this.closedAtMs = this.roomKind === "user" ? Date.now() : 0;
+    this.deleteAfterMs = this.roomKind === "user" ? this.closedAtMs + USER_ROOM_DELETE_AFTER_CLOSED_MS : 0;
+    this.resultSnapshot = this.roomKind === "user" ? this.resultSnapshot : null;
+    this.resultFinalizedAtMs = this.roomKind === "user" ? this.resultFinalizedAtMs : 0;
     this.chatHistory = [];
     await this.persistRoomState();
     await this.safeDeleteAlarm();
@@ -442,9 +489,97 @@ export class SingularityRaceRoom {
     this.sessions.clear();
   }
 
+  async refreshRuntime(now = Date.now()) {
+    const phaseChanged = this.refreshPhase(now);
+    const lifecycleChanged = await this.refreshLifecycle(now);
+    if (phaseChanged || lifecycleChanged) await this.persistRoomState();
+    return phaseChanged || lifecycleChanged;
+  }
+
+  async refreshLifecycle(now = Date.now()) {
+    if (!shouldAutoLifecycleRoom(this) || this.roomStatus === "deleted") return false;
+    const createdAtMs = Number(this.createdAtMs || now);
+    const lastActivityAtMs = Number(this.lastActivityAtMs || createdAtMs || now);
+    if (this.roomActive !== false && this.phase === "lobby" && !this.resultSnapshot) {
+      const emptyIdle = this.sessions.size <= 0 && now - lastActivityAtMs >= USER_ROOM_EMPTY_IDLE_MS;
+      const unstartedExpired = now - createdAtMs >= USER_ROOM_UNSTARTED_DELETE_MS;
+      if (emptyIdle || unstartedExpired) return this.markRoomDeleted(emptyIdle ? "idle_unstarted_room" : "unstarted_room_expired", now);
+      await this.safeSetAlarm(Math.min(lastActivityAtMs + USER_ROOM_EMPTY_IDLE_MS, createdAtMs + USER_ROOM_UNSTARTED_DELETE_MS) + 25);
+      return false;
+    }
+    if (this.roomStatus === "results_finalized" && Number(this.resultFinalizedAtMs || 0) > 0) {
+      const closeAtMs = Number(this.resultFinalizedAtMs || now) + USER_ROOM_RESULT_CLOSE_MS;
+      if (now >= closeAtMs) return this.markRoomClosed("results_auto_closed", now);
+      await this.safeSetAlarm(closeAtMs + 25);
+      return false;
+    }
+    if (this.roomStatus === "closed" && Number(this.deleteAfterMs || 0) > 0) {
+      if (now >= Number(this.deleteAfterMs || 0)) return this.markRoomDeleted("closed_ttl_expired", now);
+      await this.safeSetAlarm(Number(this.deleteAfterMs || 0) + 25);
+    }
+    return false;
+  }
+
+  markRoomClosed(reason = "room_closed", now = Date.now()) {
+    if (this.roomStatus === "closed" || this.roomStatus === "deleted") return false;
+    this.roomStatus = "closed";
+    this.roomActive = false;
+    this.entryOpen = false;
+    this.countdownEndsAtMs = 0;
+    this.hostToken = "";
+    this.hostClientId = "";
+    this.closedAtMs = now;
+    this.deleteAfterMs = now + USER_ROOM_DELETE_AFTER_CLOSED_MS;
+    if (this.resultSnapshot) this.phase = "finished";
+    this.clearServerTick();
+    const packet = this.serverPacket("room_closed", {
+      reason,
+      summary: roomSummary(this),
+      resultSnapshot: this.resultSnapshot,
+      serverOwned: true
+    });
+    for (const socket of this.state.getWebSockets()) {
+      try {
+        socket.send(JSON.stringify(packet));
+        socket.close(4000, reason);
+      } catch {}
+    }
+    this.sessions.clear();
+    this.safeSetAlarm(this.deleteAfterMs + 25);
+    return true;
+  }
+
+  markRoomDeleted(reason = "room_deleted", now = Date.now()) {
+    this.roomStatus = "deleted";
+    this.roomActive = false;
+    this.entryOpen = false;
+    this.phase = "lobby";
+    this.countdownEndsAtMs = 0;
+    this.raceStartedAtMs = 0;
+    this.finishWindowStartedAtMs = 0;
+    this.finishWindowEndsAtMs = 0;
+    this.hostToken = "";
+    this.hostClientId = "";
+    this.closedAtMs = this.closedAtMs || now;
+    this.deleteAfterMs = now;
+    this.resultSnapshot = null;
+    this.resultFinalizedAtMs = 0;
+    this.chatHistory = [];
+    this.clearServerTick();
+    for (const socket of this.state.getWebSockets()) {
+      try {
+        socket.send(JSON.stringify(this.serverPacket("room_deleted", { reason, serverOwned: true })));
+        socket.close(4000, reason);
+      } catch {}
+    }
+    this.sessions.clear();
+    this.safeDeleteAlarm();
+    return true;
+  }
+
   async alarm() {
     await this.loadRoomState();
-    if (this.refreshPhase(Date.now())) await this.persistRoomState();
+    await this.refreshRuntime(Date.now());
     this.broadcastSnapshot(true);
   }
 
@@ -459,6 +594,7 @@ export class SingularityRaceRoom {
       serverOwned: true,
       serverTimeMs: now,
       phase: this.phase,
+      roomStatus: this.roomStatus,
       entryOpen: this.entryOpen,
       roomActive: this.roomActive !== false,
       mapId: this.mapId,
@@ -466,6 +602,10 @@ export class SingularityRaceRoom {
       raceStartedAtMs: this.raceStartedAtMs,
       finishWindowStartedAtMs: this.finishWindowStartedAtMs,
       finishWindowEndsAtMs: this.finishWindowEndsAtMs,
+      resultSnapshot: this.resultSnapshot,
+      resultFinalizedAtMs: this.resultFinalizedAtMs,
+      closedAtMs: this.closedAtMs,
+      deleteAfterMs: this.deleteAfterMs,
       ...finishWindowSummary(this, now),
       participants: participantSnapshots(this, now)
     }));
@@ -484,10 +624,11 @@ export class SingularityRaceRoom {
   }
 
   broadcast(packet) {
+    const message = JSON.stringify(packet);
     let count = 0;
     for (const socket of this.state.getWebSockets()) {
       try {
-        socket.send(JSON.stringify(packet));
+        socket.send(message);
         count += 1;
       } catch {
         this.disconnectSocket(socket, "send_failed");
@@ -504,19 +645,24 @@ export class SingularityRaceRoom {
   }
 
   async disconnectSocket(socket, reason) {
+    const now = Date.now();
     const session = this.getSession(socket);
     if (!session) return;
     this.sessions.delete(session.clientId);
+    this.lastActivityAtMs = now;
     if (this.sessions.size === 0) {
       const wasActive = this.phase !== "lobby";
-      this.phase = "lobby";
-      this.countdownEndsAtMs = 0;
-      this.raceStartedAtMs = 0;
-      this.finishWindowStartedAtMs = 0;
-      this.finishWindowEndsAtMs = 0;
-      if (wasActive) this.entryOpen = ENTRY_OPEN_DEFAULT;
+      if (!this.resultSnapshot) {
+        this.phase = "lobby";
+        this.countdownEndsAtMs = 0;
+        this.raceStartedAtMs = 0;
+        this.finishWindowStartedAtMs = 0;
+        this.finishWindowEndsAtMs = 0;
+        if (wasActive) this.entryOpen = ENTRY_OPEN_DEFAULT;
+      }
       await this.persistRoomState();
-      await this.safeDeleteAlarm();
+      if (shouldAutoLifecycleRoom(this) && !this.resultSnapshot) await this.safeSetAlarm(now + USER_ROOM_EMPTY_IDLE_MS + 25);
+      else await this.safeDeleteAlarm();
       this.clearServerTick();
     }
     this.broadcast(this.serverPacket("disconnect_notice", {
@@ -572,14 +718,22 @@ export class SingularityRaceRoom {
         this.phase = "finished";
         this.countdownEndsAtMs = 0;
         this.entryOpen = ENTRY_OPEN_DEFAULT;
+        if (!this.resultSnapshot) {
+          this.resultSnapshot = createRoomResultSnapshot(this, now);
+          this.resultFinalizedAtMs = now;
+        }
+        if (shouldAutoLifecycleRoom(this)) this.roomStatus = "results_finalized";
         this.clearServerTick();
-        this.safeDeleteAlarm();
+        if (shouldAutoLifecycleRoom(this)) this.safeSetAlarm(now + USER_ROOM_RESULT_CLOSE_MS + 25);
+        else this.safeDeleteAlarm();
         this.broadcast(this.serverPacket("race_finished", {
           finishedAtMs: now,
           reason: allFinished ? "all_finished" : "finish_window_expired",
           finishWindowEndsAtMs: this.finishWindowEndsAtMs,
           finishedCount: finishedPlayers.length,
           playerCount: players.length,
+          resultSnapshot: this.resultSnapshot,
+          resultFinalizedAtMs: this.resultFinalizedAtMs,
           serverOwned: true
         }));
         return true;
@@ -598,6 +752,13 @@ export class SingularityRaceRoom {
       "roomName",
       "hostToken",
       "hostClientId",
+      "roomStatus",
+      "createdAtMs",
+      "lastActivityAtMs",
+      "resultSnapshot",
+      "resultFinalizedAtMs",
+      "closedAtMs",
+      "deleteAfterMs",
       "phase",
       "countdownEndsAtMs",
       "raceStartedAtMs",
@@ -615,6 +776,13 @@ export class SingularityRaceRoom {
     this.roomName = cleanText(stored.get("roomName") || defaultRoomNameFor(this.roomId), 64) || defaultRoomNameFor(this.roomId);
     this.hostToken = cleanText(stored.get("hostToken"), 96);
     this.hostClientId = normalizeClientId(stored.get("hostClientId"));
+    this.roomStatus = sanitizeRoomStatus(stored.get("roomStatus"));
+    this.createdAtMs = Number(stored.get("createdAtMs") || 0);
+    this.lastActivityAtMs = Number(stored.get("lastActivityAtMs") || 0);
+    this.resultSnapshot = normalizeResultSnapshot(stored.get("resultSnapshot"));
+    this.resultFinalizedAtMs = Number(stored.get("resultFinalizedAtMs") || this.resultSnapshot?.finishedAtMs || 0);
+    this.closedAtMs = Number(stored.get("closedAtMs") || 0);
+    this.deleteAfterMs = Number(stored.get("deleteAfterMs") || 0);
     this.phase = sanitizePhase(stored.get("phase"));
     this.countdownEndsAtMs = Number(stored.get("countdownEndsAtMs") || 0);
     this.raceStartedAtMs = Number(stored.get("raceStartedAtMs") || 0);
@@ -623,7 +791,9 @@ export class SingularityRaceRoom {
     this.entryOpen = stored.has("entryOpen") ? stored.get("entryOpen") !== false : ENTRY_OPEN_DEFAULT;
     this.roomActive = stored.has("roomActive") ? stored.get("roomActive") !== false : ROOM_ACTIVE_DEFAULT;
     this.mapId = normalizeRestoredMarathonTrailMapId(stored.get("mapId") || PUBLIC_MAP_ID);
-    if (!this.roomActive) {
+    if (!this.createdAtMs && this.roomActive !== false) this.createdAtMs = Date.now();
+    if (!this.lastActivityAtMs && this.roomActive !== false) this.lastActivityAtMs = this.createdAtMs || Date.now();
+    if (!this.roomActive && this.roomStatus !== "closed" && this.roomStatus !== "deleted") {
       this.phase = "lobby";
       this.countdownEndsAtMs = 0;
       this.raceStartedAtMs = 0;
@@ -632,7 +802,10 @@ export class SingularityRaceRoom {
       this.entryOpen = ENTRY_OPEN_DEFAULT;
       await this.persistRoomState();
       await this.safeDeleteAlarm();
-    } else if (this.sessions.size === 0 && this.phase !== "lobby") {
+    } else if (this.roomStatus === "closed" && this.resultSnapshot) {
+      this.phase = "finished";
+      if (this.deleteAfterMs > Date.now()) this.safeSetAlarm(this.deleteAfterMs + 25);
+    } else if (this.sessions.size === 0 && this.phase !== "lobby" && !this.resultSnapshot) {
       this.phase = "lobby";
       this.countdownEndsAtMs = 0;
       this.raceStartedAtMs = 0;
@@ -646,6 +819,8 @@ export class SingularityRaceRoom {
     if (this.phase === "countdown" && this.countdownEndsAtMs > Date.now()) this.scheduleCountdownTimer();
     if (this.phase === "racing") this.scheduleServerTick();
     if (this.phase === "racing" && this.finishWindowEndsAtMs > Date.now()) this.safeSetAlarm(this.finishWindowEndsAtMs + 25);
+    if (shouldAutoLifecycleRoom(this) && this.roomStatus === "results_finalized" && this.resultFinalizedAtMs > 0) this.safeSetAlarm(this.resultFinalizedAtMs + USER_ROOM_RESULT_CLOSE_MS + 25);
+    if (shouldAutoLifecycleRoom(this) && this.roomStatus === "closed" && this.deleteAfterMs > Date.now()) this.safeSetAlarm(this.deleteAfterMs + 25);
   }
 
   async persistRoomState() {
@@ -656,6 +831,13 @@ export class SingularityRaceRoom {
       roomName: this.roomName,
       hostToken: this.hostToken,
       hostClientId: this.hostClientId,
+      roomStatus: this.roomStatus,
+      createdAtMs: this.createdAtMs,
+      lastActivityAtMs: this.lastActivityAtMs,
+      resultSnapshot: this.resultSnapshot,
+      resultFinalizedAtMs: this.resultFinalizedAtMs,
+      closedAtMs: this.closedAtMs,
+      deleteAfterMs: this.deleteAfterMs,
       phase: this.phase,
       countdownEndsAtMs: this.countdownEndsAtMs,
       raceStartedAtMs: this.raceStartedAtMs,
@@ -774,6 +956,7 @@ export class SingularityRaceRoom {
 
   async handleHostEntryOpen() {
     if (!this.roomActive) return json({ ...roomSummary(this), ok: false, reason: "room_not_created" }, 409);
+    if (this.roomKind === "user" && this.resultSnapshot) return json({ ...roomSummary(this), ok: false, reason: "results_finalized" }, 409);
     if (this.phase !== "lobby" && this.phase !== "finished") return json({ ok: false, reason: "race_active", phase: this.phase }, 409);
     this.phase = "lobby";
     this.countdownEndsAtMs = 0;
@@ -786,6 +969,7 @@ export class SingularityRaceRoom {
 
   async handleHostStart() {
     if (!this.roomActive) return json({ ...roomSummary(this), ok: false, reason: "room_not_created" }, 409);
+    if (this.roomKind === "user" && this.resultSnapshot) return json({ ...roomSummary(this), ok: false, reason: "results_finalized" }, 409);
     if (this.phase !== "lobby" && this.phase !== "finished") return json({ ok: false, reason: "room_not_in_lobby", phase: this.phase }, 409);
     if (countPlayers(this) <= 0) return json({ ...roomSummary(this), ok: false, reason: "no_players" }, 409);
     if (this.entryOpen === false) return json({ ...roomSummary(this), ok: false, reason: "entry_not_open" }, 409);
@@ -794,11 +978,126 @@ export class SingularityRaceRoom {
   }
 
   async handleHostEnd() {
-    await this.deactivateRoom("host_closed_room");
-    this.hostToken = "";
-    this.hostClientId = "";
+    if (this.roomKind === "user" && !this.resultSnapshot) return json({ ...roomSummary(this), ok: false, reason: "result_not_finalized" }, 409);
+    this.markRoomClosed("host_closed_room", Date.now());
     await this.persistRoomState();
     return json({ ...roomSummary(this), ok: true, action: "end", host: true });
+  }
+
+  async handleCreateUserRoomRequest(request, url) {
+    if (this.roomId !== ROOM_ID) return json({ ok: false, reason: "room_registry_required" }, 400);
+    if (request.method !== "POST") return json({ ok: false, reason: "method_not_allowed" }, 405);
+    const body = await readJsonBody(request);
+    const now = Date.now();
+    await this.loadUserRoomRegistry();
+    await this.refreshUserRoomRegistry(url, now);
+    const clientKey = createRoomCreateClientKey(request, body);
+    const retryAtMs = Number(this.roomCreateCooldowns[clientKey] || 0);
+    if (retryAtMs > now) {
+      return json({
+        ok: false,
+        reason: "room_create_cooldown",
+        retryAfterMs: retryAtMs - now
+      }, 429);
+    }
+    const activeUserRooms = countActiveUserRoomRegistry(this.userRoomRegistry);
+    if (activeUserRooms >= USER_ROOM_MAX_ACTIVE) {
+      return json({
+        ok: false,
+        reason: "user_room_limit",
+        activeUserRooms,
+        maxUserRooms: USER_ROOM_MAX_ACTIVE
+      }, 429);
+    }
+    for (let attempt = 0; attempt < 8; attempt += 1) {
+      const roomCode = generateShortRoomCode();
+      const roomId = roomIdFromCode(roomCode);
+      const hostToken = generateHostToken();
+      const createUrl = new URL(`${url.origin}/host/create`);
+      createUrl.searchParams.set("roomId", roomId);
+      createUrl.searchParams.set("roomCode", roomCode);
+      const response = await roomStub(this.env, roomId).fetch(new Request(createUrl.toString(), {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          roomId,
+          roomCode,
+          hostToken,
+          hostClientId: body?.hostClientId || "",
+          displayName: body?.displayName || defaultRoomNameFor(roomId)
+        })
+      }));
+      const payload = await response.json().catch(() => null);
+      if (response.status === 409 && payload?.reason === "room_code_in_use") continue;
+      if (!response.ok || !payload?.ok) return json(payload || { ok: false, reason: `create_${response.status}` }, response.status);
+      this.roomCreateCooldowns[clientKey] = now + USER_ROOM_CREATE_COOLDOWN_MS;
+      this.userRoomRegistry = upsertUserRoomRegistry(this.userRoomRegistry, {
+        roomId,
+        roomCode,
+        hostClientId: normalizeClientId(body?.hostClientId),
+        roomStatus: "open",
+        roomActive: true,
+        createdAtMs: now,
+        lastSeenAtMs: now,
+        closedAtMs: 0,
+        deleteAfterMs: 0
+      });
+      await this.saveUserRoomRegistry(now);
+      return json({
+        ...payload,
+        hostToken,
+        roomUrl: `${url.origin}/ws?roomId=${encodeURIComponent(roomId)}`,
+        activeUserRooms: activeUserRooms + 1,
+        maxUserRooms: USER_ROOM_MAX_ACTIVE,
+        createCooldownMs: USER_ROOM_CREATE_COOLDOWN_MS
+      }, response.status);
+    }
+    return json({ ok: false, reason: "room_code_collision" }, 409);
+  }
+
+  async loadUserRoomRegistry() {
+    if (this.registryLoaded) return;
+    const stored = await this.safeStorageGet(["userRoomRegistry", "roomCreateCooldowns"]);
+    this.userRoomRegistry = normalizeUserRoomRegistry(stored.get("userRoomRegistry"));
+    this.roomCreateCooldowns = normalizeCooldownRegistry(stored.get("roomCreateCooldowns"));
+    this.registryLoaded = true;
+  }
+
+  async saveUserRoomRegistry(now = Date.now()) {
+    this.userRoomRegistry = normalizeUserRoomRegistry(this.userRoomRegistry);
+    this.roomCreateCooldowns = pruneCooldownRegistry(this.roomCreateCooldowns, now);
+    await this.safeStoragePut({
+      userRoomRegistry: this.userRoomRegistry,
+      roomCreateCooldowns: this.roomCreateCooldowns
+    });
+  }
+
+  async refreshUserRoomRegistry(url, now = Date.now()) {
+    const refreshed = [];
+    for (const record of normalizeUserRoomRegistry(this.userRoomRegistry)) {
+      const roomId = normalizeRoomId(record.roomId || record.roomCode);
+      if (!isUserRoomId(roomId)) continue;
+      let nextRecord = { ...record, roomId, roomCode: roomCodeFromRoomId(roomId) };
+      try {
+        const response = await roomStub(this.env, roomId).fetch(new Request(`${url.origin}/summary?roomId=${encodeURIComponent(roomId)}`));
+        const summary = await response.json().catch(() => null);
+        if (!response.ok || !summary?.ok || summary.roomStatus === "deleted") continue;
+        nextRecord = {
+          ...nextRecord,
+          roomStatus: summary.roomStatus || (summary.roomActive === false ? "closed" : "open"),
+          roomActive: summary.roomActive !== false,
+          closedAtMs: Number(summary.closedAtMs || 0),
+          deleteAfterMs: Number(summary.deleteAfterMs || 0),
+          lastSeenAtMs: now
+        };
+      } catch {
+        if (now - Number(record.lastSeenAtMs || record.createdAtMs || 0) > USER_ROOM_UNSTARTED_DELETE_MS) continue;
+      }
+      if (nextRecord.roomStatus === "deleted") continue;
+      refreshed.push(nextRecord);
+    }
+    this.userRoomRegistry = refreshed.slice(-USER_ROOM_MAX_ACTIVE * 2);
+    await this.saveUserRoomRegistry(now);
   }
 
   async safeStorageGet(keys) {
@@ -851,9 +1150,9 @@ export class SingularityRaceRoom {
   scheduleCountdownTimer() {
     if (this.countdownTimer || this.countdownEndsAtMs <= Date.now()) return;
     const delayMs = Math.max(25, this.countdownEndsAtMs - Date.now() + 25);
-    this.countdownTimer = setTimeout(() => {
+    this.countdownTimer = setTimeout(async () => {
       this.countdownTimer = null;
-      if (this.refreshPhase(Date.now())) this.persistRoomState();
+      await this.refreshRuntime(Date.now());
       this.broadcastSnapshot(true);
     }, delayMs);
   }
@@ -865,8 +1164,7 @@ export class SingularityRaceRoom {
       try {
         const now = Date.now();
         const advanced = this.advanceRaceTick(now);
-        const phaseChanged = this.refreshPhase(now);
-        if (phaseChanged) await this.persistRoomState();
+        const phaseChanged = await this.refreshRuntime(now);
         this.broadcastSnapshot(Boolean(phaseChanged));
         if (canAdvancePlayerMovement(this) && this.hasFreshRaceInput(Date.now())) this.scheduleServerTick();
       } catch (error) {
@@ -922,7 +1220,7 @@ async function routeWorkerRequest(request, env) {
   const url = new URL(request.url);
   if (request.method === "OPTIONS") return corsPreflight();
   if (url.pathname === "/health") return json({ ok: true, version: WORKER_VERSION, roomId: ROOM_ID });
-  if (url.pathname === "/rooms/create") return handleCreateUserRoomRequest(request, env, url);
+  if (url.pathname === "/rooms/create") return roomStub(env, ROOM_ID).fetch(request);
   if (url.pathname.startsWith("/rooms/host/")) return handleRoomHostRoute(request, env, url);
   if (url.pathname === "/rooms") {
     const targetRoomId = normalizeRoomId(url.searchParams.get("roomId") || url.searchParams.get("roomCode") || ROOM_ID);
@@ -931,39 +1229,6 @@ async function routeWorkerRequest(request, env) {
   if (url.pathname === "/ws") return roomStub(env, normalizeRoomId(url.searchParams.get("roomId") || ROOM_ID)).fetch(request);
   if (url.pathname.startsWith("/admin/")) return roomStub(env, normalizeRoomId(url.searchParams.get("roomId") || ROOM_ID)).fetch(request);
   return json({ ok: true, service: "singularity-race-online", endpoints: ["/health", "/rooms", "/rooms/create", "/rooms/host/open", "/rooms/host/start", "/rooms/host/end", "/ws"] });
-}
-
-async function handleCreateUserRoomRequest(request, env, url) {
-  if (request.method !== "POST") return json({ ok: false, reason: "method_not_allowed" }, 405);
-  const body = await readJsonBody(request);
-  for (let attempt = 0; attempt < 8; attempt += 1) {
-    const roomCode = generateShortRoomCode();
-    const roomId = roomIdFromCode(roomCode);
-    const hostToken = generateHostToken();
-    const createUrl = new URL(`${url.origin}/host/create`);
-    createUrl.searchParams.set("roomId", roomId);
-    createUrl.searchParams.set("roomCode", roomCode);
-    const response = await roomStub(env, roomId).fetch(new Request(createUrl.toString(), {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({
-        roomId,
-        roomCode,
-        hostToken,
-        hostClientId: body?.hostClientId || "",
-        displayName: body?.displayName || defaultRoomNameFor(roomId)
-      })
-    }));
-    const payload = await response.json().catch(() => null);
-    if (response.status === 409 && payload?.reason === "room_code_in_use") continue;
-    if (!response.ok || !payload?.ok) return json(payload || { ok: false, reason: `create_${response.status}` }, response.status);
-    return json({
-      ...payload,
-      hostToken,
-      roomUrl: `${url.origin}/ws?roomId=${encodeURIComponent(roomId)}`
-    }, response.status);
-  }
-  return json({ ok: false, reason: "room_code_collision" }, 409);
 }
 
 async function handleRoomHostRoute(request, env, url) {
@@ -1032,6 +1297,8 @@ function createSession(room, clientId, options) {
 }
 
 function validateParticipantJoin(room, requestedType) {
+  if (room.roomStatus === "deleted") return { ok: false, reason: "room_deleted" };
+  if (room.roomStatus === "closed" || room.roomStatus === "results_finalized") return { ok: false, reason: "room_closed" };
   if (room.roomActive === false) return { ok: false, reason: "room_not_created" };
   if (requestedType === "spectator") {
     if (countSpectators(room) >= MAX_SPECTATORS) return { ok: false, reason: "spectator_full" };
@@ -1114,6 +1381,7 @@ function joinPayload(room, session) {
     skinPreset: session.skinPreset,
     host: session.host,
     phase: room.phase,
+    roomStatus: room.roomStatus || "open",
     entryOpen: room.entryOpen,
     roomActive: room.roomActive !== false,
     mapId: room.mapId,
@@ -1121,6 +1389,10 @@ function joinPayload(room, session) {
     raceStartedAtMs: room.raceStartedAtMs,
     finishWindowStartedAtMs: room.finishWindowStartedAtMs,
     finishWindowEndsAtMs: room.finishWindowEndsAtMs,
+    resultSnapshot: room.resultSnapshot,
+    resultFinalizedAtMs: room.resultFinalizedAtMs,
+    closedAtMs: room.closedAtMs,
+    deleteAfterMs: room.deleteAfterMs,
     ...finishWindowSummary(room),
     mapVersion: "baegeum-city-v2-map-001",
     venueSchemaVersion: "venue-schema-001",
@@ -1140,6 +1412,9 @@ function roomSummary(room) {
     roomKind: room.roomKind || (isUserRoomId(room.roomId) ? "user" : "public"),
     displayName: room.roomName || defaultRoomNameFor(room.roomId || ROOM_ID),
     roomActive,
+    roomStatus: room.roomStatus || "open",
+    createdAtMs: room.createdAtMs || 0,
+    lastActivityAtMs: room.lastActivityAtMs || 0,
     phase: room.phase,
     entryOpen: room.entryOpen,
     mapId: room.mapId,
@@ -1147,6 +1422,10 @@ function roomSummary(room) {
     raceStartedAtMs: room.raceStartedAtMs,
     finishWindowStartedAtMs: room.finishWindowStartedAtMs,
     finishWindowEndsAtMs: room.finishWindowEndsAtMs,
+    resultSnapshot: room.resultSnapshot,
+    resultFinalizedAtMs: room.resultFinalizedAtMs,
+    closedAtMs: room.closedAtMs || 0,
+    deleteAfterMs: room.deleteAfterMs || 0,
     ...finishWindowSummary(room),
     players: roomActive ? countPlayers(room) : 0,
     maxPlayers: MAX_RUNNERS,
@@ -1481,9 +1760,54 @@ function acceptChat(session, now) {
 function canAdvancePlayerMovement(room) { return room.roomActive !== false && (room.phase === "racing" || isPaddockMovementOpen(room.phase, room.entryOpen)); }
 function canAttackInPhase(phase, entryOpen) { return phase === "racing" || isPaddockMovementOpen(phase, entryOpen); }
 function isPaddockMovementOpen(phase, entryOpen) { return phase === "countdown" || (phase === "lobby" && entryOpen !== false); }
+function isRoomInteractionOpen(room) { return room?.roomActive !== false && !["closed", "deleted"].includes(room?.roomStatus || "open"); }
+function shouldAutoLifecycleRoom(room) { return room?.roomKind === "user" || isUserRoomId(room?.roomId); }
 function playerSessions(room) { return [...room.sessions.values()].filter((item) => item.participantType === "player"); }
 function countPlayers(room) { return playerSessions(room).length; }
 function countSpectators(room) { return [...room.sessions.values()].filter((item) => item.participantType === "spectator").length; }
+function createRoomResultSnapshot(room, now = Date.now()) {
+  const raceStartedAtMs = Number(room.raceStartedAtMs || room.finishWindowStartedAtMs || now);
+  const ranking = playerSessions(room)
+    .slice()
+    .sort((left, right) => {
+      const leftFinished = Number(left.finishedAtMs || 0) > 0;
+      const rightFinished = Number(right.finishedAtMs || 0) > 0;
+      if (leftFinished && rightFinished) return Number(left.finishedAtMs || 0) - Number(right.finishedAtMs || 0);
+      if (leftFinished) return -1;
+      if (rightFinished) return 1;
+      const progressDelta = Number(right.progressPercent || 0) - Number(left.progressPercent || 0);
+      if (progressDelta !== 0) return progressDelta;
+      return Number(left.lane || 0) - Number(right.lane || 0);
+    })
+    .map((session, index) => {
+      const finishedAtMs = Number(session.finishedAtMs || 0);
+      return {
+        rank: index + 1,
+        participantId: session.participantId,
+        clientId: session.clientId,
+        name: session.displayName,
+        displayName: session.displayName,
+        finishTimeMs: finishedAtMs > 0 ? Math.max(0, finishedAtMs - raceStartedAtMs) : null,
+        finishedAtMs: finishedAtMs > 0 ? finishedAtMs : null,
+        finished: finishedAtMs > 0,
+        progressPercent: round2(session.progressPercent),
+        status: finishedAtMs > 0 ? "finished" : "dnf"
+      };
+    });
+  return {
+    roomId: room.roomId || ROOM_ID,
+    roomCode: room.roomCode || roomCodeFromRoomId(room.roomId || ROOM_ID),
+    roomKind: room.roomKind || (isUserRoomId(room.roomId) ? "user" : "public"),
+    title: "Singularity Race Results",
+    finishedAtMs: now,
+    finalizedAtMs: now,
+    raceStartedAtMs,
+    finishWindowStartedAtMs: Number(room.finishWindowStartedAtMs || 0),
+    finishWindowEndsAtMs: Number(room.finishWindowEndsAtMs || 0),
+    rankings: ranking,
+    totalPlayers: ranking.length
+  };
+}
 function laneOffsetFor(lane) { return ((lane - 1) / Math.max(1, MAX_RUNNERS - 1) - 0.5) * START_LANE_HALF_WIDTH_PX * 1.8; }
 function paceSpeed(pace, staging = false) {
   return staging ? STAGING_RUN_PROGRESS_PER_SECOND : RUN_PROGRESS_PER_SECOND;
@@ -1505,6 +1829,76 @@ function normalizeClientId(value) { return String(value || "").replace(/[^a-zA-Z
 function cleanText(value, max) { return String(value || "").replace(/\s+/g, " ").trim().slice(0, max); }
 function safeObject(value) { return value && typeof value === "object" ? value : {}; }
 function sanitizePhase(value) { return ["lobby", "countdown", "racing", "finished"].includes(value) ? value : "lobby"; }
+function sanitizeRoomStatus(value) { return ["open", "results_finalized", "closed", "deleted"].includes(value) ? value : "open"; }
+function normalizeResultSnapshot(value) {
+  if (!value || typeof value !== "object") return null;
+  const rankings = Array.isArray(value.rankings) ? value.rankings : [];
+  return {
+    roomId: normalizeRoomId(value.roomId),
+    roomCode: value.roomCode || roomCodeFromRoomId(value.roomId),
+    roomKind: value.roomKind === "user" || isUserRoomId(value.roomId) ? "user" : "public",
+    title: cleanText(value.title, 80) || "Singularity Race Results",
+    finishedAtMs: Math.max(0, Number(value.finishedAtMs || value.finalizedAtMs || 0)),
+    finalizedAtMs: Math.max(0, Number(value.finalizedAtMs || value.finishedAtMs || 0)),
+    raceStartedAtMs: Math.max(0, Number(value.raceStartedAtMs || 0)),
+    finishWindowStartedAtMs: Math.max(0, Number(value.finishWindowStartedAtMs || 0)),
+    finishWindowEndsAtMs: Math.max(0, Number(value.finishWindowEndsAtMs || 0)),
+    totalPlayers: Math.max(0, Number(value.totalPlayers || rankings.length || 0)),
+    rankings: rankings.slice(0, MAX_RUNNERS).map((row, index) => ({
+      rank: Math.max(1, Number(row.rank || index + 1)),
+      participantId: cleanText(row.participantId, 96) || `runner:${index + 1}`,
+      clientId: normalizeClientId(row.clientId),
+      name: cleanText(row.name || row.displayName, 40) || `Runner ${index + 1}`,
+      displayName: cleanText(row.displayName || row.name, 40) || `Runner ${index + 1}`,
+      finishTimeMs: row.finishTimeMs === null || row.finishTimeMs === undefined ? null : Math.max(0, Number(row.finishTimeMs || 0)),
+      finishedAtMs: row.finishedAtMs === null || row.finishedAtMs === undefined ? null : Math.max(0, Number(row.finishedAtMs || 0)),
+      finished: row.finished !== false && (row.finished === true || row.finishTimeMs !== null && row.finishTimeMs !== undefined || row.finishedAtMs !== null && row.finishedAtMs !== undefined),
+      progressPercent: round2(row.progressPercent),
+      status: row.status === "finished" ? "finished" : (row.finished ? "finished" : "dnf")
+    }))
+  };
+}
+function normalizeUserRoomRegistry(value) {
+  return (Array.isArray(value) ? value : []).map((record) => {
+    const roomId = normalizeRoomId(record?.roomId || record?.roomCode);
+    return {
+      roomId,
+      roomCode: roomCodeFromRoomId(roomId),
+      hostClientId: normalizeClientId(record?.hostClientId),
+      roomStatus: sanitizeRoomStatus(record?.roomStatus),
+      roomActive: record?.roomActive !== false,
+      createdAtMs: Math.max(0, Number(record?.createdAtMs || 0)),
+      lastSeenAtMs: Math.max(0, Number(record?.lastSeenAtMs || 0)),
+      closedAtMs: Math.max(0, Number(record?.closedAtMs || 0)),
+      deleteAfterMs: Math.max(0, Number(record?.deleteAfterMs || 0))
+    };
+  }).filter((record) => isUserRoomId(record.roomId));
+}
+function normalizeCooldownRegistry(value) {
+  const input = safeObject(value);
+  return Object.fromEntries(Object.entries(input).map(([key, next]) => [
+    cleanText(key, 140),
+    Math.max(0, Number(next || 0))
+  ]).filter(([key, next]) => key && next > Date.now()));
+}
+function pruneCooldownRegistry(value, now = Date.now()) {
+  return Object.fromEntries(Object.entries(normalizeCooldownRegistry(value)).filter(([, retryAtMs]) => retryAtMs > now));
+}
+function countActiveUserRoomRegistry(registry) {
+  return normalizeUserRoomRegistry(registry).filter((record) => record.roomActive !== false && !["closed", "deleted"].includes(record.roomStatus)).length;
+}
+function upsertUserRoomRegistry(registry, nextRecord) {
+  const roomId = normalizeRoomId(nextRecord?.roomId || nextRecord?.roomCode);
+  const rest = normalizeUserRoomRegistry(registry).filter((record) => record.roomId !== roomId);
+  return [...rest, ...normalizeUserRoomRegistry([{ ...nextRecord, roomId }])];
+}
+function createRoomCreateClientKey(request, body = {}) {
+  const clientId = normalizeClientId(body?.hostClientId);
+  if (clientId) return `client:${clientId}`;
+  const ip = cleanText(request.headers.get("CF-Connecting-IP") || request.headers.get("X-Forwarded-For") || "", 80)
+    .replace(/[^a-zA-Z0-9:.,_-]/g, "");
+  return ip ? `ip:${ip.split(",")[0]}` : "anonymous";
+}
 function parsePacket(message) { try { return JSON.parse(String(message)); } catch { return null; } }
 function parseJsonText(value) { try { return JSON.parse(String(value || "{}")); } catch { return {}; } }
 function send(socket, packet) { socket.send(JSON.stringify(packet)); }

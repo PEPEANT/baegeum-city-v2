@@ -2900,12 +2900,27 @@
       display: none;
     }
 
-    .shell[data-screen="race"].race-room-closed .race-room-closed-panel {
+    .shell[data-screen="race"].race-room-closed:not(.race-finished) .race-room-closed-panel {
       display: grid;
     }
 
-    .shell[data-screen="race"].race-room-closed .race-result-panel {
+    .shell[data-screen="race"].race-room-closed:not(.race-finished) .race-result-panel {
       display: none;
+    }
+
+    .shell[data-screen="race"].race-room-closed.race-finished .race-result-panel {
+      left: 50%;
+      bottom: 96px;
+      width: min(520px, calc(100% - 24px));
+      padding: 12px;
+      border: 1px solid rgba(74, 91, 84, 0.22);
+      background: rgba(255, 255, 252, 0.94);
+      box-shadow: 0 18px 46px rgba(16, 19, 27, 0.18);
+      backdrop-filter: blur(12px);
+    }
+
+    .shell[data-screen="race"].race-room-closed.race-finished .race-result-panel > :not(.race-result-actions) {
+      display: revert;
     }
 
     .shell[data-screen="race"].race-finished.race-watching-after-finish .race-result-panel {
@@ -6246,6 +6261,9 @@
             <ol class="race-result-list" id="race-result-list"></ol>
             <div class="race-result-actions">
               <button id="race-result-watch" type="button">관전 계속</button>
+              <button id="race-result-save-image" type="button" hidden>사진 저장</button>
+              <button id="race-result-share" type="button" hidden>공유</button>
+              <button id="race-result-copy-text" type="button" hidden>텍스트 복사</button>
               <button id="race-result-restart" type="button">로비로 복귀</button>
             </div>
           </div>
@@ -7106,6 +7124,9 @@
       raceCeremonySummary: document.querySelector("#race-ceremony-summary"),
       raceResultList: document.querySelector("#race-result-list"),
       raceResultWatch: document.querySelector("#race-result-watch"),
+      raceResultSaveImage: document.querySelector("#race-result-save-image"),
+      raceResultShare: document.querySelector("#race-result-share"),
+      raceResultCopyText: document.querySelector("#race-result-copy-text"),
       raceResultRestart: document.querySelector("#race-result-restart"),
       raceWatchControls: document.querySelector("#race-watch-controls"),
       raceWatchPrev: document.querySelector("#race-watch-prev"),
@@ -7167,6 +7188,7 @@
       connectedSession: null,
       cloudflareHost: false,
       cloudflareRoomSummary: null,
+      cloudflareResultSnapshot: null,
       cloudflareRoomStatus: cloudflareOnlineEnabled ? "loading" : "idle",
       cloudflareRoomError: "",
       cloudflareRoomLastCheckedAtMs: 0,
@@ -7478,6 +7500,18 @@
 
     elements.raceResultRestart.addEventListener("click", () => {
       restartRaceAfterResult();
+    });
+
+    elements.raceResultSaveImage.addEventListener("click", () => {
+      downloadCloudflareResultCardPng();
+    });
+
+    elements.raceResultShare.addEventListener("click", () => {
+      shareCloudflareResultCard();
+    });
+
+    elements.raceResultCopyText.addEventListener("click", () => {
+      copyCloudflareResultText();
     });
 
     elements.raceRoomClosedExit.addEventListener("click", () => {
@@ -7857,16 +7891,20 @@
       }
       if (packet.type === "room_closed") {
         stopCloudflarePingProbe();
-        updateCloudflareRoomSummary(packet.payload?.summary || { roomActive: false }, { silent: true });
+        const summary = updateCloudflareRoomSummary(packet.payload?.summary || { roomActive: false, roomStatus: "closed" }, { silent: true });
+        const snapshot = normalizeCloudflareResultSnapshot(packet.payload?.resultSnapshot || summary?.resultSnapshot || null);
+        if (snapshot) applyCloudflareResultSnapshot(snapshot, { show: true, roomClosed: true, render: false });
         const currentClient = cloudflareRoomClient;
         cloudflareRoomClient = null;
         currentClient?.close();
         state.connectedSession = null;
         state.cloudflareHost = false;
         state.connectedRemoteSnapshots.clear();
-        state.participantType = "player";
-        setScreen(savedProfile ? SINGULARITY_RACE_SCREENS.LOBBY : SINGULARITY_RACE_SCREENS.PROFILE);
-        pushSystem("\uad00\ub9ac\uc790\uac00 \uacf5\uac1c\ubc29\uc744 \uc885\ub8cc\ud588\uc2b5\ub2c8\ub2e4.");
+        if (!snapshot) {
+          state.participantType = "player";
+          setScreen(savedProfile ? SINGULARITY_RACE_SCREENS.LOBBY : SINGULARITY_RACE_SCREENS.PROFILE);
+        }
+        pushSystem(snapshot ? "방이 종료되어 최종 결과를 표시합니다." : "\uad00\ub9ac\uc790\uac00 \uacf5\uac1c\ubc29\uc744 \uc885\ub8cc\ud588\uc2b5\ub2c8\ub2e4.");
         renderAll();
         return;
       }
@@ -7896,6 +7934,8 @@
       }
       if (packet.type === "race_finished") {
         syncActionFinishWindowFromPayload(packet.payload);
+        if (packet.payload?.resultSnapshot) applyCloudflareResultSnapshot(packet.payload.resultSnapshot, { show: true, render: false });
+        renderAll();
         return;
       }
       if (packet.type === "rate_limited" && packet.payload?.reason !== "input_10hz_limit") {
@@ -8301,6 +8341,11 @@
         roomCode: payload.roomCode || fallback.roomCode || "",
         roomKind: payload.roomKind || fallback.roomKind || (String(roomId).includes(":user:") ? "user" : "public"),
         displayName: payload.displayName || fallback.displayName || "특이점레이스 공개방 001",
+        roomStatus: payload.roomStatus || fallback.roomStatus || "open",
+        resultSnapshot: normalizeCloudflareResultSnapshot(payload.resultSnapshot || fallback.resultSnapshot || null),
+        resultFinalizedAtMs: Math.max(0, Number(payload.resultFinalizedAtMs || fallback.resultFinalizedAtMs || 0)),
+        closedAtMs: Math.max(0, Number(payload.closedAtMs || fallback.closedAtMs || 0)),
+        deleteAfterMs: Math.max(0, Number(payload.deleteAfterMs || fallback.deleteAfterMs || 0)),
         phase: payload.phase || fallback.phase || "lobby",
         authority: fallback.authority,
         players: Math.max(0, Number(payload.players ?? (participants.length ? participants.filter(isSnapshotRunnerParticipant).length : fallback.players) ?? 0)),
@@ -8324,14 +8369,103 @@
       });
     }
 
+    function normalizeCloudflareResultSnapshot(snapshot = null) {
+      if (!snapshot || typeof snapshot !== "object") return null;
+      const rankings = Array.isArray(snapshot.rankings) ? snapshot.rankings : [];
+      const roomId = snapshot.roomId || CLOUDFLARE_ROOM_ID;
+      const normalized = rankings.map((row, index) => {
+        const finishTimeMs = row.finishTimeMs === null || row.finishTimeMs === undefined
+          ? null
+          : Math.max(0, Number(row.finishTimeMs || 0));
+        return Object.freeze({
+          rank: Math.max(1, Number(row.rank || index + 1)),
+          participantId: String(row.participantId || `runner:${index + 1}`),
+          clientId: String(row.clientId || ""),
+          name: String(row.name || row.displayName || `Runner ${index + 1}`).slice(0, 40),
+          displayName: String(row.displayName || row.name || `Runner ${index + 1}`).slice(0, 40),
+          finishTimeMs,
+          finishedAtMs: finishTimeMs,
+          finished: row.finished !== false && finishTimeMs !== null,
+          progressPercent: Math.round((Number(row.progressPercent) || 0) * 10) / 10,
+          status: row.status === "finished" || finishTimeMs !== null ? "finished" : "dnf"
+        });
+      }).sort((left, right) => left.rank - right.rank);
+      return Object.freeze({
+        roomId,
+        roomCode: snapshot.roomCode || (String(roomId).includes(":user:") ? String(roomId).split(":").pop() : "PUBLIC"),
+        roomKind: snapshot.roomKind || (String(roomId).includes(":user:") ? "user" : "public"),
+        title: snapshot.title || "Singularity Race Results",
+        finishedAtMs: Math.max(0, Number(snapshot.finishedAtMs || snapshot.finalizedAtMs || Date.now())),
+        finalizedAtMs: Math.max(0, Number(snapshot.finalizedAtMs || snapshot.finishedAtMs || Date.now())),
+        raceStartedAtMs: Math.max(0, Number(snapshot.raceStartedAtMs || 0)),
+        finishWindowStartedAtMs: Math.max(0, Number(snapshot.finishWindowStartedAtMs || 0)),
+        finishWindowEndsAtMs: Math.max(0, Number(snapshot.finishWindowEndsAtMs || 0)),
+        rankings: Object.freeze(normalized),
+        totalPlayers: Math.max(0, Number(snapshot.totalPlayers || normalized.length || 0)),
+        localParticipantId: snapshot.localParticipantId || "",
+        localPlayerRank: Math.max(0, Number(snapshot.localPlayerRank || 0)) || null
+      });
+    }
+
+    function applyCloudflareResultSnapshot(snapshot, options = {}) {
+      const normalized = normalizeCloudflareResultSnapshot(snapshot);
+      if (!normalized) return null;
+      const now = Date.now();
+      const localParticipantId = state.connectedSession?.playerId || normalized.localParticipantId || "";
+      const localRow = normalized.rankings.find((row) => row.participantId === localParticipantId) || null;
+      const enriched = Object.freeze({
+        ...normalized,
+        localParticipantId,
+        localPlayerRank: localRow?.rank || normalized.localPlayerRank || null
+      });
+      state.cloudflareResultSnapshot = enriched;
+      syncActionFinishWindowFromPayload(enriched);
+      finalizeRaceResult({
+        source: "server",
+        title: "경기 종료",
+        copy: "서버가 최종 순위를 확정했습니다.",
+        ranking: enriched.rankings.map((row) => ({
+          rank: row.rank,
+          participantId: row.participantId,
+          displayName: row.displayName || row.name,
+          progressPercent: row.progressPercent,
+          finished: row.finished,
+          finishedAtMs: row.finishTimeMs
+        })),
+        finishedParticipantId: localParticipantId || enriched.rankings[0]?.participantId || "runner:you",
+        progressPercent: localRow?.progressPercent,
+        raceFinished: true,
+        playerFinished: localRow ? localRow.finished : state.participantType === "spectator",
+        ceremonyStartedAtMs: enriched.finalizedAtMs || now,
+        ceremonyTransferAtMs: now,
+        ceremonyAwardAtMs: now,
+        publishPacket: false
+      });
+      state.action.ceremonyEnteredAtMs = state.action.ceremonyEnteredAtMs || now;
+      state.action.ceremonyAwardAtMs = state.action.ceremonyAwardAtMs || now;
+      if (state.action.finalResult) {
+        state.action.finalResult = Object.freeze({
+          ...state.action.finalResult,
+          ceremonyPhase: "award",
+          ceremonyEnteredAtMs: state.action.ceremonyEnteredAtMs,
+          ceremonyAwardAtMs: state.action.ceremonyAwardAtMs
+        });
+      }
+      if (options.roomClosed) state.roomClosed = true;
+      if (options.show) setScreen(SINGULARITY_RACE_SCREENS.RACE);
+      if (options.render !== false) renderAll();
+      return enriched;
+    }
+
     function updateCloudflareRoomSummary(payload = {}, options = {}) {
       if (!cloudflareOnlineEnabled || !payload) return state.cloudflareRoomSummary;
       const summary = normalizeCloudflareRoomSummary(payload);
       if (summary.roomId) setCloudflareRoomId(summary.roomId, { updateUrl: summary.roomKind === "user" || queryParams.has("roomId") });
       state.cloudflareRoomSummary = summary;
+      if (summary.resultSnapshot) state.cloudflareResultSnapshot = summary.resultSnapshot;
       state.cloudflareHost = Boolean(hasCloudflareHostToken(summary.roomId));
-      if (summary.roomActive === false && state.connectedSession?.provider === "cloudflare") state.roomClosed = true;
-      else if (summary.roomActive !== false) state.roomClosed = false;
+      if ((summary.roomActive === false || summary.roomStatus === "closed" || summary.roomStatus === "deleted") && state.connectedSession?.provider === "cloudflare") state.roomClosed = true;
+      else if (summary.roomActive !== false && summary.roomStatus !== "closed" && summary.roomStatus !== "deleted") state.roomClosed = false;
       state.cloudflareRoomStatus = "ok";
       state.cloudflareRoomLastCheckedAtMs = Date.now();
       state.mapId = normalizeRestoredMarathonTrailMapId(payload.mapId || payload.course?.mapId || summary.mapId || state.mapId);
@@ -12023,6 +12157,10 @@
         : (state.connectedSession?.playerId || "runner:you");
       const localSnapshot = payload.participants.find((participant) => participant.participantId === localParticipantId);
       syncActionRewardFromServerSnapshot(localSnapshot);
+      if (payload.resultSnapshot) {
+        applyCloudflareResultSnapshot(payload.resultSnapshot, { show: true, render: false });
+        return true;
+      }
       const localFinished = localSnapshot?.finishedAtMs !== null && localSnapshot?.finishedAtMs !== undefined;
       if (payload.phase === "finished" || localFinished) {
         const raceFinished = payload.phase === "finished";
@@ -13775,7 +13913,7 @@
       if (id === "ready-button" && state.screen === SINGULARITY_RACE_SCREENS.LOBBY) {
         return;
       }
-      if (["profile-start-button", "ready-button", "spectator-button", "room-refresh-button", "cloudflare-create-room-button", "cloudflare-host-open-button", "cloudflare-host-start-button", "cloudflare-host-end-button", "join-connected-button", "race-result-watch", "race-result-restart", "race-room-closed-exit"].includes(id)) {
+      if (["profile-start-button", "ready-button", "spectator-button", "room-refresh-button", "cloudflare-create-room-button", "cloudflare-host-open-button", "cloudflare-host-start-button", "cloudflare-host-end-button", "join-connected-button", "race-result-watch", "race-result-save-image", "race-result-share", "race-result-copy-text", "race-result-restart", "race-room-closed-exit"].includes(id)) {
         playRaceUiSfx("confirm");
         return;
       }
@@ -14782,6 +14920,150 @@
       elements.raceWatchLabel.textContent = `${target.name || target.id} ${progress}%`;
     }
 
+    function getActiveCloudflareResultSnapshot() {
+      return normalizeCloudflareResultSnapshot(state.cloudflareResultSnapshot || state.cloudflareRoomSummary?.resultSnapshot || null);
+    }
+
+    function renderRaceResultShareButtons() {
+      const snapshot = getActiveCloudflareResultSnapshot();
+      const show = Boolean(snapshot && state.action.finalResult?.raceFinished);
+      elements.raceResultSaveImage.hidden = !show;
+      elements.raceResultShare.hidden = !show;
+      elements.raceResultCopyText.hidden = !show;
+      if (show) {
+        elements.raceResultShare.disabled = typeof navigator.share !== "function";
+        elements.raceResultCopyText.disabled = !navigator.clipboard?.writeText;
+      }
+    }
+
+    function formatCloudflareResultTime(ms) {
+      if (ms === null || ms === undefined || !Number.isFinite(Number(ms))) return "DNF";
+      const totalMs = Math.max(0, Math.round(Number(ms)));
+      const minutes = Math.floor(totalMs / 60000);
+      const seconds = Math.floor((totalMs % 60000) / 1000);
+      const centiseconds = Math.floor((totalMs % 1000) / 10);
+      return `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}.${String(centiseconds).padStart(2, "0")}`;
+    }
+
+    function formatCloudflareResultText(snapshot = getActiveCloudflareResultSnapshot()) {
+      if (!snapshot) return "";
+      const lines = [
+        "특이점레이스 결과",
+        `방 코드: ${snapshot.roomCode || "PUBLIC"}`
+      ];
+      for (const row of snapshot.rankings.slice(0, 8)) {
+        const name = row.displayName || row.name || row.participantId;
+        const meta = row.finished ? formatCloudflareResultTime(row.finishTimeMs) : `DNF ${Math.round(row.progressPercent || 0)}%`;
+        lines.push(`${row.rank}위 ${name} ${meta}`);
+      }
+      const total = snapshot.totalPlayers || snapshot.rankings.length;
+      if (snapshot.localPlayerRank) lines.push(`내 순위: ${snapshot.localPlayerRank}위 / ${total}명`);
+      else lines.push(`참가자: ${total}명`);
+      lines.push(new Date(snapshot.finalizedAtMs || snapshot.finishedAtMs || Date.now()).toLocaleDateString("ko-KR"));
+      return lines.join("\n");
+    }
+
+    function createCloudflareResultCardCanvas(snapshot = getActiveCloudflareResultSnapshot()) {
+      if (!snapshot) return null;
+      const canvas = document.createElement("canvas");
+      canvas.width = 960;
+      canvas.height = 1180;
+      const context = canvas.getContext("2d");
+      if (!context) return null;
+      context.fillStyle = "#0b1724";
+      context.fillRect(0, 0, canvas.width, canvas.height);
+      context.fillStyle = "#12283a";
+      context.fillRect(48, 48, canvas.width - 96, canvas.height - 96);
+      context.strokeStyle = "#7de3ff";
+      context.lineWidth = 4;
+      context.strokeRect(48, 48, canvas.width - 96, canvas.height - 96);
+      context.fillStyle = "#f4fbff";
+      context.font = "800 52px Malgun Gothic, Arial, sans-serif";
+      context.fillText("특이점레이스 결과", 92, 140);
+      context.font = "700 28px Malgun Gothic, Arial, sans-serif";
+      context.fillStyle = "#a9d9ee";
+      context.fillText(`방 코드 ${snapshot.roomCode || "PUBLIC"}`, 92, 190);
+      context.fillText(new Date(snapshot.finalizedAtMs || snapshot.finishedAtMs || Date.now()).toLocaleString("ko-KR"), 92, 230);
+      const rows = snapshot.rankings.slice(0, 10);
+      rows.forEach((row, index) => {
+        const y = 315 + index * 72;
+        context.fillStyle = index === 0 ? "#ffc66d" : index === 1 ? "#dbe7ef" : index === 2 ? "#d6a36b" : "#e9f6ff";
+        context.font = "800 34px Malgun Gothic, Arial, sans-serif";
+        context.fillText(`${row.rank}위`, 92, y);
+        context.fillStyle = "#f4fbff";
+        context.fillText(row.displayName || row.name || row.participantId, 190, y);
+        context.textAlign = "right";
+        context.fillStyle = "#a9d9ee";
+        context.fillText(row.finished ? formatCloudflareResultTime(row.finishTimeMs) : `DNF ${Math.round(row.progressPercent || 0)}%`, 860, y);
+        context.textAlign = "left";
+      });
+      const total = snapshot.totalPlayers || snapshot.rankings.length;
+      context.fillStyle = "#56c8ff";
+      context.font = "800 34px Malgun Gothic, Arial, sans-serif";
+      const localRankText = snapshot.localPlayerRank ? `내 순위 ${snapshot.localPlayerRank}위 / ${total}명` : `참가자 ${total}명`;
+      context.fillText(localRankText, 92, 1040);
+      context.fillStyle = "#a9d9ee";
+      context.font = "700 22px Malgun Gothic, Arial, sans-serif";
+      context.fillText("simulacra-world.vercel.app", 92, 1084);
+      return canvas;
+    }
+
+    function downloadCloudflareResultCardPng() {
+      const snapshot = getActiveCloudflareResultSnapshot();
+      const canvas = createCloudflareResultCardCanvas(snapshot);
+      if (!canvas || !snapshot) return;
+      const download = (url) => {
+        const anchor = document.createElement("a");
+        anchor.href = url;
+        anchor.download = `singularity-race-${snapshot.roomCode || "result"}.png`;
+        anchor.click();
+      };
+      if (canvas.toBlob) {
+        canvas.toBlob((blob) => {
+          if (!blob) return download(canvas.toDataURL("image/png"));
+          const url = URL.createObjectURL(blob);
+          download(url);
+          window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+        }, "image/png");
+        return;
+      }
+      download(canvas.toDataURL("image/png"));
+    }
+
+    async function shareCloudflareResultCard() {
+      const snapshot = getActiveCloudflareResultSnapshot();
+      const canvas = createCloudflareResultCardCanvas(snapshot);
+      const text = formatCloudflareResultText(snapshot);
+      if (!snapshot || !canvas) return;
+      try {
+        const blob = await new Promise((resolve) => canvas.toBlob(resolve, "image/png"));
+        const file = blob ? new File([blob], `singularity-race-${snapshot.roomCode || "result"}.png`, { type: "image/png" }) : null;
+        if (file && navigator.canShare?.({ files: [file] })) {
+          await navigator.share({ title: "특이점레이스 결과", text, files: [file] });
+          return;
+        }
+        if (navigator.share) {
+          await navigator.share({ title: "특이점레이스 결과", text });
+          return;
+        }
+      } catch (error) {
+        if (error?.name === "AbortError") return;
+      }
+      await copyCloudflareResultText();
+    }
+
+    async function copyCloudflareResultText() {
+      const text = formatCloudflareResultText();
+      if (!text) return;
+      try {
+        await navigator.clipboard.writeText(text);
+        pushSystem("결과 텍스트를 복사했습니다.");
+      } catch {
+        pushSystem(text);
+      }
+      renderAll();
+    }
+
     function renderRaceResultPanel() {
       const result = state.action.finalResult;
       if (!result) {
@@ -14795,6 +15077,7 @@
         delete elements.raceCeremonyPodium.dataset.phase;
         elements.raceCeremonySummary.replaceChildren();
         elements.raceResultList.replaceChildren();
+        renderRaceResultShareButtons();
         return;
       }
       elements.raceResultTitle.textContent = result.title;
@@ -14814,6 +15097,7 @@
         elements.raceCeremonySummary.replaceChildren();
         elements.raceResultList.replaceChildren();
         renderRaceCeremonySpace(result);
+        renderRaceResultShareButtons();
         return;
       }
       renderRaceCeremonyPodium(result);
@@ -14829,6 +15113,7 @@
         return item;
       });
       elements.raceResultList.replaceChildren(...rows);
+      renderRaceResultShareButtons();
     }
 
     function renderRaceCeremonySpace(result) {
@@ -15403,12 +15688,13 @@
       elements.cloudflareHostControls.hidden = !isHostRoom;
       if (!isHostRoom) return;
       const phase = summary.phase || "lobby";
-      const canLobbyCommand = summary.roomActive !== false && (phase === "lobby" || phase === "finished");
+      const resultFinalized = Boolean(summary.resultSnapshot);
+      const canLobbyCommand = summary.roomActive !== false && !resultFinalized && (phase === "lobby" || phase === "finished");
       elements.cloudflareHostTitle.textContent = "방장 컨트롤";
       elements.cloudflareHostCode.textContent = `CODE ${summary.roomCode || summary.roomId}`;
       elements.cloudflareHostOpenButton.disabled = state.cloudflareRoomFetchInFlight || !canLobbyCommand || summary.entryOpen === true;
       elements.cloudflareHostStartButton.disabled = state.cloudflareRoomFetchInFlight || !canLobbyCommand || summary.entryOpen === false || Number(summary.players || 0) <= 0;
-      elements.cloudflareHostEndButton.disabled = state.cloudflareRoomFetchInFlight || summary.roomActive === false;
+      elements.cloudflareHostEndButton.disabled = state.cloudflareRoomFetchInFlight || summary.roomActive === false || !resultFinalized;
     }
 
     function renderConnectedPackets() {
