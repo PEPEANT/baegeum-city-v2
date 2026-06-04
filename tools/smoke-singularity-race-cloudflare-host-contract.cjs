@@ -1,0 +1,93 @@
+"use strict";
+
+const assert = require("node:assert/strict");
+const path = require("node:path");
+const { pathToFileURL } = require("node:url");
+
+const root = path.resolve(__dirname, "..");
+
+run()
+  .then(() => console.log("Singularity Race Cloudflare host contract smoke passed."))
+  .catch((error) => {
+    console.error(error);
+    process.exit(1);
+  });
+
+async function run() {
+  const { SingularityRaceRoom } = await import(pathToFileURL(path.join(root, "workers/singularity-race-worker.js")).href);
+  const room = new SingularityRaceRoom(createFakeDurableObjectState(), {});
+  const roomId = "room:singularity-race:user:ABC123";
+  const hostToken = "unit-host-token";
+  const create = await jsonOf(await room.fetch(new Request(`https://unit.test/host/create?roomId=${encodeURIComponent(roomId)}&roomCode=ABC123`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ hostToken, hostClientId: "client:host", displayName: "Unit User Room" })
+  })));
+  assert.equal(create.status, 200, "host create should activate a user room");
+  assert.deepEqual([create.body.ok, create.body.roomId, create.body.roomCode, create.body.roomKind], [true, roomId, "ABC123", "user"]);
+  assert.deepEqual([create.body.roomActive, create.body.entryOpen, create.body.hostToken], [true, false, hostToken]);
+
+  const wrongOpen = await jsonOf(await room.fetch(hostRequest("/host/open", "wrong-token")));
+  assert.deepEqual([wrongOpen.status, wrongOpen.body.reason], [401, "host_unauthorized"], "wrong host token should be explicit");
+
+  const open = await jsonOf(await room.fetch(hostRequest("/host/open", hostToken)));
+  assert.deepEqual([open.status, open.body.entryOpen], [200, true], "host open should allow entry");
+
+  const emptyStart = await jsonOf(await room.fetch(hostRequest("/host/start", hostToken)));
+  assert.deepEqual([emptyStart.status, emptyStart.body.reason], [409, "no_players"], "host start with no players should be blocked");
+
+  room.sessions.set("client:unit-player", createPlayerSession());
+  const start = await jsonOf(await room.fetch(hostRequest("/host/start", hostToken)));
+  assert.deepEqual([start.status, start.body.phase, start.body.entryOpen], [200, "countdown", false], "host start should move to countdown");
+
+  const end = await jsonOf(await room.fetch(hostRequest("/host/end", hostToken)));
+  assert.deepEqual([end.status, end.body.roomActive, room.hostToken], [200, false, ""], "host end should deactivate and clear token");
+  if (room.countdownTimer) clearTimeout(room.countdownTimer);
+  if (room.serverTickTimer) clearTimeout(room.serverTickTimer);
+}
+
+function hostRequest(pathname, hostToken) {
+  return new Request(`https://unit.test${pathname}`, {
+    method: "POST",
+    headers: { "X-Host-Token": hostToken, "content-type": "application/json" }
+  });
+}
+
+function createPlayerSession() {
+  const now = Date.now();
+  return {
+    clientId: "client:unit-player",
+    participantId: "runner:client:unit-player",
+    participantType: "player",
+    displayName: "Unit Player",
+    progressPercent: 4,
+    laneOffsetPx: 0,
+    finishedAtMs: null,
+    lastMovementTickAtMs: now,
+    lastInputAtMs: now,
+    inputWindowStartedAtMs: now,
+    inputCount: 0
+  };
+}
+
+function createFakeDurableObjectState() {
+  const stored = new Map();
+  return {
+    getWebSockets: () => [],
+    acceptWebSocket: () => {},
+    storage: {
+      async get(keys) {
+        return new Map(keys.filter((key) => stored.has(key)).map((key) => [key, stored.get(key)]));
+      },
+      async put(value) {
+        Object.entries(value).forEach(([key, next]) => stored.set(key, next));
+      },
+      async setAlarm() {},
+      async deleteAlarm() {}
+    }
+  };
+}
+
+async function jsonOf(response) {
+  return { status: response.status, body: await response.json() };
+}

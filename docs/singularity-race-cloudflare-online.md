@@ -1,16 +1,17 @@
 # Singularity Race Cloudflare Online
 
-Conclusion: the first public online slice is a single Cloudflare Workers + Durable Objects room for Singularity Race only.
+Conclusion: the public online slice uses Cloudflare Workers + Durable Objects for the fixed public room and short-code user rooms in Singularity Race only.
 
 ## Scope
 
-- One fixed room: `room:singularity-race:public-001`.
+- One fixed public room: `room:singularity-race:public-001`.
+- User-created rooms use the same Durable Object class with IDs like `room:singularity-race:user:<CODE>`, where `<CODE>` is a random six-character short code.
 - Runner cap: 50.
 - Spectator cap: 32.
 - Client input budget: 10 Hz or lower.
 - Server snapshot cadence: 10 Hz by default, matching the current 100 ms server tick.
 - Chat is server-delivered and rate-limited.
-- No common engine, city economy, item market, login, billing, or multi-room matchmaking in this slice.
+- No common engine, city economy, item market, login, billing, or full multi-room matchmaking in this slice. User rooms are code/link joinable first, not a global discovery system.
 
 ## Files
 
@@ -54,13 +55,15 @@ ws://127.0.0.1:8787/ws
 - The public admin page must never join as a player, create `operator=1` links, or write public room state through localStorage/BroadcastChannel. Dev admin remains separate through `?devOnline=1`.
 - The Durable Object remains one fixed backend room, but public visibility is gated by `roomActive`. A fresh Worker state and `/admin/deactivate` return `roomActive:false`, `/rooms` shows no joinable public room, and player/spectator WebSocket joins are rejected with `room_not_created`. `/admin/create` flips the same fixed room to `roomActive:true`, keeps `entryOpen:false`, and makes the user page show the public room.
 - Public room in-game entry starts closed by default after `/admin/create`. Players may still join the public waiting queue while `entryOpen:false`; the admin console uses `/admin/open` to move waiting players into the in-game start rail.
+- User-room creation is player-page scoped. `POST /rooms/create` returns a short code, room id, and one host token to the creator. The browser stores that host token only in tab-scoped `sessionStorage`.
+- User-room host controls are room-scoped. `POST /rooms/host/open`, `/rooms/host/start`, and `/rooms/host/end` require `X-Host-Token` for the selected room and must not grant global admin authority. Host start still requires an active lobby/finished phase, at least one player, and `entryOpen:true`.
 - After players join the queue, the user page shows an admin in-game-entry wait state. After `/admin/open`, connected players enter the race screen/start rail and wait for admin start. While waiting they may move laterally/backward/forward inside the start paddock, but progress is clamped before the start gate. Only authenticated `/admin/start` may start the Worker-owned 10-second countdown. At least one player must be present, `entryOpen` must be true, phase must be lobby/finished, and the client never decides the gate-open time.
 - Player `start_request`/`start_race` packets are rejected with `admin_start_required`.
 - During countdown/racing, new player joins are blocked with `room_join_closed`, while spectator joins remain allowed when spectator capacity is available. `entryOpen:false` must not block lobby/queue joins; it only blocks admin start and in-game start-rail entry.
 - Durable Object storage persists countdown phase across alarm wakeups, then resets the fixed public room to lobby when the last socket leaves. A finished/reset room keeps entry closed until the admin explicitly opens the next round.
 - Race finish no longer waits forever for every connected player. The first finisher starts a Worker-owned fixed 30 second finish window, even when that finisher is the only current player, so the countdown is always visible before finalization. The Worker persists and snapshots `raceStartedAtMs`, `finishWindowStartedAtMs`, `finishWindowEndsAtMs`, remaining time, and finished/player counts; it sets a Durable Object alarm at the window end so AFK or stuck runners cannot keep the room in `racing`. When the window expires, the Worker emits `race_finished` with `finish_window_expired`, unfinished runners stay DNF, and the client result list sorts finishers before DNF progress order.
 - Map vote, rematch, final ranking authority, checkpoint reward authority, and moderation tools remain future work.
-- Clients may send input, chat, attack, and skill packets. Public `attack_action` packets are server-decided by the Worker: the client may send aim intent, but the Worker ignores client-origin positions, uses the runner sessions' current `progressPercent + laneOffsetPx`, applies cooldown, and publishes stun/slow state through `state_snapshot`. Public basic attacks are impact/stun only for now and do not reduce HP.
+- Clients may send input, chat, attack, and skill packets. Public `attack_action` packets are server-decided by the Worker: the client may send aim intent, but the Worker ignores client-origin positions, uses the runner sessions' current `progressPercent + laneOffsetPx`, applies cooldown, and publishes stun/slow state through `state_snapshot`. The client also consumes server-owned `attack_action` and `skill_use` packets as short attacker/target visuals before the next snapshot, so public hits do not look invisible. Public basic attacks are impact/stun only for now, do not reduce HP, and use the tighter 3.2 progress / 96px client lane prefilter / 52px lane-to-progress / 58-degree Worker arc contract.
 - Clients must not decide final ranking, rewards, room capacity, or server snapshots.
 - Public Worker movement is last-intent ticked: accepted `input_update` packets store normalized intent/direction only, then a 100 ms Durable Object server tick advances from the latest fresh input for up to 550 ms. Packet arrival cadence must not be the movement clock. The same tick loop owns pre-race paddock movement during lobby `entryOpen:true` and countdown, using the start-gate clamp until the room phase becomes `racing`.
 - Worker movement must use the same input movement helper as client prediction before advancing progress/lane. Legacy PC `direction` frames still project onto the current race trail tangent/normal, while mobile frames carry signed `intent.forward` and `intent.lateral` so phone joystick input can move forward, backward, and sideways consistently on curved or vertical route sections. The live player control scheme has no Shift/mobile sprint speed lift: base progress speed is `0.64%/s`, sprint packets are normalized to that same speed, and lane movement is `134px/s`. Backward progress must use the shared slow-backward multiplier, held mobile input must be pumped independently from the render loop while staying at or below the 10 Hz input budget, and map obstacle collision must flow through `src/restored/games/singularity-race-obstacle-contract.js` on both client prediction and Worker movement. The Worker must not treat every nonzero direction as forward progress, use raw `direction.y` as lane movement, run faster than the client prediction, or leave obstacle hitboxes client-only, because those mismatches cause rubber-banding on curves, vertical track segments, and collisions.

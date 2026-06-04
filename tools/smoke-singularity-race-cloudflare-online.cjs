@@ -83,6 +83,14 @@ const finishWindowContract = read("src/restored/games/singularity-race-finish-wi
   "/admin/close",
   "/admin/reset",
   "/admin/map",
+  "USER_ROOM_PREFIX",
+  "/rooms/create",
+  "/rooms/host/open",
+  "/rooms/host/start",
+  "/rooms/host/end",
+  "verifyHostRequest",
+  "X-Host-Token",
+  "hostToken",
   "admin_unauthorized",
   "admin_token_not_configured",
   "entryOpen",
@@ -93,7 +101,7 @@ const finishWindowContract = read("src/restored/games/singularity-race-finish-wi
   "entry_not_open",
   "admin_start_required",
   "start_request",
-  "host: false",
+  "host: Boolean(options.host)",
   "ENTRY_OPEN_DEFAULT",
   "ROOM_ACTIVE_DEFAULT",
   "race_finished",
@@ -120,7 +128,8 @@ const finishWindowContract = read("src/restored/games/singularity-race-finish-wi
   "SINGULARITY_RACE_CLOUDFLARE_SNAPSHOT_HZ = 10",
   "SINGULARITY_RACE_CLOUDFLARE_SNAPSHOT_MAX_HZ = 10",
   "resolveSingularityRaceCloudflareWsUrl",
-  "createSingularityRaceCloudflareRoomClient"
+  "createSingularityRaceCloudflareRoomClient",
+  "join.hostToken"
 ].forEach((token) => assertIncludes(client, token, `client should keep ${token}`));
 
 [
@@ -138,7 +147,15 @@ const finishWindowContract = read("src/restored/games/singularity-race-finish-wi
   "canPublishConnectedInputRequest",
   "enterCloudflareRaceStagingIfOpen",
   "getCurrentConnectedRoomSummary",
-  'fetch(`${CLOUDFLARE_HTTP_ENDPOINT}/rooms`, { cache: "no-store", signal: abort?.signal })',
+  'fetch(`${CLOUDFLARE_HTTP_ENDPOINT}/rooms/create`,',
+  'fetch(`${CLOUDFLARE_HTTP_ENDPOINT}/rooms/host/${action}`,',
+  'roomsUrl.searchParams.set("roomId", CLOUDFLARE_ROOM_ID)',
+  "renderCloudflareHostControls",
+  "cloudflare-create-room-button",
+  "cloudflare-host-start-button",
+  "readCloudflareHostToken",
+  "writeCloudflareHostToken",
+  "setCloudflareRoomId",
   "CLOUDFLARE_ROOM_FETCH_TIMEOUT_MS",
   "abort.abort()",
   "entryOpen: false",
@@ -229,8 +246,13 @@ assert.ok(!admin.includes('localStorage.setItem("adminToken"'), "Public admin pa
 assert.ok(!admin.includes("ADMIN_TOKEN_STORAGE_KEY"), "Public admin page must not use persistent token storage naming");
 assert.ok(!/window\.localStorage\.(getItem|setItem|removeItem)\([^)]*admin-token/i.test(admin), "Public admin page must not persist admin token in localStorage");
 assertIncludes(merge, "participant.skinPreset", "server snapshots should preserve remote participant skins");
-assertIncludes(race, "const BASIC_ATTACK_RANGE_PROGRESS = 4.8", "client basic attack range should stay tuned to 4.8 progress");
-assertIncludes(worker, "const BASIC_ATTACK_RANGE_PROGRESS = 4.8", "worker basic attack range should stay tuned to 4.8 progress");
+assertIncludes(race, "const BASIC_ATTACK_RANGE_PROGRESS = 3.2", "client basic attack range should stay tuned to 3.2 progress");
+assertIncludes(race, "const BASIC_ATTACK_LANE_RANGE_PX = 96", "client basic attack lane range should stay tight");
+assertIncludes(race, "const BASIC_ATTACK_ARC_DEGREES = 58", "client basic attack arc should stay tight");
+assertIncludes(worker, "const BASIC_ATTACK_RANGE_PROGRESS = 3.2", "worker basic attack range should stay tuned to 3.2 progress");
+assertIncludes(worker, "const BASIC_ATTACK_ARC_DEGREES = 58", "worker basic attack arc should stay tight");
+assertIncludes(race, "handleCloudflareCombatActionPacket", "race page should render server-owned public attack packets");
+assertIncludes(race, "serverAttackUntilMs", "race page should keep short server attack visuals through snapshots");
 [
   "preserveLocalPrediction",
   "smoothServerCorrection",
@@ -259,6 +281,7 @@ assert.ok(!worker.includes("if (allFinished || finishWindowExpired)"), "all-fini
 
 execFileSync(process.execPath, [path.join(root, "tools/smoke-singularity-race-finish-window.cjs")], { stdio: "inherit" });
 execFileSync(process.execPath, [path.join(root, "tools/smoke-singularity-race-cloudflare-worker-contract.cjs")], { stdio: "inherit" });
+execFileSync(process.execPath, [path.join(root, "tools/smoke-singularity-race-cloudflare-host-contract.cjs")], { stdio: "inherit" });
 execFileSync(process.execPath, [path.join(root, "tools/smoke-singularity-race-reverse-attack.cjs")], { stdio: "inherit" });
 execFileSync(process.execPath, [path.join(root, "tools/smoke-singularity-race-cloudflare-worker-skill.cjs")], { stdio: "inherit" });
 console.log("Singularity Race Cloudflare online smoke passed.");

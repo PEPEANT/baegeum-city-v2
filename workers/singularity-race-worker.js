@@ -24,8 +24,12 @@ import {
   getRestoredMarathonSkill
 } from "../src/restored/games/marathon-character-skill-contract.js";
 
-const WORKER_VERSION = "singularity-race-cloudflare-online-001";
+const WORKER_VERSION = "singularity-race-cloudflare-online-002";
 const ROOM_ID = "room:singularity-race:public-001";
+const USER_ROOM_PREFIX = "room:singularity-race:user:";
+const USER_ROOM_CODE_LENGTH = 6;
+const USER_ROOM_CODE_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+const HOST_TOKEN_LENGTH = 32;
 const ROOM_NAME = "특이점레이스 공개방 001";
 const MAX_RUNNERS = 50;
 const MAX_SPECTATORS = 32;
@@ -42,9 +46,9 @@ const COUNTDOWN_MS = 10000;
 const COURSE_DISTANCE_METERS = 42195;
 const ENTRY_OPEN_DEFAULT = false;
 const ROOM_ACTIVE_DEFAULT = false;
-const BASIC_ATTACK_RANGE_PROGRESS = 4.8;
-const BASIC_ATTACK_LANE_TO_PROGRESS = 42;
-const BASIC_ATTACK_ARC_DEGREES = 70;
+const BASIC_ATTACK_RANGE_PROGRESS = 3.2;
+const BASIC_ATTACK_LANE_TO_PROGRESS = 52;
+const BASIC_ATTACK_ARC_DEGREES = 58;
 const BASIC_ATTACK_STALL_MS = 180;
 const BASIC_ATTACK_COOLDOWN_MS = 1150;
 const BASIC_ATTACK_STUN_MS = 680;
@@ -92,6 +96,12 @@ export class SingularityRaceRoom {
     this.entryOpen = ENTRY_OPEN_DEFAULT;
     this.roomActive = ROOM_ACTIVE_DEFAULT;
     this.mapId = PUBLIC_MAP_ID;
+    this.roomId = ROOM_ID;
+    this.roomCode = roomCodeFromRoomId(ROOM_ID);
+    this.roomKind = "public";
+    this.roomName = ROOM_NAME;
+    this.hostToken = "";
+    this.hostClientId = "";
     this.roomStateLoaded = false;
     this.storageAvailable = true;
     this.countdownTimer = null;
@@ -100,15 +110,25 @@ export class SingularityRaceRoom {
   }
 
   async fetch(request) {
+    const url = new URL(request.url);
+    this.applyRoomIdentityFromUrl(url);
     await this.loadRoomState();
     if (this.refreshPhase(Date.now())) await this.persistRoomState();
-    const url = new URL(request.url);
     if (url.pathname.endsWith("/summary")) return json(roomSummary(this));
+    if (url.pathname.startsWith("/host/")) return this.handleHostRequest(request, url);
     if (url.pathname.startsWith("/admin/")) return this.handleAdminRequest(request, url);
     if (request.headers.get("Upgrade") !== "websocket") {
       return json({ ok: false, reason: "websocket_upgrade_required" }, 426);
     }
     return this.acceptSocket(request);
+  }
+
+  applyRoomIdentityFromUrl(url) {
+    const nextRoomId = normalizeRoomId(url.searchParams.get("roomId") || url.searchParams.get("roomCode") || this.roomId);
+    this.roomId = nextRoomId;
+    this.roomCode = roomCodeFromRoomId(nextRoomId);
+    this.roomKind = isUserRoomId(nextRoomId) ? "user" : "public";
+    this.roomName = defaultRoomNameFor(nextRoomId);
   }
 
   async webSocketMessage(socket, message) {
@@ -150,7 +170,7 @@ export class SingularityRaceRoom {
         ok: false,
         version: WORKER_VERSION,
         clientId,
-        roomId: ROOM_ID,
+        roomId: this.roomId,
         roomActive: this.roomActive !== false,
         serverTimeMs: now,
         inputHz: INPUT_LIMIT_PER_SECOND,
@@ -172,10 +192,12 @@ export class SingularityRaceRoom {
       return new Response(null, { status: 101, webSocket: client });
     }
     const type = joinGate.participantType;
+    const hostAuth = verifyHostTokenValue(url.searchParams.get("hostToken"), this);
     const session = createSession(this, clientId, {
       displayName: url.searchParams.get("nickname"),
       skinPreset: url.searchParams.get("skinPreset"),
       participantType: type,
+      host: hostAuth.ok,
       now
     });
     this.state.acceptWebSocket(server);
@@ -186,7 +208,7 @@ export class SingularityRaceRoom {
       ok: true,
       version: WORKER_VERSION,
       clientId: session.clientId,
-      roomId: ROOM_ID,
+      roomId: this.roomId,
       serverTimeMs: now,
       inputHz: INPUT_LIMIT_PER_SECOND,
       snapshotHz: Math.round(1000 / SNAPSHOT_INTERVAL_MS),
@@ -208,8 +230,8 @@ export class SingularityRaceRoom {
     const text = cleanText(packet.payload?.text, 140);
     if (!text) return send(socket, this.serverPacket("error", { reason: "empty_chat" }, session));
     const message = {
-      id: `message:${ROOM_ID}:${this.sequence++}`,
-      channelId: packet.payload?.channelId || `room:${ROOM_ID.replace(/^room:/, "")}`,
+      id: `message:${this.roomId}:${this.sequence++}`,
+      channelId: packet.payload?.channelId || `room:${this.roomId.replace(/^room:/, "")}`,
       senderId: session.participantId,
       senderType: session.participantType,
       displayName: session.displayName,
@@ -346,7 +368,7 @@ export class SingularityRaceRoom {
     await this.safeSetAlarm(this.countdownEndsAtMs + 25);
     this.scheduleCountdownTimer();
     this.broadcast(this.serverPacket("start_countdown", {
-      roomId: ROOM_ID,
+      roomId: this.roomId,
       gateOpensAtMs: this.countdownEndsAtMs,
       countdownMs: COUNTDOWN_MS,
       serverOwned: true
@@ -432,7 +454,7 @@ export class SingularityRaceRoom {
     if (!force && now - this.lastSnapshotAtMs < SNAPSHOT_INTERVAL_MS) return false;
     this.lastSnapshotAtMs = now;
     return this.broadcast(this.serverPacket("state_snapshot", {
-      roomId: ROOM_ID,
+      roomId: this.roomId,
       sequence: this.sequence,
       serverOwned: true,
       serverTimeMs: now,
@@ -454,10 +476,10 @@ export class SingularityRaceRoom {
       transportVersion: "restored-marathon-server-transport-001",
       type,
       clientId: "server:cloudflare-durable-object",
-      roomId: ROOM_ID,
+      roomId: this.roomId,
       sequence: this.sequence++,
       serverTimeMs: Date.now(),
-      payload: { roomId: ROOM_ID, ...payload, targetClientId: session.clientId || "" }
+      payload: { roomId: this.roomId, ...payload, targetClientId: session.clientId || "" }
     };
   }
 
@@ -569,7 +591,30 @@ export class SingularityRaceRoom {
 
   async loadRoomState() {
     if (this.roomStateLoaded) return;
-    const stored = await this.safeStorageGet(["phase", "countdownEndsAtMs", "raceStartedAtMs", "finishWindowStartedAtMs", "finishWindowEndsAtMs", "entryOpen", "roomActive", "mapId"]);
+    const stored = await this.safeStorageGet([
+      "roomId",
+      "roomCode",
+      "roomKind",
+      "roomName",
+      "hostToken",
+      "hostClientId",
+      "phase",
+      "countdownEndsAtMs",
+      "raceStartedAtMs",
+      "finishWindowStartedAtMs",
+      "finishWindowEndsAtMs",
+      "entryOpen",
+      "roomActive",
+      "mapId"
+    ]);
+    const incomingRoomId = this.roomId;
+    const storedRoomId = normalizeRoomId(stored.get("roomId") || incomingRoomId);
+    this.roomId = isUserRoomId(incomingRoomId) ? incomingRoomId : storedRoomId;
+    this.roomCode = cleanText(stored.get("roomCode") || roomCodeFromRoomId(this.roomId), USER_ROOM_CODE_LENGTH);
+    this.roomKind = stored.get("roomKind") === "user" || isUserRoomId(this.roomId) ? "user" : "public";
+    this.roomName = cleanText(stored.get("roomName") || defaultRoomNameFor(this.roomId), 64) || defaultRoomNameFor(this.roomId);
+    this.hostToken = cleanText(stored.get("hostToken"), 96);
+    this.hostClientId = normalizeClientId(stored.get("hostClientId"));
     this.phase = sanitizePhase(stored.get("phase"));
     this.countdownEndsAtMs = Number(stored.get("countdownEndsAtMs") || 0);
     this.raceStartedAtMs = Number(stored.get("raceStartedAtMs") || 0);
@@ -605,6 +650,12 @@ export class SingularityRaceRoom {
 
   async persistRoomState() {
     await this.safeStoragePut({
+      roomId: this.roomId,
+      roomCode: this.roomCode,
+      roomKind: this.roomKind,
+      roomName: this.roomName,
+      hostToken: this.hostToken,
+      hostClientId: this.hostClientId,
       phase: this.phase,
       countdownEndsAtMs: this.countdownEndsAtMs,
       raceStartedAtMs: this.raceStartedAtMs,
@@ -688,6 +739,66 @@ export class SingularityRaceRoom {
     this.broadcast(this.serverPacket("presence_update", { summary: roomSummary(this), serverOwned: true }));
     this.broadcastSnapshot(true);
     return json({ ...roomSummary(this), ok: true, action: "map" });
+  }
+
+  async handleHostRequest(request, url) {
+    if (url.pathname.endsWith("/host/create")) return this.handleHostCreate(request, url);
+    const auth = verifyHostRequest(request, this);
+    if (!auth.ok) return json({ ok: false, reason: auth.reason }, auth.status);
+    if (request.method === "GET" && url.pathname.endsWith("/host/state")) {
+      return json({ ...roomSummary(this), host: true });
+    }
+    if (request.method !== "POST") return json({ ok: false, reason: "method_not_allowed" }, 405);
+    if (url.pathname.endsWith("/host/open")) return this.handleHostEntryOpen();
+    if (url.pathname.endsWith("/host/start")) return this.handleHostStart();
+    if (url.pathname.endsWith("/host/end") || url.pathname.endsWith("/host/close")) return this.handleHostEnd();
+    return json({ ok: false, reason: "unknown_host_endpoint" }, 404);
+  }
+
+  async handleHostCreate(request, url) {
+    const requestedRoomId = normalizeRoomId(url.searchParams.get("roomId") || this.roomId);
+    if (!isUserRoomId(requestedRoomId)) return json({ ok: false, reason: "host_room_required" }, 400);
+    if (this.roomActive && this.hostToken) return json({ ...roomSummary(this), ok: false, reason: "room_code_in_use" }, 409);
+    const body = await readJsonBody(request);
+    const hostToken = cleanText(body?.hostToken, 96);
+    if (!hostToken) return json({ ok: false, reason: "host_token_required" }, 400);
+    this.roomId = requestedRoomId;
+    this.roomCode = cleanText(url.searchParams.get("roomCode") || body?.roomCode || roomCodeFromRoomId(requestedRoomId), USER_ROOM_CODE_LENGTH);
+    this.roomKind = "user";
+    this.roomName = cleanText(body?.displayName, 64) || defaultRoomNameFor(requestedRoomId);
+    this.hostToken = hostToken;
+    this.hostClientId = normalizeClientId(body?.hostClientId);
+    await this.createRoom("host_create");
+    return json({ ...roomSummary(this), ok: true, action: "create", host: true, hostToken: this.hostToken });
+  }
+
+  async handleHostEntryOpen() {
+    if (!this.roomActive) return json({ ...roomSummary(this), ok: false, reason: "room_not_created" }, 409);
+    if (this.phase !== "lobby" && this.phase !== "finished") return json({ ok: false, reason: "race_active", phase: this.phase }, 409);
+    this.phase = "lobby";
+    this.countdownEndsAtMs = 0;
+    this.entryOpen = true;
+    await this.persistRoomState();
+    await this.safeDeleteAlarm();
+    this.broadcast(this.serverPacket("presence_update", { summary: roomSummary(this), serverOwned: true, hostOwned: true }));
+    return json({ ...roomSummary(this), ok: true, action: "open", host: true });
+  }
+
+  async handleHostStart() {
+    if (!this.roomActive) return json({ ...roomSummary(this), ok: false, reason: "room_not_created" }, 409);
+    if (this.phase !== "lobby" && this.phase !== "finished") return json({ ok: false, reason: "room_not_in_lobby", phase: this.phase }, 409);
+    if (countPlayers(this) <= 0) return json({ ...roomSummary(this), ok: false, reason: "no_players" }, 409);
+    if (this.entryOpen === false) return json({ ...roomSummary(this), ok: false, reason: "entry_not_open" }, 409);
+    await this.startCountdown(Date.now(), { clientId: `host:${this.roomCode || "room"}` });
+    return json({ ...roomSummary(this), ok: true, action: "start", host: true });
+  }
+
+  async handleHostEnd() {
+    await this.deactivateRoom("host_closed_room");
+    this.hostToken = "";
+    this.hostClientId = "";
+    await this.persistRoomState();
+    return json({ ...roomSummary(this), ok: true, action: "end", host: true });
   }
 
   async safeStorageGet(keys) {
@@ -811,14 +922,67 @@ async function routeWorkerRequest(request, env) {
   const url = new URL(request.url);
   if (request.method === "OPTIONS") return corsPreflight();
   if (url.pathname === "/health") return json({ ok: true, version: WORKER_VERSION, roomId: ROOM_ID });
-  if (url.pathname === "/rooms") return roomStub(env).fetch(new Request(`${url.origin}/summary`));
-  if (url.pathname === "/ws") return roomStub(env).fetch(request);
-  if (url.pathname.startsWith("/admin/")) return roomStub(env).fetch(request);
-  return json({ ok: true, service: "singularity-race-online", endpoints: ["/health", "/rooms", "/ws"] });
+  if (url.pathname === "/rooms/create") return handleCreateUserRoomRequest(request, env, url);
+  if (url.pathname.startsWith("/rooms/host/")) return handleRoomHostRoute(request, env, url);
+  if (url.pathname === "/rooms") {
+    const targetRoomId = normalizeRoomId(url.searchParams.get("roomId") || url.searchParams.get("roomCode") || ROOM_ID);
+    return roomStub(env, targetRoomId).fetch(new Request(`${url.origin}/summary?roomId=${encodeURIComponent(targetRoomId)}`));
+  }
+  if (url.pathname === "/ws") return roomStub(env, normalizeRoomId(url.searchParams.get("roomId") || ROOM_ID)).fetch(request);
+  if (url.pathname.startsWith("/admin/")) return roomStub(env, normalizeRoomId(url.searchParams.get("roomId") || ROOM_ID)).fetch(request);
+  return json({ ok: true, service: "singularity-race-online", endpoints: ["/health", "/rooms", "/rooms/create", "/rooms/host/open", "/rooms/host/start", "/rooms/host/end", "/ws"] });
 }
 
-function roomStub(env) {
-  const id = env.SINGULARITY_RACE_ROOM.idFromName(ROOM_ID);
+async function handleCreateUserRoomRequest(request, env, url) {
+  if (request.method !== "POST") return json({ ok: false, reason: "method_not_allowed" }, 405);
+  const body = await readJsonBody(request);
+  for (let attempt = 0; attempt < 8; attempt += 1) {
+    const roomCode = generateShortRoomCode();
+    const roomId = roomIdFromCode(roomCode);
+    const hostToken = generateHostToken();
+    const createUrl = new URL(`${url.origin}/host/create`);
+    createUrl.searchParams.set("roomId", roomId);
+    createUrl.searchParams.set("roomCode", roomCode);
+    const response = await roomStub(env, roomId).fetch(new Request(createUrl.toString(), {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        roomId,
+        roomCode,
+        hostToken,
+        hostClientId: body?.hostClientId || "",
+        displayName: body?.displayName || defaultRoomNameFor(roomId)
+      })
+    }));
+    const payload = await response.json().catch(() => null);
+    if (response.status === 409 && payload?.reason === "room_code_in_use") continue;
+    if (!response.ok || !payload?.ok) return json(payload || { ok: false, reason: `create_${response.status}` }, response.status);
+    return json({
+      ...payload,
+      hostToken,
+      roomUrl: `${url.origin}/ws?roomId=${encodeURIComponent(roomId)}`
+    }, response.status);
+  }
+  return json({ ok: false, reason: "room_code_collision" }, 409);
+}
+
+async function handleRoomHostRoute(request, env, url) {
+  const bodyText = request.method === "GET" ? "" : await request.text().catch(() => "");
+  const body = bodyText ? parseJsonText(bodyText) : {};
+  const targetRoomId = normalizeRoomId(body?.roomId || url.searchParams.get("roomId") || body?.roomCode || url.searchParams.get("roomCode") || ROOM_ID);
+  const hostPath = url.pathname.replace(/^\/rooms\/host/, "/host");
+  const hostUrl = new URL(`${url.origin}${hostPath}`);
+  hostUrl.searchParams.set("roomId", targetRoomId);
+  const headers = new Headers(request.headers);
+  return roomStub(env, targetRoomId).fetch(new Request(hostUrl.toString(), {
+    method: request.method,
+    headers,
+    body: bodyText || undefined
+  }));
+}
+
+function roomStub(env, roomId = ROOM_ID) {
+  const id = env.SINGULARITY_RACE_ROOM.idFromName(normalizeRoomId(roomId));
   return env.SINGULARITY_RACE_ROOM.get(id);
 }
 
@@ -831,7 +995,7 @@ function createSession(room, clientId, options) {
     participantType: type,
     displayName: cleanText(options.displayName, 24) || `플레이어${String(lane).padStart(2, "0")}`,
     skinPreset: cleanText(options.skinPreset, 48) || "singularity-fan",
-    host: false,
+    host: Boolean(options.host),
     lane,
     joinedAtMs: options.now,
     progressPercent: START_PROGRESS,
@@ -939,6 +1103,9 @@ function finishWindowSummary(room, now = Date.now()) {
 function joinPayload(room, session) {
   return {
     ok: true,
+    roomId: room.roomId || ROOM_ID,
+    roomCode: room.roomCode || roomCodeFromRoomId(room.roomId || ROOM_ID),
+    roomKind: room.roomKind || (isUserRoomId(room.roomId) ? "user" : "public"),
     playerId: session.participantId,
     clientId: session.clientId,
     participantId: session.participantId,
@@ -968,8 +1135,10 @@ function roomSummary(room) {
   return {
     ok: true,
     version: WORKER_VERSION,
-    roomId: ROOM_ID,
-    displayName: ROOM_NAME,
+    roomId: room.roomId || ROOM_ID,
+    roomCode: room.roomCode || roomCodeFromRoomId(room.roomId || ROOM_ID),
+    roomKind: room.roomKind || (isUserRoomId(room.roomId) ? "user" : "public"),
+    displayName: room.roomName || defaultRoomNameFor(room.roomId || ROOM_ID),
     roomActive,
     phase: room.phase,
     entryOpen: room.entryOpen,
@@ -1337,9 +1506,10 @@ function cleanText(value, max) { return String(value || "").replace(/\s+/g, " ")
 function safeObject(value) { return value && typeof value === "object" ? value : {}; }
 function sanitizePhase(value) { return ["lobby", "countdown", "racing", "finished"].includes(value) ? value : "lobby"; }
 function parsePacket(message) { try { return JSON.parse(String(message)); } catch { return null; } }
+function parseJsonText(value) { try { return JSON.parse(String(value || "{}")); } catch { return {}; } }
 function send(socket, packet) { socket.send(JSON.stringify(packet)); }
 function json(payload, status = 200) { return new Response(JSON.stringify(payload), { status, headers: { "content-type": "application/json; charset=utf-8", "access-control-allow-origin": "*" } }); }
-function corsPreflight() { return new Response(null, { status: 204, headers: { "access-control-allow-origin": "*", "access-control-allow-methods": "GET, POST, OPTIONS", "access-control-allow-headers": "authorization, content-type, x-admin-token" } }); }
+function corsPreflight() { return new Response(null, { status: 204, headers: { "access-control-allow-origin": "*", "access-control-allow-methods": "GET, POST, OPTIONS", "access-control-allow-headers": "authorization, content-type, x-admin-token, x-host-token" } }); }
 function verifyAdminRequest(request, env) {
   const expected = String(env?.ADMIN_TOKEN || "").trim();
   if (!expected) return { ok: false, reason: "admin_token_not_configured", status: 503 };
@@ -1348,6 +1518,54 @@ function verifyAdminRequest(request, env) {
   const provided = bearer || headerToken;
   if (!provided || provided !== expected) return { ok: false, reason: "admin_unauthorized", status: 401 };
   return { ok: true };
+}
+function verifyHostRequest(request, room) {
+  const bearer = String(request.headers.get("Authorization") || "").replace(/^Bearer\s+/i, "").trim();
+  const headerToken = String(request.headers.get("X-Host-Token") || "").trim();
+  return verifyHostTokenValue(bearer || headerToken, room);
+}
+function verifyHostTokenValue(value, room) {
+  const expected = String(room?.hostToken || "").trim();
+  if (!expected) return { ok: false, reason: "host_token_not_configured", status: 503 };
+  const provided = String(value || "").trim();
+  if (!provided || provided !== expected) return { ok: false, reason: "host_unauthorized", status: 401 };
+  return { ok: true };
+}
+function normalizeRoomCode(value) {
+  return String(value || "").toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, USER_ROOM_CODE_LENGTH);
+}
+function isUserRoomId(value) {
+  return String(value || "").startsWith(USER_ROOM_PREFIX) && normalizeRoomCode(String(value || "").slice(USER_ROOM_PREFIX.length)).length === USER_ROOM_CODE_LENGTH;
+}
+function roomIdFromCode(value) {
+  const code = normalizeRoomCode(value);
+  return code.length === USER_ROOM_CODE_LENGTH ? `${USER_ROOM_PREFIX}${code}` : ROOM_ID;
+}
+function roomCodeFromRoomId(value) {
+  const raw = String(value || "");
+  if (!raw.startsWith(USER_ROOM_PREFIX)) return "PUBLIC";
+  return normalizeRoomCode(raw.slice(USER_ROOM_PREFIX.length));
+}
+function normalizeRoomId(value) {
+  const raw = String(value || "").trim();
+  if (raw === ROOM_ID) return ROOM_ID;
+  if (raw.startsWith(USER_ROOM_PREFIX)) return roomIdFromCode(raw.slice(USER_ROOM_PREFIX.length));
+  const code = normalizeRoomCode(raw);
+  return code.length === USER_ROOM_CODE_LENGTH ? roomIdFromCode(code) : ROOM_ID;
+}
+function defaultRoomNameFor(roomId) {
+  return isUserRoomId(roomId) ? `User Room ${roomCodeFromRoomId(roomId)}` : ROOM_NAME;
+}
+function generateShortRoomCode() {
+  return randomAlphabetToken(USER_ROOM_CODE_LENGTH);
+}
+function generateHostToken() {
+  return randomAlphabetToken(HOST_TOKEN_LENGTH);
+}
+function randomAlphabetToken(length) {
+  const bytes = new Uint8Array(Math.max(1, Number(length) || 1));
+  crypto.getRandomValues(bytes);
+  return [...bytes].map((byte) => USER_ROOM_CODE_ALPHABET[byte % USER_ROOM_CODE_ALPHABET.length]).join("");
 }
 async function readJsonBody(request) {
   try {

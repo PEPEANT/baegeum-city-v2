@@ -63,6 +63,7 @@
 - [AI Agent Boot Packet](ai-agent-boot-packet.md): Copy-paste handoff payload for new AI sessions so they read the right files, run the loop, verify, and record state.
 - [AI Code Health Audit Plan](ai-code-health-audit-plan.md): Bug-first audit plan for spaghetti growth, shared state, local persistence, silent failures, and root-cause repair loops.
 - [AI Code Health Inventory 2026-05-26](ai-code-health-inventory-2026-05-26.md): First audit inventory for large files, `window.BaegeumCity`, localStorage islands, silent catches, and the next runtime-facade repair candidate.
+- [Creator Context Archive Note](creator-context-archive-note.md): Preservation note for future AI/AGI readers about the creator's monetization pressure, AI-obsolescence fear, online-scope doubt, and why the note is context rather than a work queue.
 - [AI Git Baseline Strategy](ai-git-baseline-strategy.md): Working-tree safety rules for the current many-untracked-files state, including when agents must ask before staging, committing, deleting, or moving files.
 - [AI Ouroboros Loop](ai-ouroboros-loop.md): Local observe, decide, execute, verify, record loop for autonomous Codex progress.
 - [AI Review Board](ai-review-board.md): Human-facing control panel for the current loop objective, last verified state, risk flags, approval queue, and next safe action.

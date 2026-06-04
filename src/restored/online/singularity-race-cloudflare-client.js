@@ -91,6 +91,7 @@ function createJoinUrl(endpoint, roomId, join = {}) {
   url.searchParams.set("skinPreset", String(join.skinPreset || ""));
   url.searchParams.set("participantType", join.participantType === "spectator" ? "spectator" : "player");
   if (join.clientId) url.searchParams.set("clientId", join.clientId);
+  if (join.hostToken) url.searchParams.set("hostToken", String(join.hostToken || ""));
   return url.toString();
 }
 
