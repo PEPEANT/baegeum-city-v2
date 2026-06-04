@@ -15,6 +15,7 @@ run()
 
 async function run() {
   const { SingularityRaceRoom } = await import(pathToFileURL(path.join(root, "workers/singularity-race-worker.js")).href);
+  await assertUserRoomDirectory(SingularityRaceRoom);
   const room = new SingularityRaceRoom(createFakeDurableObjectState(), {});
   const roomId = "room:singularity-race:user:ABC123";
   const hostToken = "unit-host-token";
@@ -87,6 +88,23 @@ async function run() {
   if (room.serverTickTimer) clearTimeout(room.serverTickTimer);
 }
 
+async function assertUserRoomDirectory(SingularityRaceRoom) {
+  const namespace = createFakeRoomNamespace(SingularityRaceRoom);
+  const publicRoom = namespace.getRoom("room:singularity-race:public-001");
+  const create = await jsonOf(await publicRoom.fetch(new Request("https://unit.test/rooms/create", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ hostClientId: "client:directory-host", displayName: "Directory Room" })
+  })));
+  assert.equal(create.status, 200, "public room registry should create a user room");
+  const summary = await jsonOf(await publicRoom.fetch(new Request("https://unit.test/summary?includeUserRooms=1")));
+  assert.equal(summary.status, 200, "public summary should expose room directory");
+  assert.equal(summary.body.userRooms.length, 1, "public summary should include active user rooms");
+  assert.equal(summary.body.userRooms[0].roomId, create.body.roomId, "directory entry should point at the created room");
+  assert.equal(summary.body.userRooms[0].participants, undefined, "directory entries should not include participant snapshots");
+  assert.ok(summary.body.rooms.some((room) => room.roomId === create.body.roomId), "combined room list should include the created room");
+}
+
 function hostRequest(pathname, hostToken) {
   return new Request(`https://unit.test${pathname}`, {
     method: "POST",
@@ -114,6 +132,17 @@ function createPlayerSession(options = {}) {
 
 function createFakeSocket(session) {
   return { deserializeAttachment: () => session, send() {}, close() {} };
+}
+
+function createFakeRoomNamespace(RoomClass) {
+  const rooms = new Map();
+  const env = { SINGULARITY_RACE_ROOM: { idFromName: (name) => name, get: (id) => ({ fetch: (request) => getRoom(id).fetch(request) }) } };
+  function getRoom(roomId) {
+    const key = String(roomId);
+    if (!rooms.has(key)) rooms.set(key, new RoomClass(createFakeDurableObjectState(), env));
+    return rooms.get(key);
+  }
+  return { getRoom };
 }
 
 function createFakeDurableObjectState() {

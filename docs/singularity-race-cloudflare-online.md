@@ -11,7 +11,7 @@ Conclusion: the public online slice uses Cloudflare Workers + Durable Objects fo
 - Client input budget: 10 Hz or lower.
 - Server snapshot cadence: 10 Hz by default, matching the current 100 ms server tick.
 - Chat is server-delivered and rate-limited.
-- No common engine, city economy, item market, login, billing, or full multi-room matchmaking in this slice. User rooms are code/link joinable first, not a global discovery system.
+- No common engine, city economy, item market, login, billing, or full multi-room matchmaking in this slice. User rooms now have a minimal lobby directory so active short-code rooms can be selected from the player page, but broader matchmaking, search, ranking, and cross-game routing remain out of scope.
 
 ## Files
 
@@ -56,6 +56,7 @@ ws://127.0.0.1:8787/ws
 - The Durable Object remains one fixed backend room, but public visibility is gated by `roomActive`. A fresh Worker state and `/admin/deactivate` return `roomActive:false`, `/rooms` shows no joinable public room, and player/spectator WebSocket joins are rejected with `room_not_created`. `/admin/create` flips the same fixed room to `roomActive:true`, keeps `entryOpen:false`, and makes the user page show the public room.
 - Public room in-game entry starts closed by default after `/admin/create`. Players may still join the public waiting queue while `entryOpen:false`; the admin console uses `/admin/open` to move waiting players into the in-game start rail.
 - User-room creation is player-page scoped. `POST /rooms/create` returns a short code, room id, and one host token to the creator. The browser stores that host token only in tab-scoped `sessionStorage`.
+- `/rooms` remains backward-compatible as a single selected-room summary, and `includeUserRooms=1` on the public room adds `rooms`/`userRooms` directory arrays for active non-closed user rooms. Directory entries are compact summaries for cards and do not include participant snapshots.
 - User-room host controls are room-scoped and can be collapsed/expanded on the player page so the queue/race overlay does not cover too much of the track. When collapsed, the panel hides the title, room code, and action row, leaving only the reopen toggle visible. `POST /rooms/host/open`, `/rooms/host/start`, and `/rooms/host/end` require `X-Host-Token` for the selected room and must not grant global admin authority. Host start still requires an active lobby/finished phase, at least one player, and `entryOpen:true`. If the host player disconnects while the user room is still in the lobby/queue phase, the Worker closes the room with `host_disconnected`.
 - Queue slots and in-race nameplates preserve the Worker `host` marker and label that runner as `방장`, so participants can see who owns the room before and during a race.
 - User-room creation is rate-limited by a registry Durable Object path through the fixed public room. The current guard is 60 seconds per host client/IP key and 12 active user rooms at once; old records are refreshed from each room summary before creating a new room.

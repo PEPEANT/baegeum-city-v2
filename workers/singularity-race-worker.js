@@ -131,7 +131,7 @@ export class SingularityRaceRoom {
     await this.loadRoomState();
     await this.refreshRuntime(Date.now());
     if (url.pathname === "/rooms/create") return this.handleCreateUserRoomRequest(request, url);
-    if (url.pathname.endsWith("/summary")) return json(roomSummary(this));
+    if (url.pathname.endsWith("/summary")) return this.handleSummaryRequest(url);
     if (url.pathname.startsWith("/host/")) return this.handleHostRequest(request, url);
     if (url.pathname.startsWith("/admin/")) return this.handleAdminRequest(request, url);
     if (request.headers.get("Upgrade") !== "websocket") {
@@ -988,6 +988,23 @@ export class SingularityRaceRoom {
     return json({ ...roomSummary(this), ok: true, action: "end", host: true });
   }
 
+  async handleSummaryRequest(url) {
+    const summary = roomSummary(this);
+    const includeUserRooms = url.searchParams.get("includeUserRooms") === "1";
+    if (!includeUserRooms || this.roomId !== ROOM_ID) return json(summary);
+    const now = Date.now();
+    await this.loadUserRoomRegistry();
+    await this.refreshUserRoomRegistry(url, now);
+    const userRooms = await this.collectUserRoomSummaries(url);
+    return json({
+      ...summary,
+      userRooms,
+      rooms: [roomDirectorySummary(summary), ...userRooms],
+      activeUserRooms: userRooms.length,
+      maxUserRooms: USER_ROOM_MAX_ACTIVE
+    });
+  }
+
   async handleCreateUserRoomRequest(request, url) {
     if (this.roomId !== ROOM_ID) return json({ ok: false, reason: "room_registry_required" }, 400);
     if (request.method !== "POST") return json({ ok: false, reason: "method_not_allowed" }, 405);
@@ -1074,6 +1091,23 @@ export class SingularityRaceRoom {
       userRoomRegistry: this.userRoomRegistry,
       roomCreateCooldowns: this.roomCreateCooldowns
     });
+  }
+
+  async collectUserRoomSummaries(url) {
+    const rooms = [];
+    for (const record of normalizeUserRoomRegistry(this.userRoomRegistry)) {
+      if (record.roomActive === false || ["closed", "deleted"].includes(record.roomStatus)) continue;
+      const roomId = normalizeRoomId(record.roomId || record.roomCode);
+      if (!isUserRoomId(roomId)) continue;
+      try {
+        const response = await roomStub(this.env, roomId).fetch(new Request(`${url.origin}/summary?roomId=${encodeURIComponent(roomId)}`));
+        const summary = await response.json().catch(() => null);
+        if (!response.ok || !summary?.ok || summary.roomActive === false) continue;
+        if (["closed", "deleted"].includes(summary.roomStatus)) continue;
+        rooms.push(roomDirectorySummary(summary));
+      } catch {}
+    }
+    return rooms.sort((left, right) => Number(right.createdAtMs || 0) - Number(left.createdAtMs || 0));
   }
 
   async refreshUserRoomRegistry(url, now = Date.now()) {
@@ -1227,8 +1261,14 @@ async function routeWorkerRequest(request, env) {
   if (url.pathname === "/rooms/create") return roomStub(env, ROOM_ID).fetch(request);
   if (url.pathname.startsWith("/rooms/host/")) return handleRoomHostRoute(request, env, url);
   if (url.pathname === "/rooms") {
-    const targetRoomId = normalizeRoomId(url.searchParams.get("roomId") || url.searchParams.get("roomCode") || ROOM_ID);
-    return roomStub(env, targetRoomId).fetch(new Request(`${url.origin}/summary?roomId=${encodeURIComponent(targetRoomId)}`));
+    const rawRoom = url.searchParams.get("roomId") || url.searchParams.get("roomCode") || "";
+    const targetRoomId = normalizeRoomId(rawRoom || ROOM_ID);
+    const summaryUrl = new URL(`${url.origin}/summary`);
+    summaryUrl.searchParams.set("roomId", targetRoomId);
+    if (targetRoomId === ROOM_ID && (!rawRoom || url.searchParams.get("includeUserRooms") === "1")) {
+      summaryUrl.searchParams.set("includeUserRooms", "1");
+    }
+    return roomStub(env, targetRoomId).fetch(new Request(summaryUrl.toString()));
   }
   if (url.pathname === "/ws") return roomStub(env, normalizeRoomId(url.searchParams.get("roomId") || ROOM_ID)).fetch(request);
   if (url.pathname.startsWith("/admin/")) return roomStub(env, normalizeRoomId(url.searchParams.get("roomId") || ROOM_ID)).fetch(request);
@@ -1439,6 +1479,29 @@ function roomSummary(room) {
     inputHz: INPUT_LIMIT_PER_SECOND,
     snapshotHz: Math.round(1000 / SNAPSHOT_INTERVAL_MS),
     minSnapshotHz: Math.round(1000 / MIN_SNAPSHOT_INTERVAL_MS)
+  };
+}
+
+function roomDirectorySummary(summary = {}) {
+  const roomId = normalizeRoomId(summary.roomId || summary.roomCode);
+  const roomActive = summary.roomActive !== false;
+  return {
+    roomId,
+    roomCode: summary.roomCode || roomCodeFromRoomId(roomId),
+    roomKind: summary.roomKind || (isUserRoomId(roomId) ? "user" : "public"),
+    displayName: summary.displayName || defaultRoomNameFor(roomId),
+    roomActive,
+    roomStatus: summary.roomStatus || "open",
+    phase: summary.phase || "lobby",
+    entryOpen: roomActive && summary.entryOpen === true,
+    mapId: summary.mapId || PUBLIC_MAP_ID,
+    players: roomActive ? Math.max(0, Number(summary.players || 0)) : 0,
+    maxPlayers: Math.max(1, Number(summary.maxPlayers || MAX_RUNNERS)),
+    spectators: roomActive ? Math.max(0, Number(summary.spectators || 0)) : 0,
+    maxSpectators: Math.max(0, Number(summary.maxSpectators || MAX_SPECTATORS)),
+    createdAtMs: Math.max(0, Number(summary.createdAtMs || 0)),
+    lastActivityAtMs: Math.max(0, Number(summary.lastActivityAtMs || 0)),
+    resultFinalizedAtMs: Math.max(0, Number(summary.resultFinalizedAtMs || 0))
   };
 }
 

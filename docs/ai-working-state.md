@@ -1,6 +1,13 @@
 # AI Working State
 
 Date: 2026-06-04
+Observed: User reported that a host-created user room exists, but other users cannot see it in the lobby; root-cause inspection showed `/rooms` exposed only one selected-room summary while the user-room registry stayed internal for cooldown/cap checks.
+Changed: The public Cloudflare room summary can now expose a compact active user-room directory through `rooms`/`userRooms` when `/rooms` is requested for the public room with `includeUserRooms=1` or no explicit room id. The player lobby stores that directory, renders public/user room selection cards, updates the selected `CLOUDFLARE_ROOM_ID` when a card is clicked, and keeps the existing ready/spectator buttons entering the selected room.
+Verified: `node tools/smoke-singularity-race-cloudflare-host-contract.cjs`, `node tools/smoke-singularity-race-cloudflare-online.cjs`, `npm run check:singularity-race`, `node tools/check-size.cjs`, browser directory rendering verification, `git diff --check`, and full `npm run check` passed. Browser verification mocked `/rooms` with public + user room entries, rendered both cards, and confirmed selecting the user room updates the URL roomId, top card title, and room-kind badge.
+Next: Commit/push/deploy the Worker + player-page directory changes when the user wants them live.
+Do not: Treat user rooms as created only for the host tab; active non-closed user rooms must be discoverable from the public lobby directory.
+
+Date: 2026-06-04
 Observed: User clarified that collapsing the room-scoped host controls should also hide the visible host-control title text, not only the action row.
 Changed: Collapsed Cloudflare host controls now hide the title/code header content and shrink the panel to the reopen toggle. The online smoke guards the collapsed header-text selector, and the Cloudflare online doc now states that collapsed controls leave only the reopen toggle visible.
 Verified: `node tools/smoke-singularity-race-cloudflare-online.cjs`, `npm run check:singularity-race`, browser verification on local `singularity-race.html`, `git diff --check`, and full `npm run check` passed. The browser check confirmed clicking the host-control toggle leaves only the `열기` button visible, with title/code and action row hidden.
